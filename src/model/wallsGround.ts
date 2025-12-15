@@ -1,4 +1,11 @@
-import { BoxGeometry, ExtrudeGeometry, Mesh, MeshStandardMaterial, Shape } from 'three';
+import {
+  BoxGeometry,
+  ExtrudeGeometry,
+  Mesh,
+  MeshPhysicalMaterial,
+  MeshStandardMaterial,
+  Shape,
+} from 'three';
 import layoutGround from './layoutGround';
 import { ceilingHeights, wallThickness } from './houseSpec';
 
@@ -24,10 +31,14 @@ type WallsGround = {
 
 const wallMaterial = new MeshStandardMaterial({ color: 0xf3f0eb });
 const frameMaterial = new MeshStandardMaterial({ color: 0x1c1c1c });
-const glassMaterial = new MeshStandardMaterial({
-  color: 0x7fbfff,
-  opacity: 0.45,
+const glassMaterial = new MeshPhysicalMaterial({
+  color: 0xdceeff,
   transparent: true,
+  opacity: 1,
+  transmission: 1,
+  roughness: 0.05,
+  metalness: 0,
+  thickness: 0.02,
 });
 
 const { width: footprintWidth, depth: footprintDepth } = layoutGround.footprint;

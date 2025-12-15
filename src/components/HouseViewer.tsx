@@ -1,6 +1,7 @@
 import { Container, Sprite, Stage, useTick } from '@inlet/react-pixi';
 import { useEffect, useReducer, useRef } from 'react';
 import layoutGround from '../model/layoutGround';
+import wallsGround from '../model/wallsGround';
 import useWinResize from '../hooks/useWinResize';
 
 let hasLoggedLayout = false;
@@ -55,6 +56,7 @@ const HouseViewer = () => {
     if (!hasLoggedLayout) {
       // One-time diagnostic snapshot of the computed ground layout.
       console.log('layoutGround', layoutGround);
+      console.log('wallsGround', wallsGround);
       hasLoggedLayout = true;
     }
   }, []);

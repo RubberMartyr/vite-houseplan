@@ -1,5 +1,6 @@
 import {
   BoxGeometry,
+  DoubleSide,
   ExtrudeGeometry,
   Mesh,
   MeshPhysicalMaterial,
@@ -29,7 +30,10 @@ type WallsGround = {
   glass: Mesh[];
 };
 
-const wallMaterial = new MeshStandardMaterial({ color: 0xf3f0eb });
+const wallMaterial = new MeshStandardMaterial({
+  color: 0xf3f0eb,
+  side: DoubleSide,
+});
 const frameMaterial = new MeshStandardMaterial({ color: 0x1c1c1c });
 const glassMaterial = new MeshPhysicalMaterial({
   color: 0xdceeff,

@@ -61,6 +61,8 @@ export class MeshStandardMaterial {
 
 export class MeshPhysicalMaterial extends MeshStandardMaterial {}
 
+export const DoubleSide = 2;
+
 export class Mesh {
   geometry: unknown;
   material: unknown;

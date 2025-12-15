@@ -223,12 +223,16 @@ const glass: Mesh[] = [];
 
 facadeOpenings.front.forEach((opening) => {
   const meshes = createOpeningMeshes(opening);
+  meshes.frame.visible = false;
+  meshes.glass.visible = false;
   frames.push(meshes.frame);
   glass.push(meshes.glass);
 });
 
 facadeOpenings.rear.forEach((opening) => {
   const meshes = createOpeningMeshes(opening);
+  meshes.frame.visible = false;
+  meshes.glass.visible = false;
   frames.push(meshes.frame);
   glass.push(meshes.glass);
 });

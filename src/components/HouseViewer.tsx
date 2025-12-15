@@ -1,79 +1,93 @@
-import { Container, Sprite, Stage, useTick } from '@inlet/react-pixi';
-import { useEffect, useReducer, useRef } from 'react';
-import layoutGround from '../model/layoutGround';
-import wallsGround from '../model/wallsGround';
+import { useEffect, useRef } from 'react';
+import {
+  AmbientLight,
+  Color,
+  DirectionalLight,
+  PerspectiveCamera,
+  Scene,
+  WebGLRenderer,
+} from 'three';
 import useWinResize from '../hooks/useWinResize';
+import wallsGround from '../model/wallsGround';
 
-let hasLoggedLayout = false;
-
-type ReducerAction = 'update';
-
-interface ReducerInit {
-  type: ReducerAction;
-  data: {
-    x: number;
-    y: number;
-    rotation: number;
-    anchor: number;
-  };
-}
-
-const reducer: (_: any, payload: ReducerInit) => ReducerInit['data'] = (
-  _,
-  { data }
-) => data;
-
-const mowtwoSpriteUrl = new URL('../favicon.svg', import.meta.url).href;
-
-const Mowtwo = () => {
-  const [motion, update] = useReducer(reducer, {
-    x: 0,
-    y: 0,
-    rotation: 0,
-    anchor: 0,
-  });
-  const iter = useRef(0);
-  useTick((delta) => {
-    const { sin, PI, random } = Math;
-    const i = (iter.current += (random() / 4) * delta);
-    update({
-      type: 'update',
-      data: {
-        x: sin(i) * 100,
-        y: sin(i / 1.5) * 100,
-        rotation: sin(i) * PI,
-        anchor: sin(i / 2),
-      },
-    });
-  });
-  return <Sprite image={mowtwoSpriteUrl} {...motion} />;
-};
+const cameraPosition = { x: 10, y: 8, z: 12 };
 
 const HouseViewer = () => {
-  const [wW, wH] = useWinResize();
+  const [width, height] = useWinResize();
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const rendererRef = useRef<WebGLRenderer>();
+  const cameraRef = useRef<PerspectiveCamera>();
 
   useEffect(() => {
-    if (!hasLoggedLayout) {
-      // One-time diagnostic snapshot of the computed ground layout.
-      console.log('layoutGround', layoutGround);
-      console.log('wallsGround', wallsGround);
-      hasLoggedLayout = true;
-    }
-  }, []);
+    if (!mountRef.current || width === 0 || height === 0) return;
 
-  return (
-    <Stage width={wW} height={wH}>
-      <Container x={300} y={300}>
-        <Mowtwo />
-        <Mowtwo />
-        <Mowtwo />
-        <Mowtwo />
-        <Mowtwo />
-        <Mowtwo />
-        <Mowtwo />
-      </Container>
-    </Stage>
-  );
+    const scene = new Scene();
+    // Equivalent to <color attach="background" args={['#b9d7ff']} /> in react-three-fiber.
+    scene.background = new Color('#b9d7ff');
+
+    const camera = new PerspectiveCamera(50, width / height || 1, 0.1, 100);
+    camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    camera.lookAt(0, 1.3, 0);
+    cameraRef.current = camera;
+
+    const renderer = new WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(width, height);
+    rendererRef.current = renderer;
+
+    const ambient = new AmbientLight(0xffffff, 0.7);
+    const sun = new DirectionalLight(0xffffff, 0.6);
+    sun.position.set(6, 10, 6);
+
+    scene.add(ambient, sun);
+
+    wallsGround.walls.forEach((mesh) => {
+      scene.add(mesh);
+    });
+
+    wallsGround.frames.forEach((mesh) => {
+      mesh.visible = false;
+      scene.add(mesh);
+    });
+
+    wallsGround.glass.forEach((mesh) => {
+      mesh.visible = false;
+      scene.add(mesh);
+    });
+
+    mountRef.current.appendChild(renderer.domElement);
+
+    let frameId: number;
+    const renderScene = () => {
+      renderer.render(scene, camera);
+    };
+
+    const animate = () => {
+      frameId = requestAnimationFrame(animate);
+      renderScene();
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      renderer.dispose();
+      if (renderer.domElement.parentElement) {
+        renderer.domElement.parentElement.removeChild(renderer.domElement);
+      }
+    };
+  }, [height, width]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (renderer && camera && width > 0 && height > 0) {
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+  }, [height, width]);
+
+  return <div ref={mountRef} style={{ width: '100vw', height: '100vh' }} />;
 };
 
 export default HouseViewer;

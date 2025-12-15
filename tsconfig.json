@@ -16,7 +16,8 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "react-dom/client": ["./src/react-dom-client-shim"]
+      "react-dom/client": ["./src/react-dom-client-shim"],
+      "three": ["./src/three-shim"]
     }
   },
   "include": ["./src"]

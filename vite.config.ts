@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'react-dom/client': path.resolve(__dirname, 'src/react-dom-client-shim.ts'),
+      three: path.resolve(__dirname, 'src/three-shim.ts'),
     }
   }
 })

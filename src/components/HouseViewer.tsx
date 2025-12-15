@@ -41,17 +41,9 @@ const HouseViewer = () => {
 
     scene.add(ambient, sun);
 
+    // Only render the segmented exterior wall meshes defined in wallsGround.
+    // Legacy ring geometry (extrudeWallRing/extWallsGeom) has been removed.
     wallsGround.walls.forEach((mesh) => {
-      scene.add(mesh);
-    });
-
-    wallsGround.frames.forEach((mesh) => {
-      mesh.visible = false;
-      scene.add(mesh);
-    });
-
-    wallsGround.glass.forEach((mesh) => {
-      mesh.visible = false;
       scene.add(mesh);
     });
 

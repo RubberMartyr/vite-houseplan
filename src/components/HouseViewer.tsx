@@ -22,6 +22,8 @@ const reducer: (_: any, payload: ReducerInit) => ReducerInit['data'] = (
   { data }
 ) => data;
 
+const mowtwoSpriteUrl = new URL('../favicon.svg', import.meta.url).href;
+
 const Mowtwo = () => {
   const [motion, update] = useReducer(reducer, {
     x: 0,
@@ -43,7 +45,7 @@ const Mowtwo = () => {
       },
     });
   });
-  return <Sprite image="https://mowtwo.com/favicon.png" {...motion} />;
+  return <Sprite image={mowtwoSpriteUrl} {...motion} />;
 };
 
 const HouseViewer = () => {

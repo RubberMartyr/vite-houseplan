@@ -14,10 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "react-dom/client": ["./src/react-dom-client-shim"]
-    }
+    "jsx": "react-jsx"
   },
   "include": ["./src"]
 }

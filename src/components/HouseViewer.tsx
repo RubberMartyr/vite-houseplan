@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
 import {
   AmbientLight,
+  BoxGeometry,
   Color,
   DirectionalLight,
+  Mesh,
+  MeshBasicMaterial,
   PerspectiveCamera,
   Scene,
   WebGLRenderer,
@@ -17,6 +20,10 @@ const HouseViewer = () => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<WebGLRenderer>();
   const cameraRef = useRef<PerspectiveCamera>();
+
+  useEffect(() => {
+    console.log('DEBUG ACTIVE');
+  }, []);
 
   useEffect(() => {
     if (!mountRef.current || width === 0 || height === 0) return;
@@ -40,6 +47,13 @@ const HouseViewer = () => {
     sun.position.set(6, 10, 6);
 
     scene.add(ambient, sun);
+
+    const debugCube = new Mesh(
+      new BoxGeometry(1, 1, 1),
+      new MeshBasicMaterial({ color: '#ff00ff' })
+    );
+    debugCube.position.set(2, 1.0, 5);
+    scene.add(debugCube);
 
     // Only render the segmented exterior wall meshes defined in wallsGround.
     // Legacy ring geometry (extrudeWallRing/extWallsGeom) has been removed.

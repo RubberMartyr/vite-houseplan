@@ -245,31 +245,17 @@ facadeOpenings.rear.forEach((opening) => {
   glass.push(meshes.glass);
 });
 
-const frontLivingWindow = facadeOpenings.front[0];
-const rearSlidingOpening = facadeOpenings.rear[0];
+const frontZ = -footprintDepth / 2 - 0.2;
+const rearZ = footprintDepth / 2 + 0.2;
 
-const frontFacadeZ = 0;
-const rearFacadeZ = footprintDepth;
+const portalGeometry = new PlaneGeometry(12, 5);
+const portalMaterial = new MeshBasicMaterial({ color: '#00ffff', side: DoubleSide });
 
-const portalMaterials = [
-  new MeshBasicMaterial({ color: '#ff00ff', side: DoubleSide }),
-  new MeshBasicMaterial({ color: '#00ffff', side: DoubleSide }),
-  new MeshBasicMaterial({ color: '#ffff00', side: DoubleSide }),
-];
+const frontPlane = new Mesh(portalGeometry, portalMaterial);
+frontPlane.position.set(0, 1.5, frontZ);
 
-const frontPlane = new Mesh(new PlaneGeometry(4, 3), portalMaterials[0]);
-frontPlane.position.set(
-  (frontLivingWindow.xMin + frontLivingWindow.xMax) / 2,
-  frontLivingWindow.bottom + frontLivingWindow.height / 2,
-  frontFacadeZ - 0.5
-);
-
-const rearPlane = new Mesh(new PlaneGeometry(6, 3), portalMaterials[1]);
-rearPlane.position.set(
-  (rearSlidingOpening.xMin + rearSlidingOpening.xMax) / 2,
-  rearSlidingOpening.bottom + rearSlidingOpening.height / 2,
-  rearFacadeZ + 0.5
-);
+const rearPlane = new Mesh(portalGeometry, portalMaterial);
+rearPlane.position.set(0, 1.5, rearZ);
 rearPlane.rotateY(Math.PI);
 
 portalPlanes.push(frontPlane, rearPlane);

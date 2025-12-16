@@ -3,8 +3,10 @@ import {
   DoubleSide,
   ExtrudeGeometry,
   Mesh,
+  MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  PlaneGeometry,
   Shape,
 } from 'three';
 import layoutGround from './layoutGround';
@@ -28,6 +30,7 @@ type WallsGround = {
   walls: Mesh[];
   frames: Mesh[];
   glass: Mesh[];
+  portalPlanes: Mesh[];
 };
 
 const wallMaterial = new MeshStandardMaterial({
@@ -224,6 +227,7 @@ facadeOpenings.rear.push({
 const walls: Mesh[] = [];
 const frames: Mesh[] = [];
 const glass: Mesh[] = [];
+const portalPlanes: Mesh[] = [];
 
 facadeOpenings.front.forEach((opening) => {
   const meshes = createOpeningMeshes(opening);
@@ -240,6 +244,35 @@ facadeOpenings.rear.forEach((opening) => {
   frames.push(meshes.frame);
   glass.push(meshes.glass);
 });
+
+const frontLivingWindow = facadeOpenings.front[0];
+const rearSlidingOpening = facadeOpenings.rear[0];
+
+const frontFacadeZ = 0;
+const rearFacadeZ = footprintDepth;
+
+const portalMaterials = [
+  new MeshBasicMaterial({ color: '#ff00ff', side: DoubleSide }),
+  new MeshBasicMaterial({ color: '#00ffff', side: DoubleSide }),
+  new MeshBasicMaterial({ color: '#ffff00', side: DoubleSide }),
+];
+
+const frontPlane = new Mesh(new PlaneGeometry(4, 3), portalMaterials[0]);
+frontPlane.position.set(
+  (frontLivingWindow.xMin + frontLivingWindow.xMax) / 2,
+  frontLivingWindow.bottom + frontLivingWindow.height / 2,
+  frontFacadeZ - 0.5
+);
+
+const rearPlane = new Mesh(new PlaneGeometry(6, 3), portalMaterials[1]);
+rearPlane.position.set(
+  (rearSlidingOpening.xMin + rearSlidingOpening.xMax) / 2,
+  rearSlidingOpening.bottom + rearSlidingOpening.height / 2,
+  rearFacadeZ + 0.5
+);
+rearPlane.rotateY(Math.PI);
+
+portalPlanes.push(frontPlane, rearPlane);
 
 walls.push(
   ...buildFacadeSegments(0, footprintWidth, 0, exteriorThickness, facadeOpenings.front)
@@ -269,6 +302,7 @@ const wallsGround: WallsGround = {
   walls,
   frames,
   glass,
+  portalPlanes,
 };
 
 export default wallsGround;

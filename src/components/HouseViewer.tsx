@@ -1,9 +1,9 @@
 import { Canvas } from '@react-three/fiber';
 import { useMemo } from 'react';
-import { DoubleSide, Material } from 'three';
-import layoutGround from '../model/layoutGround';
+import { DoubleSide } from 'three';
+import { layoutGround } from '../model/layoutGround';
 import { ceilingHeights, footprint, wallThickness } from '../model/houseSpec';
-import wallsGround from '../model/wallsGround';
+import { wallsGround } from '../model/wallsGround';
 
 const cameraPosition: [number, number, number] = [2, 1.6, 5];
 const lookAtTarget: [number, number, number] = [
@@ -32,25 +32,18 @@ const Floor = () => {
 
 const ExteriorWalls = () => (
   <>
-    {wallsGround.walls.map((mesh, index) => {
-      const material: Material = Array.isArray(mesh.material)
-        ? mesh.material[0]
-        : mesh.material;
-      material.side = DoubleSide;
-      material.wireframe = true;
-
-      return (
-        <mesh
-          key={`exterior-wall-${index}`}
-          geometry={mesh.geometry}
-          material={material}
-          position={[mesh.position.x, mesh.position.y, mesh.position.z]}
-          rotation={[mesh.rotation.x, mesh.rotation.y, mesh.rotation.z]}
-          castShadow
-          receiveShadow
-        />
-      );
-    })}
+    {wallsGround.segments.map((segment, index) => (
+      <mesh
+        key={`exterior-wall-${index}`}
+        position={segment.position}
+        rotation={segment.rotation}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry args={segment.size} />
+        <meshStandardMaterial color={wallColor} side={DoubleSide} />
+      </mesh>
+    ))}
   </>
 );
 

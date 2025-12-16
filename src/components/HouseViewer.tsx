@@ -1,8 +1,8 @@
 import { Canvas } from '@react-three/fiber';
 import { useMemo } from 'react';
-import { Color, DoubleSide, Material } from 'three';
+import { DoubleSide, Material } from 'three';
 import layoutGround from '../model/layoutGround';
-import { ceilingHeights, wallThickness } from '../model/houseSpec';
+import { ceilingHeights, footprint, wallThickness } from '../model/houseSpec';
 import wallsGround from '../model/wallsGround';
 
 const cameraPosition: [number, number, number] = [2, 1.6, 5];
@@ -37,6 +37,7 @@ const ExteriorWalls = () => (
         ? mesh.material[0]
         : mesh.material;
       material.side = DoubleSide;
+      material.wireframe = true;
 
       return (
         <mesh
@@ -97,7 +98,7 @@ const InteriorWalls = () => {
       {walls.map((wall, index) => (
         <mesh key={`interior-wall-${index}`} position={wall.position} castShadow receiveShadow>
           <boxGeometry args={wall.size} />
-          <meshStandardMaterial color={wallColor} side={DoubleSide} />
+          <meshStandardMaterial color={wallColor} side={DoubleSide} wireframe />
         </mesh>
       ))}
     </>
@@ -111,6 +112,24 @@ const Lights = () => (
   </>
 );
 
+const PortalPlanes = () => {
+  const frontZ = -footprint.depth / 2 - 0.5;
+  const rearZ = footprint.depth / 2 + 0.5;
+
+  return (
+    <>
+      <mesh position={[0, 2.0, frontZ]} rotation={[0, 0, 0]}>
+        <planeGeometry args={[20, 8]} />
+        <meshBasicMaterial color="#ff00ff" side={DoubleSide} />
+      </mesh>
+      <mesh position={[0, 2.0, rearZ]} rotation={[0, Math.PI, 0]}>
+        <planeGeometry args={[20, 8]} />
+        <meshBasicMaterial color="#ff00ff" side={DoubleSide} />
+      </mesh>
+    </>
+  );
+};
+
 const HouseViewer = () => {
   return (
     <Canvas
@@ -121,9 +140,10 @@ const HouseViewer = () => {
         camera.lookAt(...lookAtTarget);
       }}
     >
-      <color attach="background" args={[new Color('#b9d7ff')]} />
+      <color attach="background" args={['#8fd3ff']} />
       <Lights />
       <Floor />
+      <PortalPlanes />
       <InteriorWalls />
       <ExteriorWalls />
     </Canvas>

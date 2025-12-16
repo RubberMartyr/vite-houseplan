@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@inlet/react-pixi": "^6.6.5",
+    "@react-three/fiber": "^7.0.27",
     "pixi.js": "^6.2.1",
     "three": "^0.165.0",
     "react": "^17.0.2",

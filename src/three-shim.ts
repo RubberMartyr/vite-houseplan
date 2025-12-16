@@ -44,6 +44,15 @@ export class BoxGeometry {
   }
 }
 
+export class PlaneGeometry {
+  width: number;
+  height: number;
+  constructor(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+  }
+}
+
 export class ExtrudeGeometry {
   shape: Shape;
   settings: Record<string, unknown>;
@@ -59,6 +68,8 @@ export class MeshStandardMaterial {
   constructor(_options?: Record<string, unknown>) {}
 }
 
+export class MeshBasicMaterial extends MeshStandardMaterial {}
+
 export class MeshPhysicalMaterial extends MeshStandardMaterial {}
 
 export const DoubleSide = 2;
@@ -72,6 +83,7 @@ export class Mesh {
     this.geometry = geometry;
     this.material = material;
   }
+  rotateY(_radians: number) {}
 }
 
 export class Scene {

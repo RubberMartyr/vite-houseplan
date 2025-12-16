@@ -47,6 +47,10 @@ const HouseViewer = () => {
       scene.add(mesh);
     });
 
+    wallsGround.portalPlanes.forEach((mesh) => {
+      scene.add(mesh);
+    });
+
     mountRef.current.appendChild(renderer.domElement);
 
     let frameId: number;

@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useMemo } from 'react';
-import { DoubleSide } from 'three';
+import { DoubleSide, MeshStandardMaterial } from 'three';
 import { layoutGround } from '../model/layoutGround';
 import { ceilingHeights, footprint, wallThickness } from '../model/houseSpec';
 import { wallsGround } from '../model/wallsGround';
@@ -30,22 +30,31 @@ const Floor = () => {
   );
 };
 
-const ExteriorWalls = () => (
-  <>
-    {wallsGround.segments.map((segment, index) => (
-      <mesh
-        key={`exterior-wall-${index}`}
-        position={segment.position}
-        rotation={segment.rotation}
-        castShadow
-        receiveShadow
-      >
-        <boxGeometry args={segment.size} />
-        <meshStandardMaterial color={wallColor} side={DoubleSide} />
-      </mesh>
-    ))}
-  </>
-);
+const ExteriorWalls = () => {
+  const wallMaterial = useMemo(
+    () => new MeshStandardMaterial({ color: wallColor, side: DoubleSide }),
+    []
+  );
+
+  const wallSegments =
+    ((Array.isArray(wallsGround) ? wallsGround : wallsGround?.segments) as any[]) ?? [];
+
+  return (
+    <>
+      {wallSegments.map((wall, index) => (
+        <mesh
+          key={`exterior-wall-${index}`}
+          geometry={wall.geometry}
+          position={wall.position}
+          rotation={wall.rotation}
+          material={wallMaterial}
+          castShadow
+          receiveShadow
+        />
+      ))}
+    </>
+  );
+};
 
 const InteriorWalls = () => {
   const { interior, zones, rooms } = layoutGround;

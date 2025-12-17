@@ -1,20 +1,30 @@
 export type EnvelopePoint = { x: number; z: number };
 
-export const frontWidth = 9.6;
-export const rearWidth = 7.6;
-export const depth = 15;
+export const depthCm = 1500;
+export const frontWidthCm = 960;
+export const rearWidthCm = 760;
 
-export const leftFacadeProfile: EnvelopePoint[] = [
-  { z: 0, x: -4.8 },
-  { z: 4, x: -4.8 },
-  { z: 4, x: -4.1 },
-  { z: 8.45, x: -4.1 },
-  { z: 8.45, x: -3.5 },
-  { z: depth, x: -3.5 },
+export const leftFacadeProfileCm: EnvelopePoint[] = [
+  { z: 0, x: -480 },
+  { z: 400, x: -480 },
+  { z: 400, x: -410 },
+  { z: 845, x: -410 },
+  { z: 845, x: -350 },
+  { z: depthCm, x: -350 },
 ];
+
+const cmToMeters = (value: number) => value / 100;
+
+export const leftFacadeProfile: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
+  x: cmToMeters(point.x),
+  z: cmToMeters(point.z),
+}));
 
 const frontLeft = leftFacadeProfile[0];
 const rearLeft = leftFacadeProfile[leftFacadeProfile.length - 1];
+export const frontWidth = cmToMeters(frontWidthCm);
+export const rearWidth = cmToMeters(rearWidthCm);
+export const depth = cmToMeters(depthCm);
 const frontRight = { x: frontLeft.x + frontWidth, z: 0 };
 const rearRight = { x: rearLeft.x + rearWidth, z: depth };
 
@@ -39,6 +49,16 @@ const envelopeOutlineRaw: EnvelopePoint[] = [
 
 export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(envelopeOutlineRaw);
 
+export const envelopeBoundsCm = envelopeOutline.reduce(
+  (acc, point) => ({
+    minX: Math.min(acc.minX, point.x * 100),
+    maxX: Math.max(acc.maxX, point.x * 100),
+    minZ: Math.min(acc.minZ, point.z * 100),
+    maxZ: Math.max(acc.maxZ, point.z * 100),
+  }),
+  { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity }
+);
+
 const bounds = envelopeOutline.reduce(
   (acc, point) => ({
     minX: Math.min(acc.minX, point.x),
@@ -56,6 +76,11 @@ export const footprint = {
 
 export const footprintWidth = footprint.width;
 export const footprintDepth = footprint.depth;
+
+export const originOffset = {
+  x: -(bounds.minX + bounds.maxX) / 2,
+  z: -(bounds.minZ + bounds.maxZ) / 2,
+};
 
 export const frontZ = bounds.minZ;
 export const rearZ = bounds.maxZ;

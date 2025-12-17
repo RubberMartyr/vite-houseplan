@@ -378,17 +378,17 @@ export default function HouseViewer() {
 
       {/* HOUSE ASSEMBLY */}
       <group position={[0, 0, 0]}>
-  {wallsGround().map((seg, i) => (
-    <mesh
-      key={i}
-      geometry={seg.geometry}
-      position={seg.position}
-      rotation={seg.rotation}
-      material={wallMaterial}
-      castShadow
-      receiveShadow
-    />
-  ))}
+        {wallsGround.segments.map((seg, i) => (
+          <mesh
+            key={i}
+            geometry={seg.geometry}
+            position={seg.position}
+            rotation={seg.rotation}
+            material={wallMaterial}
+            castShadow
+            receiveShadow
+          />
+        ))}
         <Roof />
         <FloorSlabs />
         {/* <Openings /> */}

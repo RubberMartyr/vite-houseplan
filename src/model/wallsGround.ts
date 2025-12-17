@@ -1,11 +1,13 @@
+import { layoutGround } from './layoutGround';
+import { ceilingHeights, wallThickness } from './houseSpec';
+import { BoxGeometry } from 'three';
+
 type WallSegment = {
   position: [number, number, number];
   size: [number, number, number];
   rotation: [number, number, number];
+  geometry: BoxGeometry;
 };
-
-import { layoutGround } from './layoutGround';
-import { ceilingHeights, wallThickness } from './houseSpec';
 
 type Opening = {
   xMin: number;
@@ -36,6 +38,7 @@ function createWallSegment(
     ],
     size: [xMax - xMin, height, zMax - zMin],
     rotation: [0, 0, 0],
+    geometry: new BoxGeometry(xMax - xMin, height, zMax - zMin),
   };
 }
 

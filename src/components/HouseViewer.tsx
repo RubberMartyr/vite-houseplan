@@ -11,8 +11,11 @@ import {
   footprintDepth,
   frontZ,
   rearZ,
+  leftX,
+  rightX,
   ceilingHeights,
   levelHeights,
+  wallThickness,
 } from '../model/houseSpec'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
@@ -194,6 +197,42 @@ function useBuildingMaterials() {
   return { brick, roof, glass, frame };
 }
 
+type FacadeKey = 'front' | 'rear' | 'left' | 'right';
+
+function groupByFacade(segments) {
+  const facadeCenters: Record<FacadeKey, number> = {
+    front: frontZ + wallThickness.exterior / 2,
+    rear: rearZ - wallThickness.exterior / 2,
+    left: leftX + wallThickness.exterior / 2,
+    right: rightX - wallThickness.exterior / 2,
+  };
+
+  const buckets: Record<FacadeKey, typeof segments> = {
+    front: [],
+    rear: [],
+    left: [],
+    right: [],
+  };
+
+  const tolerance = 0.25;
+
+  segments.forEach((segment) => {
+    const [x, , z] = segment.position;
+
+    if (Math.abs(z - facadeCenters.front) <= tolerance) {
+      buckets.front.push(segment);
+    } else if (Math.abs(z - facadeCenters.rear) <= tolerance) {
+      buckets.rear.push(segment);
+    } else if (Math.abs(x - facadeCenters.left) <= tolerance) {
+      buckets.left.push(segment);
+    } else {
+      buckets.right.push(segment);
+    }
+  });
+
+  return buckets;
+}
+
 // --- HOUSE COMPONENTS ---
 
 function Walls() {
@@ -359,6 +398,16 @@ export default function HouseViewer() {
   const showGround = floorView !== '1F';
   const showFirst = floorView !== 'GF';
   const firstFloorY = levelHeights.firstFloor;
+  const [cutawayEnabled, setCutawayEnabled] = useState(false);
+  const [facadeVisibility, setFacadeVisibility] = useState<Record<FacadeKey, boolean>>({
+    front: true,
+    rear: true,
+    left: true,
+    right: true,
+  });
+
+  const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
+  const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
 
   const buttonStyle = {
     padding: '6px 10px',
@@ -383,10 +432,56 @@ export default function HouseViewer() {
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 12,
         }}
       >
-        <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>Floor View</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>Cutaway Mode</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              style={{
+                ...buttonStyle,
+                background: cutawayEnabled ? '#1d6f42' : buttonStyle.background,
+                color: cutawayEnabled ? '#fff' : '#111',
+              }}
+              onClick={() => setCutawayEnabled((prev) => !prev)}
+            >
+              {cutawayEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
+            {(
+              [
+                { key: 'front', label: 'Front' },
+                { key: 'rear', label: 'Rear' },
+                { key: 'left', label: 'Left' },
+                { key: 'right', label: 'Right' },
+              ] as { key: FacadeKey; label: string }[]
+            ).map(({ key, label }) => {
+              const isActive = facadeVisibility[key];
+              return (
+                <button
+                  key={key}
+                  style={{
+                    ...buttonStyle,
+                    background: isActive ? '#8B5A40' : '#ddd',
+                    color: isActive ? '#fff' : '#444',
+                  }}
+                  onClick={() =>
+                    setFacadeVisibility((prev) => ({
+                      ...prev,
+                      [key]: !prev[key],
+                    }))
+                  }
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Floor View</span>
         <div style={{ display: 'flex', gap: 8 }}>
           {['GF', '1F', 'Both'].map((label) => {
             const isActive = floorView === label;
@@ -427,39 +522,48 @@ export default function HouseViewer() {
 
         {/* HOUSE ASSEMBLY */}
         <group position={[0, 0, 0]}>
-          {showGround && (
-            <group>
-              {wallsGround.segments.map((seg, i) => (
-                <mesh
-                  key={`gf-${i}`}
-                  geometry={seg.geometry}
-                  position={seg.position}
-                  rotation={seg.rotation}
-                  material={wallMaterial}
-                  castShadow
-                  receiveShadow
-                />
-              ))}
-              <Slab y={0} />
-            </group>
-          )}
+          {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
+            const showFacade = !cutawayEnabled || facadeVisibility[facadeKey];
 
-          {showFirst && (
-            <group>
-              <Slab y={firstFloorY} />
-              {wallsFirst.segments.map((seg, i) => (
-                <mesh
-                  key={`1f-${i}`}
-                  geometry={seg.geometry}
-                  position={[seg.position[0], seg.position[1] + firstFloorY, seg.position[2]]}
-                  rotation={seg.rotation}
-                  material={wallMaterial}
-                  castShadow
-                  receiveShadow
-                />
-              ))}
-            </group>
-          )}
+            return (
+              <group key={facadeKey} name={`facade-${facadeKey}`} visible={showFacade}>
+                {showGround && (
+                  <group>
+                    {groundFacades[facadeKey].map((seg, i) => (
+                      <mesh
+                        key={`gf-${facadeKey}-${i}`}
+                        geometry={seg.geometry}
+                        position={seg.position}
+                        rotation={seg.rotation}
+                        material={wallMaterial}
+                        castShadow
+                        receiveShadow
+                      />
+                    ))}
+                  </group>
+                )}
+
+                {showFirst && (
+                  <group>
+                    {firstFacades[facadeKey].map((seg, i) => (
+                      <mesh
+                        key={`1f-${facadeKey}-${i}`}
+                        geometry={seg.geometry}
+                        position={[seg.position[0], seg.position[1] + firstFloorY, seg.position[2]]}
+                        rotation={seg.rotation}
+                        material={wallMaterial}
+                        castShadow
+                        receiveShadow
+                      />
+                    ))}
+                  </group>
+                )}
+              </group>
+            );
+          })}
+
+          {showGround && <Slab y={0} />}
+          {showFirst && <Slab y={firstFloorY} />}
 
           <Roof />
           {/* <Openings /> */}

@@ -15,6 +15,12 @@ const lookAtTarget: [number, number, number] = [
 const floorColor = '#dcd7cf';
 const wallColor = '#f0ede8';
 
+type WallSegment = {
+  geometry: any;
+  position: [number, number, number];
+  rotation: [number, number, number];
+};
+
 const Floor = () => {
   const { width, depth } = layoutGround.footprint;
 
@@ -27,32 +33,6 @@ const Floor = () => {
       <planeGeometry args={[width, depth]} />
       <meshStandardMaterial color={floorColor} />
     </mesh>
-  );
-};
-
-const ExteriorWalls = () => {
-  const wallMaterial = useMemo(
-    () => new MeshStandardMaterial({ color: wallColor, side: DoubleSide }),
-    []
-  );
-
-  const wallSegments =
-    ((Array.isArray(wallsGround) ? wallsGround : wallsGround?.segments) as any[]) ?? [];
-
-  return (
-    <>
-      {wallSegments.map((wall, index) => (
-        <mesh
-          key={`exterior-wall-${index}`}
-          geometry={wall.geometry}
-          position={wall.position}
-          rotation={wall.rotation}
-          material={wallMaterial}
-          castShadow
-          receiveShadow
-        />
-      ))}
-    </>
   );
 };
 
@@ -133,6 +113,17 @@ const PortalPlanes = () => {
 };
 
 const HouseViewer = () => {
+  const brickMat = useMemo(
+    () => new MeshStandardMaterial({ color: '#b26b44', side: DoubleSide }),
+    []
+  );
+
+  const wallSegments = useMemo<WallSegment[]>(() => {
+    const result = typeof wallsGround === 'function' ? wallsGround() : wallsGround;
+    if (Array.isArray(result)) return result as WallSegment[];
+    return (result?.segments as WallSegment[]) ?? [];
+  }, []);
+
   return (
     <Canvas
       camera={{ position: cameraPosition, fov: 50, near: 0.1, far: 100 }}
@@ -147,7 +138,17 @@ const HouseViewer = () => {
       <Floor />
       <PortalPlanes />
       <InteriorWalls />
-      <ExteriorWalls />
+      {wallSegments.map((seg, i) => (
+        <mesh
+          key={i}
+          geometry={seg.geometry}
+          position={seg.position}
+          rotation={seg.rotation}
+          material={brickMat}
+          castShadow
+          receiveShadow
+        />
+      ))}
     </Canvas>
   );
 };

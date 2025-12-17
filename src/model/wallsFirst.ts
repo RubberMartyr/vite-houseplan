@@ -1,4 +1,4 @@
-import { ceilingHeights, envelopeOutline, wallThickness } from './houseSpec';
+import { ceilingHeights, envelopeOutline, originOffset, wallThickness } from './houseSpec';
 import { BoxGeometry } from 'three';
 
 type WallSegment = {
@@ -37,7 +37,11 @@ function createOrientedWallSegment(
   const angle = Math.atan2(dz, dx);
 
   return {
-    position: [midpoint[0] + centerOffset[0], midpoint[1], midpoint[2] + centerOffset[2]],
+    position: [
+      midpoint[0] + centerOffset[0] + originOffset.x,
+      midpoint[1],
+      midpoint[2] + centerOffset[2] + originOffset.z,
+    ],
     size: [length, height, thickness],
     rotation: [0, angle, 0],
     geometry: new BoxGeometry(length, height, thickness),

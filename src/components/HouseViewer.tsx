@@ -15,6 +15,7 @@ import {
   levelHeights,
   wallThickness,
   envelopeOutline,
+  originOffset,
 } from '../model/houseSpec'
 import { roomsGround } from '../model/roomsGround'
 
@@ -199,10 +200,10 @@ type FacadeKey = 'front' | 'rear' | 'left' | 'right';
 
 function groupByFacade(segments) {
   const facadeCenters: Record<FacadeKey, number> = {
-    front: frontZ + wallThickness.exterior / 2,
-    rear: rearZ - wallThickness.exterior / 2,
-    left: leftX + wallThickness.exterior / 2,
-    right: rightX - wallThickness.exterior / 2,
+    front: frontZ + wallThickness.exterior / 2 + originOffset.z,
+    rear: rearZ - wallThickness.exterior / 2 + originOffset.z,
+    left: leftX + wallThickness.exterior / 2 + originOffset.x,
+    right: rightX - wallThickness.exterior / 2 + originOffset.x,
   };
 
   const buckets: Record<FacadeKey, typeof segments> = {
@@ -268,7 +269,7 @@ function Roof() {
     <mesh
       geometry={geom}
       material={roof}
-      position={[center[0], H_WALLS, center[1]]}
+      position={[center[0] + originOffset.x, H_WALLS, center[1] + originOffset.z]}
       castShadow
     />
   );
@@ -359,14 +360,19 @@ function Openings() {
   );
 }
 
-function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: any) {
+function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape, offset }: any) {
   const geom = useMemo(
     () => new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false }),
     [shape, thickness]
   );
 
   return (
-    <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow>
+    <mesh
+      position={[offset?.x ?? 0, y, offset?.z ?? 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      receiveShadow
+      castShadow
+    >
       <primitive object={geom} attach="geometry" />
       <meshStandardMaterial color={color} />
     </mesh>
@@ -403,26 +409,6 @@ export default function HouseViewer() {
   const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
   const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
   const envelopeShape = useMemo(() => createEnvelopeShape(envelopeOutline), []);
-  const envelopeBounds = useMemo(
-    () =>
-      envelopeOutline.reduce(
-        (acc, point) => ({
-          minX: Math.min(acc.minX, point.x),
-          maxX: Math.max(acc.maxX, point.x),
-          minZ: Math.min(acc.minZ, point.z),
-          maxZ: Math.max(acc.maxZ, point.z),
-        }),
-        { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity }
-      ),
-    []
-  );
-  const envelopeCenter = useMemo(
-    () => ({
-      x: (envelopeBounds.minX + envelopeBounds.maxX) / 2,
-      z: (envelopeBounds.minZ + envelopeBounds.maxZ) / 2,
-    }),
-    [envelopeBounds]
-  );
   const selectedRoom = useMemo(
     () => roomsGround.find((room) => room.id === selectedRoomId) || null,
     [selectedRoomId]
@@ -584,7 +570,7 @@ export default function HouseViewer() {
         </directionalLight>
 
         {/* HOUSE ASSEMBLY */}
-        <group position={[-envelopeCenter.x, 0, -envelopeCenter.z]}>
+        <group>
           {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
             const showFacade = !cutawayEnabled || facadeVisibility[facadeKey];
 
@@ -625,8 +611,8 @@ export default function HouseViewer() {
             );
           })}
 
-          {showGround && <Slab y={0} shape={envelopeShape} />}
-          {showFirst && <Slab y={firstFloorY} shape={envelopeShape} />}
+          {showGround && <Slab y={0} shape={envelopeShape} offset={originOffset} />}
+          {showFirst && <Slab y={firstFloorY} shape={envelopeShape} offset={originOffset} />}
 
           <Roof />
           {/* <Openings /> */}
@@ -656,9 +642,9 @@ export default function HouseViewer() {
               const width = xMax - xMin;
               const height = yMax - yMin;
               const depth = zMax - zMin;
-              const centerX = (xMin + xMax) / 2;
+              const centerX = (xMin + xMax) / 2 + originOffset.x;
               const centerY = yMin + height / 2;
-              const centerZ = (zMin + zMax) / 2;
+              const centerZ = (zMin + zMax) / 2 + originOffset.z;
               const isSelected = room.id === selectedRoomId;
               const showAmbientOverlay = !focusMode || isSelected;
 

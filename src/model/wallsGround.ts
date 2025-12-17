@@ -1,5 +1,12 @@
 import { layoutGround } from './layoutGround';
-import { ceilingHeights, wallThickness } from './houseSpec';
+import {
+  ceilingHeights,
+  wallThickness,
+  frontZ,
+  rearZ,
+  leftX,
+  rightX,
+} from './houseSpec';
 import { BoxGeometry } from 'three';
 
 type WallSegment = {
@@ -18,7 +25,6 @@ type Opening = {
   zMax: number;
 };
 
-const { width: footprintWidth, depth: footprintDepth } = layoutGround.footprint;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 
@@ -121,8 +127,8 @@ facadeOpenings.front.push({
   xMax: livingCenter + 1.2,
   bottom: 0.9,
   height: 1.8,
-  zMin: 0,
-  zMax: exteriorThickness,
+  zMin: frontZ,
+  zMax: frontZ + exteriorThickness,
 });
 
 facadeOpenings.front.push({
@@ -130,8 +136,8 @@ facadeOpenings.front.push({
   xMax: serviceCenter + 0.95 / 2,
   bottom: 0,
   height: 2.1,
-  zMin: 0,
-  zMax: exteriorThickness,
+  zMin: frontZ,
+  zMax: frontZ + exteriorThickness,
 });
 
 facadeOpenings.rear.push({
@@ -139,8 +145,8 @@ facadeOpenings.rear.push({
   xMax: livingCenter + 4 / 2,
   bottom: 0,
   height: 2.4,
-  zMin: footprintDepth - exteriorThickness,
-  zMax: footprintDepth,
+  zMin: rearZ - exteriorThickness,
+  zMax: rearZ,
 });
 
 facadeOpenings.rear.push({
@@ -148,32 +154,32 @@ facadeOpenings.rear.push({
   xMax: serviceCenter + 0.9 / 2,
   bottom: 0,
   height: 2.1,
-  zMin: footprintDepth - exteriorThickness,
-  zMax: footprintDepth,
+  zMin: rearZ - exteriorThickness,
+  zMax: rearZ,
 });
 
 const segments: WallSegment[] = [];
 
 segments.push(
-  ...buildFacadeSegments(0, footprintWidth, 0, exteriorThickness, facadeOpenings.front)
+  ...buildFacadeSegments(leftX, rightX, frontZ, frontZ + exteriorThickness, facadeOpenings.front)
 );
 segments.push(
   ...buildFacadeSegments(
-    0,
-    footprintWidth,
-    footprintDepth - exteriorThickness,
-    footprintDepth,
+    leftX,
+    rightX,
+    rearZ - exteriorThickness,
+    rearZ,
     facadeOpenings.rear
   )
 );
 
-segments.push(createWallSegment(0, exteriorThickness, 0, footprintDepth, wallHeight));
+segments.push(createWallSegment(leftX, leftX + exteriorThickness, frontZ, rearZ, wallHeight));
 segments.push(
   createWallSegment(
-    footprintWidth - exteriorThickness,
-    footprintWidth,
-    0,
-    footprintDepth,
+    rightX - exteriorThickness,
+    rightX,
+    frontZ,
+    rearZ,
     wallHeight
   )
 );

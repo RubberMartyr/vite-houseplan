@@ -3,13 +3,17 @@ import {
   wallThickness,
   groundFloorRooms,
   RoomRange,
+  frontZ,
+  rearZ,
+  leftX,
+  rightX,
 } from './houseSpec';
 
 const interior = {
-  xMin: wallThickness.exterior,
-  xMax: footprint.width - wallThickness.exterior,
-  zMin: wallThickness.exterior,
-  zMax: footprint.depth - wallThickness.exterior,
+  xMin: leftX + wallThickness.exterior,
+  xMax: rightX - wallThickness.exterior,
+  zMin: frontZ + wallThickness.exterior,
+  zMax: rearZ - wallThickness.exterior,
 };
 
 const interiorWidth = interior.xMax - interior.xMin;

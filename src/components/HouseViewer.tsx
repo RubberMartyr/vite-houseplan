@@ -5,6 +5,12 @@ import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import { wallsGround } from '../model/wallsGround'
+import {
+  footprintWidth,
+  footprintDepth,
+  frontZ,
+  rearZ,
+} from '../model/houseSpec'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
 
@@ -14,7 +20,7 @@ console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
  */
 const SPECS = {
   // Main Volume (Hoofdgebouw)
-  footprint: { w: 8.2, d: 12.5 },
+  footprint: { w: footprintWidth, d: footprintDepth },
 
   // Heights (Niveaus)
   levels: {
@@ -272,10 +278,7 @@ function Window({ w, h, x, y, z, rot = 0, type = 'standard' }) {
 }
 
 function Openings() {
-  const W = SPECS.footprint.w;
-  const D = SPECS.footprint.d;
-  const frontZ = -D / 2; // Voorgevel
-  const backZ = D / 2; // Achtergevel
+  const backZ = rearZ; // Achtergevel
 
   return (
     <group>
@@ -325,24 +328,14 @@ function Openings() {
 }
 
 function FloorSlabs() {
-  const W = SPECS.footprint.w - 0.7; // Just inside walls
-  const D = SPECS.footprint.d - 0.7;
+  const W = SPECS.footprint.w;
+  const D = SPECS.footprint.d;
 
   return (
     <group>
-      {/* Ground Floor (Oak) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[W, D]} />
         <meshStandardMaterial color="#d9c6a2" />
-      </mesh>
-
-      {/* First Floor Slab (Concrete/Ceiling) */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, SPECS.levels.ground, 0]}
-      >
-        <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color="#eeeeee" />
       </mesh>
     </group>
   );

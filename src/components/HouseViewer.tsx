@@ -1,15 +1,18 @@
 // @ts-nocheck
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import { wallsGround } from '../model/wallsGround'
+import { wallsFirst } from '../model/wallsFirst'
 import {
   footprintWidth,
   footprintDepth,
   frontZ,
   rearZ,
+  ceilingHeights,
+  levelHeights,
 } from '../model/houseSpec'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
@@ -24,8 +27,8 @@ const SPECS = {
 
   // Heights (Niveaus)
   levels: {
-    ground: 2.6, // Gelijkvloers plafondhoogte
-    first: 2.5, // Verdieping
+    ground: ceilingHeights.ground, // Gelijkvloers plafondhoogte
+    first: ceilingHeights.first, // Verdieping
     attic: 3.2, // Zolder/Dakhoogte
     slab: 0.2, // Floor thickness
   },
@@ -327,82 +330,158 @@ function Openings() {
   );
 }
 
-function FloorSlabs() {
+function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2' }) {
   const W = SPECS.footprint.w;
   const D = SPECS.footprint.d;
 
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color="#d9c6a2" />
-      </mesh>
-    </group>
+    <mesh position={[0, y, 0]} receiveShadow castShadow>
+      <boxGeometry args={[W, thickness, D]} />
+      <meshStandardMaterial color={color} />
+    </mesh>
   );
 }
 
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: '#8B5A40',
-    roughness: 0.9,
-    side: THREE.DoubleSide,
-  })
+  const [floorView, setFloorView] = useState('Both');
+  const wallMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#8B5A40',
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+
+  const showGround = floorView !== '1F';
+  const showFirst = floorView !== 'GF';
+  const firstFloorY = levelHeights.firstFloor;
+
+  const buttonStyle = {
+    padding: '6px 10px',
+    borderRadius: 6,
+    border: '1px solid #222',
+    background: 'rgba(255,255,255,0.9)',
+    cursor: 'pointer',
+    fontWeight: 700,
+  };
 
   return (
-    <Canvas
-      shadows
-      camera={{ position: [10, 5, 15], fov: 50 }}
-      gl={{ antialias: true }}
-    >
-      {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
-      <Sky sunPosition={[100, 20, 100]} turbidity={2} rayleigh={0.5} />
-
-      <ambientLight intensity={0.4} />
-      <directionalLight
-        position={[10, 15, 5]}
-        intensity={1.5}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
+    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          zIndex: 2,
+          background: 'rgba(240,240,240,0.9)',
+          padding: '10px 12px',
+          borderRadius: 10,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
       >
-        <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
-      </directionalLight>
+        <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>Floor View</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {['GF', '1F', 'Both'].map((label) => {
+            const isActive = floorView === label;
+            return (
+              <button
+                key={label}
+                style={{
+                  ...buttonStyle,
+                  background: isActive ? '#8B5A40' : buttonStyle.background,
+                  color: isActive ? '#fff' : '#111',
+                }}
+                onClick={() => setFloorView(label)}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {/* HOUSE ASSEMBLY */}
-      <group position={[0, 0, 0]}>
-        {wallsGround.segments.map((seg, i) => (
-          <mesh
-            key={i}
-            geometry={seg.geometry}
-            position={seg.position}
-            rotation={seg.rotation}
-            material={wallMaterial}
-            castShadow
-            receiveShadow
-          />
-        ))}
-        <Roof />
-        <FloorSlabs />
-        {/* <Openings /> */}
-      </group>
-
-      {/* GROUNDS */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.05, 0]}
-        receiveShadow
+      <Canvas
+        shadows
+        camera={{ position: [10, 5, 15], fov: 50 }}
+        gl={{ antialias: true }}
       >
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#3a5f0b" roughness={1} />
-      </mesh>
+        {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
+        <Sky sunPosition={[100, 20, 100]} turbidity={2} rayleigh={0.5} />
 
-      {/* CONTROLS */}
-      <OrbitControls
-        minDistance={5}
-        maxDistance={40}
-        maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
-      />
-    </Canvas>
+        <ambientLight intensity={0.4} />
+        <directionalLight
+          position={[10, 15, 5]}
+          intensity={1.5}
+          castShadow
+          shadow-mapSize={[2048, 2048]}
+        >
+          <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
+        </directionalLight>
+
+        {/* HOUSE ASSEMBLY */}
+        <group position={[0, 0, 0]}>
+          {showGround && (
+            <group>
+              {wallsGround.segments.map((seg, i) => (
+                <mesh
+                  key={`gf-${i}`}
+                  geometry={seg.geometry}
+                  position={seg.position}
+                  rotation={seg.rotation}
+                  material={wallMaterial}
+                  castShadow
+                  receiveShadow
+                />
+              ))}
+              <Slab y={0} />
+            </group>
+          )}
+
+          {showFirst && (
+            <group>
+              <Slab y={firstFloorY} />
+              {wallsFirst.segments.map((seg, i) => (
+                <mesh
+                  key={`1f-${i}`}
+                  geometry={seg.geometry}
+                  position={[seg.position[0], seg.position[1] + firstFloorY, seg.position[2]]}
+                  rotation={seg.rotation}
+                  material={wallMaterial}
+                  castShadow
+                  receiveShadow
+                />
+              ))}
+            </group>
+          )}
+
+          <Roof />
+          {/* <Openings /> */}
+        </group>
+
+        {/* GROUNDS */}
+        <mesh
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, -0.05, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[100, 100]} />
+          <meshStandardMaterial color="#3a5f0b" roughness={1} />
+        </mesh>
+
+        {/* CONTROLS */}
+        <OrbitControls
+          minDistance={5}
+          maxDistance={40}
+          maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
+        />
+      </Canvas>
+    </div>
   );
 }

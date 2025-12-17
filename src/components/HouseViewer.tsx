@@ -17,6 +17,7 @@ import {
   levelHeights,
   wallThickness,
 } from '../model/houseSpec'
+import { roomsGround } from '../model/roomsGround'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
 
@@ -405,9 +406,15 @@ export default function HouseViewer() {
     left: true,
     right: true,
   });
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [focusMode, setFocusMode] = useState(false);
 
   const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
   const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
+  const selectedRoom = useMemo(
+    () => roomsGround.find((room) => room.id === selectedRoomId) || null,
+    [selectedRoomId]
+  );
 
   const buttonStyle = {
     padding: '6px 10px',
@@ -500,6 +507,50 @@ export default function HouseViewer() {
             );
           })}
         </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+          <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>Room Focus</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              style={{
+                ...buttonStyle,
+                background: focusMode ? '#1d6f42' : buttonStyle.background,
+                color: focusMode ? '#fff' : '#111',
+              }}
+              onClick={() => setFocusMode((prev) => !prev)}
+            >
+              {focusMode ? 'Focus ON' : 'Focus OFF'}
+            </button>
+          </div>
+          <div
+            style={{
+              border: '1px solid #ccc',
+              borderRadius: 8,
+              padding: '8px 10px',
+              background: 'rgba(255,255,255,0.8)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>Selected Room</span>
+            {selectedRoom ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span>{selectedRoom.label}</span>
+                <code style={{ fontSize: 12 }}>{selectedRoom.id}</code>
+              </div>
+            ) : (
+              <span style={{ color: '#555' }}>Tap a room to select it</span>
+            )}
+            <button
+              style={{ ...buttonStyle, alignSelf: 'flex-start' }}
+              onClick={() => setSelectedRoomId(null)}
+              disabled={!selectedRoom}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
       </div>
 
       <Canvas
@@ -585,6 +636,50 @@ export default function HouseViewer() {
           maxDistance={40}
           maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
         />
+
+        {showGround && (
+          <group>
+            {roomsGround.map((room) => {
+              const { xMin, xMax, zMin, zMax, yMin, yMax } = room.bounds;
+              const width = xMax - xMin;
+              const height = yMax - yMin;
+              const depth = zMax - zMin;
+              const centerX = (xMin + xMax) / 2;
+              const centerY = yMin + height / 2;
+              const centerZ = (zMin + zMax) / 2;
+              const isSelected = room.id === selectedRoomId;
+              const showAmbientOverlay = !focusMode || isSelected;
+
+              return (
+                <group key={room.id}>
+                  <mesh
+                    position={[centerX, centerY, centerZ]}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedRoomId(room.id);
+                    }}
+                    userData={{ roomId: room.id }}
+                  >
+                    <boxGeometry args={[width, height, depth]} />
+                    <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                  </mesh>
+
+                  {showAmbientOverlay && (
+                    <mesh position={[centerX, centerY, centerZ]}>
+                      <boxGeometry args={[width, height, depth]} />
+                      <meshBasicMaterial
+                        color={isSelected ? '#1e90ff' : '#8fb1ff'}
+                        transparent
+                        opacity={isSelected ? 0.18 : 0.05}
+                        depthWrite={false}
+                      />
+                    </mesh>
+                  )}
+                </group>
+              );
+            })}
+          </group>
+        )}
       </Canvas>
     </div>
   );

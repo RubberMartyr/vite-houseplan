@@ -16,6 +16,7 @@ import {
   wallThickness,
 } from '../model/houseSpec'
 import { footprintPolygon, originOffset } from '../model/envelope'
+import { envelopeOutline } from '../model/houseSpec'
 import { roomsGround } from '../model/roomsGround'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())

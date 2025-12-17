@@ -14,9 +14,8 @@ import {
   ceilingHeights,
   levelHeights,
   wallThickness,
-  envelopeOutline,
-  originOffset,
 } from '../model/houseSpec'
+import { footprintPolygon, originOffset } from '../model/envelope'
 import { roomsGround } from '../model/roomsGround'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
@@ -51,13 +50,13 @@ const SPECS = {
 // --- GEOMETRY HELPERS ---
 
 // Create a 2D Shape for Extrusion
-function createEnvelopeShape(outline) {
+function makeFootprintShape(points) {
   const shape = new THREE.Shape();
-  outline.forEach((point, index) => {
+  points.forEach((point, index) => {
     if (index === 0) {
-      shape.moveTo(point.x, point.z);
+      shape.moveTo(point.x, -point.z);
     } else {
-      shape.lineTo(point.x, point.z);
+      shape.lineTo(point.x, -point.z);
     }
   });
   shape.closePath();
@@ -362,14 +361,17 @@ function Openings() {
 
 function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape, offset }: any) {
   const geom = useMemo(
-    () => new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false }),
+    () => {
+      const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+      geometry.rotateX(-Math.PI / 2);
+      return geometry;
+    },
     [shape, thickness]
   );
 
   return (
     <mesh
       position={[offset?.x ?? 0, y, offset?.z ?? 0]}
-      rotation={[-Math.PI / 2, 0, 0]}
       receiveShadow
       castShadow
     >
@@ -408,7 +410,7 @@ export default function HouseViewer() {
 
   const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
   const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
-  const envelopeShape = useMemo(() => createEnvelopeShape(envelopeOutline), []);
+  const envelopeShape = useMemo(() => makeFootprintShape(footprintPolygon), []);
   const selectedRoom = useMemo(
     () => roomsGround.find((room) => room.id === selectedRoomId) || null,
     [selectedRoomId]

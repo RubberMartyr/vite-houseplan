@@ -7,8 +7,6 @@ import { OrbitControls, Sky } from '@react-three/drei';
 import { wallsGround } from '../model/wallsGround'
 import { wallsFirst } from '../model/wallsFirst'
 import {
-  footprintWidth,
-  footprintDepth,
   frontZ,
   rearZ,
   leftX,
@@ -16,6 +14,7 @@ import {
   ceilingHeights,
   levelHeights,
   wallThickness,
+  envelopeOutline,
 } from '../model/houseSpec'
 import { roomsGround } from '../model/roomsGround'
 
@@ -26,9 +25,6 @@ console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
  * Derived from 'UITVOERING (3).pdf'
  */
 const SPECS = {
-  // Main Volume (Hoofdgebouw)
-  footprint: { w: footprintWidth, d: footprintDepth },
-
   // Heights (Niveaus)
   levels: {
     ground: ceilingHeights.ground, // Gelijkvloers plafondhoogte
@@ -54,16 +50,17 @@ const SPECS = {
 // --- GEOMETRY HELPERS ---
 
 // Create a 2D Shape for Extrusion
-function createRectShape(w, d) {
-  const s = new THREE.Shape();
-  const hw = w / 2;
-  const hd = d / 2;
-  s.moveTo(-hw, -hd);
-  s.lineTo(hw, -hd);
-  s.lineTo(hw, hd);
-  s.lineTo(-hw, hd);
-  s.lineTo(-hw, -hd);
-  return s;
+function createEnvelopeShape(outline) {
+  const shape = new THREE.Shape();
+  outline.forEach((point, index) => {
+    if (index === 0) {
+      shape.moveTo(point.x, point.z);
+    } else {
+      shape.lineTo(point.x, point.z);
+    }
+  });
+  shape.closePath();
+  return shape;
 }
 
 // Advanced Hipped Roof (Schilddak) Generator
@@ -238,35 +235,27 @@ function groupByFacade(segments) {
 
 function Walls() {
   const { brick } = useBuildingMaterials();
-  const W = SPECS.footprint.w;
-  const D = SPECS.footprint.d;
-  const H = SPECS.levels.ground + SPECS.levels.slab + SPECS.levels.first; // Total wall height
-
-  // Create hollow shell
-  const shape = createRectShape(W, D);
-  const hole = createRectShape(W - SPECS.wall.ext * 2, D - SPECS.wall.ext * 2);
-  shape.holes.push(hole);
-
-  const geom = new THREE.ExtrudeGeometry(shape, {
-    depth: H,
-    bevelEnabled: false,
-  });
-
-  return (
-    <mesh
-      geometry={geom}
-      material={brick}
-      rotation={[-Math.PI / 2, 0, 0]}
-      castShadow
-      receiveShadow
-    />
-  );
+  return null;
 }
 
 function Roof() {
   const { roof } = useBuildingMaterials();
-  const W = SPECS.footprint.w;
-  const D = SPECS.footprint.d;
+  const [minX, maxX, minZ, maxZ] = useMemo(() => {
+    return envelopeOutline.reduce(
+      (acc, point) => {
+        return [
+          Math.min(acc[0], point.x),
+          Math.max(acc[1], point.x),
+          Math.min(acc[2], point.z),
+          Math.max(acc[3], point.z),
+        ];
+      },
+      [Infinity, -Infinity, Infinity, -Infinity]
+    );
+  }, []);
+  const W = maxX - minX;
+  const D = maxZ - minZ;
+  const center = useMemo(() => [(minX + maxX) / 2, (minZ + maxZ) / 2], [minX, maxX, minZ, maxZ]);
   const H_WALLS = SPECS.levels.ground + SPECS.levels.slab + SPECS.levels.first;
 
   // Create Hipped Roof
@@ -279,7 +268,7 @@ function Roof() {
     <mesh
       geometry={geom}
       material={roof}
-      position={[0, H_WALLS, 0]}
+      position={[center[0], H_WALLS, center[1]]}
       castShadow
     />
   );
@@ -370,13 +359,15 @@ function Openings() {
   );
 }
 
-function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2' }) {
-  const W = SPECS.footprint.w;
-  const D = SPECS.footprint.d;
+function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: any) {
+  const geom = useMemo(
+    () => new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false }),
+    [shape, thickness]
+  );
 
   return (
-    <mesh position={[0, y, 0]} receiveShadow castShadow>
-      <boxGeometry args={[W, thickness, D]} />
+    <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow>
+      <primitive object={geom} attach="geometry" />
       <meshStandardMaterial color={color} />
     </mesh>
   );
@@ -411,6 +402,27 @@ export default function HouseViewer() {
 
   const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
   const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
+  const envelopeShape = useMemo(() => createEnvelopeShape(envelopeOutline), []);
+  const envelopeBounds = useMemo(
+    () =>
+      envelopeOutline.reduce(
+        (acc, point) => ({
+          minX: Math.min(acc.minX, point.x),
+          maxX: Math.max(acc.maxX, point.x),
+          minZ: Math.min(acc.minZ, point.z),
+          maxZ: Math.max(acc.maxZ, point.z),
+        }),
+        { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity }
+      ),
+    []
+  );
+  const envelopeCenter = useMemo(
+    () => ({
+      x: (envelopeBounds.minX + envelopeBounds.maxX) / 2,
+      z: (envelopeBounds.minZ + envelopeBounds.maxZ) / 2,
+    }),
+    [envelopeBounds]
+  );
   const selectedRoom = useMemo(
     () => roomsGround.find((room) => room.id === selectedRoomId) || null,
     [selectedRoomId]
@@ -572,7 +584,7 @@ export default function HouseViewer() {
         </directionalLight>
 
         {/* HOUSE ASSEMBLY */}
-        <group position={[0, 0, 0]}>
+        <group position={[-envelopeCenter.x, 0, -envelopeCenter.z]}>
           {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
             const showFacade = !cutawayEnabled || facadeVisibility[facadeKey];
 
@@ -613,8 +625,8 @@ export default function HouseViewer() {
             );
           })}
 
-          {showGround && <Slab y={0} />}
-          {showFirst && <Slab y={firstFloorY} />}
+          {showGround && <Slab y={0} shape={envelopeShape} />}
+          {showFirst && <Slab y={firstFloorY} shape={envelopeShape} />}
 
           <Roof />
           {/* <Openings /> */}

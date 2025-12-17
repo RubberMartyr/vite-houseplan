@@ -1,4 +1,4 @@
-import { ceilingHeights, frontZ, leftX, rearZ, rightX, wallThickness } from './houseSpec';
+import { ceilingHeights, envelopeOutline, wallThickness } from './houseSpec';
 import { BoxGeometry } from 'three';
 
 type WallSegment = {
@@ -8,38 +8,60 @@ type WallSegment = {
   geometry: BoxGeometry;
 };
 
+type EnvelopeEdge = { start: { x: number; z: number }; end: { x: number; z: number } };
+
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 
-function createWallSegment(
-  xMin: number,
-  xMax: number,
-  zMin: number,
-  zMax: number,
-  height: number
+function createOrientedWallSegment(
+  edge: EnvelopeEdge,
+  height: number,
+  thickness: number
 ): WallSegment {
+  const dx = edge.end.x - edge.start.x;
+  const dz = edge.end.z - edge.start.z;
+  const length = Math.sqrt(dx * dx + dz * dz);
+  const midpoint: [number, number, number] = [
+    (edge.start.x + edge.end.x) / 2,
+    height / 2,
+    (edge.start.z + edge.end.z) / 2,
+  ];
+
+  const inwardNormal: [number, number] = [-(dz / length), dx / length];
+  const centerOffset: [number, number, number] = [
+    (inwardNormal[0] * thickness) / 2,
+    0,
+    (inwardNormal[1] * thickness) / 2,
+  ];
+
+  const angle = Math.atan2(dz, dx);
+
   return {
-    position: [
-      (xMin + xMax) / 2,
-      height / 2,
-      (zMin + zMax) / 2,
-    ],
-    size: [xMax - xMin, height, zMax - zMin],
-    rotation: [0, 0, 0],
-    geometry: new BoxGeometry(xMax - xMin, height, zMax - zMin),
+    position: [midpoint[0] + centerOffset[0], midpoint[1], midpoint[2] + centerOffset[2]],
+    size: [length, height, thickness],
+    rotation: [0, angle, 0],
+    geometry: new BoxGeometry(length, height, thickness),
   };
 }
 
-const segments: WallSegment[] = [];
+function getEnvelopeEdges(outline: { x: number; z: number }[]): EnvelopeEdge[] {
+  const edges: EnvelopeEdge[] = [];
+  for (let i = 0; i < outline.length; i++) {
+    const next = (i + 1) % outline.length;
+    edges.push({ start: outline[i], end: outline[next] });
+  }
+  return edges;
+}
 
-segments.push(createWallSegment(leftX, rightX, frontZ, frontZ + exteriorThickness, wallHeight));
-segments.push(
-  createWallSegment(leftX, rightX, rearZ - exteriorThickness, rearZ, wallHeight)
-);
-segments.push(createWallSegment(leftX, leftX + exteriorThickness, frontZ, rearZ, wallHeight));
-segments.push(
-  createWallSegment(rightX - exteriorThickness, rightX, frontZ, rearZ, wallHeight)
-);
+const edges = getEnvelopeEdges(envelopeOutline);
+const segments: WallSegment[] = edges
+  .map((edge) => {
+    const dx = edge.end.x - edge.start.x;
+    const dz = edge.end.z - edge.start.z;
+    const length = Math.sqrt(dx * dx + dz * dz);
+    return length === 0 ? null : createOrientedWallSegment(edge, wallHeight, exteriorThickness);
+  })
+  .filter((segment): segment is WallSegment => Boolean(segment));
 
 export const wallsFirst = {
   segments,

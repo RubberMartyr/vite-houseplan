@@ -3,6 +3,14 @@ export const footprint = {
   depth: 12.5,
 };
 
+export const footprintWidth = footprint.width;
+export const footprintDepth = footprint.depth;
+
+export const frontZ = -footprintDepth / 2;
+export const rearZ = footprintDepth / 2;
+export const leftX = -footprintWidth / 2;
+export const rightX = footprintWidth / 2;
+
 export const wallThickness = {
   exterior: 0.35,
   interior: 0.14,

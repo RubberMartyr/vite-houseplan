@@ -18,6 +18,11 @@ export const wallThickness = {
 
 export const ceilingHeights = {
   ground: 2.6,
+  first: 2.5,
+};
+
+export const levelHeights = {
+  firstFloor: ceilingHeights.ground,
 };
 
 export const groundFloorRooms = {
@@ -51,5 +56,6 @@ export default {
   footprint,
   wallThickness,
   ceilingHeights,
+  levelHeights,
   groundFloorRooms,
 };

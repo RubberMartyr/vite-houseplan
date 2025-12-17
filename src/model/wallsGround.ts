@@ -1,15 +1,10 @@
-import {
-  BoxGeometry,
-  DoubleSide,
-  ExtrudeGeometry,
-  Mesh,
-  MeshBasicMaterial,
-  MeshPhysicalMaterial,
-  MeshStandardMaterial,
-  PlaneGeometry,
-  Shape,
-} from 'three';
-import layoutGround from './layoutGround';
+type WallSegment = {
+  position: [number, number, number];
+  size: [number, number, number];
+  rotation: [number, number, number];
+};
+
+import { layoutGround } from './layoutGround';
 import { ceilingHeights, wallThickness } from './houseSpec';
 
 type Opening = {
@@ -21,61 +16,27 @@ type Opening = {
   zMax: number;
 };
 
-type OpeningMeshes = {
-  frame: Mesh;
-  glass: Mesh;
-};
-
-type WallsGround = {
-  walls: Mesh[];
-  frames: Mesh[];
-  glass: Mesh[];
-  portalPlanes: Mesh[];
-};
-
-const wallMaterial = new MeshStandardMaterial({
-  color: 0xf3f0eb,
-  side: DoubleSide,
-});
-const frameMaterial = new MeshStandardMaterial({ color: 0x1c1c1c });
-const glassMaterial = new MeshPhysicalMaterial({
-  color: 0xdceeff,
-  transparent: true,
-  opacity: 1,
-  transmission: 1,
-  roughness: 0.05,
-  metalness: 0,
-  thickness: 0.02,
-});
-
 const { width: footprintWidth, depth: footprintDepth } = layoutGround.footprint;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 
-function createExtrudedRectangle(
+function createWallSegment(
   xMin: number,
   xMax: number,
   zMin: number,
   zMax: number,
   height: number,
   yOffset = 0
-): Mesh {
-  const shape = new Shape();
-  shape.moveTo(xMin, -zMin);
-  shape.lineTo(xMax, -zMin);
-  shape.lineTo(xMax, -zMax);
-  shape.lineTo(xMin, -zMax);
-  shape.lineTo(xMin, -zMin);
-
-  const geometry = new ExtrudeGeometry(shape, {
-    depth: height,
-    bevelEnabled: false,
-    steps: 1,
-  });
-  geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, yOffset, 0);
-
-  return new Mesh(geometry, wallMaterial);
+): WallSegment {
+  return {
+    position: [
+      (xMin + xMax) / 2,
+      yOffset + height / 2,
+      (zMin + zMax) / 2,
+    ],
+    size: [xMax - xMin, height, zMax - zMin],
+    rotation: [0, 0, 0],
+  };
 }
 
 function buildFacadeSegments(
@@ -84,8 +45,8 @@ function buildFacadeSegments(
   zMin: number,
   zMax: number,
   openings: Opening[]
-): Mesh[] {
-  const sections: Mesh[] = [];
+): WallSegment[] {
+  const sections: WallSegment[] = [];
   const sorted = [...openings]
     .map((opening) => normalizeOpening(opening))
     .sort((a, b) => a.xMin - b.xMin);
@@ -96,14 +57,12 @@ function buildFacadeSegments(
     const openingHeight = Math.max(0, openingTop - opening.bottom);
 
     if (opening.xMin > cursor) {
-      sections.push(
-        createExtrudedRectangle(cursor, opening.xMin, opening.zMin, opening.zMax, wallHeight)
-      );
+      sections.push(createWallSegment(cursor, opening.xMin, opening.zMin, opening.zMax, wallHeight));
     }
 
     if (opening.bottom > 0 && openingHeight > 0) {
       sections.push(
-        createExtrudedRectangle(
+        createWallSegment(
           opening.xMin,
           opening.xMax,
           opening.zMin,
@@ -115,7 +74,7 @@ function buildFacadeSegments(
 
     if (openingHeight > 0 && openingTop < wallHeight) {
       sections.push(
-        createExtrudedRectangle(
+        createWallSegment(
           opening.xMin,
           opening.xMax,
           opening.zMin,
@@ -130,7 +89,7 @@ function buildFacadeSegments(
   });
 
   if (cursor < xEnd) {
-    sections.push(createExtrudedRectangle(cursor, xEnd, zMin, zMax, wallHeight));
+    sections.push(createWallSegment(cursor, xEnd, zMin, zMax, wallHeight));
   }
 
   return sections;
@@ -142,40 +101,6 @@ function normalizeOpening(opening: Opening): Opening {
     ...opening,
     height: clampedHeight,
   };
-}
-
-function createOpeningMeshes(opening: Opening): OpeningMeshes {
-  const normalizedOpening = normalizeOpening(opening);
-  const inset = 0.05;
-  const depth = Math.max(0.02, normalizedOpening.zMax - normalizedOpening.zMin - inset * 2);
-  const frameDepth = depth * 0.4;
-
-  const frameGeometry = new BoxGeometry(
-    normalizedOpening.xMax - normalizedOpening.xMin,
-    normalizedOpening.height,
-    frameDepth
-  );
-  const glassGeometry = new BoxGeometry(
-    normalizedOpening.xMax - normalizedOpening.xMin - inset * 2,
-    Math.max(0, normalizedOpening.height - inset * 2),
-    Math.max(0.01, depth - inset * 2)
-  );
-
-  const frame = new Mesh(frameGeometry, frameMaterial);
-  frame.position.set(
-    (normalizedOpening.xMin + normalizedOpening.xMax) / 2,
-    normalizedOpening.bottom + normalizedOpening.height / 2,
-    (normalizedOpening.zMin + normalizedOpening.zMax) / 2
-  );
-
-  const glass = new Mesh(glassGeometry, glassMaterial);
-  glass.position.set(
-    (normalizedOpening.xMin + normalizedOpening.xMax) / 2,
-    normalizedOpening.bottom + normalizedOpening.height / 2,
-    (normalizedOpening.zMin + normalizedOpening.zMax) / 2
-  );
-
-  return { frame, glass };
 }
 
 const zoneA = layoutGround.zones.living;
@@ -224,46 +149,12 @@ facadeOpenings.rear.push({
   zMax: footprintDepth,
 });
 
-const walls: Mesh[] = [];
-const frames: Mesh[] = [];
-const glass: Mesh[] = [];
-const portalPlanes: Mesh[] = [];
+const segments: WallSegment[] = [];
 
-facadeOpenings.front.forEach((opening) => {
-  const meshes = createOpeningMeshes(opening);
-  meshes.frame.visible = false;
-  meshes.glass.visible = false;
-  frames.push(meshes.frame);
-  glass.push(meshes.glass);
-});
-
-facadeOpenings.rear.forEach((opening) => {
-  const meshes = createOpeningMeshes(opening);
-  meshes.frame.visible = false;
-  meshes.glass.visible = false;
-  frames.push(meshes.frame);
-  glass.push(meshes.glass);
-});
-
-const frontZ = -footprintDepth / 2 - 0.2;
-const rearZ = footprintDepth / 2 + 0.2;
-
-const portalGeometry = new PlaneGeometry(12, 5);
-const portalMaterial = new MeshBasicMaterial({ color: '#00ffff', side: DoubleSide });
-
-const frontPlane = new Mesh(portalGeometry, portalMaterial);
-frontPlane.position.set(0, 1.5, frontZ);
-
-const rearPlane = new Mesh(portalGeometry, portalMaterial);
-rearPlane.position.set(0, 1.5, rearZ);
-rearPlane.rotateY(Math.PI);
-
-portalPlanes.push(frontPlane, rearPlane);
-
-walls.push(
+segments.push(
   ...buildFacadeSegments(0, footprintWidth, 0, exteriorThickness, facadeOpenings.front)
 );
-walls.push(
+segments.push(
   ...buildFacadeSegments(
     0,
     footprintWidth,
@@ -273,9 +164,9 @@ walls.push(
   )
 );
 
-walls.push(createExtrudedRectangle(0, exteriorThickness, 0, footprintDepth, wallHeight));
-walls.push(
-  createExtrudedRectangle(
+segments.push(createWallSegment(0, exteriorThickness, 0, footprintDepth, wallHeight));
+segments.push(
+  createWallSegment(
     footprintWidth - exteriorThickness,
     footprintWidth,
     0,
@@ -284,11 +175,6 @@ walls.push(
   )
 );
 
-const wallsGround: WallsGround = {
-  walls,
-  frames,
-  glass,
-  portalPlanes,
+export const wallsGround = {
+  segments,
 };
-
-export default wallsGround;

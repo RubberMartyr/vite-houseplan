@@ -92,7 +92,7 @@ const roomRanges = {
   berging: { ...serviceZRanges[2], ...zoneB },
 };
 
-const layoutGround = {
+export const layoutGround = {
   footprint,
   wallThickness,
   interior: {
@@ -111,5 +111,3 @@ const layoutGround = {
   serviceEnd,
   rooms: roomRanges,
 };
-
-export default layoutGround;

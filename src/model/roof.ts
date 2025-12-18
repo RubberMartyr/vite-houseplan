@@ -3,7 +3,7 @@ import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 
 const EAVES_Y = 5.7;
 const RIDGE_Y = 9.85;
-const THICKNESS = 0.08;
+const THICKNESS = 0.2;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -17,97 +17,35 @@ function computeBounds(points: FootprintPoint[]) {
   );
 }
 
-function createRoofSolid(
-  xMin: number,
-  xMax: number,
+function createRoofSide(
+  xCenter: number,
   zStart: number,
   yStart: number,
   zEnd: number,
-  yEnd: number
-): THREE.BufferGeometry {
-  const p0 = new THREE.Vector3(xMin, yStart, zStart);
-  const p1 = new THREE.Vector3(xMax, yStart, zStart);
-  const p2 = new THREE.Vector3(xMin, yEnd, zEnd);
-  const p3 = new THREE.Vector3(xMax, yEnd, zEnd);
+  yEnd: number,
+  widthX: number
+): { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } {
+  const length = zEnd - zStart;
+  const angle = Math.atan2(yEnd - yStart, length);
 
-  const normal = new THREE.Vector3().subVectors(p1, p0).cross(new THREE.Vector3().subVectors(p2, p0)).normalize();
-  const offset = normal.clone().multiplyScalar(THICKNESS);
+  const geometry = new THREE.BoxGeometry(widthX, THICKNESS, Math.abs(length));
+  geometry.translate(0, THICKNESS / 2, 0);
 
-  const vertices = new Float32Array([
-    p0.x,
-    p0.y,
-    p0.z,
-    p1.x,
-    p1.y,
-    p1.z,
-    p2.x,
-    p2.y,
-    p2.z,
-    p3.x,
-    p3.y,
-    p3.z,
-    p0.x + offset.x,
-    p0.y + offset.y,
-    p0.z + offset.z,
-    p1.x + offset.x,
-    p1.y + offset.y,
-    p1.z + offset.z,
-    p2.x + offset.x,
-    p2.y + offset.y,
-    p2.z + offset.z,
-    p3.x + offset.x,
-    p3.y + offset.y,
-    p3.z + offset.z,
-  ]);
-
-  const indices = [
-    // Front face
-    0,
-    2,
-    1,
-    1,
-    2,
-    3,
-    // Back face
-    5,
-    6,
-    4,
-    5,
-    7,
-    6,
-    // Sides
-    0,
-    1,
-    5,
-    0,
-    5,
-    4,
-    1,
-    3,
-    7,
-    1,
-    7,
-    5,
-    3,
-    2,
-    6,
-    3,
-    6,
-    7,
-    2,
-    0,
-    4,
-    2,
-    4,
-    6,
+  const centerY = (yStart + yEnd) / 2;
+  const centerZ = (zStart + zEnd) / 2;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const position: [number, number, number] = [
+    xCenter,
+    centerY + (cos * THICKNESS) / 2,
+    centerZ - (sin * THICKNESS) / 2,
   ];
 
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-
-  return geometry;
+  return {
+    geometry,
+    position,
+    rotation: [-angle, 0, 0],
+  };
 }
 
 function createRidgeLine(xMin: number, xMax: number, y: number, z: number): THREE.BufferGeometry {
@@ -125,17 +63,32 @@ export function buildRoofMeshes(): {
   const frontZ = bounds.minZ;
   const backZ = bounds.maxZ;
   const ridgeZ = (frontZ + backZ) / 2;
+  const midX = (bounds.minX + bounds.maxX) / 2;
+  const widthX = bounds.maxX - bounds.minX;
+
+  const sideA = createRoofSide(midX, frontZ, EAVES_Y, ridgeZ, RIDGE_Y, widthX);
+  const sideB = createRoofSide(midX, ridgeZ, RIDGE_Y, backZ, EAVES_Y, widthX);
+
+  const triangleShape = new THREE.Shape();
+  triangleShape.moveTo(frontZ, EAVES_Y);
+  triangleShape.lineTo(ridgeZ, RIDGE_Y);
+  triangleShape.lineTo(backZ, EAVES_Y);
+  triangleShape.lineTo(frontZ, EAVES_Y);
+
+  const gableGeometry = new THREE.ShapeGeometry(triangleShape);
 
   const meshes = [
+    sideA,
+    sideB,
     {
-      geometry: createRoofSolid(bounds.minX, bounds.maxX, frontZ, EAVES_Y, ridgeZ, RIDGE_Y),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
+      geometry: gableGeometry,
+      position: [bounds.minX, 0, 0],
+      rotation: [0, Math.PI / 2, 0],
     },
     {
-      geometry: createRoofSolid(bounds.minX, bounds.maxX, backZ, EAVES_Y, ridgeZ, RIDGE_Y),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
+      geometry: gableGeometry,
+      position: [bounds.maxX, 0, 0],
+      rotation: [0, -Math.PI / 2, 0],
     },
   ];
 

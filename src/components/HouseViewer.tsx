@@ -15,7 +15,13 @@ import {
   levelHeights,
   wallThickness,
 } from '../model/houseSpec'
-import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, originOffset } from '../model/envelope'
+import {
+  getEnvelopeFirstOuterPolygon,
+  getEnvelopeInnerPolygon,
+  getEnvelopeOuterPolygon,
+  getFlatRoofPolygon,
+  originOffset,
+} from '../model/envelope'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 
@@ -214,7 +220,7 @@ function Walls() {
 
 function Roof() {
   const { roof } = useBuildingMaterials();
-  const envelopeOutline = useMemo(() => getEnvelopeOuterPolygon(), []);
+  const envelopeOutline = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
   const [minX, maxX, minZ, maxZ] = useMemo(() => {
     return envelopeOutline.reduce(
       (acc, point) => {
@@ -438,14 +444,29 @@ export default function HouseViewer() {
   const [focusMode, setFocusMode] = useState(false);
   const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
 
-  const envelopePolygon = useMemo(() => getEnvelopeInnerPolygon(wallThickness.exterior), []);
-  const envelopeShape = useMemo(() => makeFootprintShape(envelopePolygon), [envelopePolygon]);
+  const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
+  const groundEnvelopePolygon = useMemo(
+    () => getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope),
+    [groundOuterEnvelope]
+  );
+  const groundEnvelopeShape = useMemo(() => makeFootprintShape(groundEnvelopePolygon), [groundEnvelopePolygon]);
+
+  const firstOuterEnvelope = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
+  const firstEnvelopePolygon = useMemo(
+    () => getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope),
+    [firstOuterEnvelope]
+  );
+  const firstEnvelopeShape = useMemo(() => makeFootprintShape(firstEnvelopePolygon), [firstEnvelopePolygon]);
+
+  const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
+  const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
+
   const envelopeDebugLine = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
-    const points = envelopePolygon.map((point) => new THREE.Vector3(point.x, 0.02, point.z));
+    const points = groundEnvelopePolygon.map((point) => new THREE.Vector3(point.x, 0.02, point.z));
     geometry.setFromPoints(points);
     return geometry;
-  }, [envelopePolygon]);
+  }, [groundEnvelopePolygon]);
   const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
   const activeRooms = useMemo(() => {
     const list: any[] = [];
@@ -475,17 +496,17 @@ export default function HouseViewer() {
   };
 
   useEffect(() => {
-    console.log('Slab polygon points (first 5):', envelopePolygon.slice(0, 5));
-    console.log('Wall polygon points (first 5 - same as slab):', envelopePolygon.slice(0, 5));
+    console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
+    console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
     console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
     console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
-    const offsetPoints = envelopePolygon.slice(0, 2).map((point) => ({
+    const offsetPoints = groundEnvelopePolygon.slice(0, 2).map((point) => ({
       x: point.x + originOffset.x,
       z: point.z + originOffset.z,
     }));
     console.log('Origin offset applied:', originOffset);
     console.log('First two envelope points after offset:', offsetPoints);
-  }, [envelopePolygon]);
+  }, [firstEnvelopePolygon, groundEnvelopePolygon]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
@@ -664,9 +685,10 @@ export default function HouseViewer() {
 
           <group ref={slabGroupRef} name="slabGroup">
             <axesHelper args={[0.3]} />
-            {showGround && <Slab y={0} shape={envelopeShape} />}
-            {showFirst && <Slab y={firstFloorLevelY} shape={envelopeShape} />}
-            {showAttic && <Slab y={atticLevelY} shape={envelopeShape} />}
+            {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
+            {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
+            {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
+            {showFirst && <Slab y={firstFloorLevelY + 0.02} shape={flatRoofShape} color="#c7c7c7" />}
             <lineLoop geometry={envelopeDebugLine}>
               <lineBasicMaterial color="#ff00ff" linewidth={2} />
             </lineLoop>

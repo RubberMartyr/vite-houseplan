@@ -1,5 +1,5 @@
 import { ExtrudeGeometry, Path, Shape } from 'three';
-import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
+import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 
 const wallHeight = ceilingHeights.first;
@@ -8,8 +8,8 @@ const firstFloorLevel = levelHeights.firstFloor;
 
 export const wallsFirst = {
   shell: (() => {
-    const outer = getEnvelopeOuterPolygon();
-    const inner = getEnvelopeInnerPolygon(exteriorThickness);
+    const outer = getEnvelopeFirstOuterPolygon();
+    const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =

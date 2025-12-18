@@ -22,6 +22,13 @@ type Opening = {
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 
+function signedPolygonArea(points: { x: number; z: number }[]): number {
+  return points.reduce((area, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return area + point.x * next.z - next.x * point.z;
+  }, 0);
+}
+
 function createWallSegment(
   xMin: number,
   xMax: number,
@@ -53,11 +60,12 @@ function normalizeOpening(opening: Opening): Opening {
 function buildFacadeSegments(
   xStart: number,
   xEnd: number,
-  zMin: number,
-  zMax: number,
+  centerZ: number,
   openings: Opening[]
 ): WallSegment[] {
   const sections: WallSegment[] = [];
+  const zMin = centerZ - exteriorThickness / 2;
+  const zMax = centerZ + exteriorThickness / 2;
   const sorted = [...openings]
     .map((opening) => normalizeOpening(opening))
     .sort((a, b) => a.xMin - b.xMin);
@@ -147,6 +155,7 @@ facadeOpenings.rear.push({
 });
 
 const envelopePolygon = getEnvelopeOuterPolygon();
+const isClockwise = signedPolygonArea(envelopePolygon) < 0;
 
 envelopePolygon.forEach((start, index) => {
   const end = envelopePolygon[(index + 1) % envelopePolygon.length];
@@ -164,6 +173,17 @@ envelopePolygon.forEach((start, index) => {
     (start.z + end.z) / 2,
   ];
 
+  const ux = dx / length;
+  const uz = dz / length;
+
+  const nx = isClockwise ? -uz : uz;
+  const nz = isClockwise ? ux : -ux;
+  const centerOffset: [number, number, number] = [
+    (nx * exteriorThickness) / 2,
+    0,
+    (nz * exteriorThickness) / 2,
+  ];
+
   const angle = Math.atan2(dz, dx);
 
   const isFront = Math.abs(start.z - frontZ) < 1e-6 && Math.abs(end.z - frontZ) < 1e-6;
@@ -172,19 +192,11 @@ envelopePolygon.forEach((start, index) => {
   if (isFront || isRear) {
     const xMin = Math.min(start.x, end.x);
     const xMax = Math.max(start.x, end.x);
-    const zMin = isFront ? frontZ : rearZ - exteriorThickness;
-    const zMax = isFront ? frontZ + exteriorThickness : rearZ;
     const openings = isFront ? facadeOpenings.front : facadeOpenings.rear;
-    segments.push(...buildFacadeSegments(xMin, xMax, zMin, zMax, openings));
+    const centerZ = midpoint[2] + centerOffset[2];
+    segments.push(...buildFacadeSegments(xMin, xMax, centerZ, openings));
     return;
   }
-
-  const inwardNormal: [number, number] = [-(dz / length), dx / length];
-  const centerOffset: [number, number, number] = [
-    (inwardNormal[0] * exteriorThickness) / 2,
-    0,
-    (inwardNormal[1] * exteriorThickness) / 2,
-  ];
 
   segments.push({
     position: [

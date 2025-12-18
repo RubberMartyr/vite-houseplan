@@ -204,40 +204,6 @@ function useBuildingMaterials() {
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
 
-function groupByFacade(segments) {
-  const facadeCenters: Record<FacadeKey, number> = {
-    front: frontZ + wallThickness.exterior / 2,
-    rear: rearZ - wallThickness.exterior / 2,
-    left: leftX + wallThickness.exterior / 2,
-    right: rightX - wallThickness.exterior / 2,
-  };
-
-  const buckets: Record<FacadeKey, typeof segments> = {
-    front: [],
-    rear: [],
-    left: [],
-    right: [],
-  };
-
-  const tolerance = 0.25;
-
-  segments.forEach((segment) => {
-    const [x, , z] = segment.position;
-
-    if (Math.abs(z - facadeCenters.front) <= tolerance) {
-      buckets.front.push(segment);
-    } else if (Math.abs(z - facadeCenters.rear) <= tolerance) {
-      buckets.rear.push(segment);
-    } else if (Math.abs(x - facadeCenters.left) <= tolerance) {
-      buckets.left.push(segment);
-    } else {
-      buckets.right.push(segment);
-    }
-  });
-
-  return buckets;
-}
-
 // --- HOUSE COMPONENTS ---
 
 function Walls() {
@@ -389,31 +355,6 @@ function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: an
   );
 }
 
-function WallSegmentWithEdges({
-  geometry,
-  position,
-  rotation,
-  wallMaterial,
-  edgeMaterial,
-}: {
-  geometry: THREE.BufferGeometry;
-  position: [number, number, number];
-  rotation: [number, number, number];
-  wallMaterial: THREE.Material;
-  edgeMaterial: THREE.LineBasicMaterial;
-}) {
-  const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
-
-  return (
-    <group position={position} rotation={rotation}>
-      <mesh geometry={geometry} material={wallMaterial} castShadow receiveShadow />
-      <lineSegments geometry={edgesGeometry}>
-        <primitive object={edgeMaterial} attach="material" />
-      </lineSegments>
-    </group>
-  );
-}
-
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
@@ -425,10 +366,6 @@ export default function HouseViewer() {
         roughness: 0.9,
         side: THREE.DoubleSide,
       }),
-    []
-  );
-  const wallEdgeMaterial = useMemo(
-    () => new THREE.LineBasicMaterial({ color: '#00ffff', linewidth: 2 }),
     []
   );
 
@@ -447,9 +384,8 @@ export default function HouseViewer() {
   });
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [focusMode, setFocusMode] = useState(false);
+  const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
 
-  const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
-  const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
   const envelopePolygon = useMemo(() => getEnvelopeInnerPolygon(wallThickness.exterior), []);
   const envelopeShape = useMemo(() => makeFootprintShape(envelopePolygon), [envelopePolygon]);
   const envelopeDebugLine = useMemo(() => {
@@ -635,43 +571,29 @@ export default function HouseViewer() {
         <group position={[originOffset.x, 0, originOffset.z]}>
           <group ref={wallGroupRef} name="wallGroup">
             <axesHelper args={[0.3]} />
-            {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
-              const showFacade = !cutawayEnabled || facadeVisibility[facadeKey];
+            {showGround && (
+              <mesh
+                geometry={wallsGround.shell.geometry}
+                position={wallsGround.shell.position}
+                rotation={wallsGround.shell.rotation}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            )}
 
-              return (
-                <group key={facadeKey} name={`facade-${facadeKey}`} visible={showFacade}>
-                  {showGround && (
-                    <group>
-                      {groundFacades[facadeKey].map((seg, i) => (
-                        <WallSegmentWithEdges
-                          key={`gf-${facadeKey}-${i}`}
-                          geometry={seg.geometry}
-                          position={seg.position}
-                          rotation={seg.rotation}
-                          wallMaterial={wallMaterial}
-                          edgeMaterial={wallEdgeMaterial}
-                        />
-                      ))}
-                    </group>
-                  )}
-
-                  {showFirst && (
-                    <group>
-                      {firstFacades[facadeKey].map((seg, i) => (
-                        <WallSegmentWithEdges
-                          key={`1f-${facadeKey}-${i}`}
-                          geometry={seg.geometry}
-                          position={[seg.position[0], seg.position[1] + firstFloorY, seg.position[2]]}
-                          rotation={seg.rotation}
-                          wallMaterial={wallMaterial}
-                          edgeMaterial={wallEdgeMaterial}
-                        />
-                      ))}
-                    </group>
-                  )}
-                </group>
-              );
-            })}
+            {showFirst && (
+              <mesh
+                geometry={wallsFirst.shell.geometry}
+                position={wallsFirst.shell.position}
+                rotation={wallsFirst.shell.rotation}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            )}
           </group>
 
           <group ref={slabGroupRef} name="slabGroup">

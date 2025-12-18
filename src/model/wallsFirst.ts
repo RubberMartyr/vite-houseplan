@@ -4,7 +4,6 @@ import { ceilingHeights, wallThickness } from './houseSpec';
 
 type WallSegment = {
   position: [number, number, number];
-  size: [number, number, number];
   rotation: [number, number, number];
   geometry: BoxGeometry;
 };
@@ -12,56 +11,42 @@ type WallSegment = {
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 
-function signedPolygonArea(points: { x: number; z: number }[]): number {
-  return points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return area + point.x * next.z - next.x * point.z;
-  }, 0);
-}
-
-const outline = getEnvelopeOuterPolygon();
-const isClockwise = signedPolygonArea(outline) < 0;
-const segments: WallSegment[] = outline
-  .map((start, index) => {
-    const end = outline[(index + 1) % outline.length];
-    const dx = end.x - start.x;
-    const dz = end.z - start.z;
-    const length = Math.sqrt(dx * dx + dz * dz);
-
-    if (length === 0) {
-      return null;
+const envelopePoints = getEnvelopeOuterPolygon();
+const points = (() => {
+  const list = [...envelopePoints];
+  if (list.length > 1) {
+    const first = list[0];
+    const last = list[list.length - 1];
+    if (first.x === last.x && first.z === last.z) {
+      list.pop();
     }
+  }
+  return list;
+})();
 
-    const midpoint: [number, number, number] = [
-      (start.x + end.x) / 2,
-      wallHeight / 2,
-      (start.z + end.z) / 2,
-    ];
+const segments: WallSegment[] = [];
 
-    const ux = dx / length;
-    const uz = dz / length;
-    const nx = isClockwise ? -uz : uz;
-    const nz = isClockwise ? ux : -ux;
-    const centerOffset: [number, number, number] = [
-      (nx * exteriorThickness) / 2,
-      0,
-      (nz * exteriorThickness) / 2,
-    ];
+for (let i = 0; i < points.length; i++) {
+  const p0 = points[i];
+  const p1 = points[(i + 1) % points.length];
+  const dx = p1.x - p0.x;
+  const dz = p1.z - p0.z;
+  const edgeLen = Math.hypot(dx, dz);
 
-    const angle = Math.atan2(dz, dx);
+  if (edgeLen === 0) {
+    continue;
+  }
 
-    return {
-      position: [
-        midpoint[0] + centerOffset[0],
-        midpoint[1],
-        midpoint[2] + centerOffset[2],
-      ],
-      size: [length, wallHeight, exteriorThickness],
-      rotation: [0, angle, 0],
-      geometry: new BoxGeometry(length, wallHeight, exteriorThickness),
-    };
-  })
-  .filter((segment): segment is WallSegment => Boolean(segment));
+  const midX = (p0.x + p1.x) / 2;
+  const midZ = (p0.z + p1.z) / 2;
+  const yaw = Math.atan2(dz, dx);
+
+  segments.push({
+    geometry: new BoxGeometry(edgeLen, wallHeight, exteriorThickness),
+    position: [midX, wallHeight / 2, midZ],
+    rotation: [0, yaw, 0],
+  });
+}
 
 export const wallsFirst = {
   segments,

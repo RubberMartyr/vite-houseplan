@@ -15,7 +15,7 @@ import {
   levelHeights,
   wallThickness,
 } from '../model/houseSpec'
-import { getEnvelopeInnerPolygon, originOffset } from '../model/envelope'
+import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, originOffset } from '../model/envelope'
 import { roomsGround } from '../model/roomsGround'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())

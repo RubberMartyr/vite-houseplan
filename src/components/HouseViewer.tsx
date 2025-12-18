@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
+import { wallsBasement } from '../model/wallsBasement'
 import { wallsGround } from '../model/wallsGround'
 import { wallsFirst } from '../model/wallsFirst'
 import {
@@ -371,6 +372,7 @@ export default function HouseViewer() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [focusMode, setFocusMode] = useState(false);
   const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
+  const basementFloorLevel = -2.0;
 
   const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
   const groundEnvelopePolygon = useMemo(
@@ -586,6 +588,15 @@ export default function HouseViewer() {
         <group position={[originOffset.x, 0, originOffset.z]}>
           <group ref={wallGroupRef} name="wallGroup">
             <axesHelper args={[0.3]} />
+            <mesh
+              geometry={wallsBasement.shell.geometry}
+              position={wallsBasement.shell.position}
+              rotation={wallsBasement.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
             {showGround && (
               <mesh
                 geometry={wallsGround.shell.geometry}
@@ -613,6 +624,7 @@ export default function HouseViewer() {
 
           <group ref={slabGroupRef} name="slabGroup">
             <axesHelper args={[0.3]} />
+            <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
             {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
             {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
             {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}

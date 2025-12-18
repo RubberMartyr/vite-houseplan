@@ -1,12 +1,6 @@
 import { layoutGround } from './layoutGround';
-import {
-  ceilingHeights,
-  wallThickness,
-  frontZ,
-  rearZ,
-  envelopeOutline,
-  originOffset,
-} from './houseSpec';
+import { getEnvelopeOuterPolygon } from './envelope';
+import { ceilingHeights, wallThickness, frontZ, rearZ, originOffset } from './houseSpec';
 import { BoxGeometry } from 'three';
 
 type WallSegment = {
@@ -24,8 +18,6 @@ type Opening = {
   zMin: number;
   zMax: number;
 };
-
-type EnvelopeEdge = { start: { x: number; z: number }; end: { x: number; z: number } };
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -47,41 +39,6 @@ function createWallSegment(
     size: [xMax - xMin, height, zMax - zMin],
     rotation: [0, 0, 0],
     geometry: new BoxGeometry(xMax - xMin, height, zMax - zMin),
-  };
-}
-
-function createOrientedWallSegment(
-  edge: EnvelopeEdge,
-  height: number,
-  thickness: number,
-  orientationNormal: [number, number]
-): WallSegment {
-  const dx = edge.end.x - edge.start.x;
-  const dz = edge.end.z - edge.start.z;
-  const length = Math.sqrt(dx * dx + dz * dz);
-  const midpoint: [number, number, number] = [
-    (edge.start.x + edge.end.x) / 2,
-    height / 2,
-    (edge.start.z + edge.end.z) / 2,
-  ];
-  const normal = orientationNormal;
-  const centerOffset: [number, number, number] = [
-    (normal[0] * thickness) / 2,
-    0,
-    (normal[1] * thickness) / 2,
-  ];
-
-  const angle = Math.atan2(dz, dx);
-
-  return {
-    position: [
-      midpoint[0] + centerOffset[0] + originOffset.x,
-      midpoint[1],
-      midpoint[2] + centerOffset[2] + originOffset.z,
-    ],
-    size: [length, height, thickness],
-    rotation: [0, angle, 0],
-    geometry: new BoxGeometry(length, height, thickness),
   };
 }
 
@@ -143,16 +100,6 @@ function buildFacadeSegments(
   return sections;
 }
 
-function getEnvelopeEdges(outline: { x: number; z: number }[]): EnvelopeEdge[] {
-  const edges: EnvelopeEdge[] = [];
-  for (let i = 0; i < outline.length; i++) {
-    const next = (i + 1) % outline.length;
-    edges.push({ start: outline[i], end: outline[next] });
-  }
-  return edges;
-}
-
-const edges = getEnvelopeEdges(envelopeOutline);
 const segments: WallSegment[] = [];
 
 const facadeOpenings: Record<'front' | 'rear', Opening[]> = {
@@ -199,13 +146,32 @@ facadeOpenings.rear.push({
   zMax: rearZ,
 });
 
-edges.forEach((edge) => {
-  const isFront = Math.abs(edge.start.z - frontZ) < 1e-6 && Math.abs(edge.end.z - frontZ) < 1e-6;
-  const isRear = Math.abs(edge.start.z - rearZ) < 1e-6 && Math.abs(edge.end.z - rearZ) < 1e-6;
+const envelopePolygon = getEnvelopeOuterPolygon();
+
+envelopePolygon.forEach((start, index) => {
+  const end = envelopePolygon[(index + 1) % envelopePolygon.length];
+  const dx = end.x - start.x;
+  const dz = end.z - start.z;
+  const length = Math.sqrt(dx * dx + dz * dz);
+
+  if (length === 0) {
+    return;
+  }
+
+  const midpoint: [number, number, number] = [
+    (start.x + end.x) / 2,
+    wallHeight / 2,
+    (start.z + end.z) / 2,
+  ];
+
+  const angle = Math.atan2(dz, dx);
+
+  const isFront = Math.abs(start.z - frontZ) < 1e-6 && Math.abs(end.z - frontZ) < 1e-6;
+  const isRear = Math.abs(start.z - rearZ) < 1e-6 && Math.abs(end.z - rearZ) < 1e-6;
 
   if (isFront || isRear) {
-    const xMin = Math.min(edge.start.x, edge.end.x);
-    const xMax = Math.max(edge.start.x, edge.end.x);
+    const xMin = Math.min(start.x, end.x);
+    const xMax = Math.max(start.x, end.x);
     const zMin = isFront ? frontZ : rearZ - exteriorThickness;
     const zMax = isFront ? frontZ + exteriorThickness : rearZ;
     const openings = isFront ? facadeOpenings.front : facadeOpenings.rear;
@@ -213,19 +179,23 @@ edges.forEach((edge) => {
     return;
   }
 
-  const dx = edge.end.x - edge.start.x;
-  const dz = edge.end.z - edge.start.z;
-  const length = Math.sqrt(dx * dx + dz * dz);
-  if (length === 0) {
-    return;
-  }
-
-  const inwardNormal: [number, number] = [
-    -(dz / length),
-    dx / length,
+  const inwardNormal: [number, number] = [-(dz / length), dx / length];
+  const centerOffset: [number, number, number] = [
+    (inwardNormal[0] * exteriorThickness) / 2,
+    0,
+    (inwardNormal[1] * exteriorThickness) / 2,
   ];
 
-  segments.push(createOrientedWallSegment(edge, wallHeight, exteriorThickness, inwardNormal));
+  segments.push({
+    position: [
+      midpoint[0] + centerOffset[0] + originOffset.x,
+      midpoint[1],
+      midpoint[2] + centerOffset[2] + originOffset.z,
+    ],
+    size: [length, wallHeight, exteriorThickness],
+    rotation: [0, angle, 0],
+    geometry: new BoxGeometry(length, wallHeight, exteriorThickness),
+  });
 });
 
 export const wallsGround = {

@@ -15,8 +15,7 @@ import {
   levelHeights,
   wallThickness,
 } from '../model/houseSpec'
-import { footprintPolygon, originOffset } from '../model/envelope'
-import { envelopeOutline } from '../model/houseSpec'
+import { getEnvelopeOuterPolygon, originOffset } from '../model/envelope'
 import { roomsGround } from '../model/roomsGround'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
@@ -53,7 +52,14 @@ const SPECS = {
 // Create a 2D Shape for Extrusion
 function makeFootprintShape(points) {
   const shape = new THREE.Shape();
-  points.forEach((point, index) => {
+  const pathPoints =
+    points.length > 1 &&
+    points[0].x === points[points.length - 1].x &&
+    points[0].z === points[points.length - 1].z
+      ? points.slice(0, -1)
+      : points;
+
+  pathPoints.forEach((point, index) => {
     if (index === 0) {
       shape.moveTo(point.x, -point.z);
     } else {
@@ -411,7 +417,16 @@ export default function HouseViewer() {
 
   const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
   const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
-  const envelopeShape = useMemo(() => makeFootprintShape(footprintPolygon), []);
+  const envelopePolygon = useMemo(() => getEnvelopeOuterPolygon(), []);
+  const envelopeShape = useMemo(() => makeFootprintShape(envelopePolygon), [envelopePolygon]);
+  const envelopeDebugLine = useMemo(() => {
+    const geometry = new THREE.BufferGeometry();
+    const points = envelopePolygon.map(
+      (point) => new THREE.Vector3(point.x + originOffset.x, 0.02, point.z + originOffset.z)
+    );
+    geometry.setFromPoints(points);
+    return geometry;
+  }, [envelopePolygon]);
   const selectedRoom = useMemo(
     () => roomsGround.find((room) => room.id === selectedRoomId) || null,
     [selectedRoomId]
@@ -616,6 +631,10 @@ export default function HouseViewer() {
 
           {showGround && <Slab y={0} shape={envelopeShape} offset={originOffset} />}
           {showFirst && <Slab y={firstFloorY} shape={envelopeShape} offset={originOffset} />}
+
+          <lineLoop geometry={envelopeDebugLine} position={[0, 0.01, 0]}>
+            <lineBasicMaterial color="#ff66cc" linewidth={1} />
+          </lineLoop>
 
           <Roof />
           {/* <Openings /> */}

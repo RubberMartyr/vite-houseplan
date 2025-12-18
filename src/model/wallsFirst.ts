@@ -12,6 +12,11 @@ const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 
 const envelopePoints = getEnvelopeOuterPolygon();
+const isClockwise = envelopePoints.reduce((area, point, index) => {
+  const next = envelopePoints[(index + 1) % envelopePoints.length];
+  return area + point.x * next.z - next.x * point.z;
+}, 0) < 0;
+
 const points = (() => {
   const list = [...envelopePoints];
   if (list.length > 1) {
@@ -39,11 +44,20 @@ for (let i = 0; i < points.length; i++) {
 
   const midX = (p0.x + p1.x) / 2;
   const midZ = (p0.z + p1.z) / 2;
+  const ux = dx / edgeLen;
+  const uz = dz / edgeLen;
+  const nx = isClockwise ? -uz : uz;
+  const nz = isClockwise ? ux : -ux;
+  const centerOffset: [number, number, number] = [
+    -(nx * exteriorThickness) / 2,
+    0,
+    -(nz * exteriorThickness) / 2,
+  ];
   const yaw = Math.atan2(dz, dx);
 
   segments.push({
     geometry: new BoxGeometry(edgeLen, wallHeight, exteriorThickness),
-    position: [midX, wallHeight / 2, midZ],
+    position: [midX + centerOffset[0], wallHeight / 2, midZ + centerOffset[2]],
     rotation: [0, yaw, 0],
   });
 }

@@ -22,6 +22,7 @@ import {
   getFlatRoofPolygon,
   originOffset,
 } from '../model/envelope'
+import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 
@@ -75,75 +76,6 @@ function makeFootprintShape(points) {
   });
   shape.closePath();
   return shape;
-}
-
-// Advanced Hipped Roof (Schilddak) Generator
-function createSchilddakGeom(width, depth, height, overhang) {
-  const w = width + overhang * 2;
-  const d = depth + overhang * 2;
-  const hw = w / 2;
-  const hd = d / 2;
-
-  // Calculate Ridge Length (Noklengte)
-  const ridgeLen = Math.max(0, depth - width);
-
-  const vertices = [
-    // Base Corners (Eaves)
-    -hw,
-    0,
-    -hd, // 0: FL
-    hw,
-    0,
-    -hd, // 1: FR
-    hw,
-    0,
-    hd, // 2: BR
-    -hw,
-    0,
-    hd, // 3: BL
-
-    // Ridge Points (Nok)
-    -0,
-    height,
-    -ridgeLen / 2, // 4: Front Ridge Start
-    -0,
-    height,
-    ridgeLen / 2, // 5: Back Ridge End
-  ];
-
-  const indices = [
-    0,
-    4,
-    1, // Front slope (Schild)
-    1,
-    4,
-    5,
-    1,
-    5,
-    2, // Right slope (Dakvlak)
-    2,
-    5,
-    3, // Back slope (Schild)
-    3,
-    5,
-    4,
-    3,
-    4,
-    0, // Left slope (Dakvlak)
-    // Bottom Cap (Soffit)
-    3,
-    0,
-    1,
-    3,
-    1,
-    2,
-  ];
-
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geom.setIndex(indices);
-  geom.computeVertexNormals();
-  return geom;
 }
 
 // --- PROCEDURAL MATERIALS ---
@@ -220,38 +152,34 @@ function Walls() {
 
 function Roof() {
   const { roof } = useBuildingMaterials();
-  const envelopeOutline = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
-  const [minX, maxX, minZ, maxZ] = useMemo(() => {
-    return envelopeOutline.reduce(
-      (acc, point) => {
-        return [
-          Math.min(acc[0], point.x),
-          Math.max(acc[1], point.x),
-          Math.min(acc[2], point.z),
-          Math.max(acc[3], point.z),
-        ];
-      },
-      [Infinity, -Infinity, Infinity, -Infinity]
-    );
-  }, []);
-  const W = maxX - minX;
-  const D = maxZ - minZ;
-  const center = useMemo(() => [(minX + maxX) / 2, (minZ + maxZ) / 2], [minX, maxX, minZ, maxZ]);
-  const H_WALLS = SPECS.levels.ground + SPECS.levels.slab + SPECS.levels.first;
-
-  // Create Hipped Roof
-  const geom = useMemo(
-    () => createSchilddakGeom(W, D, SPECS.levels.attic, SPECS.roof.overhang),
-    [W, D]
+  const { meshes, ridgeLines } = useMemo(() => buildRoofMeshes(), []);
+  const ridgeMaterial = useMemo(
+    () => new THREE.LineBasicMaterial({ color: '#ff44aa', linewidth: 2 }),
+    []
   );
 
   return (
-    <mesh
-      geometry={geom}
-      material={roof}
-      position={[center[0], H_WALLS, center[1]]}
-      castShadow
-    />
+    <group>
+      {meshes.map((mesh, index) => (
+        <mesh
+          key={`roof-plane-${index}`}
+          geometry={mesh.geometry}
+          material={roof}
+          position={mesh.position}
+          rotation={mesh.rotation}
+          castShadow
+          receiveShadow
+        />
+      ))}
+      {ridgeLines.map((line, index) => (
+        <line
+          key={`ridge-${index}`}
+          geometry={line.geometry}
+          position={line.position}
+          material={ridgeMaterial}
+        />
+      ))}
+    </group>
   );
 }
 

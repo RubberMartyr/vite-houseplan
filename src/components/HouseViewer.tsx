@@ -587,6 +587,10 @@ export default function HouseViewer() {
 
         {/* HOUSE ASSEMBLY */}
         <group position={[originOffset.x, 0, originOffset.z]}>
+          <mesh position={[0, -1, 0]}>
+            <boxGeometry args={[0.5, 0.5, 0.5]} />
+            <meshStandardMaterial color="hotpink" emissive="hotpink" />
+          </mesh>
           <group ref={wallGroupRef} name="wallGroup">
             <axesHelper args={[0.3]} />
             <mesh

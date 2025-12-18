@@ -9,23 +9,9 @@ type WallSegment = {
 };
 
 const wallHeight = ceilingHeights.first;
-const exteriorThickness = wallThickness.exterior;
+const exteriorThickness = 0.6;
 
 const envelopePoints = getEnvelopeOuterPolygon();
-const envelopeCentroid = (() => {
-  const { sumX, sumZ } = envelopePoints.reduce(
-    (acc, point) => ({
-      sumX: acc.sumX + point.x,
-      sumZ: acc.sumZ + point.z,
-    }),
-    { sumX: 0, sumZ: 0 }
-  );
-
-  return {
-    x: sumX / envelopePoints.length,
-    z: sumZ / envelopePoints.length,
-  };
-})();
 
 const points = (() => {
   const list = [...envelopePoints];
@@ -55,19 +41,11 @@ for (let i = 0; i < points.length; i++) {
   const midX = (p0.x + p1.x) / 2;
   const midZ = (p0.z + p1.z) / 2;
   const yaw = Math.atan2(dz, dx);
-  const nx = Math.sin(yaw);
-  const nz = Math.cos(yaw);
+  const tx = Math.sin(yaw);
+  const tz = Math.cos(yaw);
 
-  let centerX = midX + nx * (exteriorThickness / 2);
-  let centerZ = midZ + nz * (exteriorThickness / 2);
-
-  const shiftedDistance = Math.hypot(centerX - envelopeCentroid.x, centerZ - envelopeCentroid.z);
-  const originalDistance = Math.hypot(midX - envelopeCentroid.x, midZ - envelopeCentroid.z);
-
-  if (shiftedDistance > originalDistance) {
-    centerX = midX - nx * (exteriorThickness / 2);
-    centerZ = midZ - nz * (exteriorThickness / 2);
-  }
+  const centerX = midX + tx * (exteriorThickness / 2);
+  const centerZ = midZ + tz * (exteriorThickness / 2);
 
   segments.push({
     geometry: new BoxGeometry(edgeLen, wallHeight, exteriorThickness),

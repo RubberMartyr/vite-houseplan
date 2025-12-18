@@ -119,6 +119,7 @@ function useBuildingMaterials() {
       color: SPECS.roof.color,
       roughness: 0.7,
       metalness: 0.1,
+      side: THREE.DoubleSide,
     });
   }, []);
 

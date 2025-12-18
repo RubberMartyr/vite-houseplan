@@ -11,22 +11,42 @@ type WallSegment = {
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 
-const envelopePoints = getEnvelopeOuterPolygon();
-console.log('ENVELOPE pts count:', envelopePoints.length, envelopePoints);
-
 const points = (() => {
-  const list = [...envelopePoints];
-  if (list.length > 1) {
-    const first = list[0];
-    const last = list[list.length - 1];
+  const pts = getEnvelopeOuterPolygon();
+  if (pts.length > 1) {
+    const first = pts[0];
+    const last = pts[pts.length - 1];
     if (first.x === last.x && first.z === last.z) {
-      list.pop();
+      pts.pop();
     }
   }
-  return list;
+  return pts;
 })();
 
 const segments: WallSegment[] = [];
+
+const pointInPolygonXZ = (
+  p: { x: number; z: number },
+  poly: { x: number; z: number }[]
+): boolean => {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x;
+    const zi = poly[i].z;
+    const xj = poly[j].x;
+    const zj = poly[j].z;
+
+    const intersect =
+      zi > p.z !== zj > p.z &&
+      p.x < ((xj - xi) * (p.z - zi)) / (zj - zi) + xi;
+
+    if (intersect) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
+};
 
 const buildWallEdge = (
   p0: { x: number; z: number },
@@ -47,13 +67,21 @@ const buildWallEdge = (
   const midZ = (p0.z + p1.z) / 2;
   const yaw = Math.atan2(dz, dx);
 
-  const normalX = dz / edgeLen;
-  const normalZ = -dx / edgeLen;
+  const ux = dx / edgeLen;
+  const uz = dz / edgeLen;
+  let normalX = -uz;
+  let normalZ = ux;
 
-  const centerX = midX + normalX * (thickness / 2);
-  const centerZ = midZ + normalZ * (thickness / 2);
+  const testX = midX + normalX * 0.01;
+  const testZ = midZ + normalZ * 0.01;
 
-  console.log('edge', i, 'len', edgeLen.toFixed(3), 'mid', midX.toFixed(3), midZ.toFixed(3));
+  if (pointInPolygonXZ({ x: testX, z: testZ }, points)) {
+    normalX = -normalX;
+    normalZ = -normalZ;
+  }
+
+  const centerX = midX - normalX * (thickness / 2);
+  const centerZ = midZ - normalZ * (thickness / 2);
 
   return {
     geometry: new BoxGeometry(edgeLen, height, thickness),

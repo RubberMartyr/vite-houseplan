@@ -358,7 +358,7 @@ function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: an
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
-  const [floorView, setFloorView] = useState('Both');
+  const [floorView, setFloorView] = useState('All');
   const wallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -372,9 +372,12 @@ export default function HouseViewer() {
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
 
-  const showGround = floorView !== '1F';
-  const showFirst = floorView !== 'GF';
-  const firstFloorY = levelHeights.firstFloor;
+  const showGround = floorView === 'GF' || floorView === 'All';
+  const showFirst = floorView === 'FF' || floorView === 'All';
+  const showAttic = floorView === 'Attic' || floorView === 'All';
+  const firstFloorLevelY = levelHeights.firstFloor;
+  const firstFloorCeilingHeight = ceilingHeights.first;
+  const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
   const [facadeVisibility, setFacadeVisibility] = useState<Record<FacadeKey, boolean>>({
     front: true,
@@ -486,7 +489,7 @@ export default function HouseViewer() {
 
         <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Floor View</span>
         <div style={{ display: 'flex', gap: 8 }}>
-          {['GF', '1F', 'Both'].map((label) => {
+          {['GF', 'FF', 'Attic', 'All'].map((label) => {
             const isActive = floorView === label;
             return (
               <button
@@ -599,7 +602,8 @@ export default function HouseViewer() {
           <group ref={slabGroupRef} name="slabGroup">
             <axesHelper args={[0.3]} />
             {showGround && <Slab y={0} shape={envelopeShape} />}
-            {showFirst && <Slab y={firstFloorY} shape={envelopeShape} />}
+            {showFirst && <Slab y={firstFloorLevelY} shape={envelopeShape} />}
+            {showAttic && <Slab y={atticLevelY} shape={envelopeShape} />}
             <lineLoop geometry={envelopeDebugLine}>
               <lineBasicMaterial color="#ff00ff" linewidth={2} />
             </lineLoop>

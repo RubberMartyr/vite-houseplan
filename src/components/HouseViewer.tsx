@@ -15,7 +15,7 @@ import {
   levelHeights,
   wallThickness,
 } from '../model/houseSpec'
-import { getEnvelopeOuterPolygon, originOffset } from '../model/envelope'
+import { getEnvelopeInnerPolygon, originOffset } from '../model/envelope'
 import { roomsGround } from '../model/roomsGround'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
@@ -450,7 +450,7 @@ export default function HouseViewer() {
 
   const groundFacades = useMemo(() => groupByFacade(wallsGround.segments), []);
   const firstFacades = useMemo(() => groupByFacade(wallsFirst.segments), []);
-  const envelopePolygon = useMemo(() => getEnvelopeOuterPolygon(), []);
+  const envelopePolygon = useMemo(() => getEnvelopeInnerPolygon(wallThickness.exterior), []);
   const envelopeShape = useMemo(() => makeFootprintShape(envelopePolygon), [envelopePolygon]);
   const envelopeDebugLine = useMemo(() => {
     const geometry = new THREE.BufferGeometry();

@@ -9,7 +9,7 @@ type WallSegment = {
 };
 
 const wallHeight = ceilingHeights.first;
-const exteriorThickness = 0.6;
+const exteriorThickness = wallThickness.exterior;
 
 const envelopePoints = getEnvelopeOuterPolygon();
 
@@ -27,31 +27,48 @@ const points = (() => {
 
 const segments: WallSegment[] = [];
 
-for (let i = 0; i < points.length; i++) {
-  const p0 = points[i];
-  const p1 = points[(i + 1) % points.length];
+const buildWallEdge = (
+  p0: { x: number; z: number },
+  p1: { x: number; z: number },
+  height: number,
+  thickness: number,
+  i: number
+): WallSegment | null => {
   const dx = p1.x - p0.x;
   const dz = p1.z - p0.z;
   const edgeLen = Math.hypot(dx, dz);
 
   if (edgeLen === 0) {
-    continue;
+    return null;
   }
 
   const midX = (p0.x + p1.x) / 2;
   const midZ = (p0.z + p1.z) / 2;
   const yaw = Math.atan2(dz, dx);
-  const tx = Math.sin(yaw);
-  const tz = Math.cos(yaw);
 
-  const centerX = midX + tx * (exteriorThickness / 2);
-  const centerZ = midZ + tz * (exteriorThickness / 2);
+  const normalX = dz / edgeLen;
+  const normalZ = -dx / edgeLen;
 
-  segments.push({
-    geometry: new BoxGeometry(edgeLen, wallHeight, exteriorThickness),
-    position: [centerX, wallHeight / 2, centerZ],
+  const centerX = midX + normalX * (thickness / 2);
+  const centerZ = midZ + normalZ * (thickness / 2);
+
+  console.log('edge', i, 'len', edgeLen.toFixed(3), 'mid', midX.toFixed(3), midZ.toFixed(3));
+
+  return {
+    geometry: new BoxGeometry(edgeLen, height, thickness),
+    position: [centerX, height / 2, centerZ],
     rotation: [0, yaw, 0],
-  });
+  };
+};
+
+for (let i = 0; i < points.length; i++) {
+  const p0 = points[i];
+  const p1 = points[(i + 1) % points.length];
+  const segment = buildWallEdge(p0, p1, wallHeight, exteriorThickness, i);
+
+  if (segment) {
+    segments.push(segment);
+  }
 }
 
 export const wallsFirst = {

@@ -49,8 +49,8 @@ function lineIntersection(l1: Line2D, l2: Line2D): EnvelopePoint {
   };
 }
 
-export function getEnvelopeInnerPolygon(thickness: number): FootprintPoint[] {
-  const outer = getEnvelopeOuterPolygon();
+export function getEnvelopeInnerPolygon(thickness: number, outerPolygon?: FootprintPoint[]): FootprintPoint[] {
+  const outer = outerPolygon ?? getEnvelopeOuterPolygon();
   const openOuter = outer.slice(0, -1);
 
   if (openOuter.length === 0) {
@@ -98,6 +98,66 @@ export function getEnvelopeOuterPolygon(): FootprintPoint[] {
     hasLoggedEnvelope = true;
   }
   return envelopeOuterPolygon;
+}
+
+function clipPolygonAtMaxZ(points: FootprintPoint[], maxZ: number): FootprintPoint[] {
+  const result: FootprintPoint[] = [];
+
+  for (let i = 0; i < points.length; i++) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+
+    const currentInside = current.z <= maxZ + 1e-9;
+    const nextInside = next.z <= maxZ + 1e-9;
+
+    if (currentInside) {
+      result.push(current);
+    }
+
+    if (currentInside !== nextInside) {
+      const t = (maxZ - current.z) / (next.z - current.z);
+      result.push({
+        x: current.x + (next.x - current.x) * t,
+        z: maxZ,
+      });
+    }
+  }
+
+  const first = result[0];
+  const last = result[result.length - 1];
+  if (first && last && (first.x !== last.x || first.z !== last.z)) {
+    result.push(first);
+  }
+
+  return ensureClockwise(result);
+}
+
+export function getEnvelopeFirstOuterPolygon(maxDepth = 12): FootprintPoint[] {
+  const clipped = clipPolygonAtMaxZ(getEnvelopeOuterPolygon(), maxDepth);
+  return clipped;
+}
+
+export function getFlatRoofPolygon(): FootprintPoint[] {
+  const envelope = getEnvelopeOuterPolygon();
+  const maxZ = envelope.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const rearPoints = envelope.filter((point) => Math.abs(point.z - maxZ) < 1e-6);
+  const minX = rearPoints.reduce((min, point) => Math.min(min, point.x), Infinity);
+  const maxX = rearPoints.reduce((max, point) => Math.max(max, point.x), -Infinity);
+
+  const startZ = maxZ - 3;
+  const rectangle: FootprintPoint[] = [
+    { x: minX, z: startZ },
+    { x: maxX, z: startZ },
+    { x: maxX, z: maxZ },
+    { x: minX, z: maxZ },
+  ];
+
+  const clockwise = ensureClockwise(rectangle);
+  const first = clockwise[0];
+  const last = clockwise[clockwise.length - 1];
+  const isClosed = first.x === last.x && first.z === last.z;
+
+  return isClosed ? clockwise : [...clockwise, first];
 }
 
 // Exterior footprint polygon, ordered and including all facade indents.

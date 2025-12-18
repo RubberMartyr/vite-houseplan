@@ -206,10 +206,10 @@ type FacadeKey = 'front' | 'rear' | 'left' | 'right';
 
 function groupByFacade(segments) {
   const facadeCenters: Record<FacadeKey, number> = {
-    front: frontZ + wallThickness.exterior / 2 + originOffset.z,
-    rear: rearZ - wallThickness.exterior / 2 + originOffset.z,
-    left: leftX + wallThickness.exterior / 2 + originOffset.x,
-    right: rightX - wallThickness.exterior / 2 + originOffset.x,
+    front: frontZ + wallThickness.exterior / 2,
+    rear: rearZ - wallThickness.exterior / 2,
+    left: leftX + wallThickness.exterior / 2,
+    right: rightX - wallThickness.exterior / 2,
   };
 
   const buckets: Record<FacadeKey, typeof segments> = {
@@ -276,7 +276,7 @@ function Roof() {
     <mesh
       geometry={geom}
       material={roof}
-      position={[center[0] + originOffset.x, H_WALLS, center[1] + originOffset.z]}
+      position={[center[0], H_WALLS, center[1]]}
       castShadow
     />
   );
@@ -367,7 +367,7 @@ function Openings() {
   );
 }
 
-function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape, offset }: any) {
+function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: any) {
   const geom = useMemo(
     () => {
       const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
@@ -379,7 +379,7 @@ function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape, offs
 
   return (
     <mesh
-      position={[offset?.x ?? 0, y, offset?.z ?? 0]}
+      position={[0, y, 0]}
       receiveShadow
       castShadow
     >
@@ -454,9 +454,7 @@ export default function HouseViewer() {
   const envelopeShape = useMemo(() => makeFootprintShape(envelopePolygon), [envelopePolygon]);
   const envelopeDebugLine = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
-    const points = envelopePolygon.map(
-      (point) => new THREE.Vector3(point.x + originOffset.x, 0.02, point.z + originOffset.z)
-    );
+    const points = envelopePolygon.map((point) => new THREE.Vector3(point.x, 0.02, point.z));
     geometry.setFromPoints(points);
     return geometry;
   }, [envelopePolygon]);
@@ -479,6 +477,12 @@ export default function HouseViewer() {
     console.log('Wall polygon points (first 5 - same as slab):', envelopePolygon.slice(0, 5));
     console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
     console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
+    const offsetPoints = envelopePolygon.slice(0, 2).map((point) => ({
+      x: point.x + originOffset.x,
+      z: point.z + originOffset.z,
+    }));
+    console.log('Origin offset applied:', originOffset);
+    console.log('First two envelope points after offset:', offsetPoints);
   }, [envelopePolygon]);
 
   return (
@@ -628,7 +632,7 @@ export default function HouseViewer() {
         </directionalLight>
 
         {/* HOUSE ASSEMBLY */}
-        <group>
+        <group position={[originOffset.x, 0, originOffset.z]}>
           <group ref={wallGroupRef} name="wallGroup">
             <axesHelper args={[0.3]} />
             {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
@@ -672,8 +676,8 @@ export default function HouseViewer() {
 
           <group ref={slabGroupRef} name="slabGroup">
             <axesHelper args={[0.3]} />
-            {showGround && <Slab y={0} shape={envelopeShape} offset={originOffset} />}
-            {showFirst && <Slab y={firstFloorY} shape={envelopeShape} offset={originOffset} />}
+            {showGround && <Slab y={0} shape={envelopeShape} />}
+            {showFirst && <Slab y={firstFloorY} shape={envelopeShape} />}
             <lineLoop geometry={envelopeDebugLine}>
               <lineBasicMaterial color="#ff00ff" linewidth={2} />
             </lineLoop>

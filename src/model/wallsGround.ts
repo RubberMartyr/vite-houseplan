@@ -1,6 +1,6 @@
 import { layoutGround } from './layoutGround';
 import { getEnvelopeOuterPolygon } from './envelope';
-import { ceilingHeights, wallThickness, frontZ, rearZ, originOffset } from './houseSpec';
+import { ceilingHeights, wallThickness, frontZ, rearZ } from './houseSpec';
 import { BoxGeometry } from 'three';
 
 type WallSegment = {
@@ -39,9 +39,9 @@ function createWallSegment(
 ): WallSegment {
   return {
     position: [
-      (xMin + xMax) / 2 + originOffset.x,
+      (xMin + xMax) / 2,
       yOffset + height / 2,
-      (zMin + zMax) / 2 + originOffset.z,
+      (zMin + zMax) / 2,
     ],
     size: [xMax - xMin, height, zMax - zMin],
     rotation: [0, 0, 0],
@@ -200,9 +200,9 @@ envelopePolygon.forEach((start, index) => {
 
   segments.push({
     position: [
-      midpoint[0] + centerOffset[0] + originOffset.x,
+      midpoint[0] + centerOffset[0],
       midpoint[1],
-      midpoint[2] + centerOffset[2] + originOffset.z,
+      midpoint[2] + centerOffset[2],
     ],
     size: [length, wallHeight, exteriorThickness],
     rotation: [0, angle, 0],

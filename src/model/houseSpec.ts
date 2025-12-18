@@ -47,7 +47,12 @@ const envelopeOutlineRaw: EnvelopePoint[] = [
   ...leftFacadeProfile.slice(1, -1).reverse(),
 ];
 
-export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(envelopeOutlineRaw);
+const mirroredEnvelopeOutline = envelopeOutlineRaw.map((point) => ({
+  x: -point.x,
+  z: point.z,
+}));
+
+export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(mirroredEnvelopeOutline);
 
 export const envelopeBoundsCm = envelopeOutline.reduce(
   (acc, point) => ({

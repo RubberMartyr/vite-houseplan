@@ -32,18 +32,6 @@ function normalizeVector(dx: number, dz: number): { x: number; z: number } {
   return { x: dx / length, z: dz / length };
 }
 
-function offsetEdge(
-  start: EnvelopePoint,
-  end: EnvelopePoint,
-  inset: number,
-  inwardNormal: { x: number; z: number }
-): [EnvelopePoint, EnvelopePoint] {
-  return [
-    { x: start.x + inwardNormal.x * inset, z: start.z + inwardNormal.z * inset },
-    { x: end.x + inwardNormal.x * inset, z: end.z + inwardNormal.z * inset },
-  ];
-}
-
 function lineIntersection(l1: Line2D, l2: Line2D): EnvelopePoint {
   const cross = (a: { x: number; z: number }, b: { x: number; z: number }) => a.x * b.z - a.z * b.x;
   const denominator = cross(l1.direction, l2.direction);
@@ -63,38 +51,26 @@ function lineIntersection(l1: Line2D, l2: Line2D): EnvelopePoint {
 
 export function getEnvelopeInnerPolygon(inset: number): FootprintPoint[] {
   const outer = getEnvelopeOuterPolygon();
+  const openOuter = outer.slice(0, -1);
 
-  const insetEdges = outer.slice(0, -1).map((point, index) => {
-    const next = outer[index + 1];
+  if (openOuter.length === 0) {
+    return outer;
+  }
+
+  const offsetLines: Line2D[] = openOuter.map((point, index) => {
+    const next = openOuter[(index + 1) % openOuter.length];
     const direction = normalizeVector(next.x - point.x, next.z - point.z);
     const inwardNormal = { x: direction.z, z: -direction.x };
-    const [offsetStart, offsetEnd] = offsetEdge(point, next, inset, inwardNormal);
 
     return {
-      offsetStart,
-      offsetEnd,
+      point: { x: point.x + inwardNormal.x * inset, z: point.z + inwardNormal.z * inset },
       direction,
     };
   });
 
-  const insetPolygon: FootprintPoint[] = insetEdges.map((edge, index) => {
-    const prevEdge = insetEdges[(index - 1 + insetEdges.length) % insetEdges.length];
-
-    const lineA: Line2D = {
-      point: edge.offsetStart,
-      direction: edge.offsetEnd && edge.offsetStart
-        ? { x: edge.offsetEnd.x - edge.offsetStart.x, z: edge.offsetEnd.z - edge.offsetStart.z }
-        : { x: edge.direction.x, z: edge.direction.z },
-    };
-
-    const lineB: Line2D = {
-      point: prevEdge.offsetStart,
-      direction: prevEdge.offsetEnd && prevEdge.offsetStart
-        ? { x: prevEdge.offsetEnd.x - prevEdge.offsetStart.x, z: prevEdge.offsetEnd.z - prevEdge.offsetStart.z }
-        : { x: prevEdge.direction.x, z: prevEdge.direction.z },
-    };
-
-    return lineIntersection(lineB, lineA);
+  const insetPolygon: FootprintPoint[] = offsetLines.map((line, index) => {
+    const prevLine = offsetLines[(index - 1 + offsetLines.length) % offsetLines.length];
+    return lineIntersection(prevLine, line);
   });
 
   const first = insetPolygon[0];

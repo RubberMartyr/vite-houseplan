@@ -247,6 +247,7 @@ function Walls() {
 
 function Roof() {
   const { roof } = useBuildingMaterials();
+  const envelopeOutline = useMemo(() => getEnvelopeOuterPolygon(), []);
   const [minX, maxX, minZ, maxZ] = useMemo(() => {
     return envelopeOutline.reduce(
       (acc, point) => {

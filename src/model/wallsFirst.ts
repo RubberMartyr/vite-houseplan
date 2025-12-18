@@ -12,6 +12,7 @@ const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 
 const envelopePoints = getEnvelopeOuterPolygon();
+console.log('ENVELOPE pts count:', envelopePoints.length, envelopePoints);
 
 const points = (() => {
   const list = [...envelopePoints];
@@ -61,15 +62,26 @@ const buildWallEdge = (
   };
 };
 
+let maxLen = -1;
+let maxI = -1;
+
 for (let i = 0; i < points.length; i++) {
   const p0 = points[i];
   const p1 = points[(i + 1) % points.length];
+  const len = Math.hypot(p1.x - p0.x, p1.z - p0.z);
+  if (len > maxLen) {
+    maxLen = len;
+    maxI = i;
+  }
   const segment = buildWallEdge(p0, p1, wallHeight, exteriorThickness, i);
 
   if (segment) {
     segments.push(segment);
   }
 }
+
+console.log('MAX EDGE:', maxI, 'len=', maxLen);
+console.log('WALL SEGMENTS:', segments.length);
 
 export const wallsFirst = {
   segments,

@@ -12,7 +12,15 @@ type WallSegment = {
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 
+function signedPolygonArea(points: { x: number; z: number }[]): number {
+  return points.reduce((area, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return area + point.x * next.z - next.x * point.z;
+  }, 0);
+}
+
 const outline = getEnvelopeOuterPolygon();
+const isClockwise = signedPolygonArea(outline) < 0;
 const segments: WallSegment[] = outline
   .map((start, index) => {
     const end = outline[(index + 1) % outline.length];
@@ -30,11 +38,14 @@ const segments: WallSegment[] = outline
       (start.z + end.z) / 2,
     ];
 
-    const inwardNormal: [number, number] = [-(dz / length), dx / length];
+    const ux = dx / length;
+    const uz = dz / length;
+    const nx = isClockwise ? -uz : uz;
+    const nz = isClockwise ? ux : -ux;
     const centerOffset: [number, number, number] = [
-      (inwardNormal[0] * exteriorThickness) / 2,
+      (nx * exteriorThickness) / 2,
       0,
-      (inwardNormal[1] * exteriorThickness) / 2,
+      (nz * exteriorThickness) / 2,
     ];
 
     const angle = Math.atan2(dz, dx);

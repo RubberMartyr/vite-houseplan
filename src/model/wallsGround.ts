@@ -1,116 +1,54 @@
-import { BoxGeometry } from 'three';
-import { getEnvelopeOuterPolygon } from './envelope';
+import { ExtrudeGeometry, Path, Shape } from 'three';
+import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { ceilingHeights, wallThickness } from './houseSpec';
-
-type WallSegment = {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  geometry: BoxGeometry;
-};
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 
-const points = (() => {
-  const pts = getEnvelopeOuterPolygon();
-  if (pts.length > 1) {
-    const first = pts[0];
-    const last = pts[pts.length - 1];
-    if (first.x === last.x && first.z === last.z) {
-      pts.pop();
-    }
-  }
-  return pts;
-})();
-
-const segments: WallSegment[] = [];
-
-const pointInPolygonXZ = (
-  p: { x: number; z: number },
-  poly: { x: number; z: number }[]
-): boolean => {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i].x;
-    const zi = poly[i].z;
-    const xj = poly[j].x;
-    const zj = poly[j].z;
-
-    const intersect =
-      zi > p.z !== zj > p.z &&
-      p.x < ((xj - xi) * (p.z - zi)) / (zj - zi) + xi;
-
-    if (intersect) {
-      inside = !inside;
-    }
-  }
-
-  return inside;
-};
-
-const buildWallEdge = (
-  p0: { x: number; z: number },
-  p1: { x: number; z: number },
-  height: number,
-  thickness: number,
-  i: number
-): WallSegment | null => {
-  const dx = p1.x - p0.x;
-  const dz = p1.z - p0.z;
-  const edgeLen = Math.hypot(dx, dz);
-
-  if (edgeLen === 0) {
-    return null;
-  }
-
-  const midX = (p0.x + p1.x) / 2;
-  const midZ = (p0.z + p1.z) / 2;
-  const yaw = Math.atan2(dz, dx);
-
-  const ux = dx / edgeLen;
-  const uz = dz / edgeLen;
-  let normalX = -uz;
-  let normalZ = ux;
-
-  const testX = midX + normalX * 0.01;
-  const testZ = midZ + normalZ * 0.01;
-
-  if (pointInPolygonXZ({ x: testX, z: testZ }, points)) {
-    normalX = -normalX;
-    normalZ = -normalZ;
-  }
-
-  const centerX = midX - normalX * (thickness / 2);
-  const centerZ = midZ - normalZ * (thickness / 2);
-
-  return {
-    geometry: new BoxGeometry(edgeLen, height, thickness),
-    position: [centerX, height / 2, centerZ],
-    rotation: [0, yaw, 0],
-  };
-};
-
-let maxLen = -1;
-let maxI = -1;
-
-for (let i = 0; i < points.length; i++) {
-  const p0 = points[i];
-  const p1 = points[(i + 1) % points.length];
-  const len = Math.hypot(p1.x - p0.x, p1.z - p0.z);
-  if (len > maxLen) {
-    maxLen = len;
-    maxI = i;
-  }
-  const segment = buildWallEdge(p0, p1, wallHeight, exteriorThickness, i);
-
-  if (segment) {
-    segments.push(segment);
-  }
-}
-
-console.log('MAX EDGE:', maxI, 'len=', maxLen);
-console.log('WALL SEGMENTS:', segments.length);
-
 export const wallsGround = {
-  segments,
+  shell: (() => {
+    const outer = getEnvelopeOuterPolygon();
+    const inner = getEnvelopeInnerPolygon(exteriorThickness);
+
+    const toShapePoints = (points: { x: number; z: number }[]) => {
+      const openPoints =
+        points.length > 1 && points[0].x === points[points.length - 1].x && points[0].z === points[points.length - 1].z
+          ? points.slice(0, -1)
+          : points;
+
+      return openPoints;
+    };
+
+    const outerShape = new Shape();
+    const outerPoints = toShapePoints(outer);
+    outerPoints.forEach((point, index) => {
+      if (index === 0) {
+        outerShape.moveTo(point.x, -point.z);
+      } else {
+        outerShape.lineTo(point.x, -point.z);
+      }
+    });
+    outerShape.closePath();
+
+    const holePath = new Path();
+    const innerPoints = toShapePoints(inner);
+    innerPoints.forEach((point, index) => {
+      if (index === 0) {
+        holePath.moveTo(point.x, -point.z);
+      } else {
+        holePath.lineTo(point.x, -point.z);
+      }
+    });
+    holePath.closePath();
+    outerShape.holes.push(holePath);
+
+    const geometry = new ExtrudeGeometry(outerShape, { depth: wallHeight, bevelEnabled: false });
+    geometry.rotateX(-Math.PI / 2);
+
+    return {
+      geometry,
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  })(),
 };

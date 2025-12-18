@@ -49,7 +49,7 @@ function lineIntersection(l1: Line2D, l2: Line2D): EnvelopePoint {
   };
 }
 
-export function getEnvelopeInnerPolygon(inset: number): FootprintPoint[] {
+export function getEnvelopeInnerPolygon(thickness: number): FootprintPoint[] {
   const outer = getEnvelopeOuterPolygon();
   const openOuter = outer.slice(0, -1);
 
@@ -57,13 +57,20 @@ export function getEnvelopeInnerPolygon(inset: number): FootprintPoint[] {
     return outer;
   }
 
+  const area = polygonArea(openOuter);
+  const isClockwise = area < 0;
+
   const offsetLines: Line2D[] = openOuter.map((point, index) => {
     const next = openOuter[(index + 1) % openOuter.length];
     const direction = normalizeVector(next.x - point.x, next.z - point.z);
-    const inwardNormal = { x: direction.z, z: -direction.x };
+    const leftNormal = { x: -direction.z, z: direction.x };
+    const inwardNormal = isClockwise ? { x: -leftNormal.x, z: -leftNormal.z } : leftNormal;
 
     return {
-      point: { x: point.x + inwardNormal.x * inset, z: point.z + inwardNormal.z * inset },
+      point: {
+        x: point.x + inwardNormal.x * thickness,
+        z: point.z + inwardNormal.z * thickness,
+      },
       direction,
     };
   });

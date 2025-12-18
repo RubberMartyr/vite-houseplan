@@ -17,6 +17,7 @@ import {
 } from '../model/houseSpec'
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, originOffset } from '../model/envelope'
 import { roomsGround } from '../model/roomsGround'
+import { roomsFirst } from '../model/roomsFirst'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
 
@@ -355,6 +356,54 @@ function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: an
   );
 }
 
+function getBoxProps(bounds: { xMin: number; xMax: number; zMin: number; zMax: number; yMin: number; yMax: number }) {
+  const width = bounds.xMax - bounds.xMin;
+  const height = bounds.yMax - bounds.yMin;
+  const depth = bounds.zMax - bounds.zMin;
+
+  return {
+    size: [width, height, depth] as [number, number, number],
+    position: [
+      (bounds.xMin + bounds.xMax) / 2,
+      (bounds.yMin + bounds.yMax) / 2,
+      (bounds.zMin + bounds.zMax) / 2,
+    ] as [number, number, number],
+  };
+}
+
+function RoomHitbox({ room, highlighted, onSelect }: any) {
+  const { position, size } = useMemo(() => getBoxProps(room.bounds), [room.bounds]);
+  const geometry = useMemo(() => new THREE.BoxGeometry(...size), [size]);
+  const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
+
+  return (
+    <group position={position}>
+      <mesh
+        geometry={geometry}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          onSelect(room.id);
+        }}
+        onPointerEnter={(event) => event.stopPropagation()}
+        onPointerOver={(event) => event.stopPropagation()}
+      >
+        <meshStandardMaterial
+          transparent
+          opacity={highlighted ? 0.12 : 0}
+          color="#4fa3f7"
+          depthWrite={false}
+        />
+      </mesh>
+
+      {highlighted && (
+        <lineSegments geometry={edgesGeometry}>
+          <lineBasicMaterial color="#4fa3f7" linewidth={1} />
+        </lineSegments>
+      )}
+    </group>
+  );
+}
+
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
@@ -394,9 +443,23 @@ export default function HouseViewer() {
     geometry.setFromPoints(points);
     return geometry;
   }, [envelopePolygon]);
+  const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
+  const activeRooms = useMemo(() => {
+    const list: any[] = [];
+
+    if (showGround) {
+      list.push(...roomsGround);
+    }
+
+    if (showFirst) {
+      list.push(...roomsFirst);
+    }
+
+    return list;
+  }, [showGround, showFirst]);
   const selectedRoom = useMemo(
-    () => roomsGround.find((room) => room.id === selectedRoomId) || null,
-    [selectedRoomId]
+    () => allRooms.find((room) => room.id === selectedRoomId) || null,
+    [allRooms, selectedRoomId]
   );
 
   const buttonStyle = {
@@ -603,6 +666,17 @@ export default function HouseViewer() {
             <lineLoop geometry={envelopeDebugLine}>
               <lineBasicMaterial color="#ff00ff" linewidth={2} />
             </lineLoop>
+          </group>
+
+          <group name="roomHitboxes">
+            {activeRooms.map((room) => (
+              <RoomHitbox
+                key={room.id}
+                room={room}
+                highlighted={selectedRoomId === room.id}
+                onSelect={setSelectedRoomId}
+              />
+            ))}
           </group>
 
           <Roof />

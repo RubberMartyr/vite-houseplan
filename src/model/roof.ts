@@ -63,17 +63,20 @@ export function buildRoofMeshes(): {
   const frontZ = bounds.minZ;
   const backZ = bounds.maxZ;
   const ridgeZ = (frontZ + backZ) / 2;
-  const midX = (bounds.minX + bounds.maxX) / 2;
+  const centerX = (bounds.minX + bounds.maxX) / 2;
+  const centerZ = (frontZ + backZ) / 2;
   const widthX = bounds.maxX - bounds.minX;
 
-  const sideA = createRoofSide(midX, frontZ, EAVES_Y, ridgeZ, RIDGE_Y, widthX);
-  const sideB = createRoofSide(midX, ridgeZ, RIDGE_Y, backZ, EAVES_Y, widthX);
+  console.log('ROOF bounds', { minX: bounds.minX, maxX: bounds.maxX, minZ: bounds.minZ, maxZ: bounds.maxZ, ridgeZ, eavesY: EAVES_Y, ridgeY: RIDGE_Y });
+
+  const sideA = createRoofSide(centerX, frontZ, EAVES_Y, ridgeZ, RIDGE_Y, widthX);
+  const sideB = createRoofSide(centerX, ridgeZ, RIDGE_Y, backZ, EAVES_Y, widthX);
 
   const triangleShape = new THREE.Shape();
-  triangleShape.moveTo(frontZ, EAVES_Y);
-  triangleShape.lineTo(ridgeZ, RIDGE_Y);
-  triangleShape.lineTo(backZ, EAVES_Y);
-  triangleShape.lineTo(frontZ, EAVES_Y);
+  triangleShape.moveTo(frontZ - centerZ, EAVES_Y);
+  triangleShape.lineTo(ridgeZ - centerZ, RIDGE_Y);
+  triangleShape.lineTo(backZ - centerZ, EAVES_Y);
+  triangleShape.lineTo(frontZ - centerZ, EAVES_Y);
 
   const gableGeometry = new THREE.ShapeGeometry(triangleShape);
 
@@ -82,12 +85,12 @@ export function buildRoofMeshes(): {
     sideB,
     {
       geometry: gableGeometry,
-      position: [bounds.minX, 0, 0],
+      position: [bounds.minX, 0, centerZ],
       rotation: [0, Math.PI / 2, 0],
     },
     {
       geometry: gableGeometry,
-      position: [bounds.maxX, 0, 0],
+      position: [bounds.maxX, 0, centerZ],
       rotation: [0, -Math.PI / 2, 0],
     },
   ];

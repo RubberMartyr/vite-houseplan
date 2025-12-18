@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
@@ -389,6 +389,31 @@ function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape, offs
   );
 }
 
+function WallSegmentWithEdges({
+  geometry,
+  position,
+  rotation,
+  wallMaterial,
+  edgeMaterial,
+}: {
+  geometry: THREE.BufferGeometry;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  wallMaterial: THREE.Material;
+  edgeMaterial: THREE.LineBasicMaterial;
+}) {
+  const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
+
+  return (
+    <group position={position} rotation={rotation}>
+      <mesh geometry={geometry} material={wallMaterial} castShadow receiveShadow />
+      <lineSegments geometry={edgesGeometry}>
+        <primitive object={edgeMaterial} attach="material" />
+      </lineSegments>
+    </group>
+  );
+}
+
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
@@ -402,6 +427,13 @@ export default function HouseViewer() {
       }),
     []
   );
+  const wallEdgeMaterial = useMemo(
+    () => new THREE.LineBasicMaterial({ color: '#00ffff', linewidth: 2 }),
+    []
+  );
+
+  const slabGroupRef = useRef<THREE.Group>(null);
+  const wallGroupRef = useRef<THREE.Group>(null);
 
   const showGround = floorView !== '1F';
   const showFirst = floorView !== 'GF';
@@ -441,6 +473,13 @@ export default function HouseViewer() {
     cursor: 'pointer',
     fontWeight: 700,
   };
+
+  useEffect(() => {
+    console.log('Slab polygon points (first 5):', envelopePolygon.slice(0, 5));
+    console.log('Wall polygon points (first 5 - same as slab):', envelopePolygon.slice(0, 5));
+    console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
+    console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
+  }, [envelopePolygon]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
@@ -590,55 +629,57 @@ export default function HouseViewer() {
 
         {/* HOUSE ASSEMBLY */}
         <group>
-          {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
-            const showFacade = !cutawayEnabled || facadeVisibility[facadeKey];
+          <group ref={wallGroupRef} name="wallGroup">
+            <axesHelper args={[0.3]} />
+            {(['front', 'rear', 'left', 'right'] as FacadeKey[]).map((facadeKey) => {
+              const showFacade = !cutawayEnabled || facadeVisibility[facadeKey];
 
-            return (
-              <group key={facadeKey} name={`facade-${facadeKey}`} visible={showFacade}>
-                {showGround && (
-                  <group>
-                    {groundFacades[facadeKey].map((seg, i) => (
-                      <mesh
-                        key={`gf-${facadeKey}-${i}`}
-                        geometry={seg.geometry}
-                        position={seg.position}
-                        rotation={seg.rotation}
-                        material={wallMaterial}
-                        castShadow
-                        receiveShadow
-                      />
-                    ))}
-                  </group>
-                )}
+              return (
+                <group key={facadeKey} name={`facade-${facadeKey}`} visible={showFacade}>
+                  {showGround && (
+                    <group>
+                      {groundFacades[facadeKey].map((seg, i) => (
+                        <WallSegmentWithEdges
+                          key={`gf-${facadeKey}-${i}`}
+                          geometry={seg.geometry}
+                          position={seg.position}
+                          rotation={seg.rotation}
+                          wallMaterial={wallMaterial}
+                          edgeMaterial={wallEdgeMaterial}
+                        />
+                      ))}
+                    </group>
+                  )}
 
-                {showFirst && (
-                  <group>
-                    {firstFacades[facadeKey].map((seg, i) => (
-                      <mesh
-                        key={`1f-${facadeKey}-${i}`}
-                        geometry={seg.geometry}
-                        position={[seg.position[0], seg.position[1] + firstFloorY, seg.position[2]]}
-                        rotation={seg.rotation}
-                        material={wallMaterial}
-                        castShadow
-                        receiveShadow
-                      />
-                    ))}
-                  </group>
-                )}
-              </group>
-            );
-          })}
+                  {showFirst && (
+                    <group>
+                      {firstFacades[facadeKey].map((seg, i) => (
+                        <WallSegmentWithEdges
+                          key={`1f-${facadeKey}-${i}`}
+                          geometry={seg.geometry}
+                          position={[seg.position[0], seg.position[1] + firstFloorY, seg.position[2]]}
+                          rotation={seg.rotation}
+                          wallMaterial={wallMaterial}
+                          edgeMaterial={wallEdgeMaterial}
+                        />
+                      ))}
+                    </group>
+                  )}
+                </group>
+              );
+            })}
+          </group>
 
-          {showGround && <Slab y={0} shape={envelopeShape} offset={originOffset} />}
-          {showFirst && <Slab y={firstFloorY} shape={envelopeShape} offset={originOffset} />}
-
-          <lineLoop geometry={envelopeDebugLine} position={[0, 0.01, 0]}>
-            <lineBasicMaterial color="#ff66cc" linewidth={1} />
-          </lineLoop>
+          <group ref={slabGroupRef} name="slabGroup">
+            <axesHelper args={[0.3]} />
+            {showGround && <Slab y={0} shape={envelopeShape} offset={originOffset} />}
+            {showFirst && <Slab y={firstFloorY} shape={envelopeShape} offset={originOffset} />}
+            <lineLoop geometry={envelopeDebugLine}>
+              <lineBasicMaterial color="#ff00ff" linewidth={2} />
+            </lineLoop>
+          </group>
 
           <Roof />
-          {/* <Openings /> */}
         </group>
 
         {/* GROUNDS */}
@@ -658,49 +699,6 @@ export default function HouseViewer() {
           maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
         />
 
-        {showGround && (
-          <group>
-            {roomsGround.map((room) => {
-              const { xMin, xMax, zMin, zMax, yMin, yMax } = room.bounds;
-              const width = xMax - xMin;
-              const height = yMax - yMin;
-              const depth = zMax - zMin;
-              const centerX = (xMin + xMax) / 2 + originOffset.x;
-              const centerY = yMin + height / 2;
-              const centerZ = (zMin + zMax) / 2 + originOffset.z;
-              const isSelected = room.id === selectedRoomId;
-              const showAmbientOverlay = !focusMode || isSelected;
-
-              return (
-                <group key={room.id}>
-                  <mesh
-                    position={[centerX, centerY, centerZ]}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedRoomId(room.id);
-                    }}
-                    userData={{ roomId: room.id }}
-                  >
-                    <boxGeometry args={[width, height, depth]} />
-                    <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-                  </mesh>
-
-                  {showAmbientOverlay && (
-                    <mesh position={[centerX, centerY, centerZ]}>
-                      <boxGeometry args={[width, height, depth]} />
-                      <meshBasicMaterial
-                        color={isSelected ? '#1e90ff' : '#8fb1ff'}
-                        transparent
-                        opacity={isSelected ? 0.18 : 0.05}
-                        depthWrite={false}
-                      />
-                    </mesh>
-                  )}
-                </group>
-              );
-            })}
-          </group>
-        )}
       </Canvas>
     </div>
   );

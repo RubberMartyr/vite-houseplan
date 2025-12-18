@@ -1,6 +1,6 @@
 import { BoxGeometry } from 'three';
 import { getEnvelopeOuterPolygon } from './envelope';
-import { ceilingHeights, originOffset, wallThickness } from './houseSpec';
+import { ceilingHeights, wallThickness } from './houseSpec';
 
 type WallSegment = {
   position: [number, number, number];
@@ -52,9 +52,9 @@ const segments: WallSegment[] = outline
 
     return {
       position: [
-        midpoint[0] + centerOffset[0] + originOffset.x,
+        midpoint[0] + centerOffset[0],
         midpoint[1],
-        midpoint[2] + centerOffset[2] + originOffset.z,
+        midpoint[2] + centerOffset[2],
       ],
       size: [length, wallHeight, exteriorThickness],
       rotation: [0, angle, 0],

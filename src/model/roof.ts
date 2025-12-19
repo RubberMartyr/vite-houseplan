@@ -5,7 +5,6 @@ const EAVES_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
 const CHAMFER_Z = 0.4;
-const HIP_INSET_Z = 0.6;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -89,6 +88,24 @@ function extractRightRoofSegments(points: FootprintPoint[], ridgeX: number): Roo
   return segments.sort((a, b) => a.zStart - b.zStart);
 }
 
+function deriveIndentationSteps(points: FootprintPoint[]): number[] {
+  const epsilon = 1e-4;
+  const closedPoints = [...points, points[0]];
+  const zSteps = new Set<number>();
+
+  for (let i = 0; i < closedPoints.length - 1; i++) {
+    const current = closedPoints[i];
+    const next = closedPoints[i + 1];
+    const isHorizontal = Math.abs(current.z - next.z) < epsilon;
+
+    if (isHorizontal && next.x < current.x - epsilon) {
+      zSteps.add(current.z);
+    }
+  }
+
+  return Array.from(zSteps).sort((a, b) => a - b);
+}
+
 function getStepStartZ(segments: RoofSegment[], maxX: number): number | null {
   const epsilon = 1e-4;
   const stepSegment = segments.find((segment) => segment.x < maxX - epsilon);
@@ -165,6 +182,11 @@ export function buildRoofMeshes(): {
   const footprint = getEnvelopeFirstOuterPolygon();
   const bounds = computeBounds(footprint);
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
+  const indentationSteps = deriveIndentationSteps(footprint);
+  const zStep1 = indentationSteps[0];
+  const zStep2 = indentationSteps[1];
+  const ridgeFrontZ = zStep1 ?? bounds.minZ + 0.6;
+  const ridgeBackZ = zStep2 ?? bounds.maxZ - 0.6;
   const initialRightSegments = extractRightRoofSegments(footprint, ridgeX);
   const frontRightX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
   const backRightX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
@@ -185,11 +207,7 @@ export function buildRoofMeshes(): {
     depthZ: bounds.maxZ - bounds.minZ,
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
-
-  const ridgeFrontZ = bounds.minZ + HIP_INSET_Z;
-  const ridgeBackZ = bounds.maxZ - HIP_INSET_Z;
-
-  console.log('HIP_INSET_Z', HIP_INSET_Z, { ridgeFrontZ, ridgeBackZ });
+  console.log('Derived hip step lines', { zStep1, zStep2, ridgeFrontZ, ridgeBackZ });
 
   const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {

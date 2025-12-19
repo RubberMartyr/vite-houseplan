@@ -203,8 +203,6 @@ export function buildRoofMeshes(): {
     return MAIN_RIDGE_Y;
   };
 
-  const frontRightX = findRightXAtZ(initialRightSegments, frontZ, bounds.maxX);
-  const backRightX = findRightXAtZ(initialRightSegments, backZ, bounds.maxX);
   const frontRidgeY = ridgeYAtZ(ridgeFrontZ);
   const backRidgeY = ridgeYAtZ(ridgeBackZ);
   const epsilon = 1e-4;

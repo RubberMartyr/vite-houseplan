@@ -185,8 +185,8 @@ export function buildRoofMeshes(): {
   const indentationSteps = deriveIndentationSteps(footprint);
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
-  const ridgeFrontZ = zStep1 ?? bounds.minZ + 0.6;
-  const ridgeBackZ = zStep2 ?? bounds.maxZ - 0.6;
+  const ridgeFrontZ = 4.0;
+  const ridgeBackZ = 8.45;
   const initialRightSegments = extractRightRoofSegments(footprint, ridgeX);
   const frontRightX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
   const backRightX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
@@ -208,6 +208,7 @@ export function buildRoofMeshes(): {
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
   console.log('Derived hip step lines', { zStep1, zStep2, ridgeFrontZ, ridgeBackZ });
+  console.log('FORCED ridgeFrontZ/ridgeBackZ', { ridgeFrontZ, ridgeBackZ });
 
   const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {

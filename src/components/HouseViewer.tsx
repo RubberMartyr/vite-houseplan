@@ -375,6 +375,10 @@ export default function HouseViewer() {
   const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
   const basementFloorLevel = -2.0;
 
+  useEffect(() => {
+    console.log('✅ DEBUG CUBES ADDED', Date.now());
+  }, []);
+
   const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
   const groundEnvelopePolygon = useMemo(
     () => getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope),
@@ -587,9 +591,13 @@ export default function HouseViewer() {
 
         {/* HOUSE ASSEMBLY */}
         <group position={[originOffset.x, 0, originOffset.z]}>
-          <mesh position={[0, -1, 0]}>
+          <mesh position={[0, 1, 0]}>
             <boxGeometry args={[0.5, 0.5, 0.5]} />
             <meshStandardMaterial color="hotpink" emissive="hotpink" />
+          </mesh>
+          <mesh position={[0, -1, 0]}>
+            <boxGeometry args={[0.5, 0.5, 0.5]} />
+            <meshStandardMaterial color="orange" emissive="orange" />
           </mesh>
           <group ref={wallGroupRef} name="wallGroup">
             <axesHelper args={[0.3]} />
@@ -654,14 +662,16 @@ export default function HouseViewer() {
         </group>
 
         {/* GROUNDS */}
-        <mesh
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, -0.05, 0]}
-          receiveShadow
-        >
-          <planeGeometry args={[100, 100]} />
-          <meshStandardMaterial color="#3a5f0b" roughness={1} />
-        </mesh>
+        {false && (
+          <mesh
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, -0.05, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[100, 100]} />
+            <meshStandardMaterial color="#3a5f0b" roughness={1} />
+          </mesh>
+        )}
 
         {/* CONTROLS */}
         <OrbitControls

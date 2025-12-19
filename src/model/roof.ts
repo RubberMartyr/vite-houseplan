@@ -4,6 +4,7 @@ import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 const EAVES_TOP_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
+const GABLE_CAP_THICKNESS = 0.08;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -107,7 +108,12 @@ function createGableEndGeometry(minX: number, ridgeX: number, maxX: number, eave
   shape.lineTo(ridgeX, ridgeY);
   shape.lineTo(maxX, eavesY);
   shape.closePath();
-  return new THREE.ShapeGeometry(shape);
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: GABLE_CAP_THICKNESS,
+    bevelEnabled: false,
+  });
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 export function buildRoofMeshes(): {
@@ -144,6 +150,10 @@ export function buildRoofMeshes(): {
   const backRightX = findRightXAtZ(rightSegments, bounds.maxZ, bounds.maxX);
   const frontRidgeY = ridgeYAtZ(bounds.minZ);
   const backRidgeY = ridgeYAtZ(bounds.maxZ);
+  const frontHalfSpan = Math.max(ridgeX - bounds.minX, frontRightX - ridgeX);
+  const backHalfSpan = Math.max(ridgeX - bounds.minX, backRightX - ridgeX);
+  const frontPitch = Math.atan((frontRidgeY - EAVES_TOP_Y) / frontHalfSpan);
+  const backPitch = Math.atan((backRidgeY - EAVES_TOP_Y) / backHalfSpan);
 
   const meshes = [
     {
@@ -173,12 +183,12 @@ export function buildRoofMeshes(): {
     {
       geometry: createGableEndGeometry(bounds.minX, ridgeX, frontRightX, EAVES_TOP_Y, frontRidgeY),
       position: [0, 0, bounds.minZ],
-      rotation: [0, Math.PI, 0],
+      rotation: [frontPitch, Math.PI, 0],
     },
     {
       geometry: createGableEndGeometry(bounds.minX, ridgeX, backRightX, EAVES_TOP_Y, backRidgeY),
-      position: [0, 0, bounds.maxZ],
-      rotation: [0, 0, 0],
+      position: [0, 0, bounds.maxZ - GABLE_CAP_THICKNESS],
+      rotation: [-backPitch, 0, 0],
     },
   ];
 

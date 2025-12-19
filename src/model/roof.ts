@@ -5,6 +5,7 @@ const EAVES_TOP_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
 const CHAMFER_Z = 0.4;
+const HIP_INSET_Z = 0.6;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -102,13 +103,28 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   return match ? match.x : fallbackX;
 }
 
-function createGableEndGeometry(minX: number, ridgeX: number, maxX: number, eavesY: number, ridgeY: number) {
-  const shape = new THREE.Shape();
-  shape.moveTo(minX, eavesY);
-  shape.lineTo(ridgeX, ridgeY);
-  shape.lineTo(maxX, eavesY);
-  shape.closePath();
-  const geometry = new THREE.ShapeGeometry(shape);
+function createHipTriangleGeometry(
+  leftX: number,
+  ridgeX: number,
+  rightX: number,
+  eavesY: number,
+  ridgeY: number,
+  z: number
+): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices = new Float32Array([
+    leftX,
+    eavesY,
+    z,
+    ridgeX,
+    ridgeY,
+    z,
+    rightX,
+    eavesY,
+    z,
+  ]);
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.setIndex([0, 1, 2]);
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -158,8 +174,6 @@ export function buildRoofMeshes(): {
   const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightX, backRightX);
   const rightSegments = extractRightRoofSegments(chamferedFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
-  const interiorZStart = bounds.minZ + CHAMFER_Z;
-  const interiorZEnd = bounds.maxZ - CHAMFER_Z;
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
@@ -175,6 +189,13 @@ export function buildRoofMeshes(): {
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
 
+  const frontZ = bounds.minZ;
+  const backZ = bounds.maxZ;
+  const ridgeFrontZ = bounds.minZ + HIP_INSET_Z;
+  const ridgeBackZ = bounds.maxZ - HIP_INSET_Z;
+
+  console.log('HIP_INSET_Z', HIP_INSET_Z, { ridgeFrontZ, ridgeBackZ });
+
   const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {
       return LOWER_RIDGE_Y;
@@ -182,12 +203,10 @@ export function buildRoofMeshes(): {
     return MAIN_RIDGE_Y;
   };
 
-  const frontCapZ = interiorZStart;
-  const backCapZ = interiorZEnd;
-  const frontCapRightX = findRightXAtZ(rightSegments, frontCapZ, bounds.maxX);
-  const backCapRightX = findRightXAtZ(rightSegments, backCapZ, bounds.maxX);
-  const frontRidgeY = ridgeYAtZ(frontCapZ);
-  const backRidgeY = ridgeYAtZ(backCapZ);
+  const frontRightX = findRightXAtZ(initialRightSegments, frontZ, bounds.maxX);
+  const backRightX = findRightXAtZ(initialRightSegments, backZ, bounds.maxX);
+  const frontRidgeY = ridgeYAtZ(ridgeFrontZ);
+  const backRidgeY = ridgeYAtZ(ridgeBackZ);
   const epsilon = 1e-4;
 
   const meshes = [
@@ -195,8 +214,8 @@ export function buildRoofMeshes(): {
       geometry: createRoofPlaneGeometry(
         bounds.minX,
         ridgeX,
-        interiorZStart,
-        interiorZEnd,
+        ridgeFrontZ,
+        ridgeBackZ,
         MAIN_RIDGE_Y,
         MAIN_RIDGE_Y
       ),
@@ -205,8 +224,8 @@ export function buildRoofMeshes(): {
     },
     ...rightSegments
       .map((segment) => {
-        const zStart = Math.max(segment.zStart, interiorZStart);
-        const zEnd = Math.min(segment.zEnd, interiorZEnd);
+        const zStart = Math.max(segment.zStart, ridgeFrontZ);
+        const zEnd = Math.min(segment.zEnd, ridgeBackZ);
         if (zEnd - zStart <= epsilon) {
           return null;
         }
@@ -225,13 +244,51 @@ export function buildRoofMeshes(): {
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
     {
-      geometry: createGableEndGeometry(bounds.minX, ridgeX, frontCapRightX, EAVES_TOP_Y, frontRidgeY),
-      position: [0, 0, frontCapZ],
+      geometry: createHipTriangleGeometry(
+        bounds.minX,
+        ridgeX,
+        ridgeX,
+        EAVES_TOP_Y,
+        frontRidgeY,
+        frontZ
+      ),
+      position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
     {
-      geometry: createGableEndGeometry(bounds.minX, ridgeX, backCapRightX, EAVES_TOP_Y, backRidgeY),
-      position: [0, 0, backCapZ],
+      geometry: createHipTriangleGeometry(
+        bounds.minX,
+        ridgeX,
+        ridgeX,
+        EAVES_TOP_Y,
+        backRidgeY,
+        backZ
+      ),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createHipTriangleGeometry(
+        ridgeX,
+        ridgeX,
+        frontRightX,
+        EAVES_TOP_Y,
+        frontRidgeY,
+        frontZ
+      ),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createHipTriangleGeometry(
+        ridgeX,
+        ridgeX,
+        backRightX,
+        EAVES_TOP_Y,
+        backRidgeY,
+        backZ
+      ),
+      position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
   ];

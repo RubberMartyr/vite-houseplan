@@ -206,16 +206,22 @@ export function buildRoofMeshes(): {
   const ridgeYBack = ridgeYAtZ(ridgeBackZ);
   const xRightFront = xRightAtZ(bounds.minZ);
   const xRightBack = xRightAtZ(bounds.maxZ);
+  const xRightFrontInset = xRightAtZ(ridgeFrontZ);
+  const xRightBackInset = xRightAtZ(ridgeBackZ);
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
   const frontLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.minZ);
   const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, bounds.minZ);
+  const frontLeftEaveInset = new THREE.Vector3(bounds.minX, EAVES_Y, ridgeFrontZ);
+  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
   const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYBack, ridgeBackZ);
   const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.maxZ);
   const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, bounds.maxZ);
+  const backLeftEaveInset = new THREE.Vector3(bounds.minX, EAVES_Y, ridgeBackZ);
+  const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, ridgeBackZ);
 
   const meshes = [
     {
@@ -262,12 +268,52 @@ export function buildRoofMeshes(): {
       rotation: [0, 0, 0],
     },
     {
+      geometry: createTriangleGeometry(frontLeftEave, frontLeftEaveInset, frontRidgePoint),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontLeftEave, frontRidgePoint, frontMidEave),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontMidEave, frontRidgePoint, frontRightEaveInset),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontMidEave, frontRightEaveInset, frontRightEave),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
       geometry: createTriangleGeometry(backLeftEave, backRidgePoint, backMidEave),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
     {
       geometry: createTriangleGeometry(backMidEave, backRidgePoint, backRightEave),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(backLeftEave, backRidgePoint, backLeftEaveInset),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(backLeftEave, backMidEave, backRidgePoint),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(backMidEave, backRightEave, backRightEaveInset),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(backMidEave, backRightEaveInset, backRidgePoint),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },

@@ -365,8 +365,11 @@ export default function HouseViewer() {
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: '#7a4a34',
-        roughness: 0.9,
+        color: 'hotpink',
+        emissive: 'hotpink',
+        emissiveIntensity: 0.6,
+        transparent: true,
+        opacity: 0.65,
         side: THREE.DoubleSide,
       }),
     []
@@ -404,6 +407,23 @@ export default function HouseViewer() {
   const basementFloorLevel = -2.0;
   const basementCeilingLevel = -0.01;
   const allFloorsActive = Object.values(activeFloors).every(Boolean);
+  const eavesBandMesh = useMemo(() => {
+    console.log('✅ EAVES BAND ACTIVE', Date.now(), {
+      expectedYStart: 5.10,
+      expectedYEnd: 5.70,
+    });
+    return (
+      <mesh
+        geometry={wallsEavesBand.shell.geometry}
+        position={wallsEavesBand.shell.position}
+        rotation={wallsEavesBand.shell.rotation}
+        material={eavesBandMaterial}
+        castShadow
+        receiveShadow
+        visible={wallShellVisible}
+      />
+    );
+  }, [eavesBandMaterial, wallShellVisible]);
 
   useEffect(() => {
     console.log('✅ DEBUG CUBES ADDED', Date.now());
@@ -722,17 +742,7 @@ export default function HouseViewer() {
                 visible={wallShellVisible}
               />
             )}
-            {showAttic && (
-              <mesh
-                geometry={wallsEavesBand.shell.geometry}
-                position={wallsEavesBand.shell.position}
-                rotation={wallsEavesBand.shell.rotation}
-                material={eavesBandMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            )}
+            {eavesBandMesh}
           </group>
 
           <group ref={slabGroupRef} name="slabGroup">

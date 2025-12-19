@@ -13,12 +13,12 @@ function xAtZ(
   z: number,
   side: 'min' | 'max',
   bounds: { minX: number; maxX: number }
-): number {
+): { x: number; usedFallback: boolean } {
   const xs: number[] = [];
   const n = points.length;
 
   if (n === 0) {
-    return side === 'min' ? bounds.minX : bounds.maxX;
+    return { x: side === 'min' ? bounds.minX : bounds.maxX, usedFallback: true };
   }
 
   const lastIsFirst =
@@ -66,10 +66,47 @@ function xAtZ(
       loggedXAtZ.add(key);
       console.log('xAtZ fallback', { z, side, count: finiteXs.length });
     }
-    return side === 'min' ? bounds.minX : bounds.maxX;
+    return { x: side === 'min' ? bounds.minX : bounds.maxX, usedFallback: true };
   }
 
-  return side === 'min' ? Math.min(...finiteXs) : Math.max(...finiteXs);
+  return {
+    x: side === 'min' ? Math.min(...finiteXs) : Math.max(...finiteXs),
+    usedFallback: false,
+  };
+}
+
+function xAtZSafe(
+  points: FootprintPoint[],
+  z: number,
+  side: 'min' | 'max',
+  minZ: number,
+  maxZ: number
+): number {
+  const EPS = 1e-3;
+  const MAX_TRIES = 20;
+  const bounds = computeBounds(points);
+
+  for (let i = 0; i <= MAX_TRIES; i++) {
+    const dz = i * EPS;
+    let zTry = z;
+
+    if (Math.abs(z - minZ) < 1e-6) {
+      zTry = z + dz;
+    } else if (Math.abs(z - maxZ) < 1e-6) {
+      zTry = z - dz;
+    } else {
+      zTry = z + (i === 0 ? 0 : i % 2 ? dz : -dz);
+    }
+
+    const res = xAtZ(points, zTry, side, bounds);
+    if (!res.usedFallback && Number.isFinite(res.x)) {
+      return res.x;
+    }
+  }
+
+  console.warn('xAtZSafe failed; using hard fallback', { z, side });
+  const fallback = side === 'min' ? Math.min(...points.map((p) => p.x)) : Math.max(...points.map((p) => p.x));
+  return fallback;
 }
 
 function computeBounds(points: FootprintPoint[]) {
@@ -293,16 +330,18 @@ export function buildRoofMeshes(): {
   const xRightBack = xRightAtZ(bounds.maxZ);
   const xRightFrontInset = xRightAtZ(ridgeFrontZ);
   const xRightBackInset = xRightAtZ(ridgeBackZ);
-  const xLeftFront = xAtZ(chamferedFootprint, bounds.minZ, 'min', bounds);
-  const xLeftBack = xAtZ(chamferedFootprint, bounds.maxZ, 'min', bounds);
-  const xLeftFrontInset = xAtZ(chamferedFootprint, ridgeFrontZ, 'min', bounds);
-  const xLeftBackInset = xAtZ(chamferedFootprint, ridgeBackZ, 'min', bounds);
+  const xLeftFront = xAtZSafe(chamferedFootprint, bounds.minZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftFrontInset = xAtZ(chamferedFootprint, ridgeFrontZ, 'min', bounds).x;
+  const xLeftBackInset = xAtZ(chamferedFootprint, ridgeBackZ, 'min', bounds).x;
 
   console.log('xAtZ debug', {
     zFront: bounds.minZ,
     zBack: bounds.maxZ,
     xLeftFront,
     xLeftBack,
+    xRightFront,
+    xRightBack,
   });
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);

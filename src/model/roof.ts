@@ -103,7 +103,7 @@ export function buildRoofMeshes(): {
     maxX: bounds.maxX,
     minZ: bounds.minZ,
     maxZ: bounds.maxZ,
-    depthZ,
+    depthZ: bounds.maxZ - bounds.minZ,
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
 

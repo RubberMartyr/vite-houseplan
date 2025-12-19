@@ -2,8 +2,7 @@ import * as THREE from 'three';
 import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 
 const EAVES_Y = 5.7;
-const RIDGE_Y = 9.85;
-const THICKNESS = 0.2;
+const MAIN_RIDGE_Y = 9.85;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -17,39 +16,8 @@ function computeBounds(points: FootprintPoint[]) {
   );
 }
 
-function createRoofSide(
-  xCenter: number,
-  zStart: number,
-  yStart: number,
-  zEnd: number,
-  yEnd: number,
-  widthX: number
-): { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } {
-  const length = zEnd - zStart;
-  const angle = Math.atan2(yEnd - yStart, length);
-
-  const geometry = new THREE.BoxGeometry(widthX, THICKNESS, Math.abs(length));
-  geometry.translate(0, THICKNESS / 2, 0);
-
-  const centerY = (yStart + yEnd) / 2;
-  const centerZ = (zStart + zEnd) / 2;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const position: [number, number, number] = [
-    xCenter,
-    centerY + (cos * THICKNESS) / 2,
-    centerZ - (sin * THICKNESS) / 2,
-  ];
-
-  return {
-    geometry,
-    position,
-    rotation: [-angle, 0, 0],
-  };
-}
-
-function createRidgeLine(xMin: number, xMax: number, y: number, z: number): THREE.BufferGeometry {
-  const points = [new THREE.Vector3(xMin, y, z), new THREE.Vector3(xMax, y, z)];
+function createRidgeLine(x: number, y: number, minZ: number, maxZ: number): THREE.BufferGeometry {
+  const points = [new THREE.Vector3(x, y, minZ), new THREE.Vector3(x, y, maxZ)];
   return new THREE.BufferGeometry().setFromPoints(points);
 }
 
@@ -59,45 +27,40 @@ export function buildRoofMeshes(): {
 } {
   const footprint = getEnvelopeFirstOuterPolygon();
   const bounds = computeBounds(footprint);
+  const depthZ = bounds.maxZ - bounds.minZ;
+  const ridgeX = (bounds.minX + bounds.maxX) / 2;
 
-  const frontZ = bounds.minZ;
-  const backZ = bounds.maxZ;
-  const ridgeZ = (frontZ + backZ) / 2;
-  const centerX = (bounds.minX + bounds.maxX) / 2;
-  const centerZ = (frontZ + backZ) / 2;
-  const widthX = bounds.maxX - bounds.minX;
-
-  console.log('ROOF bounds', { minX: bounds.minX, maxX: bounds.maxX, minZ: bounds.minZ, maxZ: bounds.maxZ, ridgeZ, eavesY: EAVES_Y, ridgeY: RIDGE_Y });
-
-  const sideA = createRoofSide(centerX, frontZ, EAVES_Y, ridgeZ, RIDGE_Y, widthX);
-  const sideB = createRoofSide(centerX, ridgeZ, RIDGE_Y, backZ, EAVES_Y, widthX);
+  console.log('ROOF bounds', {
+    minX: bounds.minX,
+    maxX: bounds.maxX,
+    minZ: bounds.minZ,
+    maxZ: bounds.maxZ,
+    depthZ,
+  });
+  console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
 
   const triangleShape = new THREE.Shape();
-  triangleShape.moveTo(frontZ - centerZ, EAVES_Y);
-  triangleShape.lineTo(ridgeZ - centerZ, RIDGE_Y);
-  triangleShape.lineTo(backZ - centerZ, EAVES_Y);
-  triangleShape.lineTo(frontZ - centerZ, EAVES_Y);
+  triangleShape.moveTo(bounds.minX, EAVES_Y);
+  triangleShape.lineTo(ridgeX, MAIN_RIDGE_Y);
+  triangleShape.lineTo(bounds.maxX, EAVES_Y);
+  triangleShape.lineTo(bounds.minX, EAVES_Y);
 
-  const gableGeometry = new THREE.ShapeGeometry(triangleShape);
+  const roofGeometry = new THREE.ExtrudeGeometry(triangleShape, {
+    depth: depthZ,
+    bevelEnabled: false,
+  });
 
   const meshes = [
-    sideA,
-    sideB,
     {
-      geometry: gableGeometry,
-      position: [bounds.minX, 0, centerZ],
-      rotation: [0, Math.PI / 2, 0],
-    },
-    {
-      geometry: gableGeometry,
-      position: [bounds.maxX, 0, centerZ],
-      rotation: [0, -Math.PI / 2, 0],
+      geometry: roofGeometry,
+      position: [0, 0, bounds.minZ],
+      rotation: [0, 0, 0],
     },
   ];
 
   const ridgeLines = [
     {
-      geometry: createRidgeLine(bounds.minX, bounds.maxX, RIDGE_Y, ridgeZ),
+      geometry: createRidgeLine(ridgeX, MAIN_RIDGE_Y, bounds.minZ, bounds.maxZ),
       position: [0, 0, 0] as [number, number, number],
     },
   ];

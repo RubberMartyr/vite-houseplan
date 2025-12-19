@@ -153,6 +153,47 @@ function createRoofPlaneGeometry(
   return geometry;
 }
 
+function createRoofPlaneGeometryVariableEave(
+  eaveXStart: number,
+  eaveXEnd: number,
+  ridgeX: number,
+  zStart: number,
+  zEnd: number,
+  ridgeYStart: number,
+  ridgeYEnd: number
+): THREE.BufferGeometry {
+  const a = new THREE.Vector3(eaveXStart, EAVES_Y, zStart);
+  const b = new THREE.Vector3(eaveXEnd, EAVES_Y, zEnd);
+  const c = new THREE.Vector3(ridgeX, ridgeYEnd, zEnd);
+  const d = new THREE.Vector3(ridgeX, ridgeYStart, zStart);
+
+  const vertices = new Float32Array([
+    a.x,
+    a.y,
+    a.z,
+    b.x,
+    b.y,
+    b.z,
+    c.x,
+    c.y,
+    c.z,
+    a.x,
+    a.y,
+    a.z,
+    c.x,
+    c.y,
+    c.z,
+    d.x,
+    d.y,
+    d.z,
+  ]);
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 type RoofSegment = {
   x: number;
   zStart: number;
@@ -246,38 +287,6 @@ function createTriangleGeometry(
   return geometry;
 }
 
-function createQuadGeometry(
-  pointA: THREE.Vector3,
-  pointB: THREE.Vector3,
-  pointC: THREE.Vector3,
-  pointD: THREE.Vector3
-): THREE.BufferGeometry {
-  const geometry = new THREE.BufferGeometry();
-  const vertices = new Float32Array([
-    pointA.x,
-    pointA.y,
-    pointA.z,
-    pointB.x,
-    pointB.y,
-    pointB.z,
-    pointC.x,
-    pointC.y,
-    pointC.z,
-    pointA.x,
-    pointA.y,
-    pointA.z,
-    pointC.x,
-    pointC.y,
-    pointC.z,
-    pointD.x,
-    pointD.y,
-    pointD.z,
-  ]);
-  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
 function chamferFootprint(
   points: FootprintPoint[],
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
@@ -328,6 +337,10 @@ export function buildRoofMeshes(): {
   const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightChamferX, backRightChamferX);
   const rightSegments = extractRightRoofSegments(chamferedFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
+  const xLeftFront = xAtZSafe(chamferedFootprint, bounds.minZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'min', bounds.minZ, bounds.maxZ);
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
@@ -360,10 +373,6 @@ export function buildRoofMeshes(): {
   const backRightX = xAtZSafe(chamferedFootprint, bounds.maxZ, 'max', bounds.minZ, bounds.maxZ);
   const frontRightInsetX = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
   const backRightInsetX = xAtZSafe(chamferedFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
-  const xLeftFront = xAtZSafe(chamferedFootprint, bounds.minZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
   const zCuts = [bounds.minZ, ridgeFrontZ, ridgeBackZ, bounds.maxZ];
 
   console.log('xAtZ debug', {
@@ -381,6 +390,12 @@ export function buildRoofMeshes(): {
     backRightX,
   });
   console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
+  console.log('LEFT roof uses variable eave X:', {
+    xLeftFront,
+    xLeftFrontInset,
+    xLeftBackInset,
+    xLeftBack,
+  });
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
@@ -396,21 +411,50 @@ export function buildRoofMeshes(): {
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(backRightInsetX, EAVES_Y, ridgeBackZ);
 
+  const leftSegments = [
+    {
+      geometry: createRoofPlaneGeometryVariableEave(
+        xLeftFront,
+        xLeftFrontInset,
+        ridgeX,
+        bounds.minZ,
+        ridgeFrontZ,
+        ridgeYAtZ(bounds.minZ),
+        ridgeYAtZ(ridgeFrontZ)
+      ),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createRoofPlaneGeometryVariableEave(
+        xLeftFrontInset,
+        xLeftBackInset,
+        ridgeX,
+        ridgeFrontZ,
+        ridgeBackZ,
+        ridgeYAtZ(ridgeFrontZ),
+        ridgeYAtZ(ridgeBackZ)
+      ),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createRoofPlaneGeometryVariableEave(
+        xLeftBackInset,
+        xLeftBack,
+        ridgeX,
+        ridgeBackZ,
+        bounds.maxZ,
+        ridgeYAtZ(ridgeBackZ),
+        ridgeYAtZ(bounds.maxZ)
+      ),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+  ];
+
   const meshes = [
-    ...zCuts.slice(0, -1).map((zStart, index) => {
-      const zEnd = zCuts[index + 1];
-      const xLeftStart = xAtZSafe(chamferedFootprint, zStart, 'min', bounds.minZ, bounds.maxZ);
-      const xLeftEnd = xAtZSafe(chamferedFootprint, zEnd, 'min', bounds.minZ, bounds.maxZ);
-      const pointA = new THREE.Vector3(xLeftStart, EAVES_Y, zStart);
-      const pointB = new THREE.Vector3(xLeftEnd, EAVES_Y, zEnd);
-      const pointC = new THREE.Vector3(ridgeX, ridgeYAtZ(zEnd), zEnd);
-      const pointD = new THREE.Vector3(ridgeX, ridgeYAtZ(zStart), zStart);
-      return {
-        geometry: createQuadGeometry(pointA, pointB, pointC, pointD),
-        position: [0, 0, 0],
-        rotation: [0, 0, 0],
-      };
-    }),
+    ...leftSegments,
     ...rightSegments
       .map((segment) => {
         const zStart = Math.max(segment.zStart, ridgeFrontZ);

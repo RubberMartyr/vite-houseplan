@@ -155,11 +155,7 @@ function Walls() {
 
 function Roof() {
   const { roof } = useBuildingMaterials();
-  const { meshes, ridgeLines } = useMemo(() => buildRoofMeshes(), []);
-  const ridgeMaterial = useMemo(
-    () => new THREE.LineBasicMaterial({ color: '#ff44aa', linewidth: 2 }),
-    []
-  );
+  const { meshes } = useMemo(() => buildRoofMeshes(), []);
 
   return (
     <group>
@@ -172,14 +168,6 @@ function Roof() {
           rotation={mesh.rotation}
           castShadow
           receiveShadow
-        />
-      ))}
-      {ridgeLines.map((line, index) => (
-        <line
-          key={`ridge-${index}`}
-          geometry={line.geometry}
-          position={line.position}
-          material={ridgeMaterial}
         />
       ))}
     </group>

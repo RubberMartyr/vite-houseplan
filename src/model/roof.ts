@@ -344,6 +344,7 @@ export function buildRoofMeshes(): {
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
+  console.log('LEFT roof fixed: variable eave X', { xLeftFront, xLeftFrontInset, xLeftBackInset, xLeftBack });
 
   console.log('🏠 Roof anchored to eaves band at Y =', EAVES_Y);
 
@@ -411,7 +412,7 @@ export function buildRoofMeshes(): {
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(backRightInsetX, EAVES_Y, ridgeBackZ);
 
-  const leftSegments = [
+  const leftRoofMeshes = [
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFront,
@@ -454,7 +455,7 @@ export function buildRoofMeshes(): {
   ];
 
   const meshes = [
-    ...leftSegments,
+    ...leftRoofMeshes,
     ...rightSegments
       .map((segment) => {
         const zStart = Math.max(segment.zStart, ridgeFrontZ);

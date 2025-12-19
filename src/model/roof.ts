@@ -411,7 +411,7 @@ export function buildRoofMeshes(): {
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(backRightInsetX, EAVES_Y, ridgeBackZ);
 
-  const leftSegments = [
+  const leftRoofMeshes = [
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFront,
@@ -453,8 +453,15 @@ export function buildRoofMeshes(): {
     },
   ];
 
+  console.log("LEFT roof fixed: variable eave X", {
+    xLeftFront,
+    xLeftFrontInset,
+    xLeftBackInset,
+    xLeftBack,
+  });
+
   const meshes = [
-    ...leftSegments,
+    ...leftRoofMeshes,
     ...rightSegments
       .map((segment) => {
         const zStart = Math.max(segment.zStart, ridgeFrontZ);

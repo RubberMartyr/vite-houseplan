@@ -6,7 +6,6 @@ const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
 const CHAMFER_Z = 0.4;
 const HIP_INSET_Z = 0.6;
-const GABLE_INSET_X = 0.6;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -104,32 +103,25 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   return match ? match.x : fallbackX;
 }
 
-function createSlantedEndGeometry(
-  xLeftBottom: number,
-  xRightBottom: number,
-  xRightTop: number,
-  xLeftTop: number,
-  eavesY: number,
-  ridgeY: number,
-  z: number
+function createTriangleGeometry(
+  pointA: THREE.Vector3,
+  pointB: THREE.Vector3,
+  pointC: THREE.Vector3
 ): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
   const vertices = new Float32Array([
-    xLeftBottom,
-    eavesY,
-    z,
-    xRightBottom,
-    eavesY,
-    z,
-    xRightTop,
-    ridgeY,
-    z,
-    xLeftTop,
-    ridgeY,
-    z,
+    pointA.x,
+    pointA.y,
+    pointA.z,
+    pointB.x,
+    pointB.y,
+    pointB.z,
+    pointC.x,
+    pointC.y,
+    pointC.z,
   ]);
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.setIndex([0, 1, 2, 0, 2, 3, 2, 1, 0, 3, 2, 0]);
+  geometry.setIndex([0, 1, 2]);
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -194,8 +186,6 @@ export function buildRoofMeshes(): {
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
 
-  const frontZ = bounds.minZ;
-  const backZ = bounds.maxZ;
   const ridgeFrontZ = bounds.minZ + HIP_INSET_Z;
   const ridgeBackZ = bounds.maxZ - HIP_INSET_Z;
 
@@ -211,41 +201,21 @@ export function buildRoofMeshes(): {
   const xRightAtZ = (z: number) => findRightXAtZ(rightSegments, z, bounds.maxX);
 
   const epsilon = 1e-4;
-  const endFaceOffset = 0.01;
 
-  const buildSlantedEndFace = (zFacade: number) => {
-    const yR = ridgeYAtZ(zFacade);
-    const xLBottom = bounds.minX;
-    const xRBottom = xRightAtZ(zFacade);
-    let xLTop = xLBottom + GABLE_INSET_X;
-    let xRTop = xRBottom - GABLE_INSET_X;
+  const ridgeYFront = ridgeYAtZ(ridgeFrontZ);
+  const ridgeYBack = ridgeYAtZ(ridgeBackZ);
+  const xRightFront = xRightAtZ(bounds.minZ);
+  const xRightBack = xRightAtZ(bounds.maxZ);
 
-    xLTop = Math.min(xLTop, ridgeX - epsilon);
-    xRTop = Math.max(xRTop, ridgeX + epsilon);
+  const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
+  const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
+  const frontLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.minZ);
+  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, bounds.minZ);
 
-    if (xRTop - xLTop <= 0.2) {
-      xLTop = ridgeX - 0.11;
-      xRTop = ridgeX + 0.11;
-    }
-
-    const zOffset = Math.abs(zFacade - bounds.minZ) < epsilon ? -endFaceOffset : endFaceOffset;
-
-    return {
-      geometry: createSlantedEndGeometry(
-        xLBottom,
-        xRBottom,
-        xRTop,
-        xLTop,
-        EAVES_Y,
-        yR,
-        zFacade + zOffset
-      ),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    };
-  };
-
-  console.log('Slanted end faces', { GABLE_INSET_X, minZ: bounds.minZ, maxZ: bounds.maxZ });
+  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYBack, ridgeBackZ);
+  const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.maxZ);
+  const backLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.maxZ);
+  const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, bounds.maxZ);
 
   const meshes = [
     {
@@ -254,8 +224,8 @@ export function buildRoofMeshes(): {
         ridgeX,
         ridgeFrontZ,
         ridgeBackZ,
-        MAIN_RIDGE_Y,
-        MAIN_RIDGE_Y
+        ridgeYFront,
+        ridgeYBack
       ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
@@ -273,16 +243,34 @@ export function buildRoofMeshes(): {
             ridgeX,
             zStart,
             zEnd,
-        ridgeYAtZ(zStart),
-        ridgeYAtZ(zEnd)
-      ),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    };
+            ridgeYAtZ(zStart),
+            ridgeYAtZ(zEnd)
+          ),
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+        };
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
-    buildSlantedEndFace(frontZ),
-    buildSlantedEndFace(backZ),
+    {
+      geometry: createTriangleGeometry(frontLeftEave, frontMidEave, frontRidgePoint),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontMidEave, frontRightEave, frontRidgePoint),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(backLeftEave, backRidgePoint, backMidEave),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(backMidEave, backRidgePoint, backRightEave),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
   ];
 
   return { meshes };

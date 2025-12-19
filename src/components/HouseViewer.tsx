@@ -365,11 +365,8 @@ export default function HouseViewer() {
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: 'hotpink',
-        emissive: 'hotpink',
-        emissiveIntensity: 0.6,
-        transparent: true,
-        opacity: 0.65,
+        color: '#f2f2f2',
+        roughness: 0.9,
         side: THREE.DoubleSide,
       }),
     []

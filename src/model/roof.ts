@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 
 const EAVES_Y = 5.7;
-const MINI_RIDGE_Y = 7.65;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
 const CHAMFER_Z = 0.4;
@@ -144,33 +143,6 @@ function createTriangleGeometry(
   return geometry;
 }
 
-function createQuadGeometry(
-  pointA: THREE.Vector3,
-  pointB: THREE.Vector3,
-  pointC: THREE.Vector3,
-  pointD: THREE.Vector3
-): THREE.BufferGeometry {
-  const geometry = new THREE.BufferGeometry();
-  const vertices = new Float32Array([
-    pointA.x,
-    pointA.y,
-    pointA.z,
-    pointB.x,
-    pointB.y,
-    pointB.z,
-    pointC.x,
-    pointC.y,
-    pointC.z,
-    pointD.x,
-    pointD.y,
-    pointD.z,
-  ]);
-  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.setIndex([0, 1, 2, 0, 2, 3]);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
 function chamferFootprint(
   points: FootprintPoint[],
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
@@ -213,10 +185,7 @@ export function buildRoofMeshes(): {
   const indentationSteps = deriveIndentationSteps(footprint);
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
-  const frontZ = bounds.minZ;
-  const joinZ = zStep1;
-  const seamOverlap = 0.003;
-  const mainRoofFrontZ = joinZ - seamOverlap;
+  const ridgeFrontZ = 4.0;
   const ridgeBackZ = 8.45;
   const initialRightSegments = extractRightRoofSegments(footprint, ridgeX);
   const frontRightX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
@@ -238,8 +207,8 @@ export function buildRoofMeshes(): {
     depthZ: bounds.maxZ - bounds.minZ,
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
-  console.log('Derived hip step lines', { zStep1, zStep2, mainRoofFrontZ, ridgeBackZ });
-  console.log('FORCED mainRoofFrontZ/ridgeBackZ', { mainRoofFrontZ, ridgeBackZ });
+  console.log('Derived hip step lines', { zStep1, zStep2, ridgeFrontZ, ridgeBackZ });
+  console.log('FORCED ridgeFrontZ/ridgeBackZ', { ridgeFrontZ, ridgeBackZ });
 
   const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {
@@ -252,20 +221,19 @@ export function buildRoofMeshes(): {
 
   const epsilon = 1e-4;
 
-  const ridgeYFront = ridgeYAtZ(mainRoofFrontZ);
+  const ridgeYFront = ridgeYAtZ(ridgeFrontZ);
   const ridgeYBack = ridgeYAtZ(ridgeBackZ);
+  const xRightFront = xRightAtZ(bounds.minZ);
   const xRightBack = xRightAtZ(bounds.maxZ);
+  const xRightFrontInset = xRightAtZ(ridgeFrontZ);
   const xRightBackInset = xRightAtZ(ridgeBackZ);
-  const xRightFront = xRightAtZ(frontZ);
-  const xRightJoin = xRightAtZ(joinZ);
-  const miniLeftA = new THREE.Vector3(bounds.minX, EAVES_Y, frontZ);
-  const miniLeftB = new THREE.Vector3(bounds.minX, EAVES_Y, joinZ);
-  const miniLeftC = new THREE.Vector3(ridgeX, MINI_RIDGE_Y, joinZ);
-  const miniLeftD = new THREE.Vector3(ridgeX, MINI_RIDGE_Y, frontZ);
-  const miniRightA = new THREE.Vector3(xRightFront, EAVES_Y, frontZ);
-  const miniRightB = new THREE.Vector3(xRightJoin, EAVES_Y, joinZ);
-  const miniRightC = new THREE.Vector3(ridgeX, MINI_RIDGE_Y, joinZ);
-  const miniRightD = new THREE.Vector3(ridgeX, MINI_RIDGE_Y, frontZ);
+
+  const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
+  const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
+  const frontLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.minZ);
+  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, bounds.minZ);
+  const frontLeftEaveInset = new THREE.Vector3(bounds.minX, EAVES_Y, ridgeFrontZ);
+  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
   const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYBack, ridgeBackZ);
   const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.maxZ);
@@ -279,7 +247,7 @@ export function buildRoofMeshes(): {
       geometry: createRoofPlaneGeometry(
         bounds.minX,
         ridgeX,
-        mainRoofFrontZ,
+        ridgeFrontZ,
         ridgeBackZ,
         ridgeYFront,
         ridgeYBack
@@ -289,7 +257,7 @@ export function buildRoofMeshes(): {
     },
     ...rightSegments
       .map((segment) => {
-        const zStart = Math.max(segment.zStart, mainRoofFrontZ);
+        const zStart = Math.max(segment.zStart, ridgeFrontZ);
         const zEnd = Math.min(segment.zEnd, ridgeBackZ);
         if (zEnd - zStart <= epsilon) {
           return null;
@@ -309,12 +277,32 @@ export function buildRoofMeshes(): {
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
     {
-      geometry: createQuadGeometry(miniLeftA, miniLeftB, miniLeftC, miniLeftD),
+      geometry: createTriangleGeometry(frontLeftEave, frontMidEave, frontRidgePoint),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
     {
-      geometry: createQuadGeometry(miniRightA, miniRightB, miniRightC, miniRightD),
+      geometry: createTriangleGeometry(frontMidEave, frontRightEave, frontRidgePoint),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontLeftEave, frontLeftEaveInset, frontRidgePoint),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontLeftEave, frontRidgePoint, frontMidEave),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontMidEave, frontRidgePoint, frontRightEaveInset),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+    {
+      geometry: createTriangleGeometry(frontMidEave, frontRightEaveInset, frontRightEave),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },

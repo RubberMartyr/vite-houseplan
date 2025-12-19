@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 
-const EAVES_Y = 5.7;
+const EAVES_TOP_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
 
 function computeBounds(points: FootprintPoint[]) {
@@ -30,7 +30,7 @@ function createRoofPlaneGeometry(
   const geometry = new THREE.BufferGeometry();
   const vertices = new Float32Array([
     eaveX,
-    EAVES_Y,
+    EAVES_TOP_Y,
     zStart,
     ridgeX,
     MAIN_RIDGE_Y,
@@ -39,7 +39,7 @@ function createRoofPlaneGeometry(
     MAIN_RIDGE_Y,
     zEnd,
     eaveX,
-    EAVES_Y,
+    EAVES_TOP_Y,
     zEnd,
   ]);
   const indices = [0, 1, 2, 0, 2, 3];
@@ -97,6 +97,8 @@ export function buildRoofMeshes(): {
   const bounds = computeBounds(footprint);
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
   const rightSegments = extractRightRoofSegments(footprint, ridgeX);
+
+  console.log('🏠 Roof anchored to eaves band at Y =', EAVES_TOP_Y);
 
   console.log('ROOF bounds', {
     minX: bounds.minX,

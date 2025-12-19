@@ -7,6 +7,7 @@ import { OrbitControls, Sky } from '@react-three/drei';
 import { wallsBasement } from '../model/wallsBasement'
 import { wallsGround } from '../model/wallsGround'
 import { wallsFirst } from '../model/wallsFirst'
+import { wallsEavesBand } from '../model/wallsEavesBand'
 import {
   frontZ,
   rearZ,
@@ -361,6 +362,15 @@ export default function HouseViewer() {
       }),
     []
   );
+  const eavesBandMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#7a4a34',
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
   const basementCeilingMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -707,6 +717,17 @@ export default function HouseViewer() {
                 position={wallsFirst.shell.position}
                 rotation={wallsFirst.shell.rotation}
                 material={wallMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            )}
+            {showAttic && (
+              <mesh
+                geometry={wallsEavesBand.shell.geometry}
+                position={wallsEavesBand.shell.position}
+                rotation={wallsEavesBand.shell.rotation}
+                material={eavesBandMaterial}
                 castShadow
                 receiveShadow
                 visible={wallShellVisible}

@@ -343,7 +343,15 @@ function RoomHitbox({ room, highlighted, onSelect }: any) {
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
-  const [floorView, setFloorView] = useState('All');
+  const [activeFloors, setActiveFloors] = useState({
+    basement: true,
+    ground: true,
+    first: true,
+    attic: true,
+  });
+  const [showTerrain, setShowTerrain] = useState(true);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const controlsRef = useRef<any>(null);
   const wallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -353,13 +361,23 @@ export default function HouseViewer() {
       }),
     []
   );
+  const basementCeilingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#f5f5f5',
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
 
-  const showGround = floorView === 'GF' || floorView === 'All';
-  const showFirst = floorView === 'FF' || floorView === 'All';
-  const showAttic = floorView === 'Attic' || floorView === 'All';
+  const showBasement = activeFloors.basement;
+  const showGround = activeFloors.ground;
+  const showFirst = activeFloors.first;
+  const showAttic = activeFloors.attic;
   const firstFloorLevelY = levelHeights.firstFloor;
   const firstFloorCeilingHeight = ceilingHeights.first;
   const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10
@@ -374,6 +392,8 @@ export default function HouseViewer() {
   const [focusMode, setFocusMode] = useState(false);
   const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
   const basementFloorLevel = -2.0;
+  const basementCeilingLevel = -0.01;
+  const allFloorsActive = Object.values(activeFloors).every(Boolean);
 
   useEffect(() => {
     console.log('✅ DEBUG CUBES ADDED', Date.now());
@@ -385,6 +405,11 @@ export default function HouseViewer() {
     [groundOuterEnvelope]
   );
   const groundEnvelopeShape = useMemo(() => makeFootprintShape(groundEnvelopePolygon), [groundEnvelopePolygon]);
+  const basementCeilingGeometry = useMemo(() => {
+    const geometry = new THREE.ShapeGeometry(groundEnvelopeShape);
+    geometry.rotateX(-Math.PI / 2);
+    return geometry;
+  }, [groundEnvelopeShape]);
 
   const firstOuterEnvelope = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
   const firstEnvelopePolygon = useMemo(
@@ -428,6 +453,33 @@ export default function HouseViewer() {
     background: 'rgba(255,255,255,0.9)',
     cursor: 'pointer',
     fontWeight: 700,
+  };
+
+  const handleToggleFloor = (key: keyof typeof activeFloors) => {
+    setActiveFloors((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleAllFloors = () => {
+    setActiveFloors({
+      basement: true,
+      ground: true,
+      first: true,
+      attic: true,
+    });
+  };
+
+  const handleBasementView = () => {
+    if (!cameraRef.current || !controlsRef.current) {
+      return;
+    }
+    cameraRef.current.position.set(6, -0.5, 6);
+    controlsRef.current.target.set(0, -1, 0);
+    controlsRef.current.minPolarAngle = 0.2;
+    controlsRef.current.maxPolarAngle = Math.PI / 2 - 0.1;
+    controlsRef.current.update();
   };
 
   useEffect(() => {
@@ -506,24 +558,61 @@ export default function HouseViewer() {
           </div>
         </div>
 
-        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Floor View</span>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['GF', 'FF', 'Attic', 'All'].map((label) => {
-            const isActive = floorView === label;
+        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Floor Isolation</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+          {(
+            [
+              { key: 'basement', label: 'Basement' },
+              { key: 'ground', label: 'Ground' },
+              { key: 'first', label: 'First' },
+              { key: 'attic', label: 'Attic' },
+            ] as { key: keyof typeof activeFloors; label: string }[]
+          ).map(({ key, label }) => {
+            const isActive = activeFloors[key];
             return (
               <button
-                key={label}
+                key={key}
                 style={{
                   ...buttonStyle,
                   background: isActive ? '#8B5A40' : buttonStyle.background,
                   color: isActive ? '#fff' : '#111',
+                  width: '100%',
                 }}
-                onClick={() => setFloorView(label)}
+                onClick={() => handleToggleFloor(key)}
               >
                 {label}
               </button>
             );
           })}
+          <button
+            style={{
+              ...buttonStyle,
+              background: allFloorsActive ? '#1d6f42' : buttonStyle.background,
+              color: allFloorsActive ? '#fff' : '#111',
+              width: '100%',
+            }}
+            onClick={handleAllFloors}
+          >
+            All
+          </button>
+        </div>
+
+        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Site View</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+          <button
+            style={{
+              ...buttonStyle,
+              background: showTerrain ? '#8B5A40' : buttonStyle.background,
+              color: showTerrain ? '#fff' : '#111',
+              width: '100%',
+            }}
+            onClick={() => setShowTerrain((prev) => !prev)}
+          >
+            Ground
+          </button>
+          <button style={{ ...buttonStyle, width: '100%' }} onClick={handleBasementView}>
+            Basement View
+          </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
@@ -575,6 +664,9 @@ export default function HouseViewer() {
         shadows
         camera={{ position: [10, 5, 15], fov: 50 }}
         gl={{ antialias: true }}
+        onCreated={({ camera }) => {
+          cameraRef.current = camera as THREE.PerspectiveCamera;
+        }}
       >
         {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
         <Sky sunPosition={[100, 20, 100]} turbidity={2} rayleigh={0.5} />
@@ -601,15 +693,17 @@ export default function HouseViewer() {
           </mesh>
           <group ref={wallGroupRef} name="wallGroup">
             <axesHelper args={[0.3]} />
-            <mesh
-              geometry={wallsBasement.shell.geometry}
-              position={wallsBasement.shell.position}
-              rotation={wallsBasement.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
+            {showBasement && (
+              <mesh
+                geometry={wallsBasement.shell.geometry}
+                position={wallsBasement.shell.position}
+                rotation={wallsBasement.shell.rotation}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            )}
             {showGround && (
               <mesh
                 geometry={wallsGround.shell.geometry}
@@ -637,7 +731,15 @@ export default function HouseViewer() {
 
           <group ref={slabGroupRef} name="slabGroup">
             <axesHelper args={[0.3]} />
-            <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
+            {showBasement && (
+              <>
+                <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
+                <mesh position={[0, basementCeilingLevel, 0]} receiveShadow>
+                  <primitive object={basementCeilingGeometry} attach="geometry" />
+                  <primitive object={basementCeilingMaterial} attach="material" />
+                </mesh>
+              </>
+            )}
             {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
             {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
             {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
@@ -662,7 +764,7 @@ export default function HouseViewer() {
         </group>
 
         {/* GROUNDS */}
-        {false && (
+        {showTerrain && (
           <mesh
             rotation={[-Math.PI / 2, 0, 0]}
             position={[0, -0.05, 0]}
@@ -675,6 +777,7 @@ export default function HouseViewer() {
 
         {/* CONTROLS */}
         <OrbitControls
+          ref={controlsRef}
           minDistance={5}
           maxDistance={40}
           maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground

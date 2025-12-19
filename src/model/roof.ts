@@ -454,6 +454,13 @@ export function buildRoofMeshes(): {
     },
   ];
 
+  console.log("LEFT roof fixed: variable eave X", {
+    xLeftFront,
+    xLeftFrontInset,
+    xLeftBackInset,
+    xLeftBack,
+  });
+
   const meshes = [
     ...leftRoofMeshes,
     ...rightSegments

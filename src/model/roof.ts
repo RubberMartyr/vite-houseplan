@@ -246,6 +246,38 @@ function createTriangleGeometry(
   return geometry;
 }
 
+function createQuadGeometry(
+  pointA: THREE.Vector3,
+  pointB: THREE.Vector3,
+  pointC: THREE.Vector3,
+  pointD: THREE.Vector3
+): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices = new Float32Array([
+    pointA.x,
+    pointA.y,
+    pointA.z,
+    pointB.x,
+    pointB.y,
+    pointB.z,
+    pointC.x,
+    pointC.y,
+    pointC.z,
+    pointA.x,
+    pointA.y,
+    pointA.z,
+    pointC.x,
+    pointC.y,
+    pointC.z,
+    pointD.x,
+    pointD.y,
+    pointD.z,
+  ]);
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function chamferFootprint(
   points: FootprintPoint[],
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
@@ -332,6 +364,7 @@ export function buildRoofMeshes(): {
   const xLeftBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const zCuts = [bounds.minZ, ridgeFrontZ, ridgeBackZ, bounds.maxZ];
 
   console.log('xAtZ debug', {
     zFront: bounds.minZ,
@@ -347,6 +380,7 @@ export function buildRoofMeshes(): {
     backRightInsetX,
     backRightX,
   });
+  console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
@@ -363,18 +397,20 @@ export function buildRoofMeshes(): {
   const backRightEaveInset = new THREE.Vector3(backRightInsetX, EAVES_Y, ridgeBackZ);
 
   const meshes = [
-    {
-      geometry: createRoofPlaneGeometry(
-        bounds.minX,
-        ridgeX,
-        ridgeFrontZ,
-        ridgeBackZ,
-        ridgeYFront,
-        ridgeYBack
-      ),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
+    ...zCuts.slice(0, -1).map((zStart, index) => {
+      const zEnd = zCuts[index + 1];
+      const xLeftStart = xAtZSafe(chamferedFootprint, zStart, 'min', bounds.minZ, bounds.maxZ);
+      const xLeftEnd = xAtZSafe(chamferedFootprint, zEnd, 'min', bounds.minZ, bounds.maxZ);
+      const pointA = new THREE.Vector3(xLeftStart, EAVES_Y, zStart);
+      const pointB = new THREE.Vector3(xLeftEnd, EAVES_Y, zEnd);
+      const pointC = new THREE.Vector3(ridgeX, ridgeYAtZ(zEnd), zEnd);
+      const pointD = new THREE.Vector3(ridgeX, ridgeYAtZ(zStart), zStart);
+      return {
+        geometry: createQuadGeometry(pointA, pointB, pointC, pointD),
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+      };
+    }),
     ...rightSegments
       .map((segment) => {
         const zStart = Math.max(segment.zStart, ridgeFrontZ);

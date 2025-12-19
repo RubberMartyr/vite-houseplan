@@ -3,6 +3,8 @@ import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 
 const EAVES_TOP_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
+const LOWER_RIDGE_Y = 9.45;
+const STEP_HEIGHT_Y = 7.65;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -16,8 +18,14 @@ function computeBounds(points: FootprintPoint[]) {
   );
 }
 
-function createRidgeLine(x: number, y: number, minZ: number, maxZ: number): THREE.BufferGeometry {
-  const points = [new THREE.Vector3(x, y, minZ), new THREE.Vector3(x, y, maxZ)];
+function createRidgeLine(
+  x: number,
+  yStart: number,
+  yEnd: number,
+  minZ: number,
+  maxZ: number
+): THREE.BufferGeometry {
+  const points = [new THREE.Vector3(x, yStart, minZ), new THREE.Vector3(x, yEnd, maxZ)];
   return new THREE.BufferGeometry().setFromPoints(points);
 }
 
@@ -25,7 +33,9 @@ function createRoofPlaneGeometry(
   eaveX: number,
   ridgeX: number,
   zStart: number,
-  zEnd: number
+  zEnd: number,
+  ridgeYStart: number,
+  ridgeYEnd: number
 ): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
   const vertices = new Float32Array([
@@ -33,10 +43,10 @@ function createRoofPlaneGeometry(
     EAVES_TOP_Y,
     zStart,
     ridgeX,
-    MAIN_RIDGE_Y,
+    ridgeYStart,
     zStart,
     ridgeX,
-    MAIN_RIDGE_Y,
+    ridgeYEnd,
     zEnd,
     eaveX,
     EAVES_TOP_Y,
@@ -89,6 +99,12 @@ function extractRightRoofSegments(points: FootprintPoint[], ridgeX: number): Roo
   return segments.sort((a, b) => a.zStart - b.zStart);
 }
 
+function getStepStartZ(segments: RoofSegment[], maxX: number): number | null {
+  const epsilon = 1e-4;
+  const stepSegment = segments.find((segment) => segment.x < maxX - epsilon);
+  return stepSegment ? stepSegment.zStart : null;
+}
+
 export function buildRoofMeshes(): {
   meshes: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] }>;
   ridgeLines: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number] }>;
@@ -97,6 +113,10 @@ export function buildRoofMeshes(): {
   const bounds = computeBounds(footprint);
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
   const rightSegments = extractRightRoofSegments(footprint, ridgeX);
+  const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
+
+  console.log('ROOF +X segments', rightSegments);
+  console.log('ROOF ridgeX', ridgeX);
 
   console.log('🏠 Roof anchored to eaves band at Y =', EAVES_TOP_Y);
 
@@ -109,14 +129,38 @@ export function buildRoofMeshes(): {
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
 
+  const ridgeYForZ = (z: number) => {
+    if (Math.abs(z - bounds.maxZ) < 1e-4) {
+      return STEP_HEIGHT_Y;
+    }
+    if (stepStartZ !== null && z >= stepStartZ) {
+      return LOWER_RIDGE_Y;
+    }
+    return MAIN_RIDGE_Y;
+  };
+
   const meshes = [
     {
-      geometry: createRoofPlaneGeometry(bounds.minX, ridgeX, bounds.minZ, bounds.maxZ),
+      geometry: createRoofPlaneGeometry(
+        bounds.minX,
+        ridgeX,
+        bounds.minZ,
+        bounds.maxZ,
+        MAIN_RIDGE_Y,
+        MAIN_RIDGE_Y
+      ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
     ...rightSegments.map((segment) => ({
-      geometry: createRoofPlaneGeometry(segment.x, ridgeX, segment.zStart, segment.zEnd),
+      geometry: createRoofPlaneGeometry(
+        segment.x,
+        ridgeX,
+        segment.zStart,
+        segment.zEnd,
+        ridgeYForZ(segment.zStart),
+        ridgeYForZ(segment.zEnd)
+      ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     })),
@@ -124,9 +168,19 @@ export function buildRoofMeshes(): {
 
   const ridgeLines = [
     {
-      geometry: createRidgeLine(ridgeX, MAIN_RIDGE_Y, bounds.minZ, bounds.maxZ),
+      geometry: createRidgeLine(ridgeX, MAIN_RIDGE_Y, MAIN_RIDGE_Y, bounds.minZ, bounds.maxZ),
       position: [0, 0, 0] as [number, number, number],
     },
+    ...rightSegments.map((segment) => ({
+      geometry: createRidgeLine(
+        ridgeX,
+        ridgeYForZ(segment.zStart),
+        ridgeYForZ(segment.zEnd),
+        segment.zStart,
+        segment.zEnd
+      ),
+      position: [0, 0, 0] as [number, number, number],
+    })),
   ];
 
   return { meshes, ridgeLines };

@@ -4,7 +4,6 @@ import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
 const EAVES_TOP_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
-const STEP_HEIGHT_Y = 7.65;
 
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
@@ -16,17 +15,6 @@ function computeBounds(points: FootprintPoint[]) {
     }),
     { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity }
   );
-}
-
-function createRidgeLine(
-  x: number,
-  yStart: number,
-  yEnd: number,
-  minZ: number,
-  maxZ: number
-): THREE.BufferGeometry {
-  const points = [new THREE.Vector3(x, yStart, minZ), new THREE.Vector3(x, yEnd, maxZ)];
-  return new THREE.BufferGeometry().setFromPoints(points);
 }
 
 function createRoofPlaneGeometry(
@@ -105,9 +93,25 @@ function getStepStartZ(segments: RoofSegment[], maxX: number): number | null {
   return stepSegment ? stepSegment.zStart : null;
 }
 
+function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): number {
+  const epsilon = 1e-4;
+  const match = segments.find(
+    (segment) => z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd
+  );
+  return match ? match.x : fallbackX;
+}
+
+function createGableEndGeometry(minX: number, ridgeX: number, maxX: number, eavesY: number, ridgeY: number) {
+  const shape = new THREE.Shape();
+  shape.moveTo(minX, eavesY);
+  shape.lineTo(ridgeX, ridgeY);
+  shape.lineTo(maxX, eavesY);
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
 export function buildRoofMeshes(): {
   meshes: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] }>;
-  ridgeLines: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number] }>;
 } {
   const footprint = getEnvelopeFirstOuterPolygon();
   const bounds = computeBounds(footprint);
@@ -129,15 +133,17 @@ export function buildRoofMeshes(): {
   });
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
 
-  const ridgeYForZ = (z: number) => {
-    if (Math.abs(z - bounds.maxZ) < 1e-4) {
-      return STEP_HEIGHT_Y;
-    }
+  const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {
       return LOWER_RIDGE_Y;
     }
     return MAIN_RIDGE_Y;
   };
+
+  const frontRightX = findRightXAtZ(rightSegments, bounds.minZ, bounds.maxX);
+  const backRightX = findRightXAtZ(rightSegments, bounds.maxZ, bounds.maxX);
+  const frontRidgeY = ridgeYAtZ(bounds.minZ);
+  const backRidgeY = ridgeYAtZ(bounds.maxZ);
 
   const meshes = [
     {
@@ -158,30 +164,23 @@ export function buildRoofMeshes(): {
         ridgeX,
         segment.zStart,
         segment.zEnd,
-        ridgeYForZ(segment.zStart),
-        ridgeYForZ(segment.zEnd)
+        ridgeYAtZ(segment.zStart),
+        ridgeYAtZ(segment.zEnd)
       ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     })),
-  ];
-
-  const ridgeLines = [
     {
-      geometry: createRidgeLine(ridgeX, MAIN_RIDGE_Y, MAIN_RIDGE_Y, bounds.minZ, bounds.maxZ),
-      position: [0, 0, 0] as [number, number, number],
+      geometry: createGableEndGeometry(bounds.minX, ridgeX, frontRightX, EAVES_TOP_Y, frontRidgeY),
+      position: [0, 0, bounds.minZ],
+      rotation: [0, Math.PI, 0],
     },
-    ...rightSegments.map((segment) => ({
-      geometry: createRidgeLine(
-        ridgeX,
-        ridgeYForZ(segment.zStart),
-        ridgeYForZ(segment.zEnd),
-        segment.zStart,
-        segment.zEnd
-      ),
-      position: [0, 0, 0] as [number, number, number],
-    })),
+    {
+      geometry: createGableEndGeometry(bounds.minX, ridgeX, backRightX, EAVES_TOP_Y, backRidgeY),
+      position: [0, 0, bounds.maxZ],
+      rotation: [0, 0, 0],
+    },
   ];
 
-  return { meshes, ridgeLines };
+  return { meshes };
 }

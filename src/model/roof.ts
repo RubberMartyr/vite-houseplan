@@ -291,9 +291,9 @@ export function buildRoofMeshes(): {
   const ridgeFrontZ = 4.0;
   const ridgeBackZ = 8.45;
   const initialRightSegments = extractRightRoofSegments(footprint, ridgeX);
-  const frontRightX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
-  const backRightX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
-  const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightX, backRightX);
+  const frontRightChamferX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
+  const backRightChamferX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
+  const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightChamferX, backRightChamferX);
   const rightSegments = extractRightRoofSegments(chamferedFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
 
@@ -320,43 +320,47 @@ export function buildRoofMeshes(): {
     return MAIN_RIDGE_Y;
   };
 
-  const xRightAtZ = (z: number) => findRightXAtZ(rightSegments, z, bounds.maxX);
-
   const epsilon = 1e-4;
 
   const ridgeYFront = ridgeYAtZ(ridgeFrontZ);
   const ridgeYBack = ridgeYAtZ(ridgeBackZ);
-  const xRightFront = xRightAtZ(bounds.minZ);
-  const xRightBack = xRightAtZ(bounds.maxZ);
-  const xRightFrontInset = xRightAtZ(ridgeFrontZ);
-  const xRightBackInset = xRightAtZ(ridgeBackZ);
+  const frontRightX = xAtZSafe(chamferedFootprint, bounds.minZ, 'max', bounds.minZ, bounds.maxZ);
+  const backRightX = xAtZSafe(chamferedFootprint, bounds.maxZ, 'max', bounds.minZ, bounds.maxZ);
+  const frontRightInsetX = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
+  const backRightInsetX = xAtZSafe(chamferedFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
   const xLeftFront = xAtZSafe(chamferedFootprint, bounds.minZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftFrontInset = xAtZ(chamferedFootprint, ridgeFrontZ, 'min', bounds).x;
-  const xLeftBackInset = xAtZ(chamferedFootprint, ridgeBackZ, 'min', bounds).x;
+  const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
 
   console.log('xAtZ debug', {
     zFront: bounds.minZ,
     zBack: bounds.maxZ,
+    ridgeFrontZ,
+    ridgeBackZ,
     xLeftFront,
+    xLeftFrontInset,
+    xLeftBackInset,
     xLeftBack,
-    xRightFront,
-    xRightBack,
+    frontRightX,
+    frontRightInsetX,
+    backRightInsetX,
+    backRightX,
   });
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
   const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, bounds.minZ);
-  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, bounds.minZ);
+  const frontRightEave = new THREE.Vector3(frontRightX, EAVES_Y, bounds.minZ);
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, EAVES_Y, ridgeFrontZ);
-  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
+  const frontRightEaveInset = new THREE.Vector3(frontRightInsetX, EAVES_Y, ridgeFrontZ);
 
   const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYBack, ridgeBackZ);
   const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(xLeftBack, EAVES_Y, bounds.maxZ);
-  const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, bounds.maxZ);
+  const backRightEave = new THREE.Vector3(backRightX, EAVES_Y, bounds.maxZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
-  const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, ridgeBackZ);
+  const backRightEaveInset = new THREE.Vector3(backRightInsetX, EAVES_Y, ridgeBackZ);
 
   const meshes = [
     {

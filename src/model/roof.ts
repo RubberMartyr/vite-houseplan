@@ -18,6 +18,38 @@ function computeBounds(points: FootprintPoint[]) {
   );
 }
 
+function xAtZ(points: FootprintPoint[], z: number, side: 'min' | 'max'): number {
+  const epsilon = 1e-4;
+  const xs: number[] = [];
+  const closedPoints = [...points, points[0]];
+
+  for (let i = 0; i < closedPoints.length - 1; i++) {
+    const current = closedPoints[i];
+    const next = closedPoints[i + 1];
+
+    if (Math.abs(current.z - z) < epsilon) {
+      xs.push(current.x);
+    }
+
+    const dz = next.z - current.z;
+    if (Math.abs(dz) < epsilon) {
+      continue;
+    }
+
+    const minZ = Math.min(current.z, next.z);
+    const maxZ = Math.max(current.z, next.z);
+    if (z + epsilon < minZ || z - epsilon > maxZ) {
+      continue;
+    }
+
+    const t = (z - current.z) / dz;
+    const x = current.x + t * (next.x - current.x);
+    xs.push(x);
+  }
+
+  return side === 'min' ? Math.min(...xs) : Math.max(...xs);
+}
+
 function createRoofPlaneGeometry(
   eaveX: number,
   ridgeX: number,
@@ -193,6 +225,10 @@ export function buildRoofMeshes(): {
   const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightX, backRightX);
   const rightSegments = extractRightRoofSegments(chamferedFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
+  const xLeftFront = xAtZ(chamferedFootprint, bounds.minZ, 'min');
+  const xLeftBack = xAtZ(chamferedFootprint, bounds.maxZ, 'min');
+  const xLeftFrontInset = xAtZ(chamferedFootprint, ridgeFrontZ, 'min');
+  const xLeftBackInset = xAtZ(chamferedFootprint, ridgeBackZ, 'min');
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
@@ -209,6 +245,12 @@ export function buildRoofMeshes(): {
   console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
   console.log('Derived hip step lines', { zStep1, zStep2, ridgeFrontZ, ridgeBackZ });
   console.log('FORCED ridgeFrontZ/ridgeBackZ', { ridgeFrontZ, ridgeBackZ });
+  console.log('Roof left edge X-at-Z', {
+    xLeftFront,
+    xLeftFrontInset,
+    xLeftBackInset,
+    xLeftBack,
+  });
 
   const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {
@@ -230,16 +272,16 @@ export function buildRoofMeshes(): {
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
-  const frontLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.minZ);
+  const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, bounds.minZ);
   const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, bounds.minZ);
-  const frontLeftEaveInset = new THREE.Vector3(bounds.minX, EAVES_Y, ridgeFrontZ);
+  const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, EAVES_Y, ridgeFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
   const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYBack, ridgeBackZ);
   const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.maxZ);
-  const backLeftEave = new THREE.Vector3(bounds.minX, EAVES_Y, bounds.maxZ);
+  const backLeftEave = new THREE.Vector3(xLeftBack, EAVES_Y, bounds.maxZ);
   const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, bounds.maxZ);
-  const backLeftEaveInset = new THREE.Vector3(bounds.minX, EAVES_Y, ridgeBackZ);
+  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, ridgeBackZ);
 
   const meshes = [

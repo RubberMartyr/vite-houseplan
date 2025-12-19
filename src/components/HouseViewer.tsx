@@ -421,12 +421,6 @@ export default function HouseViewer() {
   const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
   const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
 
-  const envelopeDebugLine = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    const points = groundEnvelopePolygon.map((point) => new THREE.Vector3(point.x, 0.02, point.z));
-    geometry.setFromPoints(points);
-    return geometry;
-  }, [groundEnvelopePolygon]);
   const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
   const activeRooms = useMemo(() => {
     const list: any[] = [];
@@ -683,16 +677,7 @@ export default function HouseViewer() {
 
         {/* HOUSE ASSEMBLY */}
         <group position={[originOffset.x, 0, originOffset.z]}>
-          <mesh position={[0, 1, 0]}>
-            <boxGeometry args={[0.5, 0.5, 0.5]} />
-            <meshStandardMaterial color="hotpink" emissive="hotpink" />
-          </mesh>
-          <mesh position={[0, -1, 0]}>
-            <boxGeometry args={[0.5, 0.5, 0.5]} />
-            <meshStandardMaterial color="orange" emissive="orange" />
-          </mesh>
           <group ref={wallGroupRef} name="wallGroup">
-            <axesHelper args={[0.3]} />
             {showBasement && (
               <mesh
                 geometry={wallsBasement.shell.geometry}
@@ -730,7 +715,6 @@ export default function HouseViewer() {
           </group>
 
           <group ref={slabGroupRef} name="slabGroup">
-            <axesHelper args={[0.3]} />
             {showBasement && (
               <>
                 <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
@@ -744,9 +728,6 @@ export default function HouseViewer() {
             {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
             {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
             {showFirst && <Slab y={firstFloorLevelY + 0.02} shape={flatRoofShape} color="#c7c7c7" />}
-            <lineLoop geometry={envelopeDebugLine}>
-              <lineBasicMaterial color="#ff00ff" linewidth={2} />
-            </lineLoop>
           </group>
 
           <group name="roomHitboxes">

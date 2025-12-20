@@ -418,6 +418,12 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
+  const backEndcap = {
+    geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
   const leftRoofMeshes = [
     {
       geometry: createRoofPlaneGeometryVariableEave(
@@ -466,6 +472,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
+  console.log('BACK ENDCAP ACTIVE', { xLeftBack, xRightBack, ridgeBackZ });
 
   const meshes = [
     ...leftRoofMeshes,
@@ -491,6 +498,7 @@ export function buildRoofMeshes(): {
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
     frontEndcap,
+    backEndcap,
     ...hipMeshes,
   ];
 

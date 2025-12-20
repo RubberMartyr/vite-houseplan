@@ -371,8 +371,6 @@ export function buildRoofMeshes(): {
   const ridgeYBack = ridgeYAtZ(ridgeBackZ);
   const frontRightX = xAtZSafe(chamferedFootprint, bounds.minZ, 'max', bounds.minZ, bounds.maxZ);
   const backRightX = xAtZSafe(chamferedFootprint, bounds.maxZ, 'max', bounds.minZ, bounds.maxZ);
-  const frontRightInsetX = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const backRightInsetX = xAtZSafe(chamferedFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
   const zCuts = [bounds.minZ, ridgeFrontZ, ridgeBackZ, bounds.maxZ];
 
   console.log('xAtZ debug', {
@@ -385,8 +383,6 @@ export function buildRoofMeshes(): {
     xLeftBackInset,
     xLeftBack,
     frontRightX,
-    frontRightInsetX,
-    backRightInsetX,
     backRightX,
   });
   console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
@@ -407,15 +403,11 @@ export function buildRoofMeshes(): {
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);
   const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, bounds.minZ);
   const frontRightEave = new THREE.Vector3(frontRightX, EAVES_Y, bounds.minZ);
-  const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, EAVES_Y, ridgeFrontZ);
-  const frontRightEaveInset = new THREE.Vector3(frontRightInsetX, EAVES_Y, ridgeFrontZ);
 
   const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYBack, ridgeBackZ);
   const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(xLeftBack, EAVES_Y, bounds.maxZ);
   const backRightEave = new THREE.Vector3(backRightX, EAVES_Y, bounds.maxZ);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
-  const backRightEaveInset = new THREE.Vector3(backRightInsetX, EAVES_Y, ridgeBackZ);
 
   const leftRoofMeshes = [
     {
@@ -463,8 +455,8 @@ export function buildRoofMeshes(): {
     ...leftRoofMeshes,
     ...rightSegments
       .map((segment) => {
-        const zStart = Math.max(segment.zStart, ridgeFrontZ);
-        const zEnd = Math.min(segment.zEnd, ridgeBackZ);
+        const zStart = segment.zStart;
+        const zEnd = segment.zEnd;
         if (zEnd - zStart <= epsilon) {
           return null;
         }
@@ -493,52 +485,12 @@ export function buildRoofMeshes(): {
       rotation: [0, 0, 0],
     },
     {
-      geometry: createTriangleGeometry(frontLeftEave, frontLeftEaveInset, frontRidgePoint),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(frontLeftEave, frontRidgePoint, frontMidEave),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(frontMidEave, frontRidgePoint, frontRightEaveInset),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(frontMidEave, frontRightEaveInset, frontRightEave),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
       geometry: createTriangleGeometry(backLeftEave, backRidgePoint, backMidEave),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
     {
       geometry: createTriangleGeometry(backMidEave, backRidgePoint, backRightEave),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(backLeftEave, backRidgePoint, backLeftEaveInset),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(backLeftEave, backMidEave, backRidgePoint),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(backMidEave, backRightEave, backRightEaveInset),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(backMidEave, backRightEaveInset, backRidgePoint),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },

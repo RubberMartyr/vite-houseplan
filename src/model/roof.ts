@@ -396,6 +396,12 @@ export function buildRoofMeshes(): {
     xLeftBackInset,
     xLeftBack,
   });
+  console.log('LEFT roof fixed: variable eave X', {
+    xLeftFront,
+    xLeftFrontInset,
+    xLeftBackInset,
+    xLeftBack,
+  });
 
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeYFront, ridgeFrontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, EAVES_Y, bounds.minZ);

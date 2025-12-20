@@ -344,7 +344,6 @@ export function buildRoofMeshes(): {
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
-  console.log('LEFT roof fixed: variable eave X', { xLeftFront, xLeftFrontInset, xLeftBackInset, xLeftBack });
 
   console.log('🏠 Roof anchored to eaves band at Y =', EAVES_Y);
 
@@ -453,13 +452,6 @@ export function buildRoofMeshes(): {
       rotation: [0, 0, 0],
     },
   ];
-
-  console.log("LEFT roof fixed: variable eave X", {
-    xLeftFront,
-    xLeftFrontInset,
-    xLeftBackInset,
-    xLeftBack,
-  });
 
   const meshes = [
     ...leftRoofMeshes,

@@ -419,7 +419,7 @@ export function buildRoofMeshes(): {
   };
 
   const backEndcap = {
-    geometry: createTriangleGeometry(backRightEave, ridgeBackPoint, backLeftEave),
+    geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
     position: [0, 0, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
@@ -494,5 +494,6 @@ export function buildRoofMeshes(): {
     ...hipMeshes,
   ];
 
+  console.log("✅ BACK ENDCAP SINGLE TRI ACTIVE", { ridgeBackZ, boundsMaxZ: bounds.maxZ });
   return { meshes };
 }

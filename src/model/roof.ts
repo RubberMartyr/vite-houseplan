@@ -419,10 +419,11 @@ export function buildRoofMeshes(): {
   };
 
   const backEndcap = {
-    geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
+    geometry: createTriangleGeometry(backRightEave, ridgeBackPoint, backLeftEave),
     position: [0, 0, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
+  console.log('BACK ENDCAP winding flipped (should be visible from outside)');
 
   const leftRoofMeshes = [
     {

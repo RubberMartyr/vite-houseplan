@@ -451,18 +451,9 @@ export function buildRoofMeshes(): {
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
-    {
-      geometry: createTriangleGeometry(backLeftEaveInset, ridgeBackPoint, backLeftEave),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(backRightEave, ridgeBackPoint, backRightEaveInset),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
   ];
 
+  console.log('HIP MESHES now FRONT only (back handled by backEndcap)');
   console.log('HIP ROOF active', {
     ridgeFrontZ,
     ridgeBackZ,

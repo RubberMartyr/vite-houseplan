@@ -336,6 +336,15 @@ export function buildRoofMeshes(): {
   const backRightChamferX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
   const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightChamferX, backRightChamferX);
   const roofBounds = computeBounds(chamferedFootprint);
+  const frontApexOffset = ridgeFrontZ - roofBounds.minZ;
+  const backApexZ = roofBounds.maxZ - frontApexOffset;
+  console.log('Mirror back apex', {
+    ridgeFrontZ,
+    frontApexOffset,
+    backApexZ,
+    roofMinZ: roofBounds.minZ,
+    roofMaxZ: roofBounds.maxZ,
+  });
   const rightSegments = extractRightRoofSegments(chamferedFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(chamferedFootprint, roofBounds.minZ, 'min', roofBounds.minZ, roofBounds.maxZ);
@@ -407,13 +416,13 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, roofBounds.minZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
-  const backLeftEave = new THREE.Vector3(xLeftBack, EAVES_Y, roofBounds.maxZ);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
-  const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, roofBounds.maxZ);
-  const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, ridgeBackZ);
+  const xLeftBackBase = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'min', roofBounds.minZ, roofBounds.maxZ);
+  const xRightBackBase = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const backLeftEave = new THREE.Vector3(xLeftBackBase, EAVES_Y, roofBounds.maxZ);
+  const backRightEave = new THREE.Vector3(xRightBackBase, EAVES_Y, roofBounds.maxZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
-  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
+  const backApexPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(backApexZ), backApexZ);
 
   const frontEndcap = {
     geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
@@ -421,12 +430,13 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backEndcap = {
-    geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
-  console.log('BACK ENDCAP winding flipped (should be visible from outside)');
+  const backClosure = [
+    {
+      geometry: createTriangleGeometry(backLeftEave, backApexPoint, backRightEave),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    },
+  ];
 
   const leftRoofMeshes = [
     {
@@ -467,7 +477,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('BACK ENDCAP ACTIVE', { xLeftBack, xRightBack, ridgeBackZ });
+  console.log('BACK CLOSURE ACTIVE', { xLeftBack, xRightBack, backApexZ });
 
   const meshes = [
     ...leftRoofMeshes,
@@ -493,10 +503,10 @@ export function buildRoofMeshes(): {
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
     frontEndcap,
-    backEndcap,
+    ...backClosure,
     ...hipMeshes,
   ];
 
-  console.log("✅ BACK ENDCAP SINGLE TRI ACTIVE", { ridgeBackZ, boundsMaxZ: bounds.maxZ });
+  console.log('✅ BACK CLOSURE SINGLE TRI ACTIVE', { backApexZ, boundsMaxZ: bounds.maxZ });
   return { meshes };
 }

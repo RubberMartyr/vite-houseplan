@@ -334,13 +334,45 @@ function chamferPolygon(points: FootprintPoint[], chamfer: number): FootprintPoi
 export function buildRoofMeshes(): {
   meshes: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] }>;
 } {
-  const groundFootprint = getEnvelopeOuterPolygon();
+  const envelopeOuter = getEnvelopeOuterPolygon();
+  const groundFootprint = envelopeOuter;
   const groundBounds = computeBounds(groundFootprint);
   const firstOuterEnvelope = envelopeFirstOuter;
   const firstFloorPolygon = getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope);
   const firstBounds = computeBounds(firstFloorPolygon);
-  const mainFootprint = chamferPolygon(envelopeFirstOuter, CHAMFER);
+  let mainPts = envelopeFirstOuter ?? envelopeOuter;
+
+  function isValidFootprint(pts: any[]) {
+    if (!Array.isArray(pts) || pts.length < 4) return false;
+    const first = pts[0],
+      last = pts[pts.length - 1];
+    if (!first || !last) return false;
+    if (Math.abs(first.x - last.x) > 1e-6 || Math.abs(first.z - last.z) > 1e-6) return false;
+    for (const p of pts) {
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.z)) return false;
+    }
+    return true;
+  }
+
+  if (!isValidFootprint(mainPts)) {
+    console.warn('❌ Invalid first-floor roof footprint, falling back to ground envelope', {
+      envelopeFirstOuter: mainPts,
+    });
+    mainPts = envelopeOuter;
+  }
+  if (!isValidFootprint(mainPts)) {
+    throw new Error(
+      'Roof footprint invalid even after fallback. Check envelope point arrays (must be closed, finite, in meters).'
+    );
+  }
+
+  const mainFootprint = chamferPolygon(mainPts, CHAMFER);
   const mainBounds = computeBounds(mainFootprint);
+  console.log('✅ ROOF FOOTPRINT OK', {
+    count: mainPts.length,
+    first: mainPts[0],
+    last: mainPts[mainPts.length - 1],
+  });
   const baseFrontZ = mainBounds.minZ;
   const baseBackZ = mainBounds.maxZ;
   const mainRoofBackZ = baseBackZ;
@@ -522,5 +554,6 @@ export function buildRoofMeshes(): {
   ];
 
   console.log('✅ BACK CLOSURE SINGLE TRI ACTIVE', { backApexZ, boundsMaxZ: groundBounds.maxZ });
+  console.log('✅ ROOF MESH COUNT', meshes.length);
   return { meshes };
 }

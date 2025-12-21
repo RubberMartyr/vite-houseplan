@@ -335,18 +335,21 @@ export function buildRoofMeshes(): {
   const frontRightChamferX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
   const backRightChamferX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
   const chamferedFootprint = chamferFootprint(footprint, bounds, frontRightChamferX, backRightChamferX);
+  const roofBounds = computeBounds(chamferedFootprint);
   const rightSegments = extractRightRoofSegments(chamferedFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
-  const xLeftFront = xAtZSafe(chamferedFootprint, bounds.minZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftFront = xAtZSafe(chamferedFootprint, roofBounds.minZ, 'min', roofBounds.minZ, roofBounds.maxZ);
+  const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', roofBounds.minZ, roofBounds.maxZ);
+  const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', roofBounds.minZ, roofBounds.maxZ);
+  const xLeftBack = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'min', roofBounds.minZ, roofBounds.maxZ);
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
 
   console.log('🏠 Roof anchored to eaves band at Y =', EAVES_Y);
 
+  console.log('ROOF bounds original', bounds);
+  console.log('ROOF bounds chamfered', roofBounds);
   console.log('ROOF bounds', {
     minX: bounds.minX,
     maxX: bounds.maxX,
@@ -367,15 +370,15 @@ export function buildRoofMeshes(): {
 
   const epsilon = 1e-4;
 
-  const xRightFront = xAtZSafe(chamferedFootprint, bounds.minZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBack = xAtZSafe(chamferedFootprint, bounds.maxZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
-  const zCuts = [bounds.minZ, ridgeFrontZ, ridgeBackZ, bounds.maxZ];
+  const xRightFront = xAtZSafe(chamferedFootprint, roofBounds.minZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const xRightBack = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const xRightFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const xRightBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const zCuts = [roofBounds.minZ, ridgeFrontZ, ridgeBackZ, roofBounds.maxZ];
 
   console.log('xAtZ debug', {
-    zFront: bounds.minZ,
-    zBack: bounds.maxZ,
+    zFront: roofBounds.minZ,
+    zBack: roofBounds.maxZ,
     ridgeFrontZ,
     ridgeBackZ,
     xLeftFront,
@@ -399,14 +402,14 @@ export function buildRoofMeshes(): {
     xLeftBack,
   });
 
-  const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, bounds.minZ);
+  const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, roofBounds.minZ);
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, EAVES_Y, ridgeFrontZ);
-  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, bounds.minZ);
+  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, roofBounds.minZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
-  const backLeftEave = new THREE.Vector3(xLeftBack, EAVES_Y, bounds.maxZ);
+  const backLeftEave = new THREE.Vector3(xLeftBack, EAVES_Y, roofBounds.maxZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, ridgeBackZ);
-  const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, bounds.maxZ);
+  const backRightEave = new THREE.Vector3(xRightBack, EAVES_Y, roofBounds.maxZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, ridgeBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);

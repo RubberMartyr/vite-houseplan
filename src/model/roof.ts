@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { FootprintPoint, envelopeFirstOuter, getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
-import { wallThickness } from './houseSpec';
+import { FootprintPoint, getEnvelopeOuterPolygon } from './envelope';
 
 const EAVES_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
 const CHAMFER = 0.4;
+const MAIN_PITCHED_DEPTH = 12.0; // meters
+const STEP_BACK_WIDTH = 7.6; // meters (rear width where pitched roof stops)
 const X_AT_Z_EPS = 1e-6;
 const loggedXAtZ = new Set<string>();
 
@@ -337,10 +338,7 @@ export function buildRoofMeshes(): {
   const envelopeOuter = getEnvelopeOuterPolygon();
   const groundFootprint = envelopeOuter;
   const groundBounds = computeBounds(groundFootprint);
-  const firstOuterEnvelope = envelopeFirstOuter;
-  const firstFloorPolygon = getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope);
-  const firstBounds = computeBounds(firstFloorPolygon);
-  let mainPts = envelopeFirstOuter ?? envelopeOuter;
+  let mainPts = envelopeOuter;
 
   function isValidFootprint(pts: any[]) {
     if (!Array.isArray(pts) || pts.length < 4) return false;
@@ -374,27 +372,21 @@ export function buildRoofMeshes(): {
     last: mainPts[mainPts.length - 1],
   });
   const baseFrontZ = mainBounds.minZ;
-  const baseBackZ = mainBounds.maxZ;
-  const mainRoofBackZ = baseBackZ;
+  const mainBackZ = baseFrontZ + MAIN_PITCHED_DEPTH;
   console.log('✅ MAIN ROOF FOOTPRINT = FIRST FLOOR', { mainBounds, groundBounds });
-  console.log('✅ MAIN ROOF CLIPPED', { boundsMaxZ: groundBounds.maxZ, mainRoofBackZ });
-  console.log('✅ ROOF BACK ALIGNED TO FIRST FLOOR', {
-    mainRoofBackZ,
-    groundMaxZ: groundBounds.maxZ,
-    firstMaxZ: firstBounds.maxZ,
-  });
   const ridgeX = (mainBounds.minX + mainBounds.maxX) / 2;
+  console.log('✅ ROOF RESTORED (constants)', { frontZ: baseFrontZ, mainBackZ, ridgeX, width: STEP_BACK_WIDTH });
   const indentationSteps = deriveIndentationSteps(mainFootprint);
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  const ridgeBackZ = Math.min(8.45, mainRoofBackZ);
+  const ridgeBackZ = Math.min(8.45, mainBackZ);
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, mainBounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', mainBounds.minZ, mainBounds.maxZ);
   const xLeftFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'min', mainBounds.minZ, mainBounds.maxZ);
   const xLeftBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'min', mainBounds.minZ, mainBounds.maxZ);
-  const xLeftBack = xAtZSafe(mainFootprint, mainRoofBackZ, 'min', mainBounds.minZ, mainBounds.maxZ);
+  const xLeftBack = xAtZSafe(mainFootprint, mainBackZ, 'min', mainBounds.minZ, mainBounds.maxZ);
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
@@ -424,14 +416,14 @@ export function buildRoofMeshes(): {
   const epsilon = 1e-4;
 
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', mainBounds.minZ, mainBounds.maxZ);
-  const xRightBack = xAtZSafe(mainFootprint, mainRoofBackZ, 'max', mainBounds.minZ, mainBounds.maxZ);
+  const xRightBack = xAtZSafe(mainFootprint, mainBackZ, 'max', mainBounds.minZ, mainBounds.maxZ);
   const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', mainBounds.minZ, mainBounds.maxZ);
   const xRightBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'max', mainBounds.minZ, mainBounds.maxZ);
-  const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ, mainRoofBackZ];
+  const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ, mainBackZ];
 
   console.log('xAtZ debug', {
     zFront: baseFrontZ,
-    zBack: mainRoofBackZ,
+    zBack: mainBackZ,
     ridgeFrontZ,
     ridgeBackZ,
     xLeftFront,
@@ -460,17 +452,15 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
-  const xLeftBackBase = xAtZSafe(mainFootprint, mainRoofBackZ, 'min', mainBounds.minZ, mainBounds.maxZ);
-  const xRightBackBase = xAtZSafe(mainFootprint, mainRoofBackZ, 'max', mainBounds.minZ, mainBounds.maxZ);
-  const backLeftEave = new THREE.Vector3(xLeftBackBase, EAVES_Y, mainRoofBackZ);
-  const backRightEave = new THREE.Vector3(xRightBackBase, EAVES_Y, mainRoofBackZ);
+  const xLeftBackEdge = ridgeX - STEP_BACK_WIDTH / 2;
+  const xRightBackEdge = ridgeX + STEP_BACK_WIDTH / 2;
+  const backLeftEave = new THREE.Vector3(xLeftBackEdge, EAVES_Y, mainBackZ);
+  const backRightEave = new THREE.Vector3(xRightBackEdge, EAVES_Y, mainBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
-  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
   const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const backApexZ = mainRoofBackZ - frontApexOffset;
+  const backApexZ = mainBackZ - frontApexOffset;
   console.log('✅ BACK ENDCAP MIRRORED', { ridgeFrontZ, frontApexOffset, backApexZ, boundsMaxZ: groundBounds.maxZ });
-  const ridgeBackPointMirror = new THREE.Vector3(ridgeX, ridgeYAtZ(backApexZ), backApexZ);
 
   const frontEndcap = {
     geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
@@ -478,11 +468,20 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backEndcap = {
-    geometry: createTriangleGeometry(backLeftEave, ridgeBackPointMirror, backRightEave),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, mainBackZ);
+  const backApexPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(mainBackZ), mainBackZ);
+  const backClosure = [
+    {
+      geometry: createTriangleGeometry(backLeftEave, backMidEave, backApexPoint),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    },
+    {
+      geometry: createTriangleGeometry(backMidEave, backRightEave, backApexPoint),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    },
+  ];
 
   const leftRoofMeshes = [
     {
@@ -523,7 +522,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('BACK CLOSURE ACTIVE', { xLeftBack, xRightBack, backApexZ, ridgeBackZ, ridgeBackPoint });
+  console.log('BACK CLOSURE ACTIVE', { xLeftBack, xRightBack, backApexZ, ridgeBackZ });
 
   const meshes = [
     ...leftRoofMeshes,
@@ -549,11 +548,11 @@ export function buildRoofMeshes(): {
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
     frontEndcap,
-    backEndcap,
     ...hipMeshes,
   ];
 
-  console.log('✅ BACK CLOSURE SINGLE TRI ACTIVE', { backApexZ, boundsMaxZ: groundBounds.maxZ });
+  meshes.push(...backClosure);
+  console.log('✅ BACK CLOSURE ACTIVE', { backApexZ, boundsMaxZ: groundBounds.maxZ });
   console.log('✅ ROOF MESH COUNT', meshes.length);
   return { meshes };
 }

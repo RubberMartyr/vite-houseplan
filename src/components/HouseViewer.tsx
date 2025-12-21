@@ -168,6 +168,7 @@ function Roof() {
           rotation={mesh.rotation}
           castShadow
           receiveShadow
+          frustumCulled={false}
         />
       ))}
     </group>

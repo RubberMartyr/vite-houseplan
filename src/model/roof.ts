@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { FootprintPoint, getEnvelopeFirstOuterPolygon } from './envelope';
+import { FootprintPoint, getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
+import { wallThickness } from './houseSpec';
 
 const EAVES_Y = 5.7;
 const MAIN_RIDGE_Y = 9.85;
@@ -325,9 +326,16 @@ export function buildRoofMeshes(): {
 } {
   const footprint = getEnvelopeFirstOuterPolygon();
   const bounds = computeBounds(footprint);
-  const FLAT_ROOF_DEPTH = 3.0; // meters
-  const mainRoofBackZ = bounds.maxZ - FLAT_ROOF_DEPTH;
+  const firstOuterEnvelope = getEnvelopeFirstOuterPolygon();
+  const firstFloorPolygon = getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope);
+  const firstBounds = computeBounds(firstFloorPolygon);
+  const mainRoofBackZ = firstBounds.maxZ;
   console.log('✅ MAIN ROOF CLIPPED', { boundsMaxZ: bounds.maxZ, mainRoofBackZ });
+  console.log('✅ ROOF BACK ALIGNED TO FIRST FLOOR', {
+    mainRoofBackZ,
+    groundMaxZ: bounds.maxZ,
+    firstMaxZ: firstBounds.maxZ,
+  });
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
   const indentationSteps = deriveIndentationSteps(footprint);
   const zStep1 = indentationSteps[0];

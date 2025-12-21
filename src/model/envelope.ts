@@ -132,9 +132,60 @@ function clipPolygonAtMaxZ(points: FootprintPoint[], maxZ: number): FootprintPoi
   return ensureClockwise(result);
 }
 
-export function getEnvelopeFirstOuterPolygon(maxDepth = 12): FootprintPoint[] {
+function closePolygon(points: FootprintPoint[]): FootprintPoint[] {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (first && last && (first.x !== last.x || first.z !== last.z)) {
+    return [...points, first];
+  }
+  return points;
+}
+
+function getRearWidthBounds(points: FootprintPoint[]): { minX: number; maxX: number; maxZ: number } {
+  const maxZ = points.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const rearPoints = points.filter((point) => Math.abs(point.z - maxZ) < 1e-6);
+  return {
+    minX: rearPoints.reduce((min, point) => Math.min(min, point.x), Infinity),
+    maxX: rearPoints.reduce((max, point) => Math.max(max, point.x), -Infinity),
+    maxZ,
+  };
+}
+
+function adjustRearWidth(
+  points: FootprintPoint[],
+  rearMinX: number,
+  rearMaxX: number,
+  rearZ: number
+): FootprintPoint[] {
+  const epsilon = 1e-6;
+  const midX = (rearMinX + rearMaxX) / 2;
+  const adjusted = points.map((point) => {
+    if (Math.abs(point.z - rearZ) < epsilon) {
+      return {
+        ...point,
+        x: point.x <= midX ? rearMinX : rearMaxX,
+      };
+    }
+    return point;
+  });
+
+  return closePolygon(ensureClockwise(adjusted));
+}
+
+export const envelopeFirstOuter = (() => {
+  const maxDepth = 12;
   const clipped = clipPolygonAtMaxZ(getEnvelopeOuterPolygon(), maxDepth);
-  return clipped;
+  const { minX, maxX } = getRearWidthBounds(getEnvelopeOuterPolygon());
+  return adjustRearWidth(clipped, minX, maxX, maxDepth);
+})();
+
+export function getEnvelopeFirstOuterPolygon(maxDepth = 12): FootprintPoint[] {
+  if (Math.abs(maxDepth - 12) < 1e-6) {
+    return envelopeFirstOuter;
+  }
+  const clipped = clipPolygonAtMaxZ(getEnvelopeOuterPolygon(), maxDepth);
+  const { minX, maxX } = getRearWidthBounds(getEnvelopeOuterPolygon());
+  return adjustRearWidth(clipped, minX, maxX, maxDepth);
 }
 
 export function getFlatRoofPolygon(): FootprintPoint[] {

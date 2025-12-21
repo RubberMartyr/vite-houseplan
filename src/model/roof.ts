@@ -325,12 +325,15 @@ export function buildRoofMeshes(): {
 } {
   const footprint = getEnvelopeFirstOuterPolygon();
   const bounds = computeBounds(footprint);
+  const FLAT_ROOF_DEPTH = 3.0; // meters
+  const mainRoofBackZ = bounds.maxZ - FLAT_ROOF_DEPTH;
+  console.log('✅ MAIN ROOF CLIPPED', { boundsMaxZ: bounds.maxZ, mainRoofBackZ });
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
   const indentationSteps = deriveIndentationSteps(footprint);
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  const ridgeBackZ = 8.45;
+  const ridgeBackZ = Math.min(8.45, mainRoofBackZ);
   const initialRightSegments = extractRightRoofSegments(footprint, ridgeX);
   const frontRightChamferX = findRightXAtZ(initialRightSegments, bounds.minZ, bounds.maxX);
   const backRightChamferX = findRightXAtZ(initialRightSegments, bounds.maxZ, bounds.maxX);
@@ -341,7 +344,7 @@ export function buildRoofMeshes(): {
   const xLeftFront = xAtZSafe(chamferedFootprint, roofBounds.minZ, 'min', roofBounds.minZ, roofBounds.maxZ);
   const xLeftFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'min', roofBounds.minZ, roofBounds.maxZ);
   const xLeftBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'min', roofBounds.minZ, roofBounds.maxZ);
-  const xLeftBack = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'min', roofBounds.minZ, roofBounds.maxZ);
+  const xLeftBack = xAtZSafe(chamferedFootprint, mainRoofBackZ, 'min', roofBounds.minZ, roofBounds.maxZ);
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
@@ -371,14 +374,14 @@ export function buildRoofMeshes(): {
   const epsilon = 1e-4;
 
   const xRightFront = xAtZSafe(chamferedFootprint, roofBounds.minZ, 'max', roofBounds.minZ, roofBounds.maxZ);
-  const xRightBack = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const xRightBack = xAtZSafe(chamferedFootprint, mainRoofBackZ, 'max', roofBounds.minZ, roofBounds.maxZ);
   const xRightFrontInset = xAtZSafe(chamferedFootprint, ridgeFrontZ, 'max', roofBounds.minZ, roofBounds.maxZ);
   const xRightBackInset = xAtZSafe(chamferedFootprint, ridgeBackZ, 'max', roofBounds.minZ, roofBounds.maxZ);
-  const zCuts = [roofBounds.minZ, ridgeFrontZ, ridgeBackZ, roofBounds.maxZ];
+  const zCuts = [roofBounds.minZ, ridgeFrontZ, ridgeBackZ, mainRoofBackZ];
 
   console.log('xAtZ debug', {
     zFront: roofBounds.minZ,
-    zBack: roofBounds.maxZ,
+    zBack: mainRoofBackZ,
     ridgeFrontZ,
     ridgeBackZ,
     xLeftFront,
@@ -407,15 +410,15 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, roofBounds.minZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
 
-  const xLeftBackBase = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'min', roofBounds.minZ, roofBounds.maxZ);
-  const xRightBackBase = xAtZSafe(chamferedFootprint, roofBounds.maxZ, 'max', roofBounds.minZ, roofBounds.maxZ);
-  const backLeftEave = new THREE.Vector3(xLeftBackBase, EAVES_Y, roofBounds.maxZ);
-  const backRightEave = new THREE.Vector3(xRightBackBase, EAVES_Y, roofBounds.maxZ);
+  const xLeftBackBase = xAtZSafe(chamferedFootprint, mainRoofBackZ, 'min', roofBounds.minZ, roofBounds.maxZ);
+  const xRightBackBase = xAtZSafe(chamferedFootprint, mainRoofBackZ, 'max', roofBounds.minZ, roofBounds.maxZ);
+  const backLeftEave = new THREE.Vector3(xLeftBackBase, EAVES_Y, mainRoofBackZ);
+  const backRightEave = new THREE.Vector3(xRightBackBase, EAVES_Y, mainRoofBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
   const frontApexOffset = ridgeFrontZ - bounds.minZ;
-  const backApexZ = bounds.maxZ - frontApexOffset;
+  const backApexZ = mainRoofBackZ - frontApexOffset;
   console.log('✅ BACK ENDCAP MIRRORED', { ridgeFrontZ, frontApexOffset, backApexZ, boundsMaxZ: bounds.maxZ });
   const ridgeBackPointMirror = new THREE.Vector3(ridgeX, ridgeYAtZ(backApexZ), backApexZ);
 

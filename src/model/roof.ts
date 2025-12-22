@@ -381,6 +381,12 @@ export function buildRoofMeshes(): {
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
   const ridgeBackZ = Math.min(8.45, mainBackZ);
+  const frontApexOffset = ridgeFrontZ - baseFrontZ;
+  const unclampedBackApexZ = mainBackZ - frontApexOffset;
+  const backApexZ = Math.min(
+    mainBackZ,
+    Math.max(groundBounds.minZ, Math.min(unclampedBackApexZ, groundBounds.maxZ))
+  );
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, mainBounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', mainBounds.minZ, mainBounds.maxZ);
@@ -465,6 +471,15 @@ export function buildRoofMeshes(): {
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeY, rearZ);
+  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYAtZ(backApexZ) ?? ridgeY, backApexZ);
+  console.log('✅ BACK HIP ENDCAP (mirrored)', {
+    mainBackZ,
+    baseFrontZ,
+    ridgeFrontZ,
+    frontApexOffset,
+    backApexZ,
+    backRidgePoint,
+  });
 
   const frontEndcap = {
     geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
@@ -475,18 +490,18 @@ export function buildRoofMeshes(): {
   const backMidEave = new THREE.Vector3(ridgeX, eavesY, rearZ);
   const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEaveInset, backMidEave, ridgeBackPoint),
+      geometry: createTriangleGeometry(backLeftEaveInset, backMidEave, backRidgePoint),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     {
-      geometry: createTriangleGeometry(backMidEave, backRightEaveInset, ridgeBackPoint),
+      geometry: createTriangleGeometry(backMidEave, backRightEaveInset, backRidgePoint),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
   ];
 
-  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEaveInset, backRightEaveInset, ridgeBackPoint });
+  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEaveInset, backRightEaveInset, backRidgePoint });
 
   const leftRoofMeshes = [
     {
@@ -535,7 +550,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEaveInset, backRightEaveInset, ridgeBackPoint });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEaveInset, backRightEaveInset, backRidgePoint });
 
   const meshes = [
     ...leftRoofMeshes,

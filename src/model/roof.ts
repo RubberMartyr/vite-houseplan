@@ -450,6 +450,8 @@ export function buildRoofMeshes(): {
 
   const eavesY = EAVES_Y;
   const ridgeY = ridgeYAtZ(frontZ);
+  const xLeftAtFront = xAtZSafe(mainFootprint, frontZ, 'min', mainBounds.minZ, mainBounds.maxZ);
+  const xRightAtFront = xAtZSafe(mainFootprint, frontZ, 'max', mainBounds.minZ, mainBounds.maxZ);
 
   const frontLeftEave = new THREE.Vector3(xLeftFront, eavesY, baseFrontZ);
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
@@ -460,17 +462,6 @@ export function buildRoofMeshes(): {
   const xRightBackEdge = ridgeX + STEP_BACK_WIDTH / 2;
   const backLeftEave = new THREE.Vector3(xLeftBackEdge, eavesY, mainBackZ);
   const backRightEave = new THREE.Vector3(xRightBackEdge, eavesY, mainBackZ);
-  console.log('✅ endcaps from existing eave points', {
-    frontLeftEave,
-    frontRightEave,
-    backLeftEave,
-    backRightEave,
-    ridgeX,
-    ridgeY,
-    eavesY,
-    frontZ,
-    backZ: mainBackZ,
-  });
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const frontApexOffset = ridgeFrontZ - baseFrontZ;
@@ -483,21 +474,23 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
+  const frontLeftEaveLine = new THREE.Vector3(xLeftAtFront, eavesY, frontZ);
+  const frontRightEaveLine = new THREE.Vector3(xRightAtFront, eavesY, frontZ);
   const frontMidEave = new THREE.Vector3(ridgeX, eavesY, frontZ);
   const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeY, frontZ);
 
-  console.log('✅ FRONT HIP ENDCAP', { frontZ, eavesY, ridgeY, xLeftFront, xRightFront });
+  console.log('✅ FRONT HIP ENDCAP', { frontZ, eavesY, ridgeY, xLeftAtFront, xRightAtFront });
 
   const backMidEave = new THREE.Vector3(ridgeX, eavesY, mainBackZ);
-  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeY, mainBackZ);
+  const backApexPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(mainBackZ), mainBackZ);
   const backClosure = [
     {
-      geometry: createTriangleGeometry(backLeftEave, backMidEave, backRidgePoint),
+      geometry: createTriangleGeometry(backLeftEave, backMidEave, backApexPoint),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     {
-      geometry: createTriangleGeometry(backMidEave, backRightEave, backRidgePoint),
+      geometry: createTriangleGeometry(backMidEave, backRightEave, backApexPoint),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
@@ -534,12 +527,12 @@ export function buildRoofMeshes(): {
 
   const frontEndcap = [
     {
-      geometry: createTriangleGeometry(frontLeftEave, frontMidEave, frontRidgePoint),
+      geometry: createTriangleGeometry(frontLeftEaveLine, frontMidEave, frontRidgePoint),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
     {
-      geometry: createTriangleGeometry(frontMidEave, frontRightEave, frontRidgePoint),
+      geometry: createTriangleGeometry(frontMidEave, frontRightEaveLine, frontRidgePoint),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },

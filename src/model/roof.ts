@@ -447,15 +447,24 @@ export function buildRoofMeshes(): {
     xLeftBack,
   });
 
-  const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, baseFrontZ);
-  const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, EAVES_Y, ridgeFrontZ);
-  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, baseFrontZ);
-  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, mainBackZ);
-  const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, mainBackZ);
+  const eavesY = EAVES_Y;
+  const rearZ = mainBackZ;
+  const ridgeY = ridgeYAtZ(rearZ);
+
+  const frontLeftEave = new THREE.Vector3(xLeftFront, eavesY, baseFrontZ);
+  const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
+  const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
+  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
+  let backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, rearZ);
+  let backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, rearZ);
+
+  backLeftEaveInset = backLeftEaveInset.clone();
+  backLeftEaveInset.y = eavesY;
+  backRightEaveInset = backRightEaveInset.clone();
+  backRightEaveInset.y = eavesY;
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
-  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(mainBackZ), mainBackZ);
+  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeY, rearZ);
 
   const frontEndcap = {
     geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
@@ -463,7 +472,7 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, mainBackZ);
+  const backMidEave = new THREE.Vector3(ridgeX, eavesY, rearZ);
   const backEndcap = [
     {
       geometry: createTriangleGeometry(backLeftEaveInset, backMidEave, ridgeBackPoint),
@@ -476,6 +485,8 @@ export function buildRoofMeshes(): {
       rotation: [0, 0, 0] as [number, number, number],
     },
   ];
+
+  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEaveInset, backRightEaveInset, ridgeBackPoint });
 
   const leftRoofMeshes = [
     {

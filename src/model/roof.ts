@@ -455,6 +455,8 @@ export function buildRoofMeshes(): {
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
+  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
+  const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
 
   const xLeftBackEdge = ridgeX - STEP_BACK_WIDTH / 2;
   const xRightBackEdge = ridgeX + STEP_BACK_WIDTH / 2;
@@ -473,6 +475,8 @@ export function buildRoofMeshes(): {
   });
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
+  const rearZ = mainBackZ;
+  const ridgeBackPoint = new THREE.Vector3(ridgeFrontPoint.x, ridgeFrontPoint.y, rearZ);
   const frontApexOffset = ridgeFrontZ - baseFrontZ;
   const backApexZ = mainBackZ - frontApexOffset;
   console.log('✅ BACK ENDCAP MIRRORED', { ridgeFrontZ, frontApexOffset, backApexZ, boundsMaxZ: groundBounds.maxZ });
@@ -532,6 +536,17 @@ export function buildRoofMeshes(): {
     },
   ];
 
+  const frontGableMesh = {
+    geometry: createTriangleGeometry(frontLeftEaveInset, ridgeFrontPoint, frontRightEaveInset),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+  const backGableMesh = {
+    geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backLeftEaveInset),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
   const frontEndcap = [
     {
       geometry: createTriangleGeometry(frontLeftEave, frontMidEave, frontRidgePoint),
@@ -582,8 +597,21 @@ export function buildRoofMeshes(): {
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
     // frontGableDebug,
     ...hipMeshes,
+    frontGableMesh,
+    backGableMesh,
     ...frontEndcap,
   ];
+
+  console.log('✅ GABLES', {
+    ridgeFrontPoint,
+    ridgeBackPoint,
+    frontLeftEaveInset,
+    frontRightEaveInset,
+    backLeftEaveInset,
+    backRightEaveInset,
+    frontZ,
+    rearZ,
+  });
 
   meshes.push(...backClosure);
   console.log('✅ BACK CLOSURE ACTIVE', { backApexZ, boundsMaxZ: groundBounds.maxZ });

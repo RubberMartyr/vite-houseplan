@@ -372,7 +372,6 @@ export function buildRoofMeshes(): {
     last: mainPts[mainPts.length - 1],
   });
   const baseFrontZ = mainBounds.minZ;
-  const frontZ = baseFrontZ;
   const mainBackZ = baseFrontZ + MAIN_PITCHED_DEPTH;
   console.log('✅ MAIN ROOF FOOTPRINT = FIRST FLOOR', { mainBounds, groundBounds });
   const ridgeX = (mainBounds.minX + mainBounds.maxX) / 2;
@@ -448,60 +447,31 @@ export function buildRoofMeshes(): {
     xLeftBack,
   });
 
-  const eavesY = EAVES_Y;
-  const ridgeY = ridgeYAtZ(frontZ);
-
-  const frontLeftEave = new THREE.Vector3(xLeftFront, eavesY, baseFrontZ);
-  const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
-  const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
-  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
-  const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
-
-  const xLeftBackEdge = ridgeX - STEP_BACK_WIDTH / 2;
-  const xRightBackEdge = ridgeX + STEP_BACK_WIDTH / 2;
-  const backLeftEave = new THREE.Vector3(xLeftBackEdge, eavesY, mainBackZ);
-  const backRightEave = new THREE.Vector3(xRightBackEdge, eavesY, mainBackZ);
-  console.log('✅ endcaps from existing eave points', {
-    frontLeftEave,
-    frontRightEave,
-    backLeftEave,
-    backRightEave,
-    ridgeX,
-    ridgeY,
-    eavesY,
-    frontZ,
-    backZ: mainBackZ,
-  });
+  const frontLeftEave = new THREE.Vector3(xLeftFront, EAVES_Y, baseFrontZ);
+  const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, EAVES_Y, ridgeFrontZ);
+  const frontRightEave = new THREE.Vector3(xRightFront, EAVES_Y, baseFrontZ);
+  const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, EAVES_Y, ridgeFrontZ);
+  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, EAVES_Y, mainBackZ);
+  const backRightEaveInset = new THREE.Vector3(xRightBackInset, EAVES_Y, mainBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
-  const rearZ = mainBackZ;
-  const ridgeBackPoint = new THREE.Vector3(ridgeFrontPoint.x, ridgeFrontPoint.y, rearZ);
-  const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const backApexZ = mainBackZ - frontApexOffset;
-  console.log('✅ BACK ENDCAP MIRRORED', { ridgeFrontZ, frontApexOffset, backApexZ, boundsMaxZ: groundBounds.maxZ });
+  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(mainBackZ), mainBackZ);
 
-  const frontGableDebug = {
+  const frontEndcap = {
     geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
     position: [0, 0, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const frontMidEave = new THREE.Vector3(ridgeX, eavesY, frontZ);
-  const frontRidgePoint = new THREE.Vector3(ridgeX, ridgeY, frontZ);
-
-  console.log('✅ FRONT HIP ENDCAP', { frontZ, eavesY, ridgeY, xLeftFront, xRightFront });
-
-  const backMidEave = new THREE.Vector3(ridgeX, eavesY, mainBackZ);
-  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeY, mainBackZ);
-  const backClosure = [
+  const backMidEave = new THREE.Vector3(ridgeX, EAVES_Y, mainBackZ);
+  const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEave, backMidEave, backRidgePoint),
+      geometry: createTriangleGeometry(backLeftEaveInset, backMidEave, ridgeBackPoint),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     {
-      geometry: createTriangleGeometry(backMidEave, backRightEave, backRidgePoint),
+      geometry: createTriangleGeometry(backMidEave, backRightEaveInset, ridgeBackPoint),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
@@ -536,25 +506,9 @@ export function buildRoofMeshes(): {
     },
   ];
 
-  const frontGableMesh = {
-    geometry: createTriangleGeometry(frontLeftEaveInset, ridgeFrontPoint, frontRightEaveInset),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
-  const backGableMesh = {
-    geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backLeftEaveInset),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
-
-  const frontEndcap = [
+  const gableMeshes = [
     {
-      geometry: createTriangleGeometry(frontLeftEave, frontMidEave, frontRidgePoint),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(frontMidEave, frontRightEave, frontRidgePoint),
+      geometry: createTriangleGeometry(frontLeftEaveInset, ridgeFrontPoint, frontRightEaveInset),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     },
@@ -570,7 +524,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('BACK CLOSURE ACTIVE', { xLeftBack, xRightBack, backApexZ, ridgeBackZ });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEaveInset, backRightEaveInset, ridgeBackPoint });
 
   const meshes = [
     ...leftRoofMeshes,
@@ -595,26 +549,23 @@ export function buildRoofMeshes(): {
         };
       })
       .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
-    // frontGableDebug,
+    frontEndcap,
+    ...gableMeshes,
     ...hipMeshes,
-    frontGableMesh,
-    backGableMesh,
-    ...frontEndcap,
+    ...backEndcap,
   ];
 
-  console.log('✅ GABLES', {
+  console.log('✅ GABLES ADDED', {
     ridgeFrontPoint,
     ridgeBackPoint,
     frontLeftEaveInset,
     frontRightEaveInset,
     backLeftEaveInset,
     backRightEaveInset,
-    frontZ,
-    rearZ,
+    frontZ: baseFrontZ,
+    rearZ: mainBackZ,
   });
 
-  meshes.push(...backClosure);
-  console.log('✅ BACK CLOSURE ACTIVE', { backApexZ, boundsMaxZ: groundBounds.maxZ });
   console.log('✅ ROOF MESH COUNT', meshes.length);
   return { meshes };
 }

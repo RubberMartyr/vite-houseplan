@@ -456,22 +456,36 @@ export function buildRoofMeshes(): {
   const eavesY = EAVES_Y;
   const rearZ = mainBackZ;
   const ridgeY = ridgeYAtZ(rearZ);
+  const BACK_EAVE_Z = mainBackZ;
+  const BACK_INSET = 0;
 
   const frontLeftEave = new THREE.Vector3(xLeftFront, eavesY, baseFrontZ);
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
-  let backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, rearZ);
-  let backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, rearZ);
+  let backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, BACK_EAVE_Z);
+  let backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, BACK_EAVE_Z);
 
   backLeftEaveInset = backLeftEaveInset.clone();
   backLeftEaveInset.y = eavesY;
+  backLeftEaveInset.z = BACK_EAVE_Z;
   backRightEaveInset = backRightEaveInset.clone();
   backRightEaveInset.y = eavesY;
+  backRightEaveInset.z = BACK_EAVE_Z;
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeY, rearZ);
-  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYAtZ(backApexZ) ?? ridgeY, backApexZ);
+  const backApexZSnapped = backApexZ - (mainBackZ - BACK_EAVE_Z);
+  const zApex = Math.min(BACK_EAVE_Z, backApexZSnapped);
+  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYAtZ ? ridgeYAtZ(zApex) : ridgeY, zApex);
+  console.log('✅ BACK ENDCAP SNAP', {
+    mainBackZ,
+    BACK_EAVE_Z,
+    BACK_INSET,
+    backApexZ,
+    zApex,
+    delta: mainBackZ - BACK_EAVE_Z,
+  });
   console.log('✅ BACK HIP ENDCAP (mirrored)', {
     mainBackZ,
     baseFrontZ,
@@ -487,7 +501,7 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backMidEave = new THREE.Vector3(ridgeX, eavesY, rearZ);
+  const backMidEave = new THREE.Vector3(ridgeX, eavesY, BACK_EAVE_Z);
   const backEndcap = [
     {
       geometry: createTriangleGeometry(backLeftEaveInset, backMidEave, backRidgePoint),

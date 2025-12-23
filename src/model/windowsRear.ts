@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeOuterPolygon } from './envelope';
-import { levelHeights } from './houseSpec';
+import { levelHeights, wallThickness } from './houseSpec';
 
 type WindowMesh = {
   id: string;
@@ -49,15 +49,21 @@ function makeWindowMeshes(params: {
 }): WindowMesh[] {
   const { idBase, width, height, xCenter, yBottom, zFace } = params;
   const yCenter = yBottom + height / 2;
+  // Offset outward by half the exterior wall to avoid the wall mesh occluding the window.
+  const wallOffset = wallThickness.exterior / 2;
 
   const frameGeometry = new THREE.BoxGeometry(width, height, FRAME_DEPTH);
   const glassGeometry = new THREE.PlaneGeometry(width - 2 * FRAME_BORDER, height - 2 * FRAME_BORDER);
 
-  const framePosition: [number, number, number] = [xCenter, yCenter, zFace + OUTWARD_OFFSET];
+  const framePosition: [number, number, number] = [
+    xCenter,
+    yCenter,
+    zFace + wallOffset + OUTWARD_OFFSET,
+  ];
   const glassPosition: [number, number, number] = [
     xCenter,
     yCenter,
-    zFace + OUTWARD_OFFSET - GLASS_INSET,
+    zFace + wallOffset + OUTWARD_OFFSET - GLASS_INSET,
   ];
 
   return [

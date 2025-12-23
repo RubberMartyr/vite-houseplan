@@ -396,19 +396,6 @@ export default function HouseViewer() {
     controlsRef.current.update();
   };
 
-  useEffect(() => {
-    console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
-    console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
-    console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
-    console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
-    const offsetPoints = groundEnvelopePolygon.slice(0, 2).map((point) => ({
-      x: point.x + originOffset.x,
-      z: point.z + originOffset.z,
-    }));
-    console.log('Origin offset applied:', originOffset);
-    console.log('First two envelope points after offset:', offsetPoints);
-  }, [firstEnvelopePolygon, groundEnvelopePolygon]);
-
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
       <div

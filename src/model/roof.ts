@@ -386,22 +386,9 @@ export function buildRoofMeshes(): {
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  const ridgeBackZ = Math.min(8.45, mainBackZ);
-  const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const eaveBackZ =
-    Math.abs(bounds.minZ - mainBackZ) < Math.abs(bounds.maxZ - mainBackZ)
-      ? bounds.minZ
-      : bounds.maxZ;
-  console.log('✅ BACK ENDCAP EDGE PICK', { mainBackZ, minZ: bounds.minZ, maxZ: bounds.maxZ, eaveBackZ });
-  const backApexZ = eaveBackZ - frontApexOffset;
-  console.log('✅ BACK ENDCAP ANCHOR', {
-    mainBackZ,
-    eaveBackZ,
-    baseFrontZ,
-    ridgeFrontZ,
-    frontApexOffset,
-    backApexZ,
-  });
+  // Rear gable must match front: ridge extends to the true rear of the footprint
+  const ridgeBackZ = mainBackZ;
+  const eaveBackZ = mainBackZ;
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
@@ -470,26 +457,18 @@ export function buildRoofMeshes(): {
   const eavesY = EAVES_Y;
   const rearZ = mainBackZ;
   const ridgeY = ridgeYAtZ(rearZ);
-  const eaveHalfW = Math.max(Math.abs(bounds.minX), Math.abs(bounds.maxX));
 
   const frontLeftEave = new THREE.Vector3(xLeftFront, eavesY, baseFrontZ);
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
-  const backLeftEave = new THREE.Vector3(eaveHalfW, eavesY, eaveBackZ);
-  const backRightEave = new THREE.Vector3(-eaveHalfW, eavesY, eaveBackZ);
+  const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const xBackMax = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
+  const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
+  const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
-  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeY, rearZ);
-  const backRidgePoint = new THREE.Vector3(ridgeX, ridgeYAtZ(backApexZ), backApexZ);
-  console.log('✅ BACK HIP ENDCAP (mirrored)', {
-    mainBackZ,
-    baseFrontZ,
-    ridgeFrontZ,
-    frontApexOffset,
-    backApexZ,
-    backRidgePoint,
-  });
+  const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(mainBackZ), mainBackZ);
 
   const frontEndcap = {
     geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
@@ -497,48 +476,27 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backMidEave = new THREE.Vector3(ridgeX, eavesY, eaveBackZ);
+  // Back gable should match the front: one clean triangle
   const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEave, backMidEave, backRidgePoint),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    },
-    {
-      geometry: createTriangleGeometry(backMidEave, backRightEave, backRidgePoint),
+      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
   ];
 
-  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, backRidgePoint });
+  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
   const leftRoofMeshes = [
-    // Front/mid left plane: ridgeFrontZ -> ridgeBackZ (existing)
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
-        xLeftBackInset,
+        xLeftBack,
         ridgeX,
         ridgeFrontZ,
         ridgeBackZ,
         ridgeYAtZ(ridgeFrontZ),
         ridgeYAtZ(ridgeBackZ)
-      ),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-
-    // Rear left plane: ridgeBackZ -> mainBackZ (NEW)
-    {
-      geometry: createRoofPlaneGeometryVariableEave(
-        xLeftBackInset, // eave X at ridgeBackZ
-        xLeftBack, // eave X at mainBackZ
-        ridgeX,
-        ridgeBackZ,
-        mainBackZ,
-        ridgeYAtZ(ridgeBackZ),
-        ridgeYAtZ(mainBackZ)
       ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
@@ -576,10 +534,10 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEave, backRightEave, backRidgePoint });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEave, backRightEave, ridgeBackPoint });
 
   // Right roof meshes for front/mid: ridgeFrontZ -> ridgeBackZ
-  const rightRoofFrontMeshes = rightSegments
+  const rightRoofMeshes = rightSegments
     .map((segment) => {
       const zStart = Math.max(segment.zStart, ridgeFrontZ);
       const zEnd = Math.min(segment.zEnd, ridgeBackZ);
@@ -608,40 +566,9 @@ export function buildRoofMeshes(): {
       } => Boolean(mesh)
     );
 
-  // Right roof meshes for rear: ridgeBackZ -> mainBackZ (NEW)
-  const rightRoofRearMeshes = rightSegments
-    .map((segment) => {
-      const zStart = Math.max(segment.zStart, ridgeBackZ);
-      const zEnd = Math.min(segment.zEnd, mainBackZ);
-      if (zEnd - zStart <= epsilon) return null;
-
-      return {
-        geometry: createRoofPlaneGeometry(
-          segment.x,
-          ridgeX,
-          zStart,
-          zEnd,
-          ridgeYAtZ(zStart),
-          ridgeYAtZ(zEnd)
-        ),
-        position: [0, 0, 0] as [number, number, number],
-        rotation: [0, 0, 0] as [number, number, number],
-      };
-    })
-    .filter(
-      (
-        mesh
-      ): mesh is {
-        geometry: THREE.BufferGeometry;
-        position: [number, number, number];
-        rotation: [number, number, number];
-      } => Boolean(mesh)
-    );
-
   const meshes = [
     ...leftRoofMeshes,
-    ...rightRoofFrontMeshes,
-    ...rightRoofRearMeshes,
+    ...rightRoofMeshes,
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,

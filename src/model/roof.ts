@@ -326,6 +326,25 @@ function findRightXAtZClosestToRidge(
   return best.x;
 }
 
+function findRightXAtZOuter(segments: RoofSegment[], z: number, fallbackX: number): number {
+  const epsilon = 1e-4;
+
+  const matches = segments.filter(
+    (segment) => z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd
+  );
+
+  if (matches.length === 0) {
+    return fallbackX;
+  }
+
+  let best = matches[0];
+  for (let i = 1; i < matches.length; i++) {
+    if (matches[i].x > best.x) best = matches[i];
+  }
+
+  return best.x;
+}
+
 function findRightXAtZClosestToX(
   segments: RoofSegment[],
   z: number,
@@ -588,6 +607,11 @@ export function buildRoofMeshes(): {
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
+  const zKink = Math.max(ridgeBackZ, Math.min(zStep2, eaveBackZ));
+  const xKinkInner = findRightXAtZClosestToRidge(rightSegments, zKink, ridgeX, bounds.maxX);
+  const xKinkOuter = findRightXAtZOuter(rightSegments, zKink, bounds.maxX);
+  const backRightKinkInner = new THREE.Vector3(xKinkInner, eavesY, zKink);
+  const backRightKinkOuter = new THREE.Vector3(xKinkOuter, eavesY, zKink);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -609,43 +633,31 @@ export function buildRoofMeshes(): {
 
   console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
-  const zBreaksRaw = [ridgeBackZ, zStep1, zStep2, eaveBackZ];
-  const zBreaks = zBreaksRaw
-    .filter((z, i, arr) => z >= ridgeBackZ - 1e-6 && z <= eaveBackZ + 1e-6)
-    .filter((z, i, arr) => i === 0 || Math.abs(z - arr[i - 1]) > 1e-6)
-    .sort((a, b) => a - b);
-
-  // Ensure endpoints exist (defensive)
-  if (zBreaks[0] !== ridgeBackZ) zBreaks.unshift(ridgeBackZ);
-  if (zBreaks[zBreaks.length - 1] !== eaveBackZ) zBreaks.push(eaveBackZ);
-
-  const rightEavePoints: Array<readonly [number, number, number]> = [];
-  let prevX = xRightBackInset;
-
-  for (const z of zBreaks) {
-    const x = findRightXAtZClosestToX(rightSegments, z, prevX, bounds.maxX);
-    rightEavePoints.push([x, eavesY, z] as const);
-    prevX = x;
-  }
-
   const backLeftSideFill = {
     geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset),
     position: [0, 0, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backRightSideFills = rightEavePoints.slice(0, -1).map((p0, i) => {
-    const p1 = rightEavePoints[i + 1];
-    return {
-      geometry: createTriangleGeometry(
-        new THREE.Vector3(p0[0], p0[1], p0[2]),
-        ridgeBackPoint,
-        new THREE.Vector3(p1[0], p1[1], p1[2])
-      ),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    };
-  });
+  const backRightFill1 = {
+    geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const backRightFill2 = {
+    geometry: createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightKinkOuter),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const backRightFill3 = {
+    geometry: createTriangleGeometry(backRightKinkOuter, ridgeBackPoint, backRightEave),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const backRightSideFills = [backRightFill1, backRightFill2, backRightFill3];
 
   const backSideFills = [backLeftSideFill, ...backRightSideFills];
 

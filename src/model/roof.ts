@@ -492,6 +492,8 @@ export function buildRoofMeshes(): {
   const xBackMax = findRightXAtZ(rightSegments, eaveBackZ, bounds.maxX);
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
+  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
+  const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -513,11 +515,25 @@ export function buildRoofMeshes(): {
 
   console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
+  const backLeftSideFill = {
+    geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const backRightSideFill = {
+    geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEave),
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const backSideFills = [backLeftSideFill, backRightSideFill];
+
   const leftRoofMeshes = [
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
-        xLeftBack,
+        xLeftBackInset,
         ridgeX,
         ridgeFrontZ,
         ridgeBackZ,
@@ -598,6 +614,7 @@ export function buildRoofMeshes(): {
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,
+    ...backSideFills,
     ...backEndcap,
   ];
 

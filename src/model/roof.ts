@@ -8,6 +8,7 @@ const CHAMFER = 0.4;
 const MAIN_PITCHED_DEPTH = 12.0; // meters
 const STEP_BACK_WIDTH = 7.6; // meters (rear width where pitched roof stops)
 const X_AT_Z_EPS = 1e-6;
+const DEBUG_ROOF = false;
 const loggedXAtZ = new Set<string>();
 
 function xAtZ(
@@ -238,6 +239,22 @@ function extractRightRoofSegments(points: FootprintPoint[], ridgeX: number): Roo
   }
 
   return segments.sort((a, b) => a.zStart - b.zStart);
+}
+
+function segmentZExtentForX(segments: RoofSegment[], x: number) {
+  const eps = 1e-4;
+  let zMin = Infinity;
+  let zMax = -Infinity;
+
+  for (const segment of segments) {
+    if (Math.abs(segment.x - x) < eps) {
+      zMin = Math.min(zMin, segment.zStart);
+      zMax = Math.max(zMax, segment.zEnd);
+    }
+  }
+
+  if (!isFinite(zMin) || !isFinite(zMax)) return null;
+  return { zMin, zMax };
 }
 
 function deriveIndentationSteps(points: FootprintPoint[]): number[] {
@@ -554,6 +571,20 @@ export function buildRoofMeshes(): {
     ridgeX,
     bounds.maxX
   );
+  const innerExtent = segmentZExtentForX(rightSegments, xRightBackInset);
+  const zInnerEnd = innerExtent
+    ? Math.max(ridgeBackZ, Math.min(innerExtent.zMax, eaveBackZ))
+    : ridgeBackZ;
+
+  if (DEBUG_ROOF) {
+    console.log('INNER BRANCH EXTENT', {
+      xRightBackInset,
+      innerExtent,
+      ridgeBackZ,
+      eaveBackZ,
+      zInnerEnd,
+    });
+  }
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
   console.log('xAtZ debug', {
@@ -568,6 +599,7 @@ export function buildRoofMeshes(): {
     xRightFront,
     xRightBack,
     xRightBackInset,
+    zInnerEnd,
   });
   console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
   console.log('LEFT roof uses variable eave X:', {
@@ -609,11 +641,11 @@ export function buildRoofMeshes(): {
   });
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEaveOuter = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
-  const backRightEaveInner = new THREE.Vector3(xRightBackInset, eavesY, eaveBackZ);
+  const backRightEaveInner = new THREE.Vector3(xRightBackInset, eavesY, zInnerEnd);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
   const kinkCandidates = indentationSteps
-    .filter((z) => z > ridgeBackZ + 1e-3 && z < eaveBackZ - 1e-3)
+    .filter((z) => z > ridgeBackZ + 1e-3 && z < zInnerEnd - 1e-3)
     .sort((a, b) => a - b);
 
   // Pick the last indentation step strictly INSIDE the back-fill interval.

@@ -343,62 +343,6 @@ export default function HouseViewer() {
   const [showRoof, setShowRoof] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<any>(null);
-  const brickTex = useTexture('/textures/brick2.jpg');
-  const fallbackWallMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#8B5A40',
-        roughness: 0.9,
-        side: THREE.DoubleSide,
-      }),
-    []
-  );
-  const wallMaterial = useMemo(() => {
-    if (!brickTex || !brickTex.image) {
-      return fallbackWallMaterial;
-    }
-
-    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
-    brickTex.repeat.set(6, 3);
-    brickTex.anisotropy = 8;
-    brickTex.needsUpdate = true;
-
-    return new THREE.MeshStandardMaterial({
-      map: brickTex,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    });
-  }, [brickTex, fallbackWallMaterial]);
-  const eavesBandMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#f2f2f2',
-        roughness: 0.9,
-        side: THREE.DoubleSide,
-      }),
-    []
-  );
-  const basementCeilingMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#f5f5f5',
-        roughness: 0.9,
-        side: THREE.DoubleSide,
-      }),
-    []
-  );
-
-  const slabGroupRef = useRef<THREE.Group>(null);
-  const wallGroupRef = useRef<THREE.Group>(null);
-
-  const showBasement = activeFloors.basement;
-  const showGround = activeFloors.ground;
-  const showFirst = activeFloors.first;
-  const showAttic = activeFloors.attic;
-  const firstFloorLevelY = levelHeights.firstFloor;
-  const firstFloorCeilingHeight = ceilingHeights.first;
-  const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
   const [facadeVisibility, setFacadeVisibility] = useState<Record<FacadeKey, boolean>>({
     front: true,
@@ -408,80 +352,13 @@ export default function HouseViewer() {
   });
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [focusMode, setFocusMode] = useState(false);
-  const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
-  const basementFloorLevel = -2.0;
-  const basementCeilingLevel = -0.01;
   const allFloorsActive = Object.values(activeFloors).every(Boolean);
-  const eavesBandMesh = useMemo(() => {
-    console.log('✅ EAVES BAND ACTIVE', Date.now(), {
-      expectedYStart: 5.10,
-      expectedYEnd: 5.70,
-    });
-    return (
-      <mesh
-        geometry={wallsEavesBand.shell.geometry}
-        position={wallsEavesBand.shell.position}
-        rotation={wallsEavesBand.shell.rotation}
-        material={eavesBandMaterial}
-        castShadow
-        receiveShadow
-        visible={wallShellVisible}
-      />
-    );
-  }, [eavesBandMaterial, wallShellVisible]);
-
-  useEffect(() => {
-    console.log('✅ DEBUG CUBES ADDED', Date.now());
-  }, []);
-
-  const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
-  const groundEnvelopePolygon = useMemo(
-    () => getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope),
-    [groundOuterEnvelope]
-  );
-  const groundEnvelopeShape = useMemo(() => makeFootprintShape(groundEnvelopePolygon), [groundEnvelopePolygon]);
-  const basementCeilingGeometry = useMemo(() => {
-    const geometry = new THREE.ShapeGeometry(groundEnvelopeShape);
-    geometry.rotateX(-Math.PI / 2);
-    return geometry;
-  }, [groundEnvelopeShape]);
-
-  const firstOuterEnvelope = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
-  const firstEnvelopePolygon = useMemo(
-    () => getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope),
-    [firstOuterEnvelope]
-  );
-  const firstEnvelopeShape = useMemo(() => makeFootprintShape(firstEnvelopePolygon), [firstEnvelopePolygon]);
-
-  const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
-  const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
-  const greenRoofPolygon = useMemo(() => getEnvelopeInnerPolygon(0.4, flatRoofPolygon), [flatRoofPolygon]);
-  const greenRoofShape = useMemo(
-    () => (greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null),
-    [greenRoofPolygon]
-  );
 
   const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
-  const activeRooms = useMemo(() => {
-    const list: any[] = [];
-
-    if (showGround) {
-      list.push(...roomsGround);
-    }
-
-    if (showFirst) {
-      list.push(...roomsFirst);
-    }
-
-    return list;
-  }, [showGround, showFirst]);
   const selectedRoom = useMemo(
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]
   );
-  const baseRoofThickness = SPECS.levels.slab;
-  const flatRoofY = firstFloorLevelY + 0.02;
-  const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
 
   const buttonStyle = {
     padding: '6px 10px',
@@ -708,121 +585,284 @@ export default function HouseViewer() {
         </div>
       </div>
 
-      <Canvas
-        shadows
-        camera={{ position: [10, 5, 15], fov: 50 }}
-        gl={{ antialias: true }}
+        <Canvas
+          shadows
+          camera={{ position: [10, 5, 15], fov: 50 }}
+          gl={{ antialias: true }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
-      >
-        {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
-        <Sky sunPosition={[100, 20, 100]} turbidity={2} rayleigh={0.5} />
-
-        <ambientLight intensity={0.4} />
-        <directionalLight
-          position={[10, 15, 5]}
-          intensity={1.5}
-          castShadow
-          shadow-mapSize={[2048, 2048]}
         >
-          <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
-        </directionalLight>
-
-        {/* HOUSE ASSEMBLY */}
-        <group position={[originOffset.x, 0, originOffset.z]}>
-          <group ref={wallGroupRef} name="wallGroup">
-            {showBasement && (
-              <mesh
-                geometry={wallsBasement.shell.geometry}
-                position={wallsBasement.shell.position}
-                rotation={wallsBasement.shell.rotation}
-                material={wallMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            )}
-            {showGround && (
-              <mesh
-                geometry={wallsGround.shell.geometry}
-                position={wallsGround.shell.position}
-                rotation={wallsGround.shell.rotation}
-                material={wallMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            )}
-
-            {showFirst && (
-              <mesh
-                geometry={wallsFirst.shell.geometry}
-                position={wallsFirst.shell.position}
-                rotation={wallsFirst.shell.rotation}
-                material={wallMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            )}
-            {eavesBandMesh}
-          </group>
-
-          <group ref={slabGroupRef} name="slabGroup">
-            {showBasement && (
-              <>
-                <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
-                <mesh position={[0, basementCeilingLevel, 0]} receiveShadow>
-                  <primitive object={basementCeilingGeometry} attach="geometry" />
-                  <primitive object={basementCeilingMaterial} attach="material" />
-                </mesh>
-              </>
-            )}
-            {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
-            {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
-            {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
-            {showFirst && <Slab y={flatRoofY} shape={flatRoofShape} color="#383E42" />}
-            {showFirst && greenRoofShape && (
-              <Slab y={greenRoofY} shape={greenRoofShape} color="#4F7D3A" thickness={0.06} />
-            )}
-          </group>
-
-          <group name="roomHitboxes">
-            {activeRooms.map((room) => (
-              <RoomHitbox
-                key={room.id}
-                room={room}
-                highlighted={selectedRoomId === room.id}
-                onSelect={setSelectedRoomId}
-              />
-            ))}
-          </group>
-
-          <Roof visible={showRoof} />
-        </group>
-
-        {/* GROUNDS */}
-        {showTerrain && (
-          <mesh
-            rotation={[-Math.PI / 2, 0, 0]}
-            position={[0, -0.05, 0]}
-            receiveShadow
-          >
-            <planeGeometry args={[100, 100]} />
-            <meshStandardMaterial color="#3a5f0b" roughness={1} />
-          </mesh>
-        )}
-
-        {/* CONTROLS */}
-        <OrbitControls
-          ref={controlsRef}
-          minDistance={5}
-          maxDistance={40}
-          maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
-        />
-
+          <HouseScene
+            activeFloors={activeFloors}
+            showTerrain={showTerrain}
+            showRoof={showRoof}
+            cutawayEnabled={cutawayEnabled}
+            facadeVisibility={facadeVisibility}
+            selectedRoomId={selectedRoomId}
+            onSelectRoom={setSelectedRoomId}
+            controlsRef={controlsRef}
+          />
       </Canvas>
     </div>
+  );
+}
+
+function HouseScene({
+  activeFloors,
+  showTerrain,
+  showRoof,
+  cutawayEnabled,
+  facadeVisibility,
+  selectedRoomId,
+  onSelectRoom,
+  controlsRef,
+}: {
+  activeFloors: { basement: boolean; ground: boolean; first: boolean; attic: boolean };
+  showTerrain: boolean;
+  showRoof: boolean;
+  cutawayEnabled: boolean;
+  facadeVisibility: Record<FacadeKey, boolean>;
+  selectedRoomId: string | null;
+  onSelectRoom: (roomId: string | null) => void;
+  controlsRef: React.MutableRefObject<any>;
+}) {
+  const brickTex = useTexture('/textures/brick2.jpg');
+  const fallbackWallMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#8B5A40',
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+  const wallMaterial = useMemo(() => {
+    if (!brickTex || !brickTex.image) {
+      return fallbackWallMaterial;
+    }
+
+    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+    brickTex.repeat.set(6, 3);
+    brickTex.anisotropy = 8;
+    brickTex.needsUpdate = true;
+
+    return new THREE.MeshStandardMaterial({
+      map: brickTex,
+      roughness: 0.9,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+  }, [brickTex, fallbackWallMaterial]);
+  const eavesBandMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#f2f2f2',
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+  const basementCeilingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#f5f5f5',
+        roughness: 0.9,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+
+  const slabGroupRef = useRef<THREE.Group>(null);
+  const wallGroupRef = useRef<THREE.Group>(null);
+
+  const showBasement = activeFloors.basement;
+  const showGround = activeFloors.ground;
+  const showFirst = activeFloors.first;
+  const showAttic = activeFloors.attic;
+  const firstFloorLevelY = levelHeights.firstFloor;
+  const firstFloorCeilingHeight = ceilingHeights.first;
+  const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10
+  const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
+  const basementFloorLevel = -2.0;
+  const basementCeilingLevel = -0.01;
+  const eavesBandMesh = useMemo(() => {
+    console.log('✅ EAVES BAND ACTIVE', Date.now(), {
+      expectedYStart: 5.10,
+      expectedYEnd: 5.70,
+    });
+    return (
+      <mesh
+        geometry={wallsEavesBand.shell.geometry}
+        position={wallsEavesBand.shell.position}
+        rotation={wallsEavesBand.shell.rotation}
+        material={eavesBandMaterial}
+        castShadow
+        receiveShadow
+        visible={wallShellVisible}
+      />
+    );
+  }, [eavesBandMaterial, wallShellVisible]);
+
+  useEffect(() => {
+    console.log('✅ DEBUG CUBES ADDED', Date.now());
+  }, []);
+
+  const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
+  const groundEnvelopePolygon = useMemo(
+    () => getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope),
+    [groundOuterEnvelope]
+  );
+  const groundEnvelopeShape = useMemo(() => makeFootprintShape(groundEnvelopePolygon), [groundEnvelopePolygon]);
+  const basementCeilingGeometry = useMemo(() => {
+    const geometry = new THREE.ShapeGeometry(groundEnvelopeShape);
+    geometry.rotateX(-Math.PI / 2);
+    return geometry;
+  }, [groundEnvelopeShape]);
+
+  const firstOuterEnvelope = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
+  const firstEnvelopePolygon = useMemo(
+    () => getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope),
+    [firstOuterEnvelope]
+  );
+  const firstEnvelopeShape = useMemo(() => makeFootprintShape(firstEnvelopePolygon), [firstEnvelopePolygon]);
+
+  const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
+  const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
+  const greenRoofPolygon = useMemo(() => getEnvelopeInnerPolygon(0.4, flatRoofPolygon), [flatRoofPolygon]);
+  const greenRoofShape = useMemo(
+    () => (greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null),
+    [greenRoofPolygon]
+  );
+
+  const activeRooms = useMemo(() => {
+    const list: any[] = [];
+
+    if (showGround) {
+      list.push(...roomsGround);
+    }
+
+    if (showFirst) {
+      list.push(...roomsFirst);
+    }
+
+    return list;
+  }, [showGround, showFirst]);
+  const baseRoofThickness = SPECS.levels.slab;
+  const flatRoofY = firstFloorLevelY + 0.02;
+  const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
+
+  useEffect(() => {
+    console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
+    console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
+    console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
+    console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
+    const offsetPoints = groundEnvelopePolygon.slice(0, 2).map((point) => ({
+      x: point.x + originOffset.x,
+      z: point.z + originOffset.z,
+    }));
+    console.log('Origin offset applied:', originOffset);
+    console.log('First two envelope points after offset:', offsetPoints);
+  }, [firstEnvelopePolygon, groundEnvelopePolygon]);
+
+  return (
+    <>
+      {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
+      <Sky sunPosition={[100, 20, 100]} turbidity={2} rayleigh={0.5} />
+
+      <ambientLight intensity={0.4} />
+      <directionalLight position={[10, 15, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]}>
+        <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
+      </directionalLight>
+
+      {/* HOUSE ASSEMBLY */}
+      <group position={[originOffset.x, 0, originOffset.z]}>
+        <group ref={wallGroupRef} name="wallGroup">
+          {showBasement && (
+            <mesh
+              geometry={wallsBasement.shell.geometry}
+              position={wallsBasement.shell.position}
+              rotation={wallsBasement.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {showGround && (
+            <mesh
+              geometry={wallsGround.shell.geometry}
+              position={wallsGround.shell.position}
+              rotation={wallsGround.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+
+          {showFirst && (
+            <mesh
+              geometry={wallsFirst.shell.geometry}
+              position={wallsFirst.shell.position}
+              rotation={wallsFirst.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {eavesBandMesh}
+        </group>
+
+        <group ref={slabGroupRef} name="slabGroup">
+          {showBasement && (
+            <>
+              <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
+              <mesh position={[0, basementCeilingLevel, 0]} receiveShadow>
+                <primitive object={basementCeilingGeometry} attach="geometry" />
+                <primitive object={basementCeilingMaterial} attach="material" />
+              </mesh>
+            </>
+          )}
+          {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
+          {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
+          {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
+          {showFirst && <Slab y={flatRoofY} shape={flatRoofShape} color="#383E42" />}
+          {showFirst && greenRoofShape && (
+            <Slab y={greenRoofY} shape={greenRoofShape} color="#4F7D3A" thickness={0.06} />
+          )}
+        </group>
+
+        <group name="roomHitboxes">
+          {activeRooms.map((room) => (
+            <RoomHitbox
+              key={room.id}
+              room={room}
+              highlighted={selectedRoomId === room.id}
+              onSelect={onSelectRoom}
+            />
+          ))}
+        </group>
+
+        <Roof visible={showRoof} />
+      </group>
+
+      {/* GROUNDS */}
+      {showTerrain && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+          <planeGeometry args={[100, 100]} />
+          <meshStandardMaterial color="#3a5f0b" roughness={1} />
+        </mesh>
+      )}
+
+      {/* CONTROLS */}
+      <OrbitControls
+        ref={controlsRef}
+        minDistance={5}
+        maxDistance={40}
+        maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
+      />
+    </>
   );
 }

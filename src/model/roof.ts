@@ -492,8 +492,18 @@ export function buildRoofMeshes(): {
   const epsilon = 1e-4;
 
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBack = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
+  const xRightBack = findRightXAtZClosestToRidge(
+    rightSegments,
+    eaveBackZ,
+    ridgeX,
+    bounds.maxX
+  );
+  const xRightFrontInset = findRightXAtZClosestToRidge(
+    rightSegments,
+    ridgeFrontZ,
+    ridgeX,
+    bounds.maxX
+  );
   const xRightBackInset = findRightXAtZClosestToRidge(
     rightSegments,
     ridgeBackZ,

@@ -293,6 +293,39 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   return best.x;
 }
 
+function findRightXAtZClosestToRidge(
+  segments: RoofSegment[],
+  z: number,
+  ridgeX: number,
+  fallbackX: number
+): number {
+  const epsilon = 1e-4;
+
+  const matches = segments.filter(
+    (segment) => z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd
+  );
+
+  if (matches.length === 0) {
+    console.warn('⚠️ findRightXAtZClosestToRidge FALLBACK', { z, ridgeX, fallbackX, segments });
+    return fallbackX;
+  }
+
+  // Choose the segment whose X is closest to the ridge line.
+  // This reliably selects the INSIDE indentation branch on concave footprints.
+  let best = matches[0];
+  let bestD = Math.abs(matches[0].x - ridgeX);
+
+  for (let i = 1; i < matches.length; i++) {
+    const d = Math.abs(matches[i].x - ridgeX);
+    if (d < bestD) {
+      bestD = d;
+      best = matches[i];
+    }
+  }
+
+  return best.x;
+}
+
 function createTriangleGeometry(
   pointA: THREE.Vector3,
   pointB: THREE.Vector3,
@@ -461,7 +494,12 @@ export function buildRoofMeshes(): {
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightBack = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBackInset = findRightXAtZ(rightSegments, ridgeBackZ, bounds.maxX);
+  const xRightBackInset = findRightXAtZClosestToRidge(
+    rightSegments,
+    ridgeBackZ,
+    ridgeX,
+    bounds.maxX
+  );
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
   console.log('xAtZ debug', {
@@ -500,7 +538,12 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
   const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackMax = findRightXAtZ(rightSegments, eaveBackZ, bounds.maxX);
+  const xBackMax = findRightXAtZClosestToRidge(
+    rightSegments,
+    eaveBackZ,
+    ridgeX,
+    bounds.maxX
+  );
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);

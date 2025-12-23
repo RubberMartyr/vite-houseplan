@@ -514,6 +514,7 @@ export function buildRoofMeshes(): {
   console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, backRidgePoint });
 
   const leftRoofMeshes = [
+    // Front/mid left plane: ridgeFrontZ -> ridgeBackZ (existing)
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
@@ -523,6 +524,21 @@ export function buildRoofMeshes(): {
         ridgeBackZ,
         ridgeYAtZ(ridgeFrontZ),
         ridgeYAtZ(ridgeBackZ)
+      ),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    },
+
+    // Rear left plane: ridgeBackZ -> mainBackZ (NEW)
+    {
+      geometry: createRoofPlaneGeometryVariableEave(
+        xLeftBackInset, // eave X at ridgeBackZ
+        xLeftBack, // eave X at mainBackZ
+        ridgeX,
+        ridgeBackZ,
+        mainBackZ,
+        ridgeYAtZ(ridgeBackZ),
+        ridgeYAtZ(mainBackZ)
       ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
@@ -562,29 +578,70 @@ export function buildRoofMeshes(): {
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
   console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEave, backRightEave, backRidgePoint });
 
+  // Right roof meshes for front/mid: ridgeFrontZ -> ridgeBackZ
+  const rightRoofFrontMeshes = rightSegments
+    .map((segment) => {
+      const zStart = Math.max(segment.zStart, ridgeFrontZ);
+      const zEnd = Math.min(segment.zEnd, ridgeBackZ);
+      if (zEnd - zStart <= epsilon) return null;
+
+      return {
+        geometry: createRoofPlaneGeometry(
+          segment.x,
+          ridgeX,
+          zStart,
+          zEnd,
+          ridgeYAtZ(zStart),
+          ridgeYAtZ(zEnd)
+        ),
+        position: [0, 0, 0] as [number, number, number],
+        rotation: [0, 0, 0] as [number, number, number],
+      };
+    })
+    .filter(
+      (
+        mesh
+      ): mesh is {
+        geometry: THREE.BufferGeometry;
+        position: [number, number, number];
+        rotation: [number, number, number];
+      } => Boolean(mesh)
+    );
+
+  // Right roof meshes for rear: ridgeBackZ -> mainBackZ (NEW)
+  const rightRoofRearMeshes = rightSegments
+    .map((segment) => {
+      const zStart = Math.max(segment.zStart, ridgeBackZ);
+      const zEnd = Math.min(segment.zEnd, mainBackZ);
+      if (zEnd - zStart <= epsilon) return null;
+
+      return {
+        geometry: createRoofPlaneGeometry(
+          segment.x,
+          ridgeX,
+          zStart,
+          zEnd,
+          ridgeYAtZ(zStart),
+          ridgeYAtZ(zEnd)
+        ),
+        position: [0, 0, 0] as [number, number, number],
+        rotation: [0, 0, 0] as [number, number, number],
+      };
+    })
+    .filter(
+      (
+        mesh
+      ): mesh is {
+        geometry: THREE.BufferGeometry;
+        position: [number, number, number];
+        rotation: [number, number, number];
+      } => Boolean(mesh)
+    );
+
   const meshes = [
     ...leftRoofMeshes,
-    ...rightSegments
-      .map((segment) => {
-        const zStart = Math.max(segment.zStart, ridgeFrontZ);
-        const zEnd = Math.min(segment.zEnd, ridgeBackZ);
-        if (zEnd - zStart <= epsilon) {
-          return null;
-        }
-        return {
-          geometry: createRoofPlaneGeometry(
-            segment.x,
-            ridgeX,
-            zStart,
-            zEnd,
-            ridgeYAtZ(zStart),
-            ridgeYAtZ(zEnd)
-          ),
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-        };
-      })
-      .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
+    ...rightRoofFrontMeshes,
+    ...rightRoofRearMeshes,
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,

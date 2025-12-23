@@ -615,13 +615,18 @@ export function buildRoofMeshes(): {
     .filter((z) => z > ridgeBackZ + 1e-3 && z < eaveBackZ - 1e-3)
     .sort((a, b) => a - b);
 
-  // Pick the first indentation step strictly INSIDE the back-fill interval.
+  // Pick the last indentation step strictly INSIDE the back-fill interval.
   // If there is no kink inside, we will not split at all.
-  const zKink = kinkCandidates.length ? kinkCandidates[0] : null;
+  const zKink = kinkCandidates.length ? kinkCandidates[kinkCandidates.length - 1] : null;
   let backRightKinkInner: THREE.Vector3 | null = null;
 
   if (zKink !== null) {
-    const xKinkInner = findRightXAtZClosestToRidge(rightSegments, zKink, ridgeX, bounds.maxX);
+    const xKinkInner = findRightXAtZClosestToX(
+      rightSegments,
+      zKink,
+      xRightBackInset,
+      bounds.maxX
+    );
     backRightKinkInner = new THREE.Vector3(xKinkInner, eavesY, zKink);
   }
 

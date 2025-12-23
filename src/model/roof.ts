@@ -289,10 +289,6 @@ function createTriangleGeometry(
   return geometry;
 }
 
-function makeTri(pointA: THREE.Vector3, pointB: THREE.Vector3, pointC: THREE.Vector3): THREE.BufferGeometry {
-  return createTriangleGeometry(pointA, pointB, pointC);
-}
-
 function chamferFootprint(
   points: FootprintPoint[],
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
@@ -510,28 +506,14 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backZ = backLeftEave.z;
-  const BLE = { ...backLeftEave, z: backZ };
-  const BRE = { ...backRightEave, z: backZ };
-  const BLEI = { ...backLeftEaveInset, z: backZ };
-  const BERI = { ...backRightEaveInset, z: backZ };
-
-  console.log('BACK CAP PTS', {
-    backLeftEave,
-    backRightEave,
-    backLeftEaveInset,
-    backRightEaveInset,
-    ridgeBackPoint,
-  });
-
   const backEndcap = [
     {
-      geometry: makeTri(BLEI, BLE, ridgeBackPoint),
+      geometry: createTriangleGeometry(backLeftEaveInset, ridgeBackPoint, backLeftEave),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     {
-      geometry: makeTri(BRE, BERI, ridgeBackPoint),
+      geometry: createTriangleGeometry(backRightEave, ridgeBackPoint, backRightEaveInset),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },

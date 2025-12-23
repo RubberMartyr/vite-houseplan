@@ -609,19 +609,45 @@ export function buildRoofMeshes(): {
 
   console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
+  const zBreaksRaw = [ridgeBackZ, zStep1, zStep2, eaveBackZ];
+  const zBreaks = zBreaksRaw
+    .filter((z, i, arr) => z >= ridgeBackZ - 1e-6 && z <= eaveBackZ + 1e-6)
+    .filter((z, i, arr) => i === 0 || Math.abs(z - arr[i - 1]) > 1e-6)
+    .sort((a, b) => a - b);
+
+  // Ensure endpoints exist (defensive)
+  if (zBreaks[0] !== ridgeBackZ) zBreaks.unshift(ridgeBackZ);
+  if (zBreaks[zBreaks.length - 1] !== eaveBackZ) zBreaks.push(eaveBackZ);
+
+  const rightEavePoints: Array<readonly [number, number, number]> = [];
+  let prevX = xRightBackInset;
+
+  for (const z of zBreaks) {
+    const x = findRightXAtZClosestToX(rightSegments, z, prevX, bounds.maxX);
+    rightEavePoints.push([x, eavesY, z] as const);
+    prevX = x;
+  }
+
   const backLeftSideFill = {
     geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset),
     position: [0, 0, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backRightSideFill = {
-    geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEave),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const backRightSideFills = rightEavePoints.slice(0, -1).map((p0, i) => {
+    const p1 = rightEavePoints[i + 1];
+    return {
+      geometry: createTriangleGeometry(
+        new THREE.Vector3(p0[0], p0[1], p0[2]),
+        ridgeBackPoint,
+        new THREE.Vector3(p1[0], p1[1], p1[2])
+      ),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  });
 
-  const backSideFills = [backLeftSideFill, backRightSideFill];
+  const backSideFills = [backLeftSideFill, ...backRightSideFills];
 
   const leftRoofMeshes = [
     {

@@ -652,6 +652,8 @@ export function buildRoofMeshes(): {
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEaveOuter = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
   const backRightPaneEnd = new THREE.Vector3(xRightBackInset, eavesY, zInnerEnd);
+  const backRightInnerAtEnd = new THREE.Vector3(xRightBackInset, eavesY, zInnerEnd);
+  const backRightOuterAtEnd = new THREE.Vector3(xBackMax, eavesY, zInnerEnd);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
 
@@ -687,23 +689,32 @@ export function buildRoofMeshes(): {
     createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset)
   );
 
-  let backRightSideFills: Array<{
+  const backRightSideFills: Array<{
     geometry: THREE.BufferGeometry;
     position: [number, number, number];
     rotation: [number, number, number];
   }> = [];
 
-  const minSpan = 1e-3;
+  const minSpan = 0.2;
   if (zInnerEnd > ridgeBackZ + minSpan) {
     backRightSideFills.push({
-      geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightPaneEnd),
+      geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightInnerAtEnd),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
     });
-  } else {
-    console.warn('Skipping back-right inner pane: no inner wall span beyond ridgeBackZ', {
-      ridgeBackZ,
-      zInnerEnd,
+  }
+
+  backRightSideFills.push({
+    geometry: createTriangleGeometry(backRightOuterAtEnd, ridgeBackPoint, backRightEaveOuter),
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+  });
+
+  if (zInnerEnd > ridgeBackZ + minSpan) {
+    backRightSideFills.push({
+      geometry: createTriangleGeometry(backRightInnerAtEnd, ridgeBackPoint, backRightOuterAtEnd),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
     });
   }
 

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sky } from '@react-three/drei';
+import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { wallsBasement } from '../model/wallsBasement'
 import { wallsGround } from '../model/wallsGround'
 import { wallsFirst } from '../model/wallsFirst'
@@ -343,7 +343,8 @@ export default function HouseViewer() {
   const [showRoof, setShowRoof] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<any>(null);
-  const wallMaterial = useMemo(
+  const brickTex = useTexture('/textures/brick2.jpg');
+  const fallbackWallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: '#8B5A40',
@@ -352,6 +353,23 @@ export default function HouseViewer() {
       }),
     []
   );
+  const wallMaterial = useMemo(() => {
+    if (!brickTex || !brickTex.image) {
+      return fallbackWallMaterial;
+    }
+
+    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+    brickTex.repeat.set(6, 3);
+    brickTex.anisotropy = 8;
+    brickTex.needsUpdate = true;
+
+    return new THREE.MeshStandardMaterial({
+      map: brickTex,
+      roughness: 0.9,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+  }, [brickTex, fallbackWallMaterial]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

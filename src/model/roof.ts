@@ -111,66 +111,6 @@ function xAtZSafe(
   return fallback;
 }
 
-function xIntersectionsAtZ(poly: Array<{ x: number; z: number }>, z: number) {
-  const xs: number[] = [];
-  const eps = 1e-9;
-
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i];
-    const b = poly[(i + 1) % poly.length];
-
-    // Ignore edges parallel to the intersection line
-    if (Math.abs(a.z - b.z) < eps) continue;
-
-    // Check if z is within the open/closed interval of the segment
-    const zMin = Math.min(a.z, b.z);
-    const zMax = Math.max(a.z, b.z);
-    if (z < zMin - eps || z > zMax + eps) continue;
-
-    const t = (z - a.z) / (b.z - a.z);
-    if (t < -eps || t > 1 + eps) continue;
-
-    const x = a.x + t * (b.x - a.x);
-    xs.push(x);
-  }
-
-  // Sort and de-dup
-  xs.sort((p, q) => p - q);
-  const out: number[] = [];
-  for (const x of xs) {
-    if (out.length === 0 || Math.abs(out[out.length - 1] - x) > 1e-6) out.push(x);
-  }
-  return out;
-}
-
-// For convex footprints you typically have 2 intersections.
-// For concave you can have 4+.
-// We choose which “branch” to use deterministically:
-function chooseXAtZ(
-  poly: Array<{ x: number; z: number }>,
-  z: number,
-  mode: 'min' | 'max' | 'closestToRidge',
-  ridgeX: number
-) {
-  const xs = xIntersectionsAtZ(poly, z);
-  if (xs.length === 0) return null;
-
-  if (mode === 'min') return xs[0];
-  if (mode === 'max') return xs[xs.length - 1];
-
-  // closestToRidge: pick intersection with minimal |x - ridgeX|
-  let best = xs[0];
-  let bestD = Math.abs(xs[0] - ridgeX);
-  for (let i = 1; i < xs.length; i++) {
-    const d = Math.abs(xs[i] - ridgeX);
-    if (d < bestD) {
-      bestD = d;
-      best = xs[i];
-    }
-  }
-  return best;
-}
-
 function computeBounds(points: FootprintPoint[]) {
   return points.reduce(
     (acc, point) => ({
@@ -453,18 +393,14 @@ export function buildRoofMeshes(): {
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  const eaveBackZ = pitchedBackZClamped;
-  const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const ridgeBackZRaw = eaveBackZ - frontApexOffset;
-  const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
-  console.log('HIP BACK CHECK', { baseFrontZ, ridgeFrontZ, ridgeBackZ, eaveBackZ, frontApexOffset });
+  // Rear gable must match front: ridge extends to the true rear of the footprint
+  const ridgeBackZ = pitchedBackZClamped;
+  const eaveBackZ = ridgeBackZ;
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBackInset =
-    chooseXAtZ(mainFootprint, ridgeBackZ, 'min', ridgeX) ??
-    xAtZSafe(mainFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftBack = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
 
   console.log('ROOF +X segments', rightSegments);
@@ -533,21 +469,10 @@ export function buildRoofMeshes(): {
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
-  const xBackMin =
-    chooseXAtZ(mainFootprint, eaveBackZ, 'min', ridgeX) ??
-    xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackMax =
-    chooseXAtZ(mainFootprint, eaveBackZ, 'closestToRidge', ridgeX) ??
-    xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
+  const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const xBackMax = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
-  const xRightBackInset =
-    chooseXAtZ(mainFootprint, ridgeBackZ, 'closestToRidge', ridgeX) ??
-    xAtZSafe(mainFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
-  const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
-  console.log('xs@eaveBackZ', xIntersectionsAtZ(mainFootprint, eaveBackZ));
-  console.log('picked back max', xBackMax, 'ridgeX', ridgeX);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -558,35 +483,22 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backHipMeshes = [
+  // Back gable should match the front: one clean triangle
+  const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    },
-    {
-      geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEave),
+      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
   ];
 
-  console.log('✅ BACK HIP END', {
-    eavesY,
-    ridgeY,
-    rearZ,
-    backLeftEave,
-    backRightEave,
-    backLeftEaveInset,
-    backRightEaveInset,
-    ridgeBackPoint,
-  });
+  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
   const leftRoofMeshes = [
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
-        xLeftBackInset,
+        xLeftBack,
         ridgeX,
         ridgeFrontZ,
         ridgeBackZ,
@@ -667,7 +579,7 @@ export function buildRoofMeshes(): {
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,
-    ...backHipMeshes,
+    ...backEndcap,
   ];
 
   console.log('✅ GABLES ADDED', {

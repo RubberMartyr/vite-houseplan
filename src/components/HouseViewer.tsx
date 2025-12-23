@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { wallsBasement } from '../model/wallsBasement'
 import { wallsGround } from '../model/wallsGround'
@@ -614,6 +614,11 @@ function HouseScene({
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<any>;
 }) {
+  const BRICK_REPEAT_X = 2.6;
+  const BRICK_REPEAT_Y = 1.25;
+  const LOW_QUALITY = false;
+
+  const { gl } = useThree();
   const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
     () =>
@@ -625,13 +630,19 @@ function HouseScene({
     []
   );
   const wallMaterial = useMemo(() => {
+    if (LOW_QUALITY) {
+      return fallbackWallMaterial;
+    }
+
     if (!brickTex || !brickTex.image) {
       return fallbackWallMaterial;
     }
 
     brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
-    brickTex.repeat.set(6, 3);
-    brickTex.anisotropy = 8;
+    brickTex.repeat.set(BRICK_REPEAT_X, BRICK_REPEAT_Y);
+    brickTex.colorSpace = THREE.SRGBColorSpace;
+    const maxAniso = gl?.capabilities?.getMaxAnisotropy ? gl.capabilities.getMaxAnisotropy() : 1;
+    brickTex.anisotropy = Math.min(4, maxAniso);
     brickTex.needsUpdate = true;
 
     return new THREE.MeshStandardMaterial({
@@ -640,7 +651,7 @@ function HouseScene({
       metalness: 0,
       side: THREE.DoubleSide,
     });
-  }, [brickTex, fallbackWallMaterial]);
+  }, [brickTex, fallbackWallMaterial, gl]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

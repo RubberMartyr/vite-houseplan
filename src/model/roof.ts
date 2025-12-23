@@ -227,10 +227,6 @@ function extractRightRoofSegments(points: FootprintPoint[], ridgeX: number): Roo
 
     const edgeX = (current.x + next.x) / 2;
 
-    if (edgeX < ridgeX - epsilon) {
-      continue;
-    }
-
     const zStart = Math.min(current.z, next.z);
     const zEnd = Math.max(current.z, next.z);
 
@@ -437,6 +433,10 @@ function chamferPolygon(points: FootprintPoint[], chamfer: number): FootprintPoi
   const bounds = computeBounds(points);
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
   const rightSegments = extractRightRoofSegments(points, ridgeX);
+  console.log(
+    'RIGHT SEGMENTS X VALUES',
+    Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)
+  );
   const frontRightChamferX = findRightXAtZ(rightSegments, bounds.minZ, bounds.maxX);
   const backRightChamferX = findRightXAtZ(rightSegments, bounds.maxZ, bounds.maxX);
   return chamferFootprint(points, bounds, frontRightChamferX, backRightChamferX, chamfer);
@@ -508,6 +508,10 @@ export function buildRoofMeshes(): {
   const ridgeBackZRaw = eaveBackZ - frontApexOffset;
   const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
+  console.log(
+    'RIGHT SEGMENTS X VALUES',
+    Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)
+  );
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);

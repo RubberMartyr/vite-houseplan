@@ -389,6 +389,23 @@ function findRightXAtZClosestToX(
   return best.x;
 }
 
+function segmentAtZClosestToX(segments: RoofSegment[], z: number, targetX: number) {
+  const eps = 1e-4;
+  const matches = segments.filter((s) => z + eps >= s.zStart && z - eps <= s.zEnd);
+  if (matches.length === 0) return null;
+
+  let best = matches[0];
+  let bestD = Math.abs(matches[0].x - targetX);
+  for (let i = 1; i < matches.length; i++) {
+    const d = Math.abs(matches[i].x - targetX);
+    if (d < bestD) {
+      bestD = d;
+      best = matches[i];
+    }
+  }
+  return best;
+}
+
 function createTriangleGeometry(
   pointA: THREE.Vector3,
   pointB: THREE.Vector3,
@@ -571,20 +588,13 @@ export function buildRoofMeshes(): {
     ridgeX,
     bounds.maxX
   );
-  const innerExtent = segmentZExtentForX(rightSegments, xRightBackInset);
-  const zInnerEnd = innerExtent
-    ? Math.max(ridgeBackZ, Math.min(innerExtent.zMax, eaveBackZ))
+  const innerSeg = segmentAtZClosestToX(rightSegments, ridgeBackZ, xRightBackInset);
+
+  const zInnerEnd = innerSeg
+    ? Math.max(ridgeBackZ, Math.min(innerSeg.zEnd, eaveBackZ))
     : ridgeBackZ;
 
-  if (DEBUG_ROOF) {
-    console.log('INNER BRANCH EXTENT', {
-      xRightBackInset,
-      innerExtent,
-      ridgeBackZ,
-      eaveBackZ,
-      zInnerEnd,
-    });
-  }
+  console.log('INNER SEG DEBUG', { xRightBackInset, ridgeBackZ, eaveBackZ, innerSeg, zInnerEnd });
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
   console.log('xAtZ debug', {
@@ -641,27 +651,9 @@ export function buildRoofMeshes(): {
   });
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEaveOuter = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
-  const backRightEaveInner = new THREE.Vector3(xRightBackInset, eavesY, zInnerEnd);
+  const backRightPaneEnd = new THREE.Vector3(xRightBackInset, eavesY, zInnerEnd);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
-  const kinkCandidates = indentationSteps
-    .filter((z) => z > ridgeBackZ + 1e-3 && z < zInnerEnd - 1e-3)
-    .sort((a, b) => a - b);
-
-  // Pick the last indentation step strictly INSIDE the back-fill interval.
-  // If there is no kink inside, we will not split at all.
-  const zKink = kinkCandidates.length ? kinkCandidates[kinkCandidates.length - 1] : null;
-  let backRightKinkInner: THREE.Vector3 | null = null;
-
-  if (zKink !== null) {
-    const xKinkInner = findRightXAtZClosestToX(
-      rightSegments,
-      zKink,
-      xRightBackInset,
-      bounds.maxX
-    );
-    backRightKinkInner = new THREE.Vector3(xKinkInner, eavesY, zKink);
-  }
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -687,7 +679,7 @@ export function buildRoofMeshes(): {
     rearZ,
     backLeftEave,
     backRightEaveOuter,
-    backRightEaveInner,
+    backRightPaneEnd,
     ridgeBackPoint,
   });
 
@@ -701,22 +693,18 @@ export function buildRoofMeshes(): {
     rotation: [number, number, number];
   }> = [];
 
-  if (backRightKinkInner) {
-    // Two triangles: ridgeBackZ -> kink (inner wall) -> eaveBackZ (still inner selection)
-    const fillA = toMesh(
-      createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner)
-    );
-    const fillB = toMesh(
-      createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightEaveInner)
-    );
-
-    backRightSideFills = [fillA, fillB];
+  const minSpan = 1e-3;
+  if (zInnerEnd > ridgeBackZ + minSpan) {
+    backRightSideFills.push({
+      geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightPaneEnd),
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+    });
   } else {
-    // No kink inside this interval -> single triangle is correct
-    const fill = toMesh(
-      createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEaveInner)
-    );
-    backRightSideFills = [fill];
+    console.warn('Skipping back-right inner pane: no inner wall span beyond ridgeBackZ', {
+      ridgeBackZ,
+      zInnerEnd,
+    });
   }
 
   const backSideFills = [backLeftSideFill, ...backRightSideFills];
@@ -758,7 +746,7 @@ export function buildRoofMeshes(): {
     rearZ: ridgeBackZ,
     backLeftEave,
     backRightEaveOuter,
-    backRightEaveInner,
+    backRightPaneEnd,
     ridgeBackPoint,
   });
 
@@ -809,7 +797,7 @@ export function buildRoofMeshes(): {
     frontRightEaveInset,
     backLeftEave,
     backRightEaveOuter,
-    backRightEaveInner,
+    backRightPaneEnd,
     frontZ: baseFrontZ,
     rearZ: ridgeBackZ,
   });

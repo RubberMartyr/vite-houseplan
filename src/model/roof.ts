@@ -332,9 +332,14 @@ function chamferPolygon(points: FootprintPoint[], chamfer: number): FootprintPoi
   return chamferFootprint(points, bounds, frontRightChamferX, backRightChamferX, chamfer);
 }
 
-export function buildRoofMeshes(): {
-  meshes: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] }>;
-} {
+type RoofMeshSegment = {
+  geometry: THREE.BufferGeometry;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  debugColor?: string;
+};
+
+export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
   const envelopeOuter = getEnvelopeOuterPolygon();
   const groundFootprint = envelopeOuter;
   const groundBounds = computeBounds(groundFootprint);
@@ -498,6 +503,7 @@ export function buildRoofMeshes(): {
   };
 
   const backMidEave = new THREE.Vector3(ridgeX, eavesY, eaveBackZ);
+  const backDebugGeom = createTriangleGeometry(backLeftEave, backRidgePoint, backRightEave);
   const backEndcap = [
     {
       geometry: createTriangleGeometry(backLeftEave, backMidEave, backRidgePoint),
@@ -584,10 +590,16 @@ export function buildRoofMeshes(): {
           rotation: [0, 0, 0],
         };
       })
-      .filter((mesh): mesh is { geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] } => Boolean(mesh)),
+      .filter((mesh): mesh is RoofMeshSegment => Boolean(mesh)),
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,
+    {
+      geometry: backDebugGeom,
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      debugColor: '#ff00ff',
+    },
     ...backEndcap,
   ];
 

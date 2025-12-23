@@ -270,16 +270,27 @@ function getStepStartZ(segments: RoofSegment[], maxX: number): number | null {
 
 function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): number {
   const epsilon = 1e-4;
-  const match = segments.find(
+
+  // Collect ALL segments that span z (concave footprints can have multiple)
+  const matches = segments.filter(
     (segment) => z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd
   );
 
-  if (!match) {
+  if (matches.length === 0) {
     console.warn('⚠️ findRightXAtZ FALLBACK', { z, fallbackX, segments });
     return fallbackX;
   }
 
-  return match.x;
+  // IMPORTANT:
+  // On the indented side, multiple vertical edges may exist at the same Z.
+  // We want the INSIDE edge of the indentation, not the outermost facade.
+  // The inside edge is the one with the SMALLER X among the right-side segments.
+  let best = matches[0];
+  for (let i = 1; i < matches.length; i++) {
+    if (matches[i].x < best.x) best = matches[i];
+  }
+
+  return best.x;
 }
 
 function createTriangleGeometry(

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Sky } from '@react-three/drei';
+import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { wallsBasement } from '../model/wallsBasement'
 import { wallsGround } from '../model/wallsGround'
 import { wallsFirst } from '../model/wallsFirst'
@@ -142,66 +142,6 @@ function useBuildingMaterials() {
   }, []);
 
   return { brick, roof, glass, frame };
-}
-
-function buildBrickTexture(gl?: THREE.WebGLRenderer) {
-  const width = 1024;
-  const height = 1024;
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-
-  if (!ctx) return null;
-
-  const brickWidth = 120;
-  const brickHeight = 48;
-  const mortarColor = '#d2c7bb';
-  ctx.fillStyle = mortarColor;
-  ctx.fillRect(0, 0, width, height);
-
-  const hueBase = 18; // warm reddish hue
-  const drawBrick = (x: number, y: number) => {
-    const hue = hueBase + Math.random() * 8;
-    const lightness = 32 + Math.random() * 16;
-    const saturation = 42 + Math.random() * 10;
-    const brickW = brickWidth * (0.85 + Math.random() * 0.25);
-    const brickH = brickHeight * (0.9 + Math.random() * 0.12);
-
-    ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-    ctx.fillRect(x, y, brickW, brickH);
-
-    // Subtle shading for depth
-    const shadowStrength = 6 + Math.random() * 6;
-    ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness - shadowStrength}%, 0.35)`;
-    ctx.fillRect(x, y + brickH * 0.65, brickW, brickH * 0.35);
-  };
-
-  for (let y = 0; y < height + brickHeight; y += brickHeight) {
-    const offset = (y / brickHeight) % 2 === 0 ? 0 : brickWidth / 2;
-    for (let x = -offset; x < width + brickWidth; x += brickWidth) {
-      const jitterX = x + (Math.random() - 0.5) * 6;
-      const jitterY = y + (Math.random() - 0.5) * 4;
-      drawBrick(jitterX, jitterY);
-    }
-  }
-
-  // Surface noise for variety
-  for (let i = 0; i < 7000; i++) {
-    const size = 0.5 + Math.random() * 2.2;
-    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-    ctx.fillRect(Math.random() * width, Math.random() * height, size, size);
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(0.85, 0.7);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const maxAniso = gl?.capabilities?.getMaxAnisotropy ? gl.capabilities.getMaxAnisotropy() : 1;
-  texture.anisotropy = Math.min(8, maxAniso);
-  texture.needsUpdate = true;
-
-  return texture;
 }
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
@@ -674,10 +614,12 @@ function HouseScene({
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<any>;
 }) {
+  const BRICK_REPEAT_X = 1.3;
+  const BRICK_REPEAT_Y = 0.625;
   const LOW_QUALITY = false;
 
   const { gl } = useThree();
-  const brickTexture = useMemo(() => buildBrickTexture(gl), [gl]);
+  const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -692,17 +634,24 @@ function HouseScene({
       return fallbackWallMaterial;
     }
 
-    if (!brickTexture) {
+    if (!brickTex || !brickTex.image) {
       return fallbackWallMaterial;
     }
 
+    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+    brickTex.repeat.set(BRICK_REPEAT_X, BRICK_REPEAT_Y);
+    brickTex.colorSpace = THREE.SRGBColorSpace;
+    const maxAniso = gl?.capabilities?.getMaxAnisotropy ? gl.capabilities.getMaxAnisotropy() : 1;
+    brickTex.anisotropy = Math.min(4, maxAniso);
+    brickTex.needsUpdate = true;
+
     return new THREE.MeshStandardMaterial({
-      map: brickTexture,
+      map: brickTex,
       roughness: 0.9,
       metalness: 0,
       side: THREE.DoubleSide,
     });
-  }, [brickTexture, fallbackWallMaterial, gl]);
+  }, [brickTex, fallbackWallMaterial, gl]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

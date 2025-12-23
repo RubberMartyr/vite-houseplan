@@ -163,17 +163,13 @@ function Roof() {
         <mesh
           key={`roof-plane-${index}`}
           geometry={mesh.geometry}
-          material={mesh.debugColor ? undefined : roof}
+          material={roof}
           position={mesh.position}
           rotation={mesh.rotation}
           castShadow
           receiveShadow
           frustumCulled={false}
-        >
-          {mesh.debugColor ? (
-            <meshStandardMaterial color={mesh.debugColor} side={THREE.DoubleSide} />
-          ) : null}
-        </mesh>
+        />
       ))}
     </group>
   );

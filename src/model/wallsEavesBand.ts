@@ -2,9 +2,10 @@ import { ExtrudeGeometry, Path, Shape } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { wallThickness } from './houseSpec';
 
-const EAVES_BAND_TOP_Y = 5.7;
+const EAVES_BAND_BASE_Y = 5.1;
 const EAVES_BAND_THICKNESS = 0.12;
-const bandBaseY = EAVES_BAND_TOP_Y - EAVES_BAND_THICKNESS;
+export const EAVES_BAND_TOP_Y = EAVES_BAND_BASE_Y + EAVES_BAND_THICKNESS;
+const bandBaseY = EAVES_BAND_BASE_Y;
 const bandHeight = EAVES_BAND_THICKNESS;
 const exteriorThickness = wallThickness.exterior;
 

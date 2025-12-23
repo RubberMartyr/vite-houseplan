@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { FootprintPoint, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
+import { EAVES_BAND_TOP_Y } from './wallsEavesBand';
 
-const EAVES_Y = 5.7;
+const EAVES_Y = EAVES_BAND_TOP_Y;
 const MAIN_RIDGE_Y = 9.85;
 const LOWER_RIDGE_Y = 9.45;
 const CHAMFER = 0.4;

@@ -616,54 +616,44 @@ export function buildRoofMeshes(): {
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
 
-  const frontEndcap = {
-    geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const zeroPosition: [number, number, number] = [0, 0, 0];
+  const zeroRotation: [number, number, number] = [0, 0, 0];
+  const toMesh = (geometry: THREE.BufferGeometry) => ({
+    geometry,
+    position: zeroPosition,
+    rotation: zeroRotation,
+  });
+
+  const frontEndcap = toMesh(createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave));
 
   // Back gable should match the front: one clean triangle
-  const backEndcap = [
-    {
-      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    },
-  ];
+  const backEndcap = [toMesh(createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave))];
 
   console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
-  const backLeftSideFill = {
-    geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const backLeftSideFill = toMesh(
+    createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset)
+  );
 
-  const backRightFill1 = {
-    geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const backRightFill1 = toMesh(
+    createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner)
+  );
 
-  const backRightFill2 = {
-    geometry: createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightKinkOuter),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const backRightFill2 = toMesh(
+    createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightKinkOuter)
+  );
 
-  const backRightFill3 = {
-    geometry: createTriangleGeometry(backRightKinkOuter, ridgeBackPoint, backRightEave),
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
+  const backRightFill3 = toMesh(
+    createTriangleGeometry(backRightKinkOuter, ridgeBackPoint, backRightEave)
+  );
 
   const backRightSideFills = [backRightFill1, backRightFill2, backRightFill3];
 
   const backSideFills = [backLeftSideFill, ...backRightSideFills];
 
   const leftRoofMeshes = [
-    {
-      geometry: createRoofPlaneGeometryVariableEave(
+    toMesh(
+      createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
         xLeftBackInset,
         ridgeX,
@@ -671,31 +661,17 @@ export function buildRoofMeshes(): {
         ridgeBackZ,
         ridgeYAtZ(ridgeFrontZ),
         ridgeYAtZ(ridgeBackZ)
-      ),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
+      )
+    ),
   ];
 
   const hipMeshes = [
-    {
-      geometry: createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontLeftEaveInset),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
-    {
-      geometry: createTriangleGeometry(frontRightEaveInset, ridgeFrontPoint, frontRightEave),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
+    toMesh(createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontLeftEaveInset)),
+    toMesh(createTriangleGeometry(frontRightEaveInset, ridgeFrontPoint, frontRightEave)),
   ];
 
   const gableMeshes = [
-    {
-      geometry: createTriangleGeometry(frontLeftEaveInset, ridgeFrontPoint, frontRightEaveInset),
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-    },
+    toMesh(createTriangleGeometry(frontLeftEaveInset, ridgeFrontPoint, frontRightEaveInset)),
   ];
 
   console.log('HIP MESHES now FRONT only (back handled by backEndcap)');
@@ -726,8 +702,8 @@ export function buildRoofMeshes(): {
           ridgeYAtZ(zStart),
           ridgeYAtZ(zEnd)
         ),
-        position: [0, 0, 0] as [number, number, number],
-        rotation: [0, 0, 0] as [number, number, number],
+        position: zeroPosition,
+        rotation: zeroRotation,
       };
     })
     .filter(

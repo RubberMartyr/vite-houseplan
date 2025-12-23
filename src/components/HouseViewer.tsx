@@ -27,6 +27,7 @@ import {
 import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
+import { windowsRear } from '../model/windowsRear'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
 
@@ -617,6 +618,7 @@ function HouseScene({
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
   const LOW_QUALITY = false;
+  const { glass, frame } = useBuildingMaterials();
 
   const { gl } = useThree();
   const brickTex = useTexture('/textures/brick2.jpg');
@@ -841,6 +843,24 @@ function HouseScene({
               onSelect={onSelectRoom}
             />
           ))}
+        </group>
+
+        <group name="rearWindows" visible={wallShellVisible}>
+          {windowsRear.meshes.map((mesh) => {
+            const isGlass = mesh.id.includes('GLASS');
+            const material = isGlass ? glass : frame;
+            return (
+              <mesh
+                key={mesh.id}
+                geometry={mesh.geometry}
+                position={mesh.position}
+                rotation={mesh.rotation}
+                material={material}
+                castShadow={!isGlass}
+                receiveShadow={!isGlass}
+              />
+            );
+          })}
         </group>
 
         <Roof visible={showRoof} />

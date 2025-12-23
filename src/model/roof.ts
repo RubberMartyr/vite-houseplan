@@ -388,7 +388,11 @@ export function buildRoofMeshes(): {
   const ridgeFrontZ = 4.0;
   const ridgeBackZ = Math.min(8.45, mainBackZ);
   const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const eaveBackZ = bounds.maxZ;
+  const eaveBackZ =
+    Math.abs(bounds.minZ - mainBackZ) < Math.abs(bounds.maxZ - mainBackZ)
+      ? bounds.minZ
+      : bounds.maxZ;
+  console.log('✅ BACK ENDCAP EDGE PICK', { mainBackZ, minZ: bounds.minZ, maxZ: bounds.maxZ, eaveBackZ });
   const backApexZ = eaveBackZ - frontApexOffset;
   console.log('✅ BACK ENDCAP ANCHOR', {
     mainBackZ,

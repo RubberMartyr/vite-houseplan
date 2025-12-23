@@ -576,12 +576,7 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK ENDCAP ADDED ONCE', {
-    rearZ: mainBackZ,
-    backLeftEave,
-    backRightEave,
-    ridgeBackPoint,
-  });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEave, backRightEave, backRidge });
 
   const meshes = [
     ...leftRoofMeshes,

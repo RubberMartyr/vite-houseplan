@@ -608,7 +608,8 @@ export function buildRoofMeshes(): {
     ),
   });
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
-  const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
+  const backRightEaveOuter = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
+  const backRightEaveInner = new THREE.Vector3(xRightBackInset, eavesY, eaveBackZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
   const kinkCandidates = indentationSteps
@@ -644,9 +645,19 @@ export function buildRoofMeshes(): {
   const frontEndcap = toMesh(createTriangleGeometry(frontLeftEave, ridgeFrontPoint, frontRightEave));
 
   // Back gable should match the front: one clean triangle
-  const backEndcap = [toMesh(createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave))];
+  const backEndcap = [
+    toMesh(createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEaveOuter)),
+  ];
 
-  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
+  console.log('✅ BACK HIP END', {
+    eavesY,
+    ridgeY,
+    rearZ,
+    backLeftEave,
+    backRightEaveOuter,
+    backRightEaveInner,
+    ridgeBackPoint,
+  });
 
   const backLeftSideFill = toMesh(
     createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset)
@@ -664,14 +675,14 @@ export function buildRoofMeshes(): {
       createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner)
     );
     const fillB = toMesh(
-      createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightEave)
+      createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightEaveInner)
     );
 
     backRightSideFills = [fillA, fillB];
   } else {
     // No kink inside this interval -> single triangle is correct
     const fill = toMesh(
-      createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEave)
+      createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEaveInner)
     );
     backRightSideFills = [fill];
   }
@@ -711,7 +722,13 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: ridgeBackZ, backLeftEave, backRightEave, ridgeBackPoint });
+  console.log('✅ BACK ENDCAP ADDED ONCE', {
+    rearZ: ridgeBackZ,
+    backLeftEave,
+    backRightEaveOuter,
+    backRightEaveInner,
+    ridgeBackPoint,
+  });
 
   // Right roof meshes for front/mid: ridgeFrontZ -> ridgeBackZ
   const rightRoofMeshes = rightSegments
@@ -759,7 +776,8 @@ export function buildRoofMeshes(): {
     frontLeftEaveInset,
     frontRightEaveInset,
     backLeftEave,
-    backRightEave,
+    backRightEaveOuter,
+    backRightEaveInner,
     frontZ: baseFrontZ,
     rearZ: ridgeBackZ,
   });

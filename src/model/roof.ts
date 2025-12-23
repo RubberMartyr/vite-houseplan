@@ -444,6 +444,7 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightBack = xAtZSafe(mainFootprint, mainBackZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
+  const xRightBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ, mainBackZ];
 
   console.log('xAtZ debug', {
@@ -457,6 +458,7 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     xLeftBack,
     xRightFront,
     xRightBack,
+    xRightBackInset,
   });
   console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
   console.log('LEFT roof uses variable eave X:', {
@@ -472,9 +474,6 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     xLeftBack,
   });
 
-  const eps = 1e-4;
-  const clampZSeparation = (z1: number, z2: number) => (Math.abs(z1 - z2) < eps ? z2 + 0.01 : z2);
-
   const eavesY = EAVES_Y;
   const rearZ = mainBackZ;
   const ridgeY = ridgeYAtZ(rearZ);
@@ -485,21 +484,20 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
   const leftEaveX = bounds.minX;
   const rightEaveX = bounds.maxX;
   const zEave = eaveBackZ;
-  let zRidge = backApexZ;
-  zRidge = clampZSeparation(zEave, zRidge);
   const backLeftEave = new THREE.Vector3(leftEaveX, eavesY, zEave);
   const backRightEave = new THREE.Vector3(rightEaveX, eavesY, zEave);
+  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
+  const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeY, rearZ);
-  const backRidge = new THREE.Vector3(ridgeX, ridgeY, zRidge);
   console.log('✅ BACK HIP ENDCAP (mirrored)', {
     mainBackZ,
     baseFrontZ,
     ridgeFrontZ,
     frontApexOffset,
     backApexZ,
-    backRidge,
+    ridgeBackPoint,
   });
 
   const frontEndcap = {
@@ -508,17 +506,28 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  console.log('✅ BACK DEBUG TRI PTS', { backLeftEave, backRidge, backRightEave, zEave, zRidge });
   const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEave, backRidge, backRightEave),
+      geometry: createTriangleGeometry(backLeftEaveInset, ridgeBackPoint, backLeftEave),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
-      debugColor: '#ff00ff',
+    },
+    {
+      geometry: createTriangleGeometry(backRightEave, ridgeBackPoint, backRightEaveInset),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
     },
   ];
 
-  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, backRidge });
+  console.log('✅ BACK HIP END', {
+    eavesY,
+    ridgeY,
+    rearZ,
+    backLeftEave,
+    backRightEave,
+    backLeftEaveInset,
+    backRightEaveInset,
+  });
 
   const leftRoofMeshes = [
     {

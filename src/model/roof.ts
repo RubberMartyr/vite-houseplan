@@ -266,19 +266,6 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   return match ? match.x : fallbackX;
 }
 
-function segmentXAtZStrict(
-  segments: Array<{ x: number; zStart: number; zEnd: number }>,
-  z: number
-): number {
-  const eps = 1e-6;
-  for (const segment of segments) {
-    const a = Math.min(segment.zStart, segment.zEnd) - eps;
-    const b = Math.max(segment.zStart, segment.zEnd) + eps;
-    if (z >= a && z <= b) return segment.x;
-  }
-  throw new Error(`No segment spans z=${z}. Extend rightSegments ranges or adjust z.`);
-}
-
 function createTriangleGeometry(
   pointA: THREE.Vector3,
   pointB: THREE.Vector3,
@@ -300,22 +287,6 @@ function createTriangleGeometry(
   geometry.setIndex([0, 1, 2]);
   geometry.computeVertexNormals();
   return geometry;
-}
-
-function makeTriangleOutward(
-  a: THREE.Vector3,
-  b: THREE.Vector3,
-  c: THREE.Vector3,
-  outwardHint: THREE.Vector3
-): THREE.BufferGeometry {
-  const ab = new THREE.Vector3().subVectors(b, a);
-  const ac = new THREE.Vector3().subVectors(c, a);
-  const n = new THREE.Vector3().crossVectors(ab, ac).normalize();
-
-  if (n.dot(outwardHint) < 0) {
-    return createTriangleGeometry(a, c, b);
-  }
-  return createTriangleGeometry(a, b, c);
 }
 
 function chamferFootprint(
@@ -422,11 +393,9 @@ export function buildRoofMeshes(): {
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  const eaveBackZ = pitchedBackZClamped;
-  const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const ridgeBackZRaw = eaveBackZ - frontApexOffset;
-  const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
-  console.log('HIP CHECK', { baseFrontZ, ridgeFrontZ, ridgeBackZ, eaveBackZ });
+  // Rear gable must match front: ridge extends to the true rear of the footprint
+  const ridgeBackZ = pitchedBackZClamped;
+  const eaveBackZ = ridgeBackZ;
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
@@ -501,12 +470,9 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
   const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackIndented = segmentXAtZStrict(rightSegments, eaveBackZ);
-  const xIndentedInset = segmentXAtZStrict(rightSegments, ridgeBackZ);
+  const xBackMax = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
-  const backRightEave = new THREE.Vector3(xBackIndented, eavesY, eaveBackZ);
-  const backRightEaveInset = new THREE.Vector3(xIndentedInset, eavesY, ridgeBackZ);
+  const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -517,13 +483,22 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
+  // Back gable should match the front: one clean triangle
+  const backEndcap = [
+    {
+      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    },
+  ];
+
   console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, ridgeBackPoint });
 
   const leftRoofMeshes = [
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
-        xLeftBackInset,
+        xLeftBack,
         ridgeX,
         ridgeFrontZ,
         ridgeBackZ,
@@ -532,20 +507,6 @@ export function buildRoofMeshes(): {
       ),
       position: [0, 0, 0],
       rotation: [0, 0, 0],
-    },
-  ];
-
-  const outwardHint = new THREE.Vector3(0, 0, 1);
-  const backHipMeshes = [
-    {
-      geometry: makeTriangleOutward(backLeftEave, ridgeBackPoint, backLeftEaveInset, outwardHint),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    },
-    {
-      geometry: makeTriangleOutward(backRightEaveInset, ridgeBackPoint, backRightEave, outwardHint),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
     },
   ];
 
@@ -580,7 +541,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK HIP ADDED', { rearZ: ridgeBackZ, backLeftEave, backRightEave, ridgeBackPoint });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: ridgeBackZ, backLeftEave, backRightEave, ridgeBackPoint });
 
   // Right roof meshes for front/mid: ridgeFrontZ -> ridgeBackZ
   const rightRoofMeshes = rightSegments
@@ -618,7 +579,7 @@ export function buildRoofMeshes(): {
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,
-    ...backHipMeshes,
+    ...backEndcap,
   ];
 
   console.log('✅ GABLES ADDED', {

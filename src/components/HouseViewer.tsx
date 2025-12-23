@@ -437,6 +437,11 @@ export default function HouseViewer() {
 
   const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
   const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
+  const greenRoofPolygon = useMemo(() => getEnvelopeInnerPolygon(0.4, flatRoofPolygon), [flatRoofPolygon]);
+  const greenRoofShape = useMemo(
+    () => (greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null),
+    [greenRoofPolygon]
+  );
 
   const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
   const activeRooms = useMemo(() => {
@@ -456,6 +461,9 @@ export default function HouseViewer() {
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]
   );
+  const baseRoofThickness = SPECS.levels.slab;
+  const flatRoofY = firstFloorLevelY + 0.02;
+  const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
 
   const buttonStyle = {
     padding: '6px 10px',
@@ -756,7 +764,10 @@ export default function HouseViewer() {
             {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
             {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
             {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
-            {showFirst && <Slab y={firstFloorLevelY + 0.02} shape={flatRoofShape} color="#c7c7c7" />}
+            {showFirst && <Slab y={flatRoofY} shape={flatRoofShape} color="#383E42" />}
+            {showFirst && greenRoofShape && (
+              <Slab y={greenRoofY} shape={greenRoofShape} color="#4F7D3A" thickness={0.06} />
+            )}
           </group>
 
           <group name="roomHitboxes">

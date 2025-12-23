@@ -472,9 +472,6 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     xLeftBack,
   });
 
-  const eps = 1e-4;
-  const clampZSeparation = (z1: number, z2: number) => (Math.abs(z1 - z2) < eps ? z2 + 0.01 : z2);
-
   const eavesY = EAVES_Y;
   const rearZ = mainBackZ;
   const ridgeY = ridgeYAtZ(rearZ);
@@ -482,24 +479,21 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
-  const leftEaveX = bounds.minX;
-  const rightEaveX = bounds.maxX;
-  const zEave = eaveBackZ;
-  let zRidge = backApexZ;
-  zRidge = clampZSeparation(zEave, zRidge);
-  const backLeftEave = new THREE.Vector3(leftEaveX, eavesY, zEave);
-  const backRightEave = new THREE.Vector3(rightEaveX, eavesY, zEave);
+  const backLeftEave = new THREE.Vector3(frontLeftEave.x, frontLeftEave.y, eaveBackZ);
+  const backRightEave = new THREE.Vector3(frontRightEave.x, frontRightEave.y, eaveBackZ);
+  const backLeftEaveInset = new THREE.Vector3(frontLeftEaveInset.x, frontLeftEaveInset.y, eaveBackZ);
+  const backRightEaveInset = new THREE.Vector3(frontRightEaveInset.x, frontRightEaveInset.y, eaveBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeY, rearZ);
-  const backRidge = new THREE.Vector3(ridgeX, ridgeY, zRidge);
+  const backRidgePoint = new THREE.Vector3(ridgeFrontPoint.x, ridgeFrontPoint.y, backApexZ);
   console.log('✅ BACK HIP ENDCAP (mirrored)', {
     mainBackZ,
     baseFrontZ,
     ridgeFrontZ,
     frontApexOffset,
     backApexZ,
-    backRidge,
+    backRidgePoint,
   });
 
   const frontEndcap = {
@@ -508,17 +502,22 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  console.log('✅ BACK DEBUG TRI PTS', { backLeftEave, backRidge, backRightEave, zEave, zRidge });
   const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEave, backRidge, backRightEave),
+      geometry: createTriangleGeometry(backLeftEaveInset, backRidgePoint, backLeftEave),
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+      debugColor: '#ff00ff',
+    },
+    {
+      geometry: createTriangleGeometry(backRightEave, backRidgePoint, backRightEaveInset),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
       debugColor: '#ff00ff',
     },
   ];
 
-  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, backRidge });
+  console.log('✅ BACK HIP END', { eavesY, ridgeY, rearZ, backLeftEave, backRightEave, backRidgePoint });
 
   const leftRoofMeshes = [
     {
@@ -567,7 +566,7 @@ export function buildRoofMeshes(): { meshes: RoofMeshSegment[] } {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEave, backRightEave, backRidge });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: mainBackZ, backLeftEave, backRightEave, backRidgePoint });
 
   const meshes = [
     ...leftRoofMeshes,

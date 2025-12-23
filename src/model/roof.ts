@@ -266,6 +266,24 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   return match ? match.x : fallbackX;
 }
 
+function segmentXAtZ(
+  segments: Array<{ x: number; zStart: number; zEnd: number }>,
+  z: number
+): number | null {
+  const eps = 1e-6;
+  const match =
+    segments.find(
+      (segment) =>
+        z >= Math.min(segment.zStart, segment.zEnd) - eps &&
+        z <= Math.max(segment.zStart, segment.zEnd) + eps
+    ) || null;
+
+  if (!match) {
+    return null;
+  }
+  return match.x;
+}
+
 function createTriangleGeometry(
   pointA: THREE.Vector3,
   pointB: THREE.Vector3,
@@ -434,8 +452,16 @@ export function buildRoofMeshes(): {
 
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightBack = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
+  const segRightFrontInset = segmentXAtZ(rightSegments, ridgeFrontZ);
+  const xRightFrontInset =
+    segRightFrontInset !== null
+      ? segRightFrontInset
+      : xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
+  const segRightBackInset = segmentXAtZ(rightSegments, ridgeBackZ);
+  const xRightBackInset =
+    segRightBackInset !== null
+      ? segRightBackInset
+      : xAtZSafe(mainFootprint, ridgeBackZ, 'max', bounds.minZ, bounds.maxZ);
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
   console.log('xAtZ debug', {
@@ -473,7 +499,11 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
   const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackMax = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
+  const segRightBackEave = segmentXAtZ(rightSegments, eaveBackZ);
+  const xBackMax =
+    segRightBackEave !== null
+      ? segRightBackEave
+      : xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);

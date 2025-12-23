@@ -153,12 +153,12 @@ function Walls() {
   return null;
 }
 
-function Roof() {
+function Roof({ visible = true }: { visible?: boolean }) {
   const { roof } = useBuildingMaterials();
   const { meshes } = useMemo(() => buildRoofMeshes(), []);
 
   return (
-    <group>
+    <group visible={visible}>
       {meshes.map((mesh, index) => (
         <mesh
           key={`roof-plane-${index}`}
@@ -340,6 +340,7 @@ export default function HouseViewer() {
     attic: true,
   });
   const [showTerrain, setShowTerrain] = useState(true);
+  const [showRoof, setShowRoof] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<any>(null);
   const wallMaterial = useMemo(
@@ -620,6 +621,17 @@ export default function HouseViewer() {
           >
             Ground
           </button>
+          <button
+            style={{
+              ...buttonStyle,
+              background: showRoof ? '#1d6f42' : buttonStyle.background,
+              color: showRoof ? '#fff' : '#111',
+              width: '100%',
+            }}
+            onClick={() => setShowRoof((prev) => !prev)}
+          >
+            {showRoof ? 'Roof: ON' : 'Roof: OFF'}
+          </button>
           <button style={{ ...buttonStyle, width: '100%' }} onClick={handleBasementView}>
             Basement View
           </button>
@@ -758,7 +770,7 @@ export default function HouseViewer() {
             ))}
           </group>
 
-          <Roof />
+          <Roof visible={showRoof} />
         </group>
 
         {/* GROUNDS */}

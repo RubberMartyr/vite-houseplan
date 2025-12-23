@@ -437,7 +437,7 @@ function chamferFootprint(
   chamfer: number
 ): FootprintPoint[] {
   const epsilon = 1e-4;
-  const frontZ = bounds.minZ + chamfer;
+  const frontZ = bounds.minZ;
   const backZ = bounds.maxZ - chamfer;
 
   return points.map((point) => {

@@ -607,11 +607,19 @@ export function buildRoofMeshes(): {
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
   const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
-  const zKink = Math.max(ridgeBackZ, Math.min(zStep2, eaveBackZ));
-  const xKinkInner = findRightXAtZClosestToRidge(rightSegments, zKink, ridgeX, bounds.maxX);
-  const xKinkOuter = findRightXAtZOuter(rightSegments, zKink, bounds.maxX);
-  const backRightKinkInner = new THREE.Vector3(xKinkInner, eavesY, zKink);
-  const backRightKinkOuter = new THREE.Vector3(xKinkOuter, eavesY, zKink);
+  const kinkCandidates = indentationSteps
+    .filter((z) => z > ridgeBackZ + 1e-3 && z < eaveBackZ - 1e-3)
+    .sort((a, b) => a - b);
+
+  // Pick the first indentation step strictly INSIDE the back-fill interval.
+  // If there is no kink inside, we will not split at all.
+  const zKink = kinkCandidates.length ? kinkCandidates[0] : null;
+  let backRightKinkInner: THREE.Vector3 | null = null;
+
+  if (zKink !== null) {
+    const xKinkInner = findRightXAtZClosestToRidge(rightSegments, zKink, ridgeX, bounds.maxX);
+    backRightKinkInner = new THREE.Vector3(xKinkInner, eavesY, zKink);
+  }
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -635,19 +643,29 @@ export function buildRoofMeshes(): {
     createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset)
   );
 
-  const backRightFill1 = toMesh(
-    createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner)
-  );
+  let backRightSideFills: Array<{
+    geometry: THREE.BufferGeometry;
+    position: [number, number, number];
+    rotation: [number, number, number];
+  }> = [];
 
-  const backRightFill2 = toMesh(
-    createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightKinkOuter)
-  );
+  if (backRightKinkInner) {
+    // Two triangles: ridgeBackZ -> kink (inner wall) -> eaveBackZ (still inner selection)
+    const fillA = toMesh(
+      createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightKinkInner)
+    );
+    const fillB = toMesh(
+      createTriangleGeometry(backRightKinkInner, ridgeBackPoint, backRightEave)
+    );
 
-  const backRightFill3 = toMesh(
-    createTriangleGeometry(backRightKinkOuter, ridgeBackPoint, backRightEave)
-  );
-
-  const backRightSideFills = [backRightFill1, backRightFill2, backRightFill3];
+    backRightSideFills = [fillA, fillB];
+  } else {
+    // No kink inside this interval -> single triangle is correct
+    const fill = toMesh(
+      createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEave)
+    );
+    backRightSideFills = [fill];
+  }
 
   const backSideFills = [backLeftSideFill, ...backRightSideFills];
 

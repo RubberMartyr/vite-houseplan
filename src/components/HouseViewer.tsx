@@ -614,8 +614,8 @@ function HouseScene({
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<any>;
 }) {
-  const BRICK_REPEAT_X = 2.6;
-  const BRICK_REPEAT_Y = 1.25;
+  const BRICK_REPEAT_X = 1.3;
+  const BRICK_REPEAT_Y = 0.625;
   const LOW_QUALITY = false;
 
   const { gl } = useThree();

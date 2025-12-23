@@ -326,6 +326,37 @@ function findRightXAtZClosestToRidge(
   return best.x;
 }
 
+function findRightXAtZClosestToX(
+  segments: RoofSegment[],
+  z: number,
+  targetX: number,
+  fallbackX: number
+): number {
+  const epsilon = 1e-4;
+
+  const matches = segments.filter(
+    (segment) => z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd
+  );
+
+  if (matches.length === 0) {
+    console.warn('⚠️ findRightXAtZClosestToX FALLBACK', { z, targetX, fallbackX, segments });
+    return fallbackX;
+  }
+
+  let best = matches[0];
+  let bestD = Math.abs(matches[0].x - targetX);
+
+  for (let i = 1; i < matches.length; i++) {
+    const d = Math.abs(matches[i].x - targetX);
+    if (d < bestD) {
+      bestD = d;
+      best = matches[i];
+    }
+  }
+
+  return best.x;
+}
+
 function createTriangleGeometry(
   pointA: THREE.Vector3,
   pointB: THREE.Vector3,
@@ -538,12 +569,21 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
   const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackMax = findRightXAtZClosestToRidge(
+  const xBackMax = findRightXAtZClosestToX(
     rightSegments,
     eaveBackZ,
-    ridgeX,
+    xRightBackInset,
     bounds.maxX
   );
+  console.log('RIGHT BACK BRANCH DEBUG', {
+    eaveBackZ,
+    ridgeBackZ,
+    xRightBackInset,
+    xBackMax,
+    candidatesAtBack: rightSegments.filter(
+      (segment) => eaveBackZ >= segment.zStart - 1e-4 && eaveBackZ <= segment.zEnd + 1e-4
+    ),
+  });
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
   const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);

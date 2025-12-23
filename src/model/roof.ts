@@ -202,13 +202,23 @@ type RoofSegment = {
   zEnd: number;
 };
 
+function normalizeClosedPolygon(points: FootprintPoint[]) {
+  if (points.length < 3) return points;
+  const first = points[0];
+  const last = points[points.length - 1];
+  const eps = 1e-6;
+  const closed = Math.abs(first.x - last.x) < eps && Math.abs(first.z - last.z) < eps;
+  return closed ? points.slice(0, -1) : points;
+}
+
 function extractRightRoofSegments(points: FootprintPoint[], ridgeX: number): RoofSegment[] {
   const epsilon = 1e-4;
   const segments: RoofSegment[] = [];
+  const pts = normalizeClosedPolygon(points);
 
-  for (let i = 0; i < points.length - 1; i++) {
-    const current = points[i];
-    const next = points[i + 1];
+  for (let i = 0; i < pts.length; i++) {
+    const current = pts[i];
+    const next = pts[(i + 1) % pts.length];
     const deltaX = Math.abs(current.x - next.x);
 
     if (deltaX > epsilon) {
@@ -263,7 +273,13 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   const match = segments.find(
     (segment) => z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd
   );
-  return match ? match.x : fallbackX;
+
+  if (!match) {
+    console.warn('⚠️ findRightXAtZ FALLBACK', { z, fallbackX, segments });
+    return fallbackX;
+  }
+
+  return match.x;
 }
 
 function createTriangleGeometry(
@@ -393,9 +409,10 @@ export function buildRoofMeshes(): {
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  // Rear gable must match front: ridge extends to the true rear of the footprint
-  const ridgeBackZ = pitchedBackZClamped;
-  const eaveBackZ = ridgeBackZ;
+  const eaveBackZ = pitchedBackZClamped;
+  const frontApexOffset = ridgeFrontZ - baseFrontZ;
+  const ridgeBackZRaw = eaveBackZ - frontApexOffset;
+  const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
@@ -433,6 +450,7 @@ export function buildRoofMeshes(): {
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightBack = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
+  const xRightBackInset = findRightXAtZ(rightSegments, ridgeBackZ, bounds.maxX);
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
   console.log('xAtZ debug', {
@@ -446,6 +464,7 @@ export function buildRoofMeshes(): {
     xLeftBack,
     xRightFront,
     xRightBack,
+    xRightBackInset,
   });
   console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
   console.log('LEFT roof uses variable eave X:', {
@@ -470,7 +489,7 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
   const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackMax = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
+  const xBackMax = findRightXAtZ(rightSegments, eaveBackZ, bounds.maxX);
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
 

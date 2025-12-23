@@ -393,11 +393,9 @@ export function buildRoofMeshes(): {
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
   const ridgeFrontZ = 4.0;
-  const eaveBackZ = pitchedBackZClamped;
-  const frontApexOffset = ridgeFrontZ - baseFrontZ;
-  const ridgeBackZRaw = eaveBackZ - frontApexOffset;
-  const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
-  console.log('BACK HIP CHECK', { baseFrontZ, ridgeFrontZ, ridgeBackZ, eaveBackZ, frontApexOffset });
+  // Rear gable must match front: ridge extends to the true rear of the footprint
+  const ridgeBackZ = pitchedBackZClamped;
+  const eaveBackZ = ridgeBackZ;
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
   const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
@@ -433,7 +431,7 @@ export function buildRoofMeshes(): {
   const epsilon = 1e-4;
 
   const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBack = findRightXAtZ(rightSegments, eaveBackZ, bounds.maxX);
+  const xRightBack = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
@@ -472,12 +470,9 @@ export function buildRoofMeshes(): {
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
   const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xBackMax = findRightXAtZ(rightSegments, eaveBackZ, bounds.maxX);
+  const xBackMax = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
   const backLeftEave = new THREE.Vector3(xBackMin, eavesY, eaveBackZ);
   const backRightEave = new THREE.Vector3(xBackMax, eavesY, eaveBackZ);
-  const xRightBackInset = findRightXAtZ(rightSegments, ridgeBackZ, bounds.maxX);
-  const backLeftEaveInset = new THREE.Vector3(xLeftBackInset, eavesY, ridgeBackZ);
-  const backRightEaveInset = new THREE.Vector3(xRightBackInset, eavesY, ridgeBackZ);
 
   const ridgeFrontPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeFrontZ), ridgeFrontZ);
   const ridgeBackPoint = new THREE.Vector3(ridgeX, ridgeYAtZ(ridgeBackZ), ridgeBackZ);
@@ -488,14 +483,10 @@ export function buildRoofMeshes(): {
     rotation: [0, 0, 0] as [number, number, number],
   };
 
-  const backHipMeshes = [
+  // Back gable should match the front: one clean triangle
+  const backEndcap = [
     {
-      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backLeftEaveInset),
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    },
-    {
-      geometry: createTriangleGeometry(backRightEaveInset, ridgeBackPoint, backRightEave),
+      geometry: createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEave),
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
@@ -507,7 +498,7 @@ export function buildRoofMeshes(): {
     {
       geometry: createRoofPlaneGeometryVariableEave(
         xLeftFrontInset,
-        xLeftBackInset,
+        xLeftBack,
         ridgeX,
         ridgeFrontZ,
         ridgeBackZ,
@@ -540,7 +531,7 @@ export function buildRoofMeshes(): {
     },
   ];
 
-  console.log('HIP MESHES now FRONT only (back handled by backHipMeshes)');
+  console.log('HIP MESHES now FRONT only (back handled by backEndcap)');
   console.log('HIP ROOF active', {
     ridgeFrontZ,
     ridgeBackZ,
@@ -550,14 +541,7 @@ export function buildRoofMeshes(): {
     xRightFrontInset,
   });
   console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK HIP ADDED', {
-    rearZ: ridgeBackZ,
-    backLeftEave,
-    backRightEave,
-    backLeftEaveInset,
-    backRightEaveInset,
-    ridgeBackPoint,
-  });
+  console.log('✅ BACK ENDCAP ADDED ONCE', { rearZ: ridgeBackZ, backLeftEave, backRightEave, ridgeBackPoint });
 
   // Right roof meshes for front/mid: ridgeFrontZ -> ridgeBackZ
   const rightRoofMeshes = rightSegments
@@ -595,7 +579,7 @@ export function buildRoofMeshes(): {
     frontEndcap,
     ...gableMeshes,
     ...hipMeshes,
-    ...backHipMeshes,
+    ...backEndcap,
   ];
 
   console.log('✅ GABLES ADDED', {

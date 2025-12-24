@@ -583,7 +583,7 @@ export default function HouseViewer() {
         <Canvas
           shadows
           camera={{ position: [10, 5, 15], fov: 50 }}
-          gl={{ antialias: true, localClippingEnabled: true }}
+          gl={{ antialias: true }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
@@ -627,12 +627,6 @@ function HouseScene({
   const LOW_QUALITY = false;
   const { glass, frame } = useBuildingMaterials();
 
-  const rearClipPlane = useMemo(() => {
-    const EPS = 0.01;
-    const rearWorldZ = originOffset.z + rearZ - EPS;
-    return new THREE.Plane(new THREE.Vector3(0, 0, -1), rearWorldZ);
-  }, []);
-
   const { gl } = useThree();
   const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
@@ -664,10 +658,8 @@ function HouseScene({
             });
           })();
 
-    material.clippingPlanes = rearClipPlane ? [rearClipPlane] : [];
-    material.clipShadows = true;
     return material;
-  }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl, rearClipPlane]);
+  }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

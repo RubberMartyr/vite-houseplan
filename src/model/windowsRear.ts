@@ -88,12 +88,11 @@ function makeWindowMeshes(params: {
 
   const glassGeometry = new THREE.BoxGeometry(innerWidth, innerHeight, 0.01);
 
-  const framePosition: [number, number, number] = [xCenter, yCenter, zFace + EPS];
-  const glassPosition: [number, number, number] = [
-    xCenter,
-    yCenter,
-    zFace + EPS - GLASS_INSET,
-  ];
+  const frameZ = zFace + EPS - FRAME_DEPTH / 2;
+  const glassZ = frameZ - GLASS_INSET;
+
+  const framePosition: [number, number, number] = [xCenter, yCenter, frameZ];
+  const glassPosition: [number, number, number] = [xCenter, yCenter, glassZ];
 
   const meshes: WindowMesh[] = [
     {
@@ -118,7 +117,7 @@ function makeWindowMeshes(params: {
       meshes.push({
         id: `${idBase}_MULLION_${i}`,
         geometry: new THREE.BoxGeometry(mullionWidth, innerHeight, FRAME_DEPTH),
-        position: [xCenter + xOffset, yCenter, zFace + EPS],
+        position: [xCenter + xOffset, yCenter, frameZ],
         rotation: [0, 0, 0],
       });
     }

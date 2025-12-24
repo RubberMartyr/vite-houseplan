@@ -135,6 +135,7 @@ const groundWindows = (() => {
     xCenter,
     yBottom,
     zFace: groundSpan.maxZ,
+    mullions: 2,
   });
 })();
 
@@ -158,6 +159,7 @@ const firstFloorWindows = (() => {
       xCenter: firstCenter,
       yBottom,
       zFace: firstSpan.maxZ,
+      mullions: 1,
     }),
     ...makeWindowMeshes({
       idBase: 'REAR_FIRST_RIGHT',
@@ -166,6 +168,7 @@ const firstFloorWindows = (() => {
       xCenter: secondCenter,
       yBottom,
       zFace: firstSpan.maxZ,
+      mullions: 1,
     }),
   ];
 })();

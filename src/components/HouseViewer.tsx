@@ -129,17 +129,24 @@ function useBuildingMaterials() {
   const glass = useMemo(() => {
     return new THREE.MeshPhysicalMaterial({
       color: '#aaddff',
-      metalness: 0.1,
+      transmission: 0.9,
       roughness: 0.05,
-      transmission: 0.9, // See-through
+      ior: 1.5,
       transparent: true,
-      thickness: 0.02,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
     });
   }, []);
 
   // 4. Frames (Schrijnwerk) - Dark Grey/Black (PVC/Alu)
   const frame = useMemo(() => {
-    return new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.5 });
+    return new THREE.MeshStandardMaterial({
+      color: '#1a1a1a',
+      roughness: 0.5,
+      transparent: false,
+      opacity: 1,
+    });
   }, []);
 
   return { brick, roof, glass, frame };
@@ -847,7 +854,7 @@ function HouseScene({
 
         <group name="rearWindows" visible={wallShellVisible}>
           {windowsRear.meshes.map((mesh) => {
-            const isGlass = mesh.id.includes('GLASS');
+            const isGlass = mesh.id.toLowerCase().includes('_glass');
             const material = isGlass ? glass : frame;
             return (
               <mesh
@@ -858,6 +865,7 @@ function HouseScene({
                 material={material}
                 castShadow={!isGlass}
                 receiveShadow={!isGlass}
+                renderOrder={isGlass ? 10 : undefined}
               />
             );
           })}

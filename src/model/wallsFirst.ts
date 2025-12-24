@@ -121,7 +121,7 @@ export const wallsFirst = {
     }
     filteredGeometry.computeVertexNormals();
 
-    console.log('✅ wallsFirst rear openings applied', Date.now());
+    console.log('✅ wallsFirst rear openings active', Date.now());
 
     return {
       geometry: filteredGeometry,

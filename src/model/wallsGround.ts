@@ -109,7 +109,7 @@ export const wallsGround = {
     }
     filteredGeometry.computeVertexNormals();
 
-    console.log('✅ wallsGround rear openings applied', Date.now());
+    console.log('✅ wallsGround rear openings active', Date.now());
 
     return {
       geometry: filteredGeometry,

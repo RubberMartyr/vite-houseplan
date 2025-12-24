@@ -790,6 +790,9 @@ function HouseScene({
       return { ground: null as null | { geometry: THREE.BufferGeometry; position: [number, number, number] }, first: null as null | { geometry: THREE.BufferGeometry; position: [number, number, number] } };
     }
 
+    const EPS = 0.01;
+    const panelCenterZ = rearZ + panelThickness / 2 + EPS;
+
     const makePanelGeometry = ({
       width,
       height,
@@ -849,7 +852,7 @@ function HouseScene({
       width: groundRearSpan.width,
       height: ceilingHeights.ground,
       level: 'ground',
-      center: { x: groundCenterX, y: groundCenterY, z: rearZ },
+      center: { x: groundCenterX, y: groundCenterY, z: panelCenterZ },
     });
 
     const firstCenterX = (firstRearSpan.minX + firstRearSpan.maxX) / 2;
@@ -858,17 +861,17 @@ function HouseScene({
       width: firstRearSpan.width,
       height: ceilingHeights.first,
       level: 'first',
-      center: { x: firstCenterX, y: firstCenterY, z: rearZ },
+      center: { x: firstCenterX, y: firstCenterY, z: panelCenterZ },
     });
 
     return {
       ground: {
         geometry: groundPanelGeometry,
-        position: [groundCenterX, groundCenterY, rearZ] as [number, number, number],
+        position: [groundCenterX, groundCenterY, panelCenterZ] as [number, number, number],
       },
       first: {
         geometry: firstPanelGeometry,
-        position: [firstCenterX, firstCenterY, rearZ] as [number, number, number],
+        position: [firstCenterX, firstCenterY, panelCenterZ] as [number, number, number],
       },
     };
   }, [ceilingHeights.first, ceilingHeights.ground, firstRearSpan, groundRearSpan, panelThickness, rearWindowCutouts, rearZ]);

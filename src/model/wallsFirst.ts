@@ -62,16 +62,17 @@ export const wallsFirst = {
     const inRect = (x: number, y: number, rect: { xMin: number; xMax: number; yMin: number; yMax: number }) =>
       x >= rect.xMin && x <= rect.xMax && y >= rect.yMin && y <= rect.yMax;
 
+    const firstWindowStart = leftX + 1.7;
     const openings = [
       {
-        xMin: leftX + 1.7,
-        xMax: leftX + 1.7 + 1.1,
+        xMin: firstWindowStart,
+        xMax: firstWindowStart + 1.1,
         yMin,
         yMax,
       },
       {
-        xMin: leftX + 1.7 + 1.1 + 2.0,
-        xMax: leftX + 1.7 + 1.1 + 2.0 + 1.1,
+        xMin: firstWindowStart + 1.1 + 2.0,
+        xMax: firstWindowStart + 1.1 + 2.0 + 1.1,
         yMin,
         yMax,
       },
@@ -121,7 +122,7 @@ export const wallsFirst = {
     }
     filteredGeometry.computeVertexNormals();
 
-    console.log('✅ wallsFirst rear openings active', Date.now());
+    console.log("✅ wallsFirst rear openings applied", Date.now());
 
     return {
       geometry: filteredGeometry,

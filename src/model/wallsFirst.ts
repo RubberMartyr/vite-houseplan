@@ -54,8 +54,10 @@ export const wallsFirst = {
     const position = g.getAttribute('position');
     const uv = g.getAttribute('uv');
 
-    const yMin = 3.4;
-    const yMax = 5.0;
+    const sillAbs = 3.4;
+    const headAbs = 5.0;
+    const yMin = sillAbs - firstFloorLevel;
+    const yMax = headAbs - firstFloorLevel;
 
     const firstXMin = leftX + 1.7;
     const firstXMax = firstXMin + 1.1;

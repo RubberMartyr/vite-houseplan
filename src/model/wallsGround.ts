@@ -4,13 +4,15 @@ import { ceilingHeights, wallThickness } from './houseSpec';
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
-const EPSILON = 1e-4;
+const EPSILON = 0.005;
 
 export const wallsGround = {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+    const rearEdgePoints = outer.filter((point) => Math.abs(point.z - rearZ) < 1e-6);
+    const leftX = rearEdgePoints.reduce((min, point) => Math.min(min, point.x), Infinity);
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -47,58 +49,60 @@ export const wallsGround = {
     const geometry = new ExtrudeGeometry(outerShape, { depth: wallHeight, bevelEnabled: false });
     geometry.rotateX(-Math.PI / 2);
 
-    const removeRearFaces = (geom: BufferGeometry, rearFaceZ: number) => {
-      const nonIndexed = geom.toNonIndexed();
-      const position = nonIndexed.getAttribute('position');
-      const normal = nonIndexed.getAttribute('normal');
-      const uv = nonIndexed.getAttribute('uv');
+    const g = geometry.toNonIndexed();
+    const position = g.getAttribute('position');
+    const uv = g.getAttribute('uv');
 
-      const keptPositions: number[] = [];
-      const keptNormals: number[] = [];
-      const keptUvs: number[] = [];
+    const xMin = leftX + 1.0;
+    const xMax = xMin + 5.6;
+    const yMin = 0.0;
+    const yMax = 2.45;
 
-      const triangleCount = position.count / 3;
+    const keptPositions: number[] = [];
+    const keptUvs: number[] = [];
+    const triangleCount = position.count / 3;
 
-      for (let tri = 0; tri < triangleCount; tri += 1) {
-        const baseIndex = tri * 3;
-        const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
-        const zValues = indices.map((index) => position.getZ(index));
-        const isRearFace = zValues.every((z) => Math.abs(z - rearFaceZ) < EPSILON);
+    for (let tri = 0; tri < triangleCount; tri += 1) {
+      const baseIndex = tri * 3;
+      const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
 
-        if (isRearFace) {
-          continue;
+      let cx = 0;
+      let cy = 0;
+      let cz = 0;
+
+      indices.forEach((index) => {
+        cx += position.getX(index);
+        cy += position.getY(index);
+        cz += position.getZ(index);
+      });
+
+      cx /= 3;
+      cy /= 3;
+      cz /= 3;
+
+      const isOnRear = Math.abs(cz - rearZ) < EPSILON;
+      const inOpening = cx >= xMin - EPSILON && cx <= xMax + EPSILON && cy >= yMin - EPSILON && cy <= yMax + EPSILON;
+
+      if (isOnRear && inOpening) {
+        continue;
+      }
+
+      indices.forEach((index) => {
+        keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
+        if (uv) {
+          keptUvs.push(uv.getX(index), uv.getY(index));
         }
+      });
+    }
 
-        indices.forEach((index) => {
-          keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
+    const filteredGeometry = new BufferGeometry();
+    filteredGeometry.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
+    if (uv && keptUvs.length > 0) {
+      filteredGeometry.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
+    }
+    filteredGeometry.computeVertexNormals();
 
-          if (normal) {
-            keptNormals.push(normal.getX(index), normal.getY(index), normal.getZ(index));
-          }
-
-          if (uv) {
-            keptUvs.push(uv.getX(index), uv.getY(index));
-          }
-        });
-      }
-
-      const filtered = new BufferGeometry();
-      filtered.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
-
-      if (keptNormals.length > 0) {
-        filtered.setAttribute('normal', new Float32BufferAttribute(keptNormals, 3));
-      }
-
-      if (keptUvs.length > 0) {
-        filtered.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
-      }
-
-      filtered.computeVertexNormals();
-
-      return filtered;
-    };
-
-    const filteredGeometry = removeRearFaces(geometry, rearZ);
+    console.log('✅ wallsGround rear openings applied', Date.now());
 
     return {
       geometry: filteredGeometry,

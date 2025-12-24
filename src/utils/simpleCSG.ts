@@ -195,34 +195,21 @@ class Node {
 
   build(polygons: Polygon[]) {
     if (!polygons.length) return;
+    if (!this.plane) this.plane = polygons[0].plane.clone();
 
-    const stack: { node: Node; polygons: Polygon[] }[] = [{ node: this, polygons }];
+    const front: Polygon[] = [];
+    const back: Polygon[] = [];
+    polygons.forEach((polygon) =>
+      this.plane!.splitPolygon(polygon, this.polygons, this.polygons, front, back)
+    );
 
-    while (stack.length) {
-      const current = stack.pop();
-      if (!current) continue;
-
-      const { node, polygons: nodePolygons } = current;
-      if (!nodePolygons.length) continue;
-
-      if (!node.plane) node.plane = nodePolygons[0].plane.clone();
-
-      const front: Polygon[] = [];
-      const back: Polygon[] = [];
-
-      nodePolygons.forEach((polygon) =>
-        node.plane!.splitPolygon(polygon, node.polygons, node.polygons, front, back)
-      );
-
-      if (front.length) {
-        if (!node.front) node.front = new Node();
-        stack.push({ node: node.front, polygons: front });
-      }
-
-      if (back.length) {
-        if (!node.back) node.back = new Node();
-        stack.push({ node: node.back, polygons: back });
-      }
+    if (front.length) {
+      if (!this.front) this.front = new Node();
+      this.front.build(front);
+    }
+    if (back.length) {
+      if (!this.back) this.back = new Node();
+      this.back.build(back);
     }
   }
 }

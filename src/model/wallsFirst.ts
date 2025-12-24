@@ -12,6 +12,7 @@ export const wallsFirst = {
     const outer = getEnvelopeFirstOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+    const innerRearZ = rearZ - exteriorThickness;
     const rearEdgePoints = outer.filter((point) => Math.abs(point.z - rearZ) < 1e-6);
     const leftX = rearEdgePoints.reduce((min, point) => Math.min(min, point.x), Infinity);
 
@@ -54,12 +55,10 @@ export const wallsFirst = {
     const position = g.getAttribute('position');
     const uv = g.getAttribute('uv');
 
-    const sillAbs = 3.4;
-    const headAbs = 5.0;
-    const yMin = sillAbs - firstFloorLevel;
-    const yMax = headAbs - firstFloorLevel;
+    const yMin = 0.8;
+    const yMax = 2.4;
 
-    const inRect = (x: number, y: number, rect: { xMin: number; xMax: number; yMin: number; yMax: number }) =>
+    const insideRect = (x: number, y: number, rect: { xMin: number; xMax: number; yMin: number; yMax: number }) =>
       x >= rect.xMin && x <= rect.xMax && y >= rect.yMin && y <= rect.yMax;
 
     const firstWindowStart = leftX + 1.7;
@@ -81,29 +80,42 @@ export const wallsFirst = {
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
     const triangleCount = position.count / 3;
+    let removedOuter = 0;
+    let removedInner = 0;
+    let keptTotal = 0;
 
     for (let tri = 0; tri < triangleCount; tri += 1) {
       const baseIndex = tri * 3;
       const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
 
-      let cx = 0;
-      let cy = 0;
-      let cz = 0;
+      const x1 = position.getX(indices[0]);
+      const y1 = position.getY(indices[0]);
+      const z1 = position.getZ(indices[0]);
 
-      indices.forEach((index) => {
-        cx += position.getX(index);
-        cy += position.getY(index);
-        cz += position.getZ(index);
-      });
+      const x2 = position.getX(indices[1]);
+      const y2 = position.getY(indices[1]);
+      const z2 = position.getZ(indices[1]);
 
-      cx /= 3;
-      cy /= 3;
-      cz /= 3;
+      const x3 = position.getX(indices[2]);
+      const y3 = position.getY(indices[2]);
+      const z3 = position.getZ(indices[2]);
 
-      const isOnRear = Math.abs(cz - rearZ) < EPSILON;
-      const insideOpening = openings.some((rect) => inRect(cx, cy, rect));
+      const onOuter = Math.abs(z1 - rearZ) < EPSILON && Math.abs(z2 - rearZ) < EPSILON && Math.abs(z3 - rearZ) < EPSILON;
+      const onInner =
+        Math.abs(z1 - innerRearZ) < EPSILON && Math.abs(z2 - innerRearZ) < EPSILON && Math.abs(z3 - innerRearZ) < EPSILON;
+      const isOnRearPlane = onOuter || onInner;
 
-      if (isOnRear && insideOpening) {
+      const triInsideOpening = openings.some((rect) =>
+        insideRect(x1, y1, rect) && insideRect(x2, y2, rect) && insideRect(x3, y3, rect),
+      );
+
+      if (isOnRearPlane && triInsideOpening) {
+        if (onOuter) {
+          removedOuter += 1;
+        }
+        if (onInner) {
+          removedInner += 1;
+        }
         continue;
       }
 
@@ -113,6 +125,8 @@ export const wallsFirst = {
           keptUvs.push(uv.getX(index), uv.getY(index));
         }
       });
+
+      keptTotal += 1;
     }
 
     const filteredGeometry = new BufferGeometry();
@@ -122,7 +136,12 @@ export const wallsFirst = {
     }
     filteredGeometry.computeVertexNormals();
 
-    console.log("✅ wallsFirst rear openings applied", Date.now());
+    const removedTotal = removedOuter + removedInner;
+    console.log(
+      '✅ wallsFirst rear openings applied',
+      { removedOuter, removedInner, removedTotal, keptTotal },
+      Date.now(),
+    );
 
     return {
       geometry: filteredGeometry,

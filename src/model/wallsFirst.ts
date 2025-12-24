@@ -1,15 +1,17 @@
-import { ExtrudeGeometry, Path, Shape } from 'three';
+import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 const firstFloorLevel = levelHeights.firstFloor;
+const EPSILON = 1e-4;
 
 export const wallsFirst = {
   shell: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
+    const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -46,8 +48,61 @@ export const wallsFirst = {
     const geometry = new ExtrudeGeometry(outerShape, { depth: wallHeight, bevelEnabled: false });
     geometry.rotateX(-Math.PI / 2);
 
+    const removeRearFaces = (geom: BufferGeometry, rearFaceZ: number) => {
+      const nonIndexed = geom.toNonIndexed();
+      const position = nonIndexed.getAttribute('position');
+      const normal = nonIndexed.getAttribute('normal');
+      const uv = nonIndexed.getAttribute('uv');
+
+      const keptPositions: number[] = [];
+      const keptNormals: number[] = [];
+      const keptUvs: number[] = [];
+
+      const triangleCount = position.count / 3;
+
+      for (let tri = 0; tri < triangleCount; tri += 1) {
+        const baseIndex = tri * 3;
+        const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
+        const zValues = indices.map((index) => position.getZ(index));
+        const isRearFace = zValues.every((z) => Math.abs(z - rearFaceZ) < EPSILON);
+
+        if (isRearFace) {
+          continue;
+        }
+
+        indices.forEach((index) => {
+          keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
+
+          if (normal) {
+            keptNormals.push(normal.getX(index), normal.getY(index), normal.getZ(index));
+          }
+
+          if (uv) {
+            keptUvs.push(uv.getX(index), uv.getY(index));
+          }
+        });
+      }
+
+      const filtered = new BufferGeometry();
+      filtered.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
+
+      if (keptNormals.length > 0) {
+        filtered.setAttribute('normal', new Float32BufferAttribute(keptNormals, 3));
+      }
+
+      if (keptUvs.length > 0) {
+        filtered.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
+      }
+
+      filtered.computeVertexNormals();
+
+      return filtered;
+    };
+
+    const filteredGeometry = removeRearFaces(geometry, rearZ);
+
     return {
-      geometry,
+      geometry: filteredGeometry,
       position: [0, firstFloorLevel, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };

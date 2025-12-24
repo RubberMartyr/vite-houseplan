@@ -29,7 +29,7 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { rearWindowCutouts, windowsRear } from '../model/windowsRear';
 
-console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
+console.log('✅ ACTIVE VIEWER FILE:', 'HouseViewer.tsx', Date.now());
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -791,7 +791,8 @@ function HouseScene({
     }
 
     const EPS = 0.01;
-    const panelCenterZ = rearZ + panelThickness / 2 + EPS;
+    const groundPanelCenterZ = groundRearSpan.maxZ + panelThickness / 2 + EPS;
+    const firstPanelCenterZ = firstRearSpan.maxZ + panelThickness / 2 + EPS;
 
     const makePanelGeometry = ({
       width,
@@ -842,39 +843,43 @@ function HouseScene({
       });
 
       const geometry = new THREE.ExtrudeGeometry(shape, { depth: panelThickness, bevelEnabled: false });
-      geometry.translate(0, 0, -panelThickness);
+      geometry.translate(0, 0, -panelThickness / 2);
       return geometry;
     };
 
     const groundCenterX = (groundRearSpan.minX + groundRearSpan.maxX) / 2;
     const groundCenterY = ceilingHeights.ground / 2;
+    const groundCutoutZ = rearWindowCutouts.filter((cutout) => cutout.level === 'ground').map((cutout) => cutout.position[2]);
+    console.log('rear span maxZ', groundRearSpan.maxZ, 'panelCenterZ', groundPanelCenterZ, 'cutoutZ', groundCutoutZ);
     const groundPanelGeometry = makePanelGeometry({
       width: groundRearSpan.width,
       height: ceilingHeights.ground,
       level: 'ground',
-      center: { x: groundCenterX, y: groundCenterY, z: panelCenterZ },
+      center: { x: groundCenterX, y: groundCenterY, z: groundPanelCenterZ },
     });
 
     const firstCenterX = (firstRearSpan.minX + firstRearSpan.maxX) / 2;
     const firstCenterY = levelHeights.firstFloor + ceilingHeights.first / 2;
+    const firstCutoutZ = rearWindowCutouts.filter((cutout) => cutout.level === 'first').map((cutout) => cutout.position[2]);
+    console.log('rear span maxZ', firstRearSpan.maxZ, 'panelCenterZ', firstPanelCenterZ, 'cutoutZ', firstCutoutZ);
     const firstPanelGeometry = makePanelGeometry({
       width: firstRearSpan.width,
       height: ceilingHeights.first,
       level: 'first',
-      center: { x: firstCenterX, y: firstCenterY, z: panelCenterZ },
+      center: { x: firstCenterX, y: firstCenterY, z: firstPanelCenterZ },
     });
 
     return {
       ground: {
         geometry: groundPanelGeometry,
-        position: [groundCenterX, groundCenterY, panelCenterZ] as [number, number, number],
+        position: [groundCenterX, groundCenterY, groundPanelCenterZ] as [number, number, number],
       },
       first: {
         geometry: firstPanelGeometry,
-        position: [firstCenterX, firstCenterY, panelCenterZ] as [number, number, number],
+        position: [firstCenterX, firstCenterY, firstPanelCenterZ] as [number, number, number],
       },
     };
-  }, [ceilingHeights.first, ceilingHeights.ground, firstRearSpan, groundRearSpan, panelThickness, rearWindowCutouts, rearZ]);
+  }, [ceilingHeights.first, ceilingHeights.ground, firstRearSpan, groundRearSpan, panelThickness, rearWindowCutouts]);
 
   useEffect(() => {
     console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));

@@ -59,10 +59,23 @@ export const wallsFirst = {
     const yMin = sillAbs - firstFloorLevel;
     const yMax = headAbs - firstFloorLevel;
 
-    const firstXMin = leftX + 1.7;
-    const firstXMax = firstXMin + 1.1;
-    const secondXMin = leftX + 1.7 + 1.1 + 2.0;
-    const secondXMax = secondXMin + 1.1;
+    const inRect = (x: number, y: number, rect: { xMin: number; xMax: number; yMin: number; yMax: number }) =>
+      x >= rect.xMin && x <= rect.xMax && y >= rect.yMin && y <= rect.yMax;
+
+    const openings = [
+      {
+        xMin: leftX + 1.7,
+        xMax: leftX + 1.7 + 1.1,
+        yMin,
+        yMax,
+      },
+      {
+        xMin: leftX + 1.7 + 1.1 + 2.0,
+        xMax: leftX + 1.7 + 1.1 + 2.0 + 1.1,
+        yMin,
+        yMax,
+      },
+    ];
 
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
@@ -87,12 +100,9 @@ export const wallsFirst = {
       cz /= 3;
 
       const isOnRear = Math.abs(cz - rearZ) < EPSILON;
-      const inFirstOpening =
-        cx >= firstXMin - EPSILON && cx <= firstXMax + EPSILON && cy >= yMin - EPSILON && cy <= yMax + EPSILON;
-      const inSecondOpening =
-        cx >= secondXMin - EPSILON && cx <= secondXMax + EPSILON && cy >= yMin - EPSILON && cy <= yMax + EPSILON;
+      const insideOpening = openings.some((rect) => inRect(cx, cy, rect));
 
-      if (isOnRear && (inFirstOpening || inSecondOpening)) {
+      if (isOnRear && insideOpening) {
         continue;
       }
 

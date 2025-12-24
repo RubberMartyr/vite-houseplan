@@ -53,10 +53,17 @@ export const wallsGround = {
     const position = g.getAttribute('position');
     const uv = g.getAttribute('uv');
 
-    const xMin = leftX + 1.0;
-    const xMax = xMin + 5.6;
-    const yMin = 0.0;
-    const yMax = 2.45;
+    const inRect = (x: number, y: number, rect: { xMin: number; xMax: number; yMin: number; yMax: number }) =>
+      x >= rect.xMin && x <= rect.xMax && y >= rect.yMin && y <= rect.yMax;
+
+    const openings = [
+      {
+        xMin: leftX + 1.0,
+        xMax: leftX + 1.0 + 5.6,
+        yMin: 0.0,
+        yMax: 2.45,
+      },
+    ];
 
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
@@ -81,9 +88,9 @@ export const wallsGround = {
       cz /= 3;
 
       const isOnRear = Math.abs(cz - rearZ) < EPSILON;
-      const inOpening = cx >= xMin - EPSILON && cx <= xMax + EPSILON && cy >= yMin - EPSILON && cy <= yMax + EPSILON;
+      const insideOpening = openings.some((rect) => inRect(cx, cy, rect));
 
-      if (isOnRear && inOpening) {
+      if (isOnRear && insideOpening) {
         continue;
       }
 

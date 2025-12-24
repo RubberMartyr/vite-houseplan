@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeOuterPolygon } from './envelope';
-import { levelHeights } from './houseSpec';
+import { levelHeights, wallThickness } from './houseSpec';
 
 type WindowMesh = {
   id: string;
@@ -120,6 +120,7 @@ function makeWindowMeshes(params: {
 
 const groundSpan = getRearFacadeSpan(getEnvelopeOuterPolygon());
 const firstSpan = getRearFacadeSpan(getEnvelopeFirstOuterPolygon());
+const cutoutDepth = wallThickness.exterior + 0.4;
 
 const groundWindows = (() => {
   const width = 5.6;
@@ -176,3 +177,63 @@ const firstFloorWindows = (() => {
 export const windowsRear: { meshes: WindowMesh[] } = {
   meshes: [...groundWindows, ...firstFloorWindows],
 };
+
+export const rearWindowCutouts: Array<{
+  id: string;
+  geometry: THREE.BufferGeometry;
+  position: [number, number, number];
+  rotation: [number, number, number];
+}> = (() => {
+  const rearZOffset = -0.05;
+  const groundWidth = 5.6;
+  const groundHeight = 2.45;
+  const groundLeftMargin = 1.0;
+
+  const groundXCenter = groundSpan.minX + groundLeftMargin + groundWidth / 2;
+  const groundYBottom = 0;
+
+  const groundCutout = {
+    id: 'REAR_GROUND_BIG_CUTOUT',
+    geometry: new THREE.BoxGeometry(groundWidth, groundHeight, cutoutDepth),
+    position: [groundXCenter, groundYBottom + groundHeight / 2, groundSpan.maxZ + rearZOffset] as [
+      number,
+      number,
+      number,
+    ],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const firstWidth = 1.1;
+  const firstHeight = 1.6;
+  const firstSillOffset = 0.8;
+  const firstYBottom = levelHeights.firstFloor + firstSillOffset;
+  const firstLeftMargin = 1.7;
+  const spacing = 2.0;
+
+  const firstXCenter = firstSpan.minX + firstLeftMargin + firstWidth / 2;
+  const secondXCenter = firstSpan.minX + firstLeftMargin + firstWidth + spacing + firstWidth / 2;
+
+  const firstLeftCutout = {
+    id: 'REAR_FIRST_LEFT_CUTOUT',
+    geometry: new THREE.BoxGeometry(firstWidth, firstHeight, cutoutDepth),
+    position: [
+      firstXCenter,
+      firstYBottom + firstHeight / 2,
+      firstSpan.maxZ + rearZOffset,
+    ] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  const firstRightCutout = {
+    id: 'REAR_FIRST_RIGHT_CUTOUT',
+    geometry: new THREE.BoxGeometry(firstWidth, firstHeight, cutoutDepth),
+    position: [
+      secondXCenter,
+      firstYBottom + firstHeight / 2,
+      firstSpan.maxZ + rearZOffset,
+    ] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
+
+  return [groundCutout, firstLeftCutout, firstRightCutout];
+})();

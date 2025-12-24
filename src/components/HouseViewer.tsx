@@ -4,10 +4,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
-import { wallsBasement } from '../model/wallsBasement'
-import { wallsGround } from '../model/wallsGround'
-import { wallsFirst } from '../model/wallsFirst'
-import { wallsEavesBand } from '../model/wallsEavesBand'
+import { wallsBasement } from '../model/wallsBasement';
+import { wallsGround } from '../model/wallsGround';
+import { wallsFirst } from '../model/wallsFirst';
+import { wallsEavesBand } from '../model/wallsEavesBand';
 import {
   frontZ,
   rearZ,
@@ -27,7 +27,7 @@ import {
 import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
-import { windowsRear } from '../model/windowsRear'
+import { rearWindowCutouts, windowsRear } from '../model/windowsRear';
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
 
@@ -583,7 +583,7 @@ export default function HouseViewer() {
         <Canvas
           shadows
           camera={{ position: [10, 5, 15], fov: 50 }}
-          gl={{ antialias: true }}
+          gl={{ antialias: true, localClippingEnabled: true }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
@@ -627,6 +627,13 @@ function HouseScene({
   const LOW_QUALITY = false;
   const { glass, frame } = useBuildingMaterials();
 
+  const rearClipPlane = useMemo(() => {
+    const EPS = 0.01;
+    const rearWorldZ = originOffset.z + rearZ - EPS;
+    return new THREE.Plane(new THREE.Vector3(0, 0, -1), rearWorldZ);
+  }, []);
+  const panelThickness = 0.12;
+
   const { gl } = useThree();
   const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
@@ -639,28 +646,29 @@ function HouseScene({
     []
   );
   const wallMaterial = useMemo(() => {
-    if (LOW_QUALITY) {
-      return fallbackWallMaterial;
-    }
+    const material =
+      LOW_QUALITY || !brickTex || !brickTex.image
+        ? fallbackWallMaterial.clone()
+        : (() => {
+            brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+            brickTex.repeat.set(BRICK_REPEAT_X, BRICK_REPEAT_Y);
+            brickTex.colorSpace = THREE.SRGBColorSpace;
+            const maxAniso = gl?.capabilities?.getMaxAnisotropy ? gl.capabilities.getMaxAnisotropy() : 1;
+            brickTex.anisotropy = Math.min(4, maxAniso);
+            brickTex.needsUpdate = true;
 
-    if (!brickTex || !brickTex.image) {
-      return fallbackWallMaterial;
-    }
+            return new THREE.MeshStandardMaterial({
+              map: brickTex,
+              roughness: 0.9,
+              metalness: 0,
+              side: THREE.DoubleSide,
+            });
+          })();
 
-    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
-    brickTex.repeat.set(BRICK_REPEAT_X, BRICK_REPEAT_Y);
-    brickTex.colorSpace = THREE.SRGBColorSpace;
-    const maxAniso = gl?.capabilities?.getMaxAnisotropy ? gl.capabilities.getMaxAnisotropy() : 1;
-    brickTex.anisotropy = Math.min(4, maxAniso);
-    brickTex.needsUpdate = true;
-
-    return new THREE.MeshStandardMaterial({
-      map: brickTex,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    });
-  }, [brickTex, fallbackWallMaterial, gl]);
+    material.clippingPlanes = rearClipPlane ? [rearClipPlane] : [];
+    material.clipShadows = true;
+    return material;
+  }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl, rearClipPlane]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -715,6 +723,22 @@ function HouseScene({
     console.log('✅ DEBUG CUBES ADDED', Date.now());
   }, []);
 
+  const getRearFacadeSpan = (points: { x: number; z: number }[]) => {
+    if (!points || points.length === 0) {
+      return null;
+    }
+    const maxZ = points.reduce((max, point) => Math.max(max, point.z), -Infinity);
+    const rearPoints = points.filter((point) => Math.abs(point.z - maxZ) < 1e-6);
+    const minX = rearPoints.reduce((min, point) => Math.min(min, point.x), Infinity);
+    const maxX = rearPoints.reduce((max, point) => Math.max(max, point.x), -Infinity);
+    return {
+      minX,
+      maxX,
+      maxZ,
+      width: maxX - minX,
+    };
+  };
+
   const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
   const groundEnvelopePolygon = useMemo(
     () => getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope),
@@ -732,6 +756,8 @@ function HouseScene({
     () => getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope),
     [firstOuterEnvelope]
   );
+  const groundRearSpan = useMemo(() => getRearFacadeSpan(groundOuterEnvelope), [groundOuterEnvelope]);
+  const firstRearSpan = useMemo(() => getRearFacadeSpan(firstOuterEnvelope), [firstOuterEnvelope]);
   const firstEnvelopeShape = useMemo(() => makeFootprintShape(firstEnvelopePolygon), [firstEnvelopePolygon]);
 
   const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
@@ -758,6 +784,94 @@ function HouseScene({
   const baseRoofThickness = SPECS.levels.slab;
   const flatRoofY = firstFloorLevelY + 0.02;
   const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
+
+  const rearPanels = useMemo(() => {
+    if (!groundRearSpan || !firstRearSpan) {
+      return { ground: null as null | { geometry: THREE.BufferGeometry; position: [number, number, number] }, first: null as null | { geometry: THREE.BufferGeometry; position: [number, number, number] } };
+    }
+
+    const makePanelGeometry = ({
+      width,
+      height,
+      level,
+      center,
+    }: {
+      width: number;
+      height: number;
+      level: 'ground' | 'first';
+      center: { x: number; y: number; z: number };
+    }) => {
+      const shape = new THREE.Shape();
+      shape.moveTo(-width / 2, -height / 2);
+      shape.lineTo(width / 2, -height / 2);
+      shape.lineTo(width / 2, height / 2);
+      shape.lineTo(-width / 2, height / 2);
+      shape.lineTo(-width / 2, -height / 2);
+
+      const levelCutouts = rearWindowCutouts.filter((cutout) => cutout.level === level);
+      levelCutouts.forEach((cutout) => {
+        const params: any = (cutout.geometry as any).parameters;
+        let cutoutWidth = params?.width as number | undefined;
+        let cutoutHeight = params?.height as number | undefined;
+
+        if (!cutoutWidth || !cutoutHeight) {
+          const clone = cutout.geometry.clone();
+          clone.computeBoundingBox();
+          const size = new THREE.Vector3();
+          clone.boundingBox?.getSize(size);
+          cutoutWidth = size.x;
+          cutoutHeight = size.y;
+        }
+
+        if (!cutoutWidth || !cutoutHeight) {
+          return;
+        }
+
+        const holeCenterX = cutout.position[0] - center.x;
+        const holeCenterY = cutout.position[1] - center.y;
+        const holePath = new THREE.Path();
+        holePath.moveTo(holeCenterX - cutoutWidth / 2, holeCenterY - cutoutHeight / 2);
+        holePath.lineTo(holeCenterX + cutoutWidth / 2, holeCenterY - cutoutHeight / 2);
+        holePath.lineTo(holeCenterX + cutoutWidth / 2, holeCenterY + cutoutHeight / 2);
+        holePath.lineTo(holeCenterX - cutoutWidth / 2, holeCenterY + cutoutHeight / 2);
+        holePath.lineTo(holeCenterX - cutoutWidth / 2, holeCenterY - cutoutHeight / 2);
+        shape.holes.push(holePath);
+      });
+
+      const geometry = new THREE.ExtrudeGeometry(shape, { depth: panelThickness, bevelEnabled: false });
+      geometry.translate(0, 0, -panelThickness);
+      return geometry;
+    };
+
+    const groundCenterX = (groundRearSpan.minX + groundRearSpan.maxX) / 2;
+    const groundCenterY = ceilingHeights.ground / 2;
+    const groundPanelGeometry = makePanelGeometry({
+      width: groundRearSpan.width,
+      height: ceilingHeights.ground,
+      level: 'ground',
+      center: { x: groundCenterX, y: groundCenterY, z: rearZ },
+    });
+
+    const firstCenterX = (firstRearSpan.minX + firstRearSpan.maxX) / 2;
+    const firstCenterY = levelHeights.firstFloor + ceilingHeights.first / 2;
+    const firstPanelGeometry = makePanelGeometry({
+      width: firstRearSpan.width,
+      height: ceilingHeights.first,
+      level: 'first',
+      center: { x: firstCenterX, y: firstCenterY, z: rearZ },
+    });
+
+    return {
+      ground: {
+        geometry: groundPanelGeometry,
+        position: [groundCenterX, groundCenterY, rearZ] as [number, number, number],
+      },
+      first: {
+        geometry: firstPanelGeometry,
+        position: [firstCenterX, firstCenterY, rearZ] as [number, number, number],
+      },
+    };
+  }, [ceilingHeights.first, ceilingHeights.ground, firstRearSpan, groundRearSpan, panelThickness, rearWindowCutouts, rearZ]);
 
   useEffect(() => {
     console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
@@ -813,6 +927,26 @@ function HouseScene({
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {showGround && rearPanels.ground && (
+            <mesh
+              geometry={rearPanels.ground.geometry}
+              position={rearPanels.ground.position}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {showFirst && rearPanels.first && (
+            <mesh
+              geometry={rearPanels.first.geometry}
+              position={rearPanels.first.position}
               material={wallMaterial}
               castShadow
               receiveShadow

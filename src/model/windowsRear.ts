@@ -9,6 +9,13 @@ type WindowMesh = {
   rotation: [number, number, number];
 };
 
+export type RearWindowCutout = {
+  geometry: THREE.BufferGeometry;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  level: 'ground' | 'first';
+};
+
 type FacadeSpan = {
   minX: number;
   maxX: number;
@@ -22,6 +29,8 @@ const FRAME_BORDER = 0.07;
 const GLASS_INSET = 0.015;
 const EXPECTED_REAR_WIDTH = 7.6;
 const WIDTH_TOLERANCE = 0.05;
+const CUTOUT_DEPTH = 0.6;
+const CUTOUT_MARGIN = 0.01;
 
 function getRearFacadeSpan(points: { x: number; z: number }[]): FacadeSpan {
   const maxZ = points.reduce((max, point) => Math.max(max, point.z), -Infinity);
@@ -121,6 +130,32 @@ function makeWindowMeshes(params: {
 const groundSpan = getRearFacadeSpan(getEnvelopeOuterPolygon());
 const firstSpan = getRearFacadeSpan(getEnvelopeFirstOuterPolygon());
 
+function makeCutout({
+  width,
+  height,
+  xCenter,
+  yCenter,
+  zCenter,
+  level,
+}: {
+  width: number;
+  height: number;
+  xCenter: number;
+  yCenter: number;
+  zCenter: number;
+  level: 'ground' | 'first';
+}): RearWindowCutout {
+  const geometry = new THREE.BoxGeometry(width + CUTOUT_MARGIN * 2, height + CUTOUT_MARGIN * 2, CUTOUT_DEPTH);
+  geometry.translate(0, 0, -CUTOUT_DEPTH / 2);
+
+  return {
+    geometry,
+    position: [xCenter, yCenter, zCenter] as [number, number, number],
+    rotation: [0, 0, 0],
+    level,
+  };
+}
+
 const groundWindows = (() => {
   const width = 5.6;
   const height = 2.45;
@@ -176,3 +211,45 @@ const firstFloorWindows = (() => {
 export const windowsRear: { meshes: WindowMesh[] } = {
   meshes: [...groundWindows, ...firstFloorWindows],
 };
+
+const groundCutout: RearWindowCutout = makeCutout({
+  width: 5.6,
+  height: 2.45,
+  xCenter: groundSpan.minX + 1.0 + 5.6 / 2,
+  yCenter: 2.45 / 2,
+  zCenter: groundSpan.maxZ,
+  level: 'ground',
+});
+
+const firstCutouts: RearWindowCutout[] = (() => {
+  const sillOffset = 0.8;
+  const windowWidth = 1.1;
+  const windowHeight = 1.6;
+  const yCenter = levelHeights.firstFloor + sillOffset + windowHeight / 2;
+  const leftMargin = 1.7;
+  const spacing = 2.0;
+
+  const firstCenter = firstSpan.minX + leftMargin + windowWidth / 2;
+  const secondCenter = firstSpan.minX + leftMargin + windowWidth + spacing + windowWidth / 2;
+
+  return [
+    makeCutout({
+      width: windowWidth,
+      height: windowHeight,
+      xCenter: firstCenter,
+      yCenter,
+      zCenter: firstSpan.maxZ,
+      level: 'first',
+    }),
+    makeCutout({
+      width: windowWidth,
+      height: windowHeight,
+      xCenter: secondCenter,
+      yCenter,
+      zCenter: firstSpan.maxZ,
+      level: 'first',
+    }),
+  ];
+})();
+
+export const rearWindowCutouts: RearWindowCutout[] = [groundCutout, ...firstCutouts];

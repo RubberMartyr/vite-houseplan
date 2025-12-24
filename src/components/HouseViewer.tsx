@@ -640,7 +640,7 @@ function HouseScene({
       new THREE.MeshStandardMaterial({
         color: '#8B5A40',
         roughness: 0.9,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
       }),
     []
   );
@@ -660,7 +660,7 @@ function HouseScene({
               map: brickTex,
               roughness: 0.9,
               metalness: 0,
-              side: THREE.DoubleSide,
+              side: THREE.FrontSide,
             });
           })();
 
@@ -673,7 +673,7 @@ function HouseScene({
       new THREE.MeshStandardMaterial({
         color: '#f2f2f2',
         roughness: 0.9,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
       }),
     []
   );

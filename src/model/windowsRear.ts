@@ -17,7 +17,7 @@ type FacadeSpan = {
 };
 
 const FRAME_DEPTH = 0.08;
-const OUTWARD_OFFSET = 0.02;
+const EPS = 0.01;
 const FRAME_BORDER = 0.07;
 const GLASS_INSET = 0.015;
 const EXPECTED_REAR_WIDTH = 7.6;
@@ -46,21 +46,47 @@ function makeWindowMeshes(params: {
   xCenter: number;
   yBottom: number;
   zFace: number;
+  mullions?: number;
 }): WindowMesh[] {
-  const { idBase, width, height, xCenter, yBottom, zFace } = params;
+  const { idBase, width, height, xCenter, yBottom, zFace, mullions = 0 } = params;
   const yCenter = yBottom + height / 2;
 
-  const frameGeometry = new THREE.BoxGeometry(width, height, FRAME_DEPTH);
-  const glassGeometry = new THREE.PlaneGeometry(width - 2 * FRAME_BORDER, height - 2 * FRAME_BORDER);
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  const innerWidth = width - 2 * FRAME_BORDER;
+  const innerHeight = height - 2 * FRAME_BORDER;
 
-  const framePosition: [number, number, number] = [xCenter, yCenter, zFace + OUTWARD_OFFSET];
+  const outerShape = new THREE.Shape();
+  outerShape.moveTo(-halfWidth, -halfHeight);
+  outerShape.lineTo(halfWidth, -halfHeight);
+  outerShape.lineTo(halfWidth, halfHeight);
+  outerShape.lineTo(-halfWidth, halfHeight);
+  outerShape.lineTo(-halfWidth, -halfHeight);
+
+  const innerPath = new THREE.Path();
+  innerPath.moveTo(-innerWidth / 2, -innerHeight / 2);
+  innerPath.lineTo(-innerWidth / 2, innerHeight / 2);
+  innerPath.lineTo(innerWidth / 2, innerHeight / 2);
+  innerPath.lineTo(innerWidth / 2, -innerHeight / 2);
+  innerPath.lineTo(-innerWidth / 2, -innerHeight / 2);
+  outerShape.holes.push(innerPath);
+
+  const frameGeometry = new THREE.ExtrudeGeometry(outerShape, {
+    depth: FRAME_DEPTH,
+    bevelEnabled: false,
+  });
+  frameGeometry.translate(0, 0, -FRAME_DEPTH / 2);
+
+  const glassGeometry = new THREE.BoxGeometry(innerWidth, innerHeight, 0.01);
+
+  const framePosition: [number, number, number] = [xCenter, yCenter, zFace + EPS];
   const glassPosition: [number, number, number] = [
     xCenter,
     yCenter,
-    zFace + OUTWARD_OFFSET - GLASS_INSET,
+    zFace + EPS - GLASS_INSET,
   ];
 
-  return [
+  const meshes: WindowMesh[] = [
     {
       id: `${idBase}_FRAME`,
       geometry: frameGeometry,
@@ -74,6 +100,22 @@ function makeWindowMeshes(params: {
       rotation: [0, 0, 0],
     },
   ];
+
+  if (mullions > 0) {
+    const mullionWidth = FRAME_BORDER / 2;
+    const spacing = innerWidth / (mullions + 1);
+    for (let i = 1; i <= mullions; i += 1) {
+      const xOffset = -innerWidth / 2 + spacing * i;
+      meshes.push({
+        id: `${idBase}_MULLION_${i}`,
+        geometry: new THREE.BoxGeometry(mullionWidth, innerHeight, FRAME_DEPTH),
+        position: [xCenter + xOffset, yCenter, zFace + EPS],
+        rotation: [0, 0, 0],
+      });
+    }
+  }
+
+  return meshes;
 }
 
 const groundSpan = getRearFacadeSpan(getEnvelopeOuterPolygon());

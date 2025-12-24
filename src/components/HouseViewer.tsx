@@ -27,7 +27,7 @@ import {
 import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
-import { rearWindowCutouts, windowsRear } from '../model/windowsRear';
+import { windowsRear } from '../model/windowsRear';
 
 console.log('✅ ACTIVE VIEWER FILE:', 'HouseViewer.tsx', Date.now());
 
@@ -632,7 +632,6 @@ function HouseScene({
     const rearWorldZ = originOffset.z + rearZ - EPS;
     return new THREE.Plane(new THREE.Vector3(0, 0, -1), rearWorldZ);
   }, []);
-  const panelThickness = 0.12;
 
   const { gl } = useThree();
   const brickTex = useTexture('/textures/brick2.jpg');
@@ -785,102 +784,6 @@ function HouseScene({
   const flatRoofY = firstFloorLevelY + 0.02;
   const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
 
-  const rearPanels = useMemo(() => {
-    if (!groundRearSpan || !firstRearSpan) {
-      return { ground: null as null | { geometry: THREE.BufferGeometry; position: [number, number, number] }, first: null as null | { geometry: THREE.BufferGeometry; position: [number, number, number] } };
-    }
-
-    const EPS = 0.01;
-    const groundPanelCenterZ = groundRearSpan.maxZ + panelThickness / 2 + EPS;
-    const firstPanelCenterZ = firstRearSpan.maxZ + panelThickness / 2 + EPS;
-
-    const makePanelGeometry = ({
-      width,
-      height,
-      level,
-      center,
-    }: {
-      width: number;
-      height: number;
-      level: 'ground' | 'first';
-      center: { x: number; y: number; z: number };
-    }) => {
-      const shape = new THREE.Shape();
-      shape.moveTo(-width / 2, -height / 2);
-      shape.lineTo(width / 2, -height / 2);
-      shape.lineTo(width / 2, height / 2);
-      shape.lineTo(-width / 2, height / 2);
-      shape.lineTo(-width / 2, -height / 2);
-
-      const levelCutouts = rearWindowCutouts.filter((cutout) => cutout.level === level);
-      levelCutouts.forEach((cutout) => {
-        const params: any = (cutout.geometry as any).parameters;
-        let cutoutWidth = params?.width as number | undefined;
-        let cutoutHeight = params?.height as number | undefined;
-
-        if (!cutoutWidth || !cutoutHeight) {
-          const clone = cutout.geometry.clone();
-          clone.computeBoundingBox();
-          const size = new THREE.Vector3();
-          clone.boundingBox?.getSize(size);
-          cutoutWidth = size.x;
-          cutoutHeight = size.y;
-        }
-
-        if (!cutoutWidth || !cutoutHeight) {
-          return;
-        }
-
-        const holeCenterX = cutout.position[0] - center.x;
-        const holeCenterY = cutout.position[1] - center.y;
-        const holePath = new THREE.Path();
-        holePath.moveTo(holeCenterX - cutoutWidth / 2, holeCenterY - cutoutHeight / 2);
-        holePath.lineTo(holeCenterX + cutoutWidth / 2, holeCenterY - cutoutHeight / 2);
-        holePath.lineTo(holeCenterX + cutoutWidth / 2, holeCenterY + cutoutHeight / 2);
-        holePath.lineTo(holeCenterX - cutoutWidth / 2, holeCenterY + cutoutHeight / 2);
-        holePath.lineTo(holeCenterX - cutoutWidth / 2, holeCenterY - cutoutHeight / 2);
-        shape.holes.push(holePath);
-      });
-
-      const geometry = new THREE.ExtrudeGeometry(shape, { depth: panelThickness, bevelEnabled: false });
-      geometry.translate(0, 0, -panelThickness / 2);
-      return geometry;
-    };
-
-    const groundCenterX = (groundRearSpan.minX + groundRearSpan.maxX) / 2;
-    const groundCenterY = ceilingHeights.ground / 2;
-    const groundCutoutZ = rearWindowCutouts.filter((cutout) => cutout.level === 'ground').map((cutout) => cutout.position[2]);
-    console.log('rear span maxZ', groundRearSpan.maxZ, 'panelCenterZ', groundPanelCenterZ, 'cutoutZ', groundCutoutZ);
-    const groundPanelGeometry = makePanelGeometry({
-      width: groundRearSpan.width,
-      height: ceilingHeights.ground,
-      level: 'ground',
-      center: { x: groundCenterX, y: groundCenterY, z: groundPanelCenterZ },
-    });
-
-    const firstCenterX = (firstRearSpan.minX + firstRearSpan.maxX) / 2;
-    const firstCenterY = levelHeights.firstFloor + ceilingHeights.first / 2;
-    const firstCutoutZ = rearWindowCutouts.filter((cutout) => cutout.level === 'first').map((cutout) => cutout.position[2]);
-    console.log('rear span maxZ', firstRearSpan.maxZ, 'panelCenterZ', firstPanelCenterZ, 'cutoutZ', firstCutoutZ);
-    const firstPanelGeometry = makePanelGeometry({
-      width: firstRearSpan.width,
-      height: ceilingHeights.first,
-      level: 'first',
-      center: { x: firstCenterX, y: firstCenterY, z: firstPanelCenterZ },
-    });
-
-    return {
-      ground: {
-        geometry: groundPanelGeometry,
-        position: [groundCenterX, groundCenterY, groundPanelCenterZ] as [number, number, number],
-      },
-      first: {
-        geometry: firstPanelGeometry,
-        position: [firstCenterX, firstCenterY, firstPanelCenterZ] as [number, number, number],
-      },
-    };
-  }, [ceilingHeights.first, ceilingHeights.ground, firstRearSpan, groundRearSpan, panelThickness, rearWindowCutouts]);
-
   useEffect(() => {
     console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
     console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
@@ -935,26 +838,6 @@ function HouseScene({
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showGround && rearPanels.ground && (
-            <mesh
-              geometry={rearPanels.ground.geometry}
-              position={rearPanels.ground.position}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst && rearPanels.first && (
-            <mesh
-              geometry={rearPanels.first.geometry}
-              position={rearPanels.first.position}
               material={wallMaterial}
               castShadow
               receiveShadow

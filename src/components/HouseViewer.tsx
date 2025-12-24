@@ -1,4 +1,5 @@
 // @ts-nocheck
+console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -28,8 +29,6 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-
-console.log("✅ ACTIVE VIEWER:", "HouseViewer.tsx", Date.now());
 
 /**
  * ARCHITECTURAL SPECIFICATIONS

@@ -29,7 +29,7 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 
-console.log('✅ ACTIVE VIEWER FILE:', 'HouseViewer.tsx', Date.now());
+console.log("✅ ACTIVE VIEWER:", "HouseViewer.tsx", Date.now());
 
 /**
  * ARCHITECTURAL SPECIFICATIONS

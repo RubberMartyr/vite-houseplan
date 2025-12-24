@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { wallsBasement } from '../model/wallsBasement'
 import { wallsGround } from '../model/wallsGround'
 import { wallsFirst } from '../model/wallsFirst'
@@ -27,7 +28,8 @@ import {
 import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
-import { windowsRear } from '../model/windowsRear'
+import { rearWindowCutouts, windowsRear } from '../model/windowsRear'
+import { subtractMeshes } from '../utils/simpleCSG'
 
 console.log("✅ HOUSEVIEWER.TSX ACTIVE", Date.now())
 
@@ -670,6 +672,46 @@ function HouseScene({
       }),
     []
   );
+  const mergedRearCutouts = useMemo(() => {
+    try {
+      const transformed = rearWindowCutouts.map((cutout) => {
+        const geometry = cutout.geometry.clone();
+        const matrix = new THREE.Matrix4();
+        matrix.compose(
+          new THREE.Vector3(...cutout.position),
+          new THREE.Quaternion().setFromEuler(new THREE.Euler(...cutout.rotation)),
+          new THREE.Vector3(1, 1, 1)
+        );
+        geometry.applyMatrix4(matrix);
+        return geometry;
+      });
+
+      return BufferGeometryUtils.mergeGeometries(transformed, false);
+    } catch (err) {
+      console.warn('[HouseViewer] Failed to merge rear window cutouts', err);
+      return null;
+    }
+  }, []);
+
+  const punchedGroundGeometry = useMemo(() => {
+    if (!mergedRearCutouts) return wallsGround.shell.geometry;
+    const wallMesh = new THREE.Mesh(wallsGround.shell.geometry.clone());
+    const cutoutMesh = new THREE.Mesh(mergedRearCutouts.clone());
+    wallMesh.updateMatrixWorld(true);
+    cutoutMesh.updateMatrixWorld(true);
+    const result = subtractMeshes(wallMesh, cutoutMesh);
+    return result.geometry;
+  }, [mergedRearCutouts]);
+
+  const punchedFirstGeometry = useMemo(() => {
+    if (!mergedRearCutouts) return wallsFirst.shell.geometry;
+    const wallMesh = new THREE.Mesh(wallsFirst.shell.geometry.clone());
+    const cutoutMesh = new THREE.Mesh(mergedRearCutouts.clone());
+    wallMesh.updateMatrixWorld(true);
+    cutoutMesh.updateMatrixWorld(true);
+    const result = subtractMeshes(wallMesh, cutoutMesh);
+    return result.geometry;
+  }, [mergedRearCutouts]);
   const basementCeilingMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -798,7 +840,7 @@ function HouseScene({
           )}
           {showGround && (
             <mesh
-              geometry={wallsGround.shell.geometry}
+              geometry={punchedGroundGeometry}
               position={wallsGround.shell.position}
               rotation={wallsGround.shell.rotation}
               material={wallMaterial}
@@ -810,7 +852,7 @@ function HouseScene({
 
           {showFirst && (
             <mesh
-              geometry={wallsFirst.shell.geometry}
+              geometry={punchedFirstGeometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
               material={wallMaterial}

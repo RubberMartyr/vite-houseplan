@@ -28,6 +28,18 @@ const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
 
+const RIGHT_FACADE_PROFILE = [
+  { z0: 0.0, z1: 4.0, x: 4.8 },
+  { z0: 4.0, z1: 8.45, x: 4.1 },
+  { z0: 8.45, z1: 12.0, x: 3.5 },
+] as const;
+
+function xFaceForRightAtZ(z: number) {
+  if (z <= RIGHT_FACADE_PROFILE[0].z1) return RIGHT_FACADE_PROFILE[0].x;
+  if (z <= RIGHT_FACADE_PROFILE[1].z1) return RIGHT_FACADE_PROFILE[1].x;
+  return RIGHT_FACADE_PROFILE[2].x;
+}
+
 // Toggle which facade hosts the side windows and whether they should mirror along Z
 export const SIDE: 'left' | 'right' = 'right';
 export const MIRROR_Z = true;
@@ -67,26 +79,6 @@ const metalSlateMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.4,
   metalness: 0.6,
 });
-
-const rightFacadeProfile = [
-  { z0: 0.0, z1: 4.0, x: 4.8 },
-  { z0: 4.0, z1: 8.45, x: 4.1 },
-  { z0: 8.45, z1: 12.0, x: 3.5 },
-] as const;
-
-const leftFacadeProfile = rightFacadeProfile.map((segment) => ({ ...segment, x: -segment.x }));
-
-function getXFaceForZ_Right(z: number) {
-  if (z <= 4.0) return 4.8;
-  if (z <= 8.45) return 4.1;
-  return 3.5;
-}
-
-function getXFaceForZ_Left(z: number) {
-  if (z <= 4.0) return -4.8;
-  if (z <= 8.45) return -4.1;
-  return -3.5;
-}
 
 function createFrameGeometry(width: number, height: number): THREE.ExtrudeGeometry {
   const halfWidth = width / 2;
@@ -151,11 +143,15 @@ function createSill({
 
 function makeSimpleWindow({
   spec,
+  frameX,
+  glassX,
   xFace,
   zCenter,
   side,
 }: {
   spec: SideWindowSpec;
+  frameX: number;
+  glassX: number;
   xFace: number;
   zCenter: number;
   side: 'left' | 'right';
@@ -164,9 +160,6 @@ function makeSimpleWindow({
   const yCenter = yBottom + height / 2;
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
-
-  const frameX = side === 'left' ? xFace - EPS + FRAME_DEPTH / 2 : xFace + EPS - FRAME_DEPTH / 2;
-  const glassX = side === 'left' ? frameX + GLASS_INSET : frameX - GLASS_INSET;
 
   const frameGeometry = createFrameGeometry(width, height);
   const glassGeometry = createGlassGeometry(innerWidth, innerHeight);
@@ -192,11 +185,15 @@ function makeSimpleWindow({
 
 function makeSplitTallWindow({
   spec,
+  frameX,
+  glassX,
   xFace,
   zCenter,
   side,
 }: {
   spec: SideWindowSpec;
+  frameX: number;
+  glassX: number;
   xFace: number;
   zCenter: number;
   side: 'left' | 'right';
@@ -210,9 +207,6 @@ function makeSplitTallWindow({
   const bandHeight = 0.45;
   const upperGlassHeight = 2.1;
   const innerWidth = width - 2 * FRAME_BORDER;
-
-  const frameX = side === 'left' ? xFace - EPS + FRAME_DEPTH / 2 : xFace + EPS - FRAME_DEPTH / 2;
-  const glassX = side === 'left' ? frameX + GLASS_INSET : frameX - GLASS_INSET;
 
   const lowerGlassCenterLocalY = windowBottomLocal + lowerGlassHeight / 2;
   const metalBandCenterLocalY = windowBottomLocal + 2.45 + bandHeight / 2;
@@ -258,28 +252,38 @@ function makeSplitTallWindow({
 
 const pts = getEnvelopeOuterPolygon();
 const minX = Math.min(...pts.map((p) => p.x));
-const maxX = Math.max(...pts.map((p) => p.x));
-const xFace = SIDE === 'left' ? leftFacadeProfile[0].x : rightFacadeProfile[0].x;
-const edgePts = pts.filter((p) => (SIDE === 'left' ? p.x <= xFace + EPS : p.x >= xFace - EPS));
-const zMin = Math.min(...edgePts.map((p) => p.z));
-const zMax = Math.max(...edgePts.map((p) => p.z));
+const zMin = Math.min(...pts.map((p) => p.z));
+const zMax = Math.max(...pts.map((p) => p.z));
 const mirrorZ = (z: number) => (MIRROR_Z ? zMin + zMax - z : z);
 console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
-console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, xFace, zMin, zMax });
+console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin, zMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   const zCenter = mirrorZ(spec.zCenter);
-  const xFaceForWindow = SIDE === 'left' ? getXFaceForZ_Left(zCenter) : getXFaceForZ_Right(zCenter);
+
+  const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
+
+  const frameXForWindow =
+    SIDE === 'left' ? xFaceForWindow - EPS + FRAME_DEPTH / 2 : xFaceForWindow + EPS - FRAME_DEPTH / 2;
+
+  const glassXForWindow = SIDE === 'left' ? frameXForWindow + GLASS_INSET : frameXForWindow - GLASS_INSET;
+
   console.log('SIDE WINDOW POS', {
     id: spec.id,
     zCenter,
     xFaceForWindow,
-    frameX: SIDE === 'left' ? xFaceForWindow - EPS + FRAME_DEPTH / 2 : xFaceForWindow + EPS - FRAME_DEPTH / 2,
-    yBottom: spec.yBottom,
-    height: spec.height,
+    frameXForWindow,
+    glassXForWindow,
   });
 
-  const commonProps = { spec, xFace: xFaceForWindow, zCenter, side: SIDE };
+  const commonProps = {
+    spec,
+    frameX: frameXForWindow,
+    glassX: glassXForWindow,
+    xFace: xFaceForWindow,
+    zCenter,
+    side: SIDE,
+  };
 
   if (spec.type === 'simple') return makeSimpleWindow(commonProps);
   return makeSplitTallWindow(commonProps);
@@ -288,8 +292,8 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
 export const windowsSide = {
   meshes,
   side: SIDE,
-  xFace,
   zMin,
   zMax,
   mirrorZ: MIRROR_Z,
+  profile: RIGHT_FACADE_PROFILE,
 };

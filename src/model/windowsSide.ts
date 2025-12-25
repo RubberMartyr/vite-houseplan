@@ -28,6 +28,10 @@ const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
 
+// Toggle which facade hosts the side windows and whether they should mirror along Z
+export const SIDE: 'left' | 'right' = 'right';
+export const MIRROR_Z = true;
+
 export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
   { id: 'SIDE_L_TALL_1', zCenter: 4.5, width: 1.0, yBottom: 0.0, height: 5.0, type: 'splitTall' },
@@ -234,34 +238,32 @@ function makeSplitTallWindow({
   return meshes;
 }
 
-export function makeSideWindows(options: { side: 'left' | 'right'; mirrorZ?: boolean }): { meshes: SideWindowMesh[] } {
-  const pts = getEnvelopeOuterPolygon();
-  const minX = Math.min(...pts.map((p) => p.x));
-  const maxX = Math.max(...pts.map((p) => p.x));
-  const xFace = options.side === 'left' ? minX : maxX;
-  const edgePts = pts.filter((p) => Math.abs(p.x - xFace) < EPS);
-  const zMin = Math.min(...edgePts.map((p) => p.z));
-  const zMax = Math.max(...edgePts.map((p) => p.z));
+const pts = getEnvelopeOuterPolygon();
+const minX = Math.min(...pts.map((p) => p.x));
+const maxX = Math.max(...pts.map((p) => p.x));
+const xFace = SIDE === 'left' ? minX : maxX;
+const edgePts = pts.filter((p) => Math.abs(p.x - xFace) < EPS);
+const zMin = Math.min(...edgePts.map((p) => p.z));
+const zMax = Math.max(...edgePts.map((p) => p.z));
+const mirrorZ = (z: number) => (MIRROR_Z ? zMin + zMax - z : z);
+const frameX = SIDE === 'left' ? xFace - EPS + FRAME_DEPTH / 2 : xFace + EPS - FRAME_DEPTH / 2;
+const glassX = SIDE === 'left' ? frameX + GLASS_INSET : frameX - GLASS_INSET;
 
-  function maybeMirrorZ(z: number) {
-    if (!options.mirrorZ) return z;
-    return zMin + zMax - z;
-  }
+console.log('✅ SIDE WINDOWS ACTIVE', { SIDE, xFace, zMin, zMax, MIRROR_Z });
 
-  const frameX =
-    options.side === 'left' ? xFace - EPS + FRAME_DEPTH / 2 : xFace + EPS - FRAME_DEPTH / 2;
-  const glassX = options.side === 'left' ? frameX + GLASS_INSET : frameX - GLASS_INSET;
+const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
+  const zCenter = mirrorZ(spec.zCenter);
+  const commonProps = { spec, frameX, glassX, zCenter, xFace, side: SIDE };
 
-  const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-    const zCenter = maybeMirrorZ(spec.zCenter);
-    const commonProps = { spec, frameX, glassX, zCenter, xFace, side: options.side };
+  if (spec.type === 'simple') return makeSimpleWindow(commonProps);
+  return makeSplitTallWindow(commonProps);
+});
 
-    if (spec.type === 'simple') return makeSimpleWindow(commonProps);
-    return makeSplitTallWindow(commonProps);
-  });
-
-  return { meshes };
-}
-
-export const windowsSideLeft = makeSideWindows({ side: 'left', mirrorZ: false });
-export const windowsSideRight = makeSideWindows({ side: 'right', mirrorZ: true });
+export const windowsSide = {
+  meshes,
+  side: SIDE,
+  xFace,
+  zMin,
+  zMax,
+  mirrorZ: MIRROR_Z,
+};

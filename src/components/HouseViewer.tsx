@@ -763,7 +763,7 @@ function HouseScene({
     [greenRoofPolygon]
   );
   const sideWindowMarkerPosition = useMemo(
-    () => [windowsSide.xFace, 2.5, (windowsSide.zMin + windowsSide.zMax) / 2] as [number, number, number],
+    () => [windowsSide.xFace, 1.0, (windowsSide.zMin + windowsSide.zMax) / 2] as [number, number, number],
     []
   );
 
@@ -796,6 +796,10 @@ function HouseScene({
     console.log('Origin offset applied:', originOffset);
     console.log('First two envelope points after offset:', offsetPoints);
   }, [firstEnvelopePolygon, groundEnvelopePolygon]);
+
+  useEffect(() => {
+    console.log('✅ windowsSide parented under originOffset group');
+  }, []);
 
   return (
     <>
@@ -889,6 +893,55 @@ function HouseScene({
             />
           )}
           {eavesBandMesh}
+          <group name="rearWindows" visible={wallShellVisible}>
+            {windowsRear.meshes.map((mesh) => {
+              const isGlass = mesh.id.toLowerCase().includes('_glass');
+              const fallbackMaterial = isGlass ? glass : frame;
+              const material = mesh.material ?? fallbackMaterial;
+              return (
+                <mesh
+                  key={mesh.id}
+                  geometry={mesh.geometry}
+                  position={mesh.position}
+                  rotation={mesh.rotation}
+                  material={material}
+                  castShadow={!isGlass}
+                  receiveShadow={!isGlass}
+                  renderOrder={isGlass ? 10 : undefined}
+                />
+              );
+            })}
+          </group>
+
+          <group name="sideWindows" visible={wallShellVisible}>
+            {windowsSide.meshes.map((mesh) => {
+              const isGlass = mesh.id.toLowerCase().includes('_glass');
+              const fallbackMaterial = isGlass ? glass : frame;
+              const material = mesh.material ?? fallbackMaterial;
+              return (
+                <mesh
+                  key={mesh.id}
+                  geometry={mesh.geometry}
+                  position={mesh.position}
+                  rotation={mesh.rotation}
+                  material={material}
+                  castShadow={!isGlass}
+                  receiveShadow={!isGlass}
+                  renderOrder={isGlass ? 10 : undefined}
+                />
+              );
+            })}
+          </group>
+
+          <mesh position={sideWindowMarkerPosition} visible={wallShellVisible}>
+            <boxGeometry args={[0.2, 0.2, 0.2]} />
+            <meshStandardMaterial color="#ff69b4" />
+          </mesh>
+
+          <mesh position={sideWindowMarkerPosition} visible={wallShellVisible}>
+            <boxGeometry args={[0.1, 0.1, 0.1]} />
+            <meshStandardMaterial color="magenta" />
+          </mesh>
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">
@@ -920,51 +973,6 @@ function HouseScene({
             />
           ))}
         </group>
-
-        <group name="rearWindows" visible={wallShellVisible}>
-          {windowsRear.meshes.map((mesh) => {
-            const isGlass = mesh.id.toLowerCase().includes('_glass');
-            const fallbackMaterial = isGlass ? glass : frame;
-            const material = mesh.material ?? fallbackMaterial;
-            return (
-              <mesh
-                key={mesh.id}
-                geometry={mesh.geometry}
-                position={mesh.position}
-                rotation={mesh.rotation}
-                material={material}
-                castShadow={!isGlass}
-                receiveShadow={!isGlass}
-                renderOrder={isGlass ? 10 : undefined}
-              />
-            );
-          })}
-        </group>
-
-        <group name="sideWindows" visible={wallShellVisible}>
-          {windowsSide.meshes.map((mesh) => {
-            const isGlass = mesh.id.toLowerCase().includes('_glass');
-            const fallbackMaterial = isGlass ? glass : frame;
-            const material = mesh.material ?? fallbackMaterial;
-            return (
-              <mesh
-                key={mesh.id}
-                geometry={mesh.geometry}
-                position={mesh.position}
-                rotation={mesh.rotation}
-                material={material}
-                castShadow={!isGlass}
-                receiveShadow={!isGlass}
-                renderOrder={isGlass ? 10 : undefined}
-              />
-            );
-          })}
-        </group>
-
-        <mesh position={sideWindowMarkerPosition} visible={wallShellVisible}>
-          <boxGeometry args={[0.2, 0.2, 0.2]} />
-          <meshStandardMaterial color="#ff69b4" />
-        </mesh>
 
         <Roof visible={showRoof} />
       </group>

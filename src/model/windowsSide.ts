@@ -249,7 +249,7 @@ const mirrorZ = (z: number) => (MIRROR_Z ? zMin + zMax - z : z);
 const frameX = SIDE === 'left' ? xFace - EPS + FRAME_DEPTH / 2 : xFace + EPS - FRAME_DEPTH / 2;
 const glassX = SIDE === 'left' ? frameX + GLASS_INSET : frameX - GLASS_INSET;
 
-console.log('✅ SIDE WINDOWS ACTIVE', { SIDE, xFace, zMin, zMax, MIRROR_Z });
+console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, xFace, zMin, zMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   const zCenter = mirrorZ(spec.zCenter);

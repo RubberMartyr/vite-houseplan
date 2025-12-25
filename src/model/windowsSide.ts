@@ -28,10 +28,7 @@ const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
 
-const envelope = getEnvelopeOuterPolygon();
-const leftX = envelope.reduce((min, point) => Math.min(min, point.x), Infinity);
-
-export const sideLeftWindows: SideWindowSpec[] = [
+export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
   { id: 'SIDE_L_TALL_1', zCenter: 4.5, width: 1.0, yBottom: 0.0, height: 5.0, type: 'splitTall' },
   { id: 'SIDE_L_TALL_2', zCenter: 6.8, width: 1.0, yBottom: 0.0, height: 5.0, type: 'splitTall' },
@@ -104,18 +101,23 @@ function createSill({
   width,
   zCenter,
   yBottom,
+  side,
+  xFace,
 }: {
   id: string;
   width: number;
   zCenter: number;
   yBottom: number;
+  side: 'left' | 'right';
+  xFace: number;
 }): SideWindowMesh {
+  const sillX =
+    side === 'left'
+      ? xFace - EPS - SILL_DEPTH / 2 - SILL_OVERHANG
+      : xFace + EPS + SILL_DEPTH / 2 + SILL_OVERHANG;
+
   const geometry = new THREE.BoxGeometry(SILL_DEPTH, SILL_HEIGHT, width + 0.04);
-  const position: [number, number, number] = [
-    leftX - EPS - SILL_DEPTH / 2 - SILL_OVERHANG,
-    yBottom - SILL_HEIGHT / 2,
-    zCenter,
-  ];
+  const position: [number, number, number] = [sillX, yBottom - SILL_HEIGHT / 2, zCenter];
 
   return {
     id,
@@ -126,17 +128,28 @@ function createSill({
   };
 }
 
-function makeSimpleWindow(spec: SideWindowSpec): SideWindowMesh[] {
-  const { id, width, height, yBottom, zCenter } = spec;
+function makeSimpleWindow({
+  spec,
+  frameX,
+  glassX,
+  zCenter,
+  xFace,
+  side,
+}: {
+  spec: SideWindowSpec;
+  frameX: number;
+  glassX: number;
+  zCenter: number;
+  xFace: number;
+  side: 'left' | 'right';
+}): SideWindowMesh[] {
+  const { id, width, height, yBottom } = spec;
   const yCenter = yBottom + height / 2;
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
 
   const frameGeometry = createFrameGeometry(width, height);
   const glassGeometry = createGlassGeometry(innerWidth, innerHeight);
-
-  const frameX = leftX - EPS + FRAME_DEPTH / 2;
-  const glassX = frameX + GLASS_INSET;
 
   return [
     {
@@ -153,15 +166,27 @@ function makeSimpleWindow(spec: SideWindowSpec): SideWindowMesh[] {
       rotation: [0, 0, 0],
       material: glassMaterial,
     },
-    createSill({ id: `${id}_SILL`, width, zCenter, yBottom }),
+    createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }),
   ];
 }
 
-function makeSplitTallWindow(spec: SideWindowSpec): SideWindowMesh[] {
-  const { id, width, height, yBottom, zCenter } = spec;
+function makeSplitTallWindow({
+  spec,
+  frameX,
+  glassX,
+  zCenter,
+  xFace,
+  side,
+}: {
+  spec: SideWindowSpec;
+  frameX: number;
+  glassX: number;
+  zCenter: number;
+  xFace: number;
+  side: 'left' | 'right';
+}): SideWindowMesh[] {
+  const { id, width, height, yBottom } = spec;
   const frameGeometry = createFrameGeometry(width, height);
-  const frameX = leftX - EPS + FRAME_DEPTH / 2;
-  const glassX = frameX + GLASS_INSET;
 
   const lowerGlassHeight = Math.min(2.45, height - FRAME_BORDER * 2);
   const bandHeight = 0.45;
@@ -204,16 +229,39 @@ function makeSplitTallWindow(spec: SideWindowSpec): SideWindowMesh[] {
     material: metalSlateMaterial,
   });
 
-  meshes.push(createSill({ id: `${id}_SILL`, width, zCenter, yBottom }));
+  meshes.push(createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }));
 
   return meshes;
 }
 
-const windowMeshes: SideWindowMesh[] = sideLeftWindows.flatMap((spec) => {
-  if (spec.type === 'simple') return makeSimpleWindow(spec);
-  return makeSplitTallWindow(spec);
-});
+export function makeSideWindows(options: { side: 'left' | 'right'; mirrorZ?: boolean }): { meshes: SideWindowMesh[] } {
+  const pts = getEnvelopeOuterPolygon();
+  const minX = Math.min(...pts.map((p) => p.x));
+  const maxX = Math.max(...pts.map((p) => p.x));
+  const xFace = options.side === 'left' ? minX : maxX;
+  const edgePts = pts.filter((p) => Math.abs(p.x - xFace) < EPS);
+  const zMin = Math.min(...edgePts.map((p) => p.z));
+  const zMax = Math.max(...edgePts.map((p) => p.z));
 
-export const windowsSideLeft: { meshes: SideWindowMesh[] } = {
-  meshes: windowMeshes,
-};
+  function maybeMirrorZ(z: number) {
+    if (!options.mirrorZ) return z;
+    return zMin + zMax - z;
+  }
+
+  const frameX =
+    options.side === 'left' ? xFace - EPS + FRAME_DEPTH / 2 : xFace + EPS - FRAME_DEPTH / 2;
+  const glassX = options.side === 'left' ? frameX + GLASS_INSET : frameX - GLASS_INSET;
+
+  const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
+    const zCenter = maybeMirrorZ(spec.zCenter);
+    const commonProps = { spec, frameX, glassX, zCenter, xFace, side: options.side };
+
+    if (spec.type === 'simple') return makeSimpleWindow(commonProps);
+    return makeSplitTallWindow(commonProps);
+  });
+
+  return { meshes };
+}
+
+export const windowsSideLeft = makeSideWindows({ side: 'left', mirrorZ: false });
+export const windowsSideRight = makeSideWindows({ side: 'right', mirrorZ: true });

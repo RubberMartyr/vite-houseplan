@@ -29,7 +29,7 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsSideLeft } from '../model/windowsSideLeft';
+import { windowsSideRight } from '../model/windowsSide';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -830,9 +830,9 @@ function HouseScene({
           )}
           {showGround && (
             <mesh
-              geometry={wallsGround.leftFacade.geometry}
-              position={wallsGround.leftFacade.position}
-              rotation={wallsGround.leftFacade.rotation}
+              geometry={wallsGround.rightFacade.geometry}
+              position={wallsGround.rightFacade.position}
+              rotation={wallsGround.rightFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -864,9 +864,9 @@ function HouseScene({
           )}
           {showFirst && (
             <mesh
-              geometry={wallsFirst.leftFacade.geometry}
-              position={wallsFirst.leftFacade.position}
-              rotation={wallsFirst.leftFacade.rotation}
+              geometry={wallsFirst.rightFacade.geometry}
+              position={wallsFirst.rightFacade.position}
+              rotation={wallsFirst.rightFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -937,8 +937,8 @@ function HouseScene({
           })}
         </group>
 
-        <group name="sideLeftWindows" visible={wallShellVisible}>
-          {windowsSideLeft.meshes.map((mesh) => {
+        <group name="sideRightWindows" visible={wallShellVisible}>
+          {windowsSideRight.meshes.map((mesh) => {
             const isGlass = mesh.id.toLowerCase().includes('_glass');
             const fallbackMaterial = isGlass ? glass : frame;
             const material = mesh.material ?? fallbackMaterial;

@@ -30,6 +30,7 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsSide } from '../model/windowsSide';
+import { windowsSideLeft } from '../model/windowsSideLeft';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -762,10 +763,6 @@ function HouseScene({
     () => (greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null),
     [greenRoofPolygon]
   );
-  const sideWindowMarkerPosition = useMemo(
-    () => [windowsSide.xFace, 1.0, (windowsSide.zMin + windowsSide.zMax) / 2] as [number, number, number],
-    []
-  );
 
   const activeRooms = useMemo(() => {
     const list: any[] = [];
@@ -913,6 +910,18 @@ function HouseScene({
             })}
           </group>
 
+          <group name="sideWindows_TEST">
+            {windowsSideLeft.meshes.map((m) => (
+              <mesh
+                key={m.id}
+                geometry={m.geometry}
+                material={m.material ?? wallMaterial}
+                position={m.position}
+                rotation={m.rotation}
+              />
+            ))}
+          </group>
+
           <group name="sideWindows" visible={wallShellVisible}>
             {windowsSide.meshes.map((mesh) => {
               const isGlass = mesh.id.toLowerCase().includes('_glass');
@@ -932,16 +941,6 @@ function HouseScene({
               );
             })}
           </group>
-
-          <mesh position={sideWindowMarkerPosition} visible={wallShellVisible}>
-            <boxGeometry args={[0.2, 0.2, 0.2]} />
-            <meshStandardMaterial color="#ff69b4" />
-          </mesh>
-
-          <mesh position={sideWindowMarkerPosition} visible={wallShellVisible}>
-            <boxGeometry args={[0.1, 0.1, 0.1]} />
-            <meshStandardMaterial color="magenta" />
-          </mesh>
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">

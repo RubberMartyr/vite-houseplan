@@ -1,6 +1,7 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { ceilingHeights, wallThickness } from './houseSpec';
+import { sideLeftWindows } from './windowsSideLeft';
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -12,6 +13,8 @@ export const wallsGround = {
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
+    const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
+    const innerLeftX = leftX + exteriorThickness;
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -75,14 +78,18 @@ export const wallsGround = {
       const y3 = position.getY(indices[2]);
       const z3 = position.getZ(indices[2]);
 
-      const onOuter = Math.abs(z1 - rearZ) < EPSILON && Math.abs(z2 - rearZ) < EPSILON && Math.abs(z3 - rearZ) < EPSILON;
-      const onInner =
+      const onRearOuter = Math.abs(z1 - rearZ) < EPSILON && Math.abs(z2 - rearZ) < EPSILON && Math.abs(z3 - rearZ) < EPSILON;
+      const onRearInner =
         Math.abs(z1 - innerRearZ) < EPSILON && Math.abs(z2 - innerRearZ) < EPSILON && Math.abs(z3 - innerRearZ) < EPSILON;
-      if (onOuter || onInner) {
-        if (onOuter) {
+      const onLeftOuter = Math.abs(x1 - leftX) < EPSILON && Math.abs(x2 - leftX) < EPSILON && Math.abs(x3 - leftX) < EPSILON;
+      const onLeftInner =
+        Math.abs(x1 - innerLeftX) < EPSILON && Math.abs(x2 - innerLeftX) < EPSILON && Math.abs(x3 - innerLeftX) < EPSILON;
+
+      if (onRearOuter || onRearInner || onLeftOuter || onLeftInner) {
+        if (onRearOuter) {
           removedOuter += 1;
         }
-        if (onInner) {
+        if (onRearInner) {
           removedInner += 1;
         }
         continue;
@@ -107,7 +114,7 @@ export const wallsGround = {
 
     const removedTotal = removedOuter + removedInner;
     console.log(
-      '✅ wallsGround rear faces removed for rear facade panel',
+      '✅ wallsGround rear/left faces removed for facade panels',
       { removedOuter, removedInner, removedTotal, keptTotal },
       Date.now(),
     );
@@ -170,6 +177,51 @@ export const wallsGround = {
     return {
       geometry: panelGeometry,
       position: [panelCenterX, panelHeight / 2, rearZ - panelDepth / 2] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  })(),
+
+  leftFacade: (() => {
+    const outer = getEnvelopeOuterPolygon();
+    const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
+    const edgePoints = outer.filter((point) => Math.abs(point.x - leftX) < EPSILON);
+    const minZ = edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity);
+    const maxZ = edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity);
+    const panelWidth = maxZ - minZ;
+    const panelCenterZ = (minZ + maxZ) / 2;
+    const panelHeight = wallHeight;
+    const panelDepth = exteriorThickness;
+
+    const shape = new Shape();
+    shape.moveTo(-panelWidth / 2, -panelHeight / 2);
+    shape.lineTo(panelWidth / 2, -panelHeight / 2);
+    shape.lineTo(panelWidth / 2, panelHeight / 2);
+    shape.lineTo(-panelWidth / 2, panelHeight / 2);
+    shape.closePath();
+
+    sideLeftWindows.forEach((spec) => {
+      const zMin = spec.zCenter - spec.width / 2;
+      const zMax = spec.zCenter + spec.width / 2;
+      const yMin = spec.type === 'splitTall' ? 0 : spec.yBottom;
+      const yMax = spec.type === 'splitTall' ? Math.max(spec.height, 5) : spec.yBottom + spec.height;
+
+      const path = new Path();
+      path.moveTo(zMin - panelCenterZ, yMin - panelHeight / 2);
+      path.lineTo(zMax - panelCenterZ, yMin - panelHeight / 2);
+      path.lineTo(zMax - panelCenterZ, yMax - panelHeight / 2);
+      path.lineTo(zMin - panelCenterZ, yMax - panelHeight / 2);
+      path.closePath();
+      shape.holes.push(path);
+    });
+
+    const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    panelGeometry.rotateY(-Math.PI / 2);
+    panelGeometry.translate(panelDepth, 0, 0);
+    panelGeometry.computeVertexNormals();
+
+    return {
+      geometry: panelGeometry,
+      position: [leftX, panelHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
   })(),

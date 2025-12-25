@@ -127,12 +127,17 @@ function useBuildingMaterials() {
   // 3. Glass (Ramen)
   const glass = useMemo(() => {
     return new THREE.MeshPhysicalMaterial({
-      color: '#aaddff',
-      transmission: 0.9,
+      color: '#e6e8ea',
+      transmission: 0.85,
+      thickness: 0.01,
       roughness: 0.05,
+      metalness: 0.0,
       ior: 1.5,
+      reflectivity: 0.25,
       transparent: true,
-      opacity: 1,
+      opacity: 1.0,
+      clearcoat: 0.1,
+      clearcoatRoughness: 0.1,
       side: THREE.DoubleSide,
       depthWrite: false,
     });
@@ -141,10 +146,9 @@ function useBuildingMaterials() {
   // 4. Frames (Schrijnwerk) - Dark Grey/Black (PVC/Alu)
   const frame = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: '#1a1a1a',
-      roughness: 0.5,
-      transparent: false,
-      opacity: 1,
+      color: '#383E42',
+      roughness: 0.55,
+      metalness: 0.12,
     });
   }, []);
 

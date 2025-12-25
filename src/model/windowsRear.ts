@@ -37,9 +37,9 @@ const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
 
 const frameMaterial = new THREE.MeshStandardMaterial({
-  color: '#2b2b2b',
-  roughness: 0.6,
-  metalness: 0.15,
+  color: '#383E42',
+  roughness: 0.55,
+  metalness: 0.12,
 });
 
 const blueStoneMaterial = new THREE.MeshStandardMaterial({

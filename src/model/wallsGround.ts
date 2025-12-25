@@ -1,14 +1,14 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
-import { RIGHT_FACADE_SEGMENTS, sideWindowSpecs, windowsSide } from './windowsSide';
+import { RIGHT_FACADE_SEGMENTS, makeMirrorZ, sideWindowSpecs, sideWindowZ } from './windowsSide';
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 const EPSILON = 0.01;
-const ACTIVE_MIRROR_Z = windowsSide.mirrorZ;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
+const mirrorZ = makeMirrorZ();
 
 type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
@@ -203,17 +203,17 @@ export const wallsGround = {
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
-  rightFacades: (() => makeRightFacadePanels())(),
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ }))(),
+  rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
 };
 
 function makeSideFacadePanel({
   side,
-  mirrorZ = false,
+  mirrorZ,
   level,
 }: {
   side: 'left' | 'right';
-  mirrorZ?: boolean;
+  mirrorZ: (z: number) => number;
   level: 'ground' | 'first';
 }) {
   const outer = getEnvelopeOuterPolygon();
@@ -236,24 +236,26 @@ function makeSideFacadePanel({
   shape.lineTo(-panelWidth / 2, panelHeight / 2);
   shape.closePath();
 
-  const zMirror = (z: number) => (mirrorZ ? minZ + maxZ - z : z);
   const openings =
     level === 'ground'
       ? sideWindowSpecs
-      : sideWindowSpecs.filter((spec) => spec.height + spec.yBottom > levelHeights.firstFloor - 1e-6);
+      : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+  const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach((spec) => {
-    const zCenter = zMirror(spec.zCenter);
+    const zCenter = sideWindowZ(spec, mirrorZ);
     const zMin = zCenter - spec.width / 2;
     const zMax = zCenter + spec.width / 2;
-    const yMin = spec.type === 'splitTall' ? 0 : spec.yBottom;
-    const yMax = spec.type === 'splitTall' ? Math.max(spec.height, 5) : spec.yBottom + spec.height;
+    const yMin = level === 'ground' ? spec.groundY0 : spec.firstY0;
+    const yMax = level === 'ground' ? spec.groundY1 : spec.firstY1;
+
+    if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
 
     const path = new Path();
-    path.moveTo(zMin - panelCenterZ, yMin - panelHeight / 2);
-    path.lineTo(zMax - panelCenterZ, yMin - panelHeight / 2);
-    path.lineTo(zMax - panelCenterZ, yMax - panelHeight / 2);
-    path.lineTo(zMin - panelCenterZ, yMax - panelHeight / 2);
+    path.moveTo(zMin - panelCenterZ, yMin - (panelBaseY + panelHeight / 2));
+    path.lineTo(zMax - panelCenterZ, yMin - (panelBaseY + panelHeight / 2));
+    path.lineTo(zMax - panelCenterZ, yMax - (panelBaseY + panelHeight / 2));
+    path.lineTo(zMin - panelCenterZ, yMax - (panelBaseY + panelHeight / 2));
     path.closePath();
     shape.holes.push(path);
   });
@@ -271,9 +273,8 @@ function makeSideFacadePanel({
   };
 }
 
-function makeRightFacadePanels() {
+function makeRightFacadePanels(mirrorZ: (z: number) => number) {
   const panelDepth = exteriorThickness;
-  const zMirror = (z: number) => (windowsSide.mirrorZ ? windowsSide.zMin + windowsSide.zMax - z : z);
   const openingsBySegmentId: Record<SegmentId, Opening[]> = {
     R_A: [],
     R_B: [],
@@ -281,11 +282,11 @@ function makeRightFacadePanels() {
   };
 
   sideWindowSpecs.forEach((spec) => {
-    const zCenter = zMirror(spec.zCenter);
+    const zCenter = sideWindowZ(spec, mirrorZ);
     const segment = segmentForZ(zCenter);
     const widthZ = spec.width;
-    const y0 = spec.type === 'splitTall' ? 0 : spec.yBottom;
-    const y1 = spec.type === 'splitTall' ? wallHeight : Math.min(wallHeight, spec.yBottom + spec.height);
+    const y0 = spec.groundY0;
+    const y1 = spec.groundY1;
 
     openingsBySegmentId[segment.id].push({ id: spec.id, zCenter, widthZ, y0, y1 });
   });
@@ -294,6 +295,7 @@ function makeRightFacadePanels() {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
     const holes: Opening[] = openingsBySegmentId[segment.id];
+    const panelBaseY = 0;
 
     const shape = new Shape();
     shape.moveTo(-widthZ / 2, -wallHeight / 2);
@@ -311,10 +313,10 @@ function makeRightFacadePanels() {
       if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
 
       const path = new Path();
-      path.moveTo(zMin - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(zMax - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(zMax - panelCenterZ, yMax - wallHeight / 2);
-      path.lineTo(zMin - panelCenterZ, yMax - wallHeight / 2);
+      path.moveTo(zMin - panelCenterZ, yMin - (panelBaseY + wallHeight / 2));
+      path.lineTo(zMax - panelCenterZ, yMin - (panelBaseY + wallHeight / 2));
+      path.lineTo(zMax - panelCenterZ, yMax - (panelBaseY + wallHeight / 2));
+      path.lineTo(zMin - panelCenterZ, yMax - (panelBaseY + wallHeight / 2));
       path.closePath();
       shape.holes.push(path);
     });

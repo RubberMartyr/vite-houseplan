@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ceilingHeights } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 
 type SideWindowMesh = {
@@ -11,11 +12,13 @@ type SideWindowMesh = {
 
 export type SideWindowSpec = {
   id: string;
+  kind: 'small' | 'tall';
   zCenter: number;
   width: number;
-  yBottom: number;
-  height: number;
-  type: 'simple' | 'splitTall';
+  groundY0: number;
+  groundY1: number;
+  firstY0: number;
+  firstY1: number;
 };
 
 const EPS = 0.01;
@@ -27,6 +30,16 @@ const METAL_BAND_DEPTH = 0.02;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
+
+function windowVerticalExtents(spec: SideWindowSpec) {
+  const yBottom = spec.groundY0;
+  const yTop = spec.kind === 'tall' ? Math.max(spec.groundY1, spec.firstY1) : spec.groundY1;
+
+  return {
+    yBottom,
+    height: yTop - yBottom,
+  };
+}
 
 export const RIGHT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
@@ -45,10 +58,46 @@ export const SIDE: 'left' | 'right' = 'right';
 export const MIRROR_Z = true;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
-  { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
-  { id: 'SIDE_L_TALL_1', zCenter: 4.6, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_2', zCenter: 6.8, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_3', zCenter: 9.35, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  {
+    id: 'SIDE_L_EXT',
+    kind: 'small',
+    zCenter: 1.2,
+    width: 1.0,
+    groundY0: 0.0,
+    groundY1: 2.15,
+    firstY0: 0.0,
+    firstY1: 0.0,
+  },
+  {
+    id: 'SIDE_L_TALL_1',
+    kind: 'tall',
+    zCenter: 4.6,
+    width: 1.1,
+    groundY0: 0.0,
+    groundY1: ceilingHeights.ground,
+    firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
+  {
+    id: 'SIDE_L_TALL_2',
+    kind: 'tall',
+    zCenter: 6.8,
+    width: 1.1,
+    groundY0: 0.0,
+    groundY1: ceilingHeights.ground,
+    firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
+  {
+    id: 'SIDE_L_TALL_3',
+    kind: 'tall',
+    zCenter: 9.35,
+    width: 1.1,
+    groundY0: 0.0,
+    groundY1: ceilingHeights.ground,
+    firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
 ];
 
 const frameMaterial = new THREE.MeshStandardMaterial({
@@ -156,7 +205,8 @@ function makeSimpleWindow({
   zCenter: number;
   side: 'left' | 'right';
 }): SideWindowMesh[] {
-  const { id, width, height, yBottom } = spec;
+  const { id, width } = spec;
+  const { height, yBottom } = windowVerticalExtents(spec);
   const yCenter = yBottom + height / 2;
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
@@ -198,7 +248,8 @@ function makeSplitTallWindow({
   zCenter: number;
   side: 'left' | 'right';
 }): SideWindowMesh[] {
-  const { id, width, height, yBottom } = spec;
+  const { id, width } = spec;
+  const { height, yBottom } = windowVerticalExtents(spec);
   const frameGeometry = createFrameGeometry(width, height);
   const yCenter = yBottom + height / 2;
   const windowBottomLocal = -height / 2;
@@ -252,14 +303,20 @@ function makeSplitTallWindow({
 
 const pts = getEnvelopeOuterPolygon();
 const minX = Math.min(...pts.map((p) => p.x));
-const zMin = Math.min(...pts.map((p) => p.z));
-const zMax = Math.max(...pts.map((p) => p.z));
-const mirrorZ = (z: number) => (MIRROR_Z ? zMin + zMax - z : z);
+export const sideZMin = Math.min(...pts.map((p) => p.z));
+export const sideZMax = Math.max(...pts.map((p) => p.z));
+export function makeMirrorZ() {
+  return (z: number) => (MIRROR_Z ? sideZMin + sideZMax - z : z);
+}
+export function sideWindowZ(spec: SideWindowSpec, mirrorZ: (z: number) => number) {
+  return mirrorZ(spec.zCenter);
+}
+const mirrorZ = makeMirrorZ();
 console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
-console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin, zMax });
+console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  const zCenter = mirrorZ(spec.zCenter);
+  const zCenter = sideWindowZ(spec, mirrorZ);
 
   const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
 
@@ -285,15 +342,15 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
     side: SIDE,
   };
 
-  if (spec.type === 'simple') return makeSimpleWindow(commonProps);
+  if (spec.kind === 'small') return makeSimpleWindow(commonProps);
   return makeSplitTallWindow(commonProps);
 });
 
 export const windowsSide = {
   meshes,
   side: SIDE,
-  zMin,
-  zMax,
+  zMin: sideZMin,
+  zMax: sideZMax,
   mirrorZ: MIRROR_Z,
   profile: RIGHT_FACADE_SEGMENTS,
 };

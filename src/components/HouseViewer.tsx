@@ -29,7 +29,7 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { sideWindowSpecs, windowsSideLeft, windowsSideRight } from '../model/windowsSide';
+import { windowsSideRight } from '../model/windowsSide';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -780,23 +780,6 @@ function HouseScene({
   const flatRoofY = firstFloorLevelY + 0.02;
   const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
 
-  const sideDebugCubes = useMemo(() => {
-    const minX = Math.min(...groundOuterEnvelope.map((p) => p.x));
-    const maxX = Math.max(...groundOuterEnvelope.map((p) => p.x));
-
-    const edgePtsLeft = groundOuterEnvelope.filter((p) => Math.abs(p.x - minX) < 1e-6);
-    const edgePtsRight = groundOuterEnvelope.filter((p) => Math.abs(p.x - maxX) < 1e-6);
-    const rightZMin = Math.min(...edgePtsRight.map((p) => p.z));
-    const rightZMax = Math.max(...edgePtsRight.map((p) => p.z));
-
-    const mirrorZ = (value: number, min: number, max: number) => min + max - value;
-
-    return sideWindowSpecs.map((spec) => ({
-      left: { x: minX, z: spec.zCenter },
-      right: { x: maxX, z: mirrorZ(spec.zCenter, rightZMin, rightZMax) },
-    }));
-  }, [groundOuterEnvelope]);
-
   useEffect(() => {
     console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
     console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
@@ -809,10 +792,6 @@ function HouseScene({
     console.log('Origin offset applied:', originOffset);
     console.log('First two envelope points after offset:', offsetPoints);
   }, [firstEnvelopePolygon, groundEnvelopePolygon]);
-
-  useEffect(() => {
-    console.log('✅ windowsSide rendered inside originOffset group', originOffset);
-  }, []);
 
   return (
     <>
@@ -851,17 +830,6 @@ function HouseScene({
           )}
           {showGround && (
             <mesh
-              geometry={wallsGround.leftFacade.geometry}
-              position={wallsGround.leftFacade.position}
-              rotation={wallsGround.leftFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showGround && (
-            <mesh
               geometry={wallsGround.rightFacade.geometry}
               position={wallsGround.rightFacade.position}
               rotation={wallsGround.rightFacade.rotation}
@@ -888,17 +856,6 @@ function HouseScene({
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.leftFacade.geometry}
-              position={wallsFirst.leftFacade.position}
-              rotation={wallsFirst.leftFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -980,26 +937,6 @@ function HouseScene({
           })}
         </group>
 
-        <group name="sideLeftWindows" visible={wallShellVisible}>
-          {windowsSideLeft.meshes.map((mesh) => {
-            const isGlass = mesh.id.toLowerCase().includes('_glass');
-            const fallbackMaterial = isGlass ? glass : frame;
-            const material = mesh.material ?? fallbackMaterial;
-            return (
-              <mesh
-                key={mesh.id}
-                geometry={mesh.geometry}
-                position={mesh.position}
-                rotation={mesh.rotation}
-                material={material}
-                castShadow={!isGlass}
-                receiveShadow={!isGlass}
-                renderOrder={isGlass ? 10 : undefined}
-              />
-            );
-          })}
-        </group>
-
         <group name="sideRightWindows" visible={wallShellVisible}>
           {windowsSideRight.meshes.map((mesh) => {
             const isGlass = mesh.id.toLowerCase().includes('_glass');
@@ -1019,19 +956,6 @@ function HouseScene({
             );
           })}
         </group>
-
-        {sideDebugCubes.map((positions, index) => (
-          <React.Fragment key={`side-debug-${index}`}>
-            <mesh position={[positions.left.x, 2.5, positions.left.z]}>
-              <boxGeometry args={[0.1, 0.1, 0.1]} />
-              <meshStandardMaterial color="red" />
-            </mesh>
-            <mesh position={[positions.right.x, 2.5, positions.right.z]}>
-              <boxGeometry args={[0.1, 0.1, 0.1]} />
-              <meshStandardMaterial color="red" />
-            </mesh>
-          </React.Fragment>
-        ))}
 
         <Roof visible={showRoof} />
       </group>

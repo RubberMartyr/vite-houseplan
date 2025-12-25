@@ -27,9 +27,6 @@ const METAL_BAND_DEPTH = 0.02;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
-const TALL_UNIT_HEIGHT = 5.0;
-const TALL_LOWER_TOP = 2.45;
-const TALL_BAND_TOP = 2.9;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
@@ -189,19 +186,19 @@ function makeSplitTallWindow({
   side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width, height, yBottom } = spec;
-  const frameHeight = Math.min(height, TALL_UNIT_HEIGHT);
-  const frameGeometry = createFrameGeometry(width, frameHeight);
+  const frameGeometry = createFrameGeometry(width, height);
 
+  const lowerGlassHeight = Math.min(2.45, height - FRAME_BORDER * 2);
+  const bandHeight = 0.45;
+  const upperStart = 2.9;
+  const upperGlassHeight = Math.max(height - upperStart, 0);
   const innerWidth = width - 2 * FRAME_BORDER;
-  const lowerGlassHeight = Math.max(TALL_LOWER_TOP - 0, 0);
-  const bandHeight = Math.max(TALL_BAND_TOP - TALL_LOWER_TOP, 0);
-  const upperGlassHeight = Math.max(frameHeight - TALL_BAND_TOP, 0);
 
   const meshes: SideWindowMesh[] = [
     {
       id: `${id}_FRAME`,
       geometry: frameGeometry,
-      position: [frameX, yBottom + frameHeight / 2, zCenter],
+      position: [frameX, yBottom + height / 2, zCenter],
       rotation: [0, 0, 0],
       material: frameMaterial,
     },
@@ -218,7 +215,7 @@ function makeSplitTallWindow({
     meshes.push({
       id: `${id}_GLASS_UPPER`,
       geometry: createGlassGeometry(innerWidth, upperGlassHeight),
-      position: [glassX, yBottom + TALL_BAND_TOP + upperGlassHeight / 2, zCenter],
+      position: [glassX, yBottom + upperStart + upperGlassHeight / 2, zCenter],
       rotation: [0, 0, 0],
       material: glassMaterial,
     });

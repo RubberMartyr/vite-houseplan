@@ -5,8 +5,13 @@ import { RIGHT_FACADE_SEGMENTS, sideWindowSpecs, windowsSide } from './windowsSi
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
-const EPSILON = 0.005;
+const EPSILON = 0.01;
 const ACTIVE_MIRROR_Z = windowsSide.mirrorZ;
+const MIN_HOLE_W = 0.05;
+const MIN_HOLE_H = 0.05;
+
+type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
+type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 
 export const wallsGround = {
   shell: (() => {
@@ -269,11 +274,26 @@ function makeSideFacadePanel({
 function makeRightFacadePanels() {
   const panelDepth = exteriorThickness;
   const zMirror = (z: number) => (windowsSide.mirrorZ ? windowsSide.zMin + windowsSide.zMax - z : z);
-  const windowsForLevel = sideWindowSpecs;
+  const openingsBySegmentId: Record<SegmentId, Opening[]> = {
+    R_A: [],
+    R_B: [],
+    R_C: [],
+  };
+
+  sideWindowSpecs.forEach((spec) => {
+    const zCenter = zMirror(spec.zCenter);
+    const segment = segmentForZ(zCenter);
+    const widthZ = spec.width;
+    const y0 = spec.type === 'splitTall' ? 0 : spec.yBottom;
+    const y1 = spec.type === 'splitTall' ? wallHeight : Math.min(wallHeight, spec.yBottom + spec.height);
+
+    openingsBySegmentId[segment.id].push({ id: spec.id, zCenter, widthZ, y0, y1 });
+  });
 
   return RIGHT_FACADE_SEGMENTS.map((segment) => {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
+    const holes: Opening[] = openingsBySegmentId[segment.id];
 
     const shape = new Shape();
     shape.moveTo(-widthZ / 2, -wallHeight / 2);
@@ -282,26 +302,19 @@ function makeRightFacadePanels() {
     shape.lineTo(-widthZ / 2, wallHeight / 2);
     shape.closePath();
 
-    windowsForLevel.forEach((spec) => {
-      const zCenter = zMirror(spec.zCenter);
-      if (!(zCenter > segment.z0 - EPSILON && zCenter <= segment.z1 + EPSILON)) {
-        return;
-      }
+    holes.forEach((opening) => {
+      const zMin = opening.zCenter - opening.widthZ / 2;
+      const zMax = opening.zCenter + opening.widthZ / 2;
+      const yMin = opening.y0;
+      const yMax = opening.y1;
 
-      const zMin = zCenter - spec.width / 2;
-      const zMax = zCenter + spec.width / 2;
-      const holeZMin = Math.max(zMin, segment.z0);
-      const holeZMax = Math.min(zMax, segment.z1);
-      const yMin = 0;
-      const yMax = Math.min(spec.type === 'splitTall' ? 5.0 : 2.15, wallHeight);
-
-      if (holeZMax <= holeZMin || yMax <= yMin) return;
+      if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
 
       const path = new Path();
-      path.moveTo(holeZMin - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(holeZMax - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(holeZMax - panelCenterZ, yMax - wallHeight / 2);
-      path.lineTo(holeZMin - panelCenterZ, yMax - wallHeight / 2);
+      path.moveTo(zMin - panelCenterZ, yMin - wallHeight / 2);
+      path.lineTo(zMax - panelCenterZ, yMin - wallHeight / 2);
+      path.lineTo(zMax - panelCenterZ, yMax - wallHeight / 2);
+      path.lineTo(zMin - panelCenterZ, yMax - wallHeight / 2);
       path.closePath();
       shape.holes.push(path);
     });
@@ -311,10 +324,18 @@ function makeRightFacadePanels() {
     panelGeometry.rotateY(-Math.PI / 2);
     panelGeometry.computeVertexNormals();
 
+    console.log('✅ RIGHT PANEL', segment.id, { holeCount: holes.length, z0: segment.z0, z1: segment.z1, x: segment.x });
+
     return {
       geometry: panelGeometry,
       position: [segment.x - panelDepth / 2, wallHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
   });
+}
+
+function segmentForZ(zCenter: number) {
+  if (zCenter < 4.0) return RIGHT_FACADE_SEGMENTS[0];
+  if (zCenter < 8.45) return RIGHT_FACADE_SEGMENTS[1];
+  return RIGHT_FACADE_SEGMENTS[2];
 }

@@ -823,12 +823,34 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {showGround && (
+            <mesh
+              geometry={wallsGround.rearFacade.geometry}
+              position={wallsGround.rearFacade.position}
+              rotation={wallsGround.rearFacade.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
 
           {showFirst && (
             <mesh
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {showFirst && (
+            <mesh
+              geometry={wallsFirst.rearFacade.geometry}
+              position={wallsFirst.rearFacade.position}
+              rotation={wallsFirst.rearFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow

@@ -27,7 +27,6 @@ const METAL_BAND_DEPTH = 0.02;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
-const TALL_Z_SHIFT = -0.40;
 
 export const RIGHT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
@@ -47,9 +46,9 @@ export const MIRROR_Z = true;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
-  { id: 'SIDE_L_TALL_1', zCenter: 4.6 + TALL_Z_SHIFT, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_2', zCenter: 6.8 + TALL_Z_SHIFT, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_3', zCenter: 9.35 + TALL_Z_SHIFT, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  { id: 'SIDE_L_TALL_1', zCenter: 4.6, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  { id: 'SIDE_L_TALL_2', zCenter: 6.8, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  { id: 'SIDE_L_TALL_3', zCenter: 9.35, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
 ];
 
 const frameMaterial = new THREE.MeshStandardMaterial({

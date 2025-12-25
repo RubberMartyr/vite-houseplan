@@ -1,11 +1,13 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
-import { sideWindowSpecs } from './windowsSide';
+import { sideWindowSpecs, windowsSide } from './windowsSide';
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 const EPSILON = 0.005;
+const ACTIVE_SIDE = windowsSide.side;
+const ACTIVE_MIRROR_Z = windowsSide.mirrorZ;
 
 export const wallsGround = {
   shell: (() => {
@@ -191,8 +193,9 @@ export const wallsGround = {
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground' }))(),
-  rightFacade: (() => makeSideFacadePanel({ side: 'right', level: 'ground', mirrorZ: true }))(),
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
+  rightFacade: (() => makeSideFacadePanel({ side: 'right', level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
+  sideFacade: (() => makeSideFacadePanel({ side: ACTIVE_SIDE, level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
 };
 
 function makeSideFacadePanel({

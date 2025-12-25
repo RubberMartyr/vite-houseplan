@@ -29,7 +29,7 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsSideRight } from '../model/windowsSide';
+import { windowsSide } from '../model/windowsSide';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -762,6 +762,10 @@ function HouseScene({
     () => (greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null),
     [greenRoofPolygon]
   );
+  const sideWindowMarkerPosition = useMemo(
+    () => [windowsSide.xFace, 2.5, (windowsSide.zMin + windowsSide.zMax) / 2] as [number, number, number],
+    []
+  );
 
   const activeRooms = useMemo(() => {
     const list: any[] = [];
@@ -830,9 +834,9 @@ function HouseScene({
           )}
           {showGround && (
             <mesh
-              geometry={wallsGround.rightFacade.geometry}
-              position={wallsGround.rightFacade.position}
-              rotation={wallsGround.rightFacade.rotation}
+              geometry={wallsGround.sideFacade.geometry}
+              position={wallsGround.sideFacade.position}
+              rotation={wallsGround.sideFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -864,9 +868,9 @@ function HouseScene({
           )}
           {showFirst && (
             <mesh
-              geometry={wallsFirst.rightFacade.geometry}
-              position={wallsFirst.rightFacade.position}
-              rotation={wallsFirst.rightFacade.rotation}
+              geometry={wallsFirst.sideFacade.geometry}
+              position={wallsFirst.sideFacade.position}
+              rotation={wallsFirst.sideFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -937,8 +941,8 @@ function HouseScene({
           })}
         </group>
 
-        <group name="sideRightWindows" visible={wallShellVisible}>
-          {windowsSideRight.meshes.map((mesh) => {
+        <group name="sideWindows" visible={wallShellVisible}>
+          {windowsSide.meshes.map((mesh) => {
             const isGlass = mesh.id.toLowerCase().includes('_glass');
             const fallbackMaterial = isGlass ? glass : frame;
             const material = mesh.material ?? fallbackMaterial;
@@ -956,6 +960,11 @@ function HouseScene({
             );
           })}
         </group>
+
+        <mesh position={sideWindowMarkerPosition} visible={wallShellVisible}>
+          <boxGeometry args={[0.2, 0.2, 0.2]} />
+          <meshStandardMaterial color="#ff69b4" />
+        </mesh>
 
         <Roof visible={showRoof} />
       </group>

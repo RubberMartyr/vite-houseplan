@@ -29,7 +29,6 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsSideLeft } from '../model/windowsSideLeft';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -718,10 +717,6 @@ function HouseScene({
     console.log('✅ DEBUG CUBES ADDED', Date.now());
   }, []);
 
-  useEffect(() => {
-    console.log('SIDE WINDOWS RENDER INSIDE ORIGIN GROUP', originOffset);
-  }, []);
-
   const getRearFacadeSpan = (points: { x: number; z: number }[]) => {
     if (!points || points.length === 0) {
       return null;
@@ -834,17 +829,6 @@ function HouseScene({
           )}
           {showGround && (
             <mesh
-              geometry={wallsGround.leftFacade.geometry}
-              position={wallsGround.leftFacade.position}
-              rotation={wallsGround.leftFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showGround && (
-            <mesh
               geometry={wallsGround.rearFacade.geometry}
               position={wallsGround.rearFacade.position}
               rotation={wallsGround.rearFacade.rotation}
@@ -860,17 +844,6 @@ function HouseScene({
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.leftFacade.geometry}
-              position={wallsFirst.leftFacade.position}
-              rotation={wallsFirst.leftFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -923,25 +896,6 @@ function HouseScene({
 
         <group name="rearWindows" visible={wallShellVisible}>
           {windowsRear.meshes.map((mesh) => {
-            const isGlass = mesh.id.toLowerCase().includes('_glass');
-            const fallbackMaterial = isGlass ? glass : frame;
-            const material = mesh.material ?? fallbackMaterial;
-            return (
-              <mesh
-                key={mesh.id}
-                geometry={mesh.geometry}
-                position={mesh.position}
-                rotation={mesh.rotation}
-                material={material}
-                castShadow={!isGlass}
-                receiveShadow={!isGlass}
-                renderOrder={isGlass ? 10 : undefined}
-              />
-            );
-          })}
-        </group>
-        <group name="leftWindows" visible={wallShellVisible}>
-          {windowsSideLeft.meshes.map((mesh) => {
             const isGlass = mesh.id.toLowerCase().includes('_glass');
             const fallbackMaterial = isGlass ? glass : frame;
             const material = mesh.material ?? fallbackMaterial;

@@ -27,6 +27,8 @@ const METAL_BAND_DEPTH = 0.02;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
+// Move tall side windows toward FRONT (front = z=0)
+const TALL_WINDOWS_SHIFT_Z = -0.70;
 
 export const RIGHT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
@@ -42,14 +44,42 @@ function xFaceForRightAtZ(z: number) {
 
 // Toggle which facade hosts the side windows and whether they should mirror along Z
 export const SIDE: 'left' | 'right' = 'right';
-export const MIRROR_Z = true;
+export const MIRROR_Z = false;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
-  { id: 'SIDE_L_TALL_1', zCenter: 4.6, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_2', zCenter: 6.8, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_3', zCenter: 9.35, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  {
+    id: 'SIDE_L_TALL_1',
+    zCenter: 4.6 + TALL_WINDOWS_SHIFT_Z,
+    width: 1.1,
+    yBottom: 0.0,
+    height: 5.0,
+    type: 'splitTall',
+  },
+  {
+    id: 'SIDE_L_TALL_2',
+    zCenter: 6.8 + TALL_WINDOWS_SHIFT_Z,
+    width: 1.1,
+    yBottom: 0.0,
+    height: 5.0,
+    type: 'splitTall',
+  },
+  {
+    id: 'SIDE_L_TALL_3',
+    zCenter: 9.35 + TALL_WINDOWS_SHIFT_Z,
+    width: 1.1,
+    yBottom: 0.0,
+    height: 5.0,
+    type: 'splitTall',
+  },
 ];
+console.log(
+  '✅ SIDE WINDOWS Z CHECK',
+  sideWindowSpecs.map((w) => ({
+    id: w.id,
+    zCenter: w.zCenter,
+  })),
+);
 
 const frameMaterial = new THREE.MeshStandardMaterial({
   color: '#383E42',
@@ -254,12 +284,11 @@ const pts = getEnvelopeOuterPolygon();
 const minX = Math.min(...pts.map((p) => p.x));
 const zMin = Math.min(...pts.map((p) => p.z));
 const zMax = Math.max(...pts.map((p) => p.z));
-const mirrorZ = (z: number) => (MIRROR_Z ? zMin + zMax - z : z);
 console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
 console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin, zMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  const zCenter = mirrorZ(spec.zCenter);
+  const zCenter = spec.zCenter;
 
   const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
 

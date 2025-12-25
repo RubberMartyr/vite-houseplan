@@ -1,5 +1,6 @@
 // @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
+console.log("✅ RIGHT FACADES COUNT", wallsGround.rightFacades.length, wallsFirst.rightFacades.length);
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -828,17 +829,19 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showGround && (
-            <mesh
-              geometry={wallsGround.sideFacade.geometry}
-              position={wallsGround.sideFacade.position}
-              rotation={wallsGround.sideFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
+          {showGround &&
+            wallsGround.rightFacades.map((facade, index) => (
+              <mesh
+                key={`ground-right-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
           {showGround && (
             <mesh
               geometry={wallsGround.rearFacade.geometry}
@@ -862,17 +865,19 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.sideFacade.geometry}
-              position={wallsFirst.sideFacade.position}
-              rotation={wallsFirst.sideFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
+          {showFirst &&
+            wallsFirst.rightFacades.map((facade, index) => (
+              <mesh
+                key={`first-right-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
           {showFirst && (
             <mesh
               geometry={wallsFirst.rearFacade.geometry}

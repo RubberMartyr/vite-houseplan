@@ -43,6 +43,9 @@ function xFaceForRightAtZ(z: number) {
 // Toggle which facade hosts the side windows and whether they should mirror along Z
 export const SIDE: 'left' | 'right' = 'right';
 export const MIRROR_Z = true;
+// Adjust tall windows position without flipping the layout
+// Positive moves them toward the front in MIRRORED space (we will confirm direction)
+const TALL_SHIFT_MIRRORED_Z = 0.70;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
@@ -259,7 +262,14 @@ console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
 console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin, zMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  const zCenter = mirrorZ(spec.zCenter);
+  let zCenter = mirrorZ(spec.zCenter);
+
+  if (spec.type === 'splitTall') {
+    zCenter = zCenter + TALL_SHIFT_MIRRORED_Z;
+  }
+
+  // small window is unchanged
+  console.log('✅ side windows zCenter final', spec.id, { base: spec.zCenter, mirrored: mirrorZ(spec.zCenter), final: zCenter });
 
   const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
 

@@ -1,12 +1,11 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
-import { sideWindowSpecs, windowsSide } from './windowsSide';
+import { RIGHT_FACADE_SEGMENTS, sideWindowSpecs, windowsSide } from './windowsSide';
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 const EPSILON = 0.005;
-const ACTIVE_SIDE = windowsSide.side;
 const ACTIVE_MIRROR_Z = windowsSide.mirrorZ;
 
 export const wallsGround = {
@@ -17,8 +16,6 @@ export const wallsGround = {
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
     const innerLeftX = leftX + exteriorThickness;
-    const rightX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
-    const innerRightX = rightX - exteriorThickness;
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -89,19 +86,27 @@ export const wallsGround = {
       const onLeftOuter = Math.abs(x1 - leftX) < EPSILON && Math.abs(x2 - leftX) < EPSILON && Math.abs(x3 - leftX) < EPSILON;
       const onLeftInner =
         Math.abs(x1 - innerLeftX) < EPSILON && Math.abs(x2 - innerLeftX) < EPSILON && Math.abs(x3 - innerLeftX) < EPSILON;
-      const onRightOuter =
-        Math.abs(x1 - rightX) < EPSILON && Math.abs(x2 - rightX) < EPSILON && Math.abs(x3 - rightX) < EPSILON;
-      const onRightInner =
-        Math.abs(x1 - innerRightX) < EPSILON && Math.abs(x2 - innerRightX) < EPSILON && Math.abs(x3 - innerRightX) < EPSILON;
+      const onRightSegment = RIGHT_FACADE_SEGMENTS.some((segment) => {
+        const outerX = segment.x;
+        const innerX = segment.x - exteriorThickness;
+        const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
+        const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
+        if (!onOuterX && !onInnerX) return false;
 
-      if (onRearOuter || onRearInner || onLeftOuter || onLeftInner || onRightOuter || onRightInner) {
+        const zMinTri = Math.min(z1, z2, z3);
+        const zMaxTri = Math.max(z1, z2, z3);
+        const inSegmentZ = zMaxTri >= segment.z0 - EPSILON && zMinTri <= segment.z1 + EPSILON;
+        return inSegmentZ;
+      });
+
+      if (onRearOuter || onRearInner || onLeftOuter || onLeftInner || onRightSegment) {
         if (onRearOuter) {
           removedOuter += 1;
         }
         if (onRearInner) {
           removedInner += 1;
         }
-        if (onLeftOuter || onLeftInner || onRightOuter || onRightInner) {
+        if (onLeftOuter || onLeftInner || onRightSegment) {
           removedSide += 1;
         }
         continue;
@@ -194,8 +199,7 @@ export const wallsGround = {
   })(),
 
   leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
-  rightFacade: (() => makeSideFacadePanel({ side: 'right', level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
-  sideFacade: (() => makeSideFacadePanel({ side: ACTIVE_SIDE, level: 'ground', mirrorZ: ACTIVE_MIRROR_Z }))(),
+  rightFacades: (() => makeRightFacadePanels())(),
 };
 
 function makeSideFacadePanel({
@@ -260,4 +264,57 @@ function makeSideFacadePanel({
     position: [panelCenterX, panelHeight / 2, panelCenterZ] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
+}
+
+function makeRightFacadePanels() {
+  const panelDepth = exteriorThickness;
+  const zMirror = (z: number) => (windowsSide.mirrorZ ? windowsSide.zMin + windowsSide.zMax - z : z);
+  const windowsForLevel = sideWindowSpecs;
+
+  return RIGHT_FACADE_SEGMENTS.map((segment) => {
+    const widthZ = segment.z1 - segment.z0;
+    const panelCenterZ = (segment.z0 + segment.z1) / 2;
+
+    const shape = new Shape();
+    shape.moveTo(-widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, wallHeight / 2);
+    shape.lineTo(-widthZ / 2, wallHeight / 2);
+    shape.closePath();
+
+    windowsForLevel.forEach((spec) => {
+      const zCenter = zMirror(spec.zCenter);
+      if (!(zCenter > segment.z0 - EPSILON && zCenter <= segment.z1 + EPSILON)) {
+        return;
+      }
+
+      const zMin = zCenter - spec.width / 2;
+      const zMax = zCenter + spec.width / 2;
+      const holeZMin = Math.max(zMin, segment.z0);
+      const holeZMax = Math.min(zMax, segment.z1);
+      const yMin = 0;
+      const yMax = Math.min(spec.type === 'splitTall' ? 5.0 : 2.15, wallHeight);
+
+      if (holeZMax <= holeZMin || yMax <= yMin) return;
+
+      const path = new Path();
+      path.moveTo(holeZMin - panelCenterZ, yMin - wallHeight / 2);
+      path.lineTo(holeZMax - panelCenterZ, yMin - wallHeight / 2);
+      path.lineTo(holeZMax - panelCenterZ, yMax - wallHeight / 2);
+      path.lineTo(holeZMin - panelCenterZ, yMax - wallHeight / 2);
+      path.closePath();
+      shape.holes.push(path);
+    });
+
+    const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    panelGeometry.translate(0, 0, -panelDepth / 2);
+    panelGeometry.rotateY(-Math.PI / 2);
+    panelGeometry.computeVertexNormals();
+
+    return {
+      geometry: panelGeometry,
+      position: [segment.x - panelDepth / 2, wallHeight / 2, panelCenterZ] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  });
 }

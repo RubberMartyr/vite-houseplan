@@ -28,16 +28,16 @@ const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
 
-const RIGHT_FACADE_PROFILE = [
-  { z0: 0.0, z1: 4.0, x: 4.8 },
-  { z0: 4.0, z1: 8.45, x: 4.1 },
-  { z0: 8.45, z1: 12.0, x: 3.5 },
+export const RIGHT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: 3.5 },
 ] as const;
 
 function xFaceForRightAtZ(z: number) {
-  if (z <= RIGHT_FACADE_PROFILE[0].z1) return RIGHT_FACADE_PROFILE[0].x;
-  if (z <= RIGHT_FACADE_PROFILE[1].z1) return RIGHT_FACADE_PROFILE[1].x;
-  return RIGHT_FACADE_PROFILE[2].x;
+  if (z <= RIGHT_FACADE_SEGMENTS[0].z1) return RIGHT_FACADE_SEGMENTS[0].x;
+  if (z <= RIGHT_FACADE_SEGMENTS[1].z1) return RIGHT_FACADE_SEGMENTS[1].x;
+  return RIGHT_FACADE_SEGMENTS[2].x;
 }
 
 // Toggle which facade hosts the side windows and whether they should mirror along Z
@@ -295,5 +295,5 @@ export const windowsSide = {
   zMin,
   zMax,
   mirrorZ: MIRROR_Z,
-  profile: RIGHT_FACADE_PROFILE,
+  profile: RIGHT_FACADE_SEGMENTS,
 };

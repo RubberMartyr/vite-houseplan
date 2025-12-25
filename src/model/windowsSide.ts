@@ -46,9 +46,9 @@ export const MIRROR_Z = true;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
   { id: 'SIDE_L_EXT', zCenter: 1.2, width: 1.0, yBottom: 0.0, height: 2.15, type: 'simple' },
-  { id: 'SIDE_L_TALL_1', zCenter: 4.5, width: 1.0, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_2', zCenter: 6.8, width: 1.0, yBottom: 0.0, height: 5.0, type: 'splitTall' },
-  { id: 'SIDE_L_TALL_3', zCenter: 9.1, width: 1.0, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  { id: 'SIDE_L_TALL_1', zCenter: 4.6, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  { id: 'SIDE_L_TALL_2', zCenter: 6.8, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
+  { id: 'SIDE_L_TALL_3', zCenter: 9.35, width: 1.1, yBottom: 0.0, height: 5.0, type: 'splitTall' },
 ];
 
 const frameMaterial = new THREE.MeshStandardMaterial({

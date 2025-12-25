@@ -714,10 +714,6 @@ function HouseScene({
     );
   }, [eavesBandMaterial, wallShellVisible]);
 
-  useEffect(() => {
-    console.log('✅ DEBUG CUBES ADDED', Date.now());
-  }, []);
-
   const getRearFacadeSpan = (points: { x: number; z: number }[]) => {
     if (!points || points.length === 0) {
       return null;

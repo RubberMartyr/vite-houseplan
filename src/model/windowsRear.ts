@@ -7,6 +7,7 @@ type WindowMesh = {
   geometry: THREE.BufferGeometry;
   position: [number, number, number];
   rotation: [number, number, number];
+  material?: THREE.Material;
 };
 
 export type RearWindowCutout = {
@@ -31,6 +32,21 @@ const EXPECTED_REAR_WIDTH = 7.6;
 const WIDTH_TOLERANCE = 0.05;
 const CUTOUT_DEPTH = 0.6;
 const CUTOUT_MARGIN = 0.01;
+const SILL_DEPTH = 0.18;
+const SILL_HEIGHT = 0.05;
+const SILL_OVERHANG = 0.02;
+
+const frameMaterial = new THREE.MeshStandardMaterial({
+  color: '#2b2b2b',
+  roughness: 0.6,
+  metalness: 0.15,
+});
+
+const blueStoneMaterial = new THREE.MeshStandardMaterial({
+  color: '#5f6b73',
+  roughness: 0.8,
+  metalness: 0.0,
+});
 
 function getRearFacadeSpan(points: { x: number; z: number }[]): FacadeSpan {
   const maxZ = points.reduce((max, point) => Math.max(max, point.z), -Infinity);
@@ -100,6 +116,7 @@ function makeWindowMeshes(params: {
       geometry: frameGeometry,
       position: framePosition,
       rotation: [0, 0, 0],
+      material: frameMaterial,
     },
     {
       id: `${idBase}_GLASS`,
@@ -119,11 +136,37 @@ function makeWindowMeshes(params: {
         geometry: new THREE.BoxGeometry(mullionWidth, innerHeight, FRAME_DEPTH),
         position: [xCenter + xOffset, yCenter, frameZ],
         rotation: [0, 0, 0],
+        material: frameMaterial,
       });
     }
   }
 
   return meshes;
+}
+
+function makeSill({
+  id,
+  width,
+  xCenter,
+  yCenter,
+  zFace,
+}: {
+  id: string;
+  width: number;
+  xCenter: number;
+  yCenter: number;
+  zFace: number;
+}): WindowMesh {
+  const geometry = new THREE.BoxGeometry(width, SILL_HEIGHT, SILL_DEPTH);
+  const position: [number, number, number] = [xCenter, yCenter, zFace + SILL_DEPTH / 2 + SILL_OVERHANG];
+
+  return {
+    id,
+    geometry,
+    position,
+    rotation: [0, 0, 0],
+    material: blueStoneMaterial,
+  };
 }
 
 const groundSpan = getRearFacadeSpan(getEnvelopeOuterPolygon());
@@ -162,7 +205,7 @@ const groundWindows = (() => {
   const xCenter = groundSpan.minX + leftMargin + width / 2;
   const yBottom = 0;
 
-  return makeWindowMeshes({
+  const windowMeshes = makeWindowMeshes({
     idBase: 'REAR_GROUND_BIG',
     width,
     height,
@@ -171,6 +214,16 @@ const groundWindows = (() => {
     zFace: groundSpan.maxZ,
     mullions: 2,
   });
+
+  const sill = makeSill({
+    id: 'REAR_GROUND_SILL',
+    width: width + 0.04,
+    xCenter,
+    yCenter: SILL_HEIGHT / 2,
+    zFace: groundSpan.maxZ,
+  });
+
+  return [...windowMeshes, sill];
 })();
 
 const firstFloorWindows = (() => {
@@ -185,6 +238,10 @@ const firstFloorWindows = (() => {
   const firstCenter = firstSpan.minX + leftMargin + windowWidth / 2;
   const secondCenter = firstSpan.minX + leftMargin + windowWidth + spacing + windowWidth / 2;
 
+  const sillWidth = windowWidth + 0.04;
+  const sillYCenter = levelHeights.firstFloor + sillOffset - SILL_HEIGHT / 2;
+  const sillZFace = firstSpan.maxZ;
+
   return [
     ...makeWindowMeshes({
       idBase: 'REAR_FIRST_LEFT',
@@ -195,6 +252,13 @@ const firstFloorWindows = (() => {
       zFace: firstSpan.maxZ,
       mullions: 1,
     }),
+    makeSill({
+      id: 'REAR_FIRST_LEFT_SILL',
+      width: sillWidth,
+      xCenter: firstCenter,
+      yCenter: sillYCenter,
+      zFace: sillZFace,
+    }),
     ...makeWindowMeshes({
       idBase: 'REAR_FIRST_RIGHT',
       width: windowWidth,
@@ -203,6 +267,13 @@ const firstFloorWindows = (() => {
       yBottom,
       zFace: firstSpan.maxZ,
       mullions: 1,
+    }),
+    makeSill({
+      id: 'REAR_FIRST_RIGHT_SILL',
+      width: sillWidth,
+      xCenter: secondCenter,
+      yCenter: sillYCenter,
+      zFace: sillZFace,
     }),
   ];
 })();

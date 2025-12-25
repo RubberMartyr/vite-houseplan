@@ -893,7 +893,8 @@ function HouseScene({
         <group name="rearWindows" visible={wallShellVisible}>
           {windowsRear.meshes.map((mesh) => {
             const isGlass = mesh.id.toLowerCase().includes('_glass');
-            const material = isGlass ? glass : frame;
+            const fallbackMaterial = isGlass ? glass : frame;
+            const material = mesh.material ?? fallbackMaterial;
             return (
               <mesh
                 key={mesh.id}

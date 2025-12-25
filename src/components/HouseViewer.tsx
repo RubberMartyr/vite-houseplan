@@ -30,7 +30,6 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsSide } from '../model/windowsSide';
-import { windowsSideLeft } from '../model/windowsSideLeft';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -908,18 +907,6 @@ function HouseScene({
                 />
               );
             })}
-          </group>
-
-          <group name="sideWindows_TEST">
-            {windowsSideLeft.meshes.map((m) => (
-              <mesh
-                key={m.id}
-                geometry={m.geometry}
-                material={m.material ?? wallMaterial}
-                position={m.position}
-                rotation={m.rotation}
-              />
-            ))}
           </group>
 
           <group name="sideWindows" visible={wallShellVisible}>

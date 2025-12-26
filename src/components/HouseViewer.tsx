@@ -627,7 +627,6 @@ function HouseScene({
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<any>;
 }) {
-  const SHOW_FACADE_PANELS = false;
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
   const LOW_QUALITY = false;
@@ -838,8 +837,8 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showGround && SHOW_FACADE_PANELS &&
-            (wallsGround.rightFacades ?? []).map((facade, index) => (
+          {showGround &&
+            wallsGround.rightFacades.map((facade, index) => (
               <mesh
                 key={`ground-right-facade-${index}`}
                 geometry={facade.geometry}
@@ -851,7 +850,7 @@ function HouseScene({
                 visible={wallShellVisible}
               />
             ))}
-          {showGround && SHOW_FACADE_PANELS && wallsGround.rearFacade && (
+          {showGround && (
             <mesh
               geometry={wallsGround.rearFacade.geometry}
               position={wallsGround.rearFacade.position}
@@ -874,7 +873,7 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showFirst && SHOW_FACADE_PANELS && wallsFirst.rightFacade && (
+          {showFirst && (
             <mesh
               geometry={wallsFirst.rightFacade.geometry}
               position={wallsFirst.rightFacade.position}
@@ -885,8 +884,8 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showFirst && SHOW_FACADE_PANELS &&
-            (wallsFirst.rightFacades ?? []).map((facade, index) => (
+          {showFirst &&
+            wallsFirst.rightFacades.map((facade, index) => (
               <mesh
                 key={`first-right-facade-${index}`}
                 geometry={facade.geometry}
@@ -898,7 +897,7 @@ function HouseScene({
                 visible={wallShellVisible}
               />
             ))}
-          {showFirst && SHOW_FACADE_PANELS && wallsFirst.rearFacade && (
+          {showFirst && (
             <mesh
               geometry={wallsFirst.rearFacade.geometry}
               position={wallsFirst.rearFacade.position}

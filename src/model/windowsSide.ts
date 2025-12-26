@@ -227,7 +227,7 @@ function createRevealMeshes({
   const headThickness = Math.min(REVEAL_FACE, height / 2);
   const clearWidth = Math.max(0.01, spec.width - 2 * jambThickness);
 
-  console.log('✅ REVEAL PLANES', spec.id, { xOuter, xInner, xMid, revealDepth });
+  console.log('✅ REVEAL per window', spec.id, { zCenter, xOuter, xInner, revealDepth });
 
   return [
     {
@@ -442,20 +442,19 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   const interiorDir = -outward;
   const wallDepth = wallThickness.exterior ?? 0.3;
 
-  const xOuterPlane = xFaceForWindow + outward * EPS;
-  const xInnerPlane = xOuterPlane + interiorDir * wallDepth;
+  const xOuterReveal = xFaceForWindow;
+  const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
+  const xOuterPlane = xOuterReveal + outward * EPS;
 
   const frameXForWindow = xOuterPlane - outward * (FRAME_DEPTH / 2);
   const glassXForWindow = frameXForWindow + interiorDir * GLASS_INSET;
-  const xOuterReveal = xOuterPlane;
-  const xInnerReveal = xInnerPlane + interiorDir * EPS;
 
   console.log('SIDE WINDOW POS', {
     id: spec.id,
     zCenter,
     xFaceForWindow,
     xOuterPlane,
-    xInnerPlane,
+    xInnerPlane: xInnerReveal,
     frameXForWindow,
     glassXForWindow,
   });

@@ -7,6 +7,8 @@ import {
   RIGHT_FACADE_SEGMENTS,
   sideMirrorZ,
   sideWindowSpecs,
+  sideZMax,
+  sideZMin,
   windowsSide,
 } from './windowsSide';
 
@@ -17,14 +19,7 @@ const firstFloorLevel = levelHeights.firstFloor;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
-const envelopeBounds = (() => {
-  const outer = getEnvelopeFirstOuterPolygon();
-  return {
-    minZ: Math.min(...outer.map((point) => point.z)),
-    maxZ: Math.max(...outer.map((point) => point.z)),
-  };
-})();
-const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
+const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 
 type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
@@ -229,6 +224,65 @@ export const wallsFirst = {
   })(),
 
   leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
+  rightFacade: (() => {
+    const outer = getEnvelopeFirstOuterPolygon();
+    const rightX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
+    const edgePoints = outer.filter((p) => Math.abs(p.x - rightX) < EPSILON);
+    const minZ = edgePoints.reduce((m, p) => Math.min(m, p.z), Infinity);
+    const maxZ = edgePoints.reduce((m, p) => Math.max(m, p.z), -Infinity);
+
+    const panelWidth = maxZ - minZ;
+    const panelCenterZ = (minZ + maxZ) / 2;
+    const panelHeight = wallHeight;
+    const panelDepth = exteriorThickness;
+
+    const shape = new Shape();
+    shape.moveTo(-panelWidth / 2, -panelHeight / 2);
+    shape.lineTo(panelWidth / 2, -panelHeight / 2);
+    shape.lineTo(panelWidth / 2, panelHeight / 2);
+    shape.lineTo(-panelWidth / 2, panelHeight / 2);
+    shape.closePath();
+
+    // IMPORTANT: mirrorZ must match windowsSide, not the first-floor minZ/maxZ
+    const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
+
+    // Create holes from sideWindowSpecs
+    sideWindowSpecs.forEach((spec) => {
+      const zCenter = getSideWindowZCenter(spec, mirrorZ);
+
+      const zMinHole = zCenter - spec.width / 2;
+      const zMaxHole = zCenter + spec.width / 2;
+
+      // Convert world Y to first-floor local panel Y:
+      // panel local Y is 0..wallHeight, but shape space is centered => subtract panelHeight/2.
+      const yMinWorld = spec.firstY0; // e.g. levelHeights.firstFloor
+      const yMaxWorld = spec.firstY1; // e.g. levelHeights.firstFloor + ceilingHeights.first
+
+      // Convert to local within this first-floor panel:
+      const yMinLocal = yMinWorld - firstFloorLevel - panelHeight / 2;
+      const yMaxLocal = yMaxWorld - firstFloorLevel - panelHeight / 2;
+
+      // guard
+      if (zMaxHole - zMinHole < 0.05 || yMaxLocal - yMinLocal < 0.05) return;
+
+      const path = new Path();
+      path.moveTo(zMinHole - panelCenterZ, yMinLocal);
+      path.lineTo(zMaxHole - panelCenterZ, yMinLocal);
+      path.lineTo(zMaxHole - panelCenterZ, yMaxLocal);
+      path.lineTo(zMinHole - panelCenterZ, yMaxLocal);
+      path.closePath();
+      shape.holes.push(path);
+    });
+
+    const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    panelGeometry.translate(0, 0, -panelDepth / 2);
+
+    return {
+      geometry: panelGeometry,
+      position: [rightX - panelDepth / 2, firstFloorLevel + panelHeight / 2, panelCenterZ] as [number, number, number],
+      rotation: [0, -Math.PI / 2, 0] as [number, number, number],
+    };
+  })(),
   rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
 };
 

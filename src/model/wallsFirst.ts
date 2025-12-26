@@ -13,6 +13,7 @@ import {
 } from './windowsSide';
 
 const ENABLE_BRICK_RETURNS = false;
+const ENABLE_FACADE_PANELS = false;
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 const RIGHT_PANEL_OUT = 0.02;
@@ -161,7 +162,8 @@ export const wallsFirst = {
     };
   })(),
 
-  rearFacade: (() => {
+  rearFacade: ENABLE_FACADE_PANELS
+    ? (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const rearEdgePoints = outer.filter((point) => Math.abs(point.z - rearZ) < 1e-6);
@@ -226,10 +228,12 @@ export const wallsFirst = {
       position: [panelCenterX, firstFloorLevel + panelHeight / 2, rearZ - panelDepth / 2] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
-  })(),
+    })()
+    : null,
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
-  rightFacade: (() => {
+  leftFacade: ENABLE_FACADE_PANELS ? (() => makeSideFacadePanel({ side: 'left', level: 'first' }))() : null,
+  rightFacade: ENABLE_FACADE_PANELS
+    ? (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const rightX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
     const edgePoints = outer.filter((p) => Math.abs(p.x - rightX) < EPSILON);
@@ -290,8 +294,9 @@ export const wallsFirst = {
       position: [rightX - panelDepth / 2, firstFloorLevel + panelHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, -Math.PI / 2, 0] as [number, number, number],
     };
-  })(),
-  rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
+    })()
+    : null,
+  rightFacades: ENABLE_FACADE_PANELS ? (() => makeRightFacadePanels(mirrorZ))() : [],
 };
 
 function makeSideFacadePanel({

@@ -4,6 +4,7 @@ import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
 
 const ENABLE_BRICK_RETURNS = false;
+const ENABLE_FACADE_PANELS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 const RIGHT_PANEL_OUT = 0.02;
@@ -158,7 +159,8 @@ export const wallsGround = {
     };
   })(),
 
-  rearFacade: (() => {
+  rearFacade: ENABLE_FACADE_PANELS
+    ? (() => {
     const outer = getEnvelopeOuterPolygon();
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const rearEdgePoints = outer.filter((point) => Math.abs(point.z - rearZ) < 1e-6);
@@ -214,10 +216,11 @@ export const wallsGround = {
       position: [panelCenterX, panelHeight / 2, rearZ - panelDepth / 2] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
-  })(),
+    })()
+    : null,
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ }))(),
-  rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
+  leftFacade: ENABLE_FACADE_PANELS ? (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ }))() : null,
+  rightFacades: ENABLE_FACADE_PANELS ? (() => makeRightFacadePanels(mirrorZ))() : [],
 };
 
 function makeSideFacadePanel({

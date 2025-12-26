@@ -665,6 +665,14 @@ function HouseScene({
 
     return material;
   }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
+  const facadeMaterial = useMemo(() => {
+    const material = wallMaterial.clone();
+    material.side = THREE.DoubleSide;
+    material.polygonOffset = true;
+    material.polygonOffsetFactor = -1;
+    material.polygonOffsetUnits = -1;
+    return material;
+  }, [wallMaterial]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -836,7 +844,7 @@ function HouseScene({
                 geometry={facade.geometry}
                 position={facade.position}
                 rotation={facade.rotation}
-                material={wallMaterial}
+                material={facadeMaterial}
                 castShadow
                 receiveShadow
                 visible={wallShellVisible}
@@ -872,7 +880,7 @@ function HouseScene({
                 geometry={facade.geometry}
                 position={facade.position}
                 rotation={facade.rotation}
-                material={wallMaterial}
+                material={facadeMaterial}
                 castShadow
                 receiveShadow
                 visible={wallShellVisible}

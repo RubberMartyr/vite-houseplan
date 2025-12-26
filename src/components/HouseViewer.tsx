@@ -113,6 +113,7 @@ function useBuildingMaterials() {
       roughness: 0.9,
       bumpMap: tex,
       bumpScale: 0.02,
+      side: THREE.FrontSide,
     });
   }, []);
 
@@ -667,10 +668,11 @@ function HouseScene({
   }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
   const facadeMaterial = useMemo(() => {
     const material = wallMaterial.clone();
-    material.side = THREE.DoubleSide;
+    material.side = THREE.FrontSide;
     material.polygonOffset = true;
-    material.polygonOffsetFactor = -1;
-    material.polygonOffsetUnits = -1;
+    material.polygonOffsetFactor = 1;
+    material.polygonOffsetUnits = 1;
+    material.needsUpdate = true;
     return material;
   }, [wallMaterial]);
   const eavesBandMaterial = useMemo(

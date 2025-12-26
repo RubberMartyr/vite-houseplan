@@ -308,6 +308,20 @@ function makeSplitTallWindow({
 
   meshes.push(createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }));
 
+  const slateBandWidth = spec.width + 0.06;
+  const slateBandHeight = 0.08;
+  const slateBandDepth = 0.02;
+  const slateBandY = levelHeights.firstFloor;
+  const slateOutward = side === 'left' ? -1 : 1;
+  const slateBandX = xFace + slateOutward * (FRAME_DEPTH / 2 + 0.02);
+  meshes.push({
+    id: `${id}_SLATE_BAND`,
+    geometry: new THREE.BoxGeometry(slateBandDepth, slateBandHeight, slateBandWidth),
+    position: [slateBandX, slateBandY, zCenter],
+    rotation: [0, 0, 0],
+    material: metalBandMaterial,
+  });
+
   const bandY = levelHeights.firstFloor;
   const outward = side === 'left' ? -1 : 1;
   const bandX = frameX + outward * (FRAME_DEPTH / 2 - METAL_BAND_DEPTH / 2 + METAL_BAND_OUTSET);

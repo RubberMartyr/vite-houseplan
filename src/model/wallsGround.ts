@@ -204,7 +204,7 @@ export const wallsGround = {
 
     const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
     rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround rearFacade');
+    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround rearFacade', 'back');
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsGround rearFacade');
     panelGeometry.computeVertexNormals();
     console.log('✅ FACADE PANEL THICKNESS', panelDepth);
@@ -275,7 +275,7 @@ function makeSideFacadePanel({
 
   const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
   rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsGround sideFacade ${side} ${level}`);
+  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsGround sideFacade ${side} ${level}`, 'front');
   const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, `wallsGround sideFacade ${side} ${level}`);
   const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
   panelGeometry.rotateY(rotationY);
@@ -423,7 +423,12 @@ function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string) {
   return out;
 }
 
-function filterExtrudedSideFaces(geometry: BufferGeometry, depth: number, context: string) {
+function filterExtrudedSideFaces(
+  geometry: BufferGeometry,
+  depth: number,
+  context: string,
+  keepPlane: 'front' | 'back' | 'both' = 'both',
+) {
   if (ENABLE_BRICK_RETURNS) return geometry;
 
   const halfDepth = depth / 2;
@@ -448,7 +453,10 @@ function filterExtrudedSideFaces(geometry: BufferGeometry, depth: number, contex
     const onFront = Math.abs(z1 + halfDepth) < EPSILON && Math.abs(z2 + halfDepth) < EPSILON && Math.abs(z3 + halfDepth) < EPSILON;
     const onBack = Math.abs(z1 - halfDepth) < EPSILON && Math.abs(z2 - halfDepth) < EPSILON && Math.abs(z3 - halfDepth) < EPSILON;
 
-    if (!onFront && !onBack) {
+    const keepThisTriangle =
+      keepPlane === 'both' ? onFront || onBack : keepPlane === 'front' ? onFront : onBack;
+
+    if (!keepThisTriangle) {
       removed += 1;
       continue;
     }
@@ -469,8 +477,9 @@ function filterExtrudedSideFaces(geometry: BufferGeometry, depth: number, contex
   }
   filtered.computeVertexNormals();
 
+  console.log('✅ FACADE FILTER', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
   if (removed > 0) {
-    console.log('🧱 DISABLED RETURN MESH', context, { removedTriangles: removed, keptTriangles: kept });
+    console.log('🧱 DISABLED RETURN MESH', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
   }
 
   return filtered;

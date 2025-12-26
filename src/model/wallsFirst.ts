@@ -5,6 +5,7 @@ import { RIGHT_FACADE_SEGMENTS, makeMirrorZ, sideWindowSpecs, sideWindowZ } from
 
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
+const RIGHT_PANEL_OUT = 0.02;
 const firstFloorLevel = levelHeights.firstFloor;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
@@ -341,7 +342,7 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
 
     return {
       geometry: panelGeometry,
-      position: [segment.x + 0.01, firstFloorLevel + wallHeight / 2, panelCenterZ] as [
+      position: [segment.x + RIGHT_PANEL_OUT, firstFloorLevel + wallHeight / 2, panelCenterZ] as [
         number,
         number,
         number,

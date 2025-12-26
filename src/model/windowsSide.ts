@@ -13,6 +13,7 @@ type SideWindowMesh = {
 export type SideWindowSpec = {
   id: string;
   kind: 'small' | 'tall';
+  type?: 'small' | 'tall';
   zCenter: number;
   width: number;
   groundY0: number;
@@ -30,6 +31,7 @@ const METAL_BAND_DEPTH = 0.02;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
+const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
 function windowVerticalExtents(spec: SideWindowSpec) {
   const yBottom = spec.groundY0;
@@ -316,7 +318,18 @@ console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
 console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  const zCenter = sideWindowZ(spec, mirrorZ);
+  let zCenter = mirrorZ(spec.zCenter);
+
+  if (spec.kind === 'tall' || spec.type === 'tall') {
+    zCenter = zCenter - TALL_Z_OFFSET_TO_FRONT; // subtract = move toward smaller Z (front)
+  }
+
+  console.log('✅ SIDE Z FINAL', spec.id, {
+    base: spec.zCenter,
+    mirrored: mirrorZ(spec.zCenter),
+    final: zCenter,
+    isTall: spec.kind === 'tall' || spec.type === 'tall',
+  });
 
   const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
 

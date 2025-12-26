@@ -16,6 +16,7 @@ const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
 const RIGHT_PANEL_OUT = 0.02;
 const firstFloorLevel = levelHeights.firstFloor;
+const FACADE_PANEL_THICKNESS = 0.025;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
@@ -168,7 +169,7 @@ export const wallsFirst = {
     const width = rightX - leftX;
     const panelCenterX = (leftX + rightX) / 2;
     const panelHeight = wallHeight;
-    const panelDepth = exteriorThickness;
+    const panelDepth = FACADE_PANEL_THICKNESS;
 
     const toLocalRect = (rect: { xMin: number; xMax: number; yMin: number; yMax: number }) => ({
       xMin: rect.xMin - panelCenterX,
@@ -215,6 +216,7 @@ export const wallsFirst = {
     const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
     panelGeometry.translate(0, 0, -panelDepth / 2);
     panelGeometry.computeVertexNormals();
+    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
     return {
       geometry: panelGeometry,
@@ -234,7 +236,7 @@ export const wallsFirst = {
     const panelWidth = maxZ - minZ;
     const panelCenterZ = (minZ + maxZ) / 2;
     const panelHeight = wallHeight;
-    const panelDepth = exteriorThickness;
+    const panelDepth = FACADE_PANEL_THICKNESS;
 
     const shape = new Shape();
     shape.moveTo(-panelWidth / 2, -panelHeight / 2);
@@ -276,6 +278,7 @@ export const wallsFirst = {
 
     const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
     panelGeometry.translate(0, 0, -panelDepth / 2);
+    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
     return {
       geometry: panelGeometry,
@@ -303,7 +306,7 @@ function makeSideFacadePanel({
   const panelWidth = maxZ - minZ;
   const panelCenterZ = (minZ + maxZ) / 2;
   const panelHeight = wallHeight;
-  const panelDepth = exteriorThickness;
+  const panelDepth = FACADE_PANEL_THICKNESS;
   const panelCenterX = side === 'left' ? xFace + panelDepth / 2 : xFace - panelDepth / 2;
 
   const shape = new Shape();
@@ -362,6 +365,7 @@ function makeSideFacadePanel({
   const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
   panelGeometry.rotateY(rotationY);
   panelGeometry.computeVertexNormals();
+  console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
   return {
     geometry: panelGeometry,

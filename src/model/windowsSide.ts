@@ -326,8 +326,12 @@ const pts = getEnvelopeOuterPolygon();
 const minX = Math.min(...pts.map((p) => p.x));
 export const sideZMin = Math.min(...pts.map((p) => p.z));
 export const sideZMax = Math.max(...pts.map((p) => p.z));
+export function sideMirrorZ(z: number, zMin: number, zMax: number, mirror: boolean) {
+  return mirror ? zMin + zMax - z : z;
+}
+
 export function makeMirrorZ(zMin: number, zMax: number) {
-  return (z: number) => (MIRROR_Z ? zMin + (zMax - z) : z);
+  return (z: number) => sideMirrorZ(z, zMin, zMax, MIRROR_Z);
 }
 
 export function getSideWindowZCenter(spec: SideWindowSpec, mirrorZ: (z: number) => number) {

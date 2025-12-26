@@ -1,7 +1,14 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
-import { getSideWindowZCenter, makeMirrorZ, RIGHT_FACADE_SEGMENTS, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
+import {
+  getSideWindowZCenter,
+  makeMirrorZ,
+  RIGHT_FACADE_SEGMENTS,
+  sideMirrorZ,
+  sideWindowSpecs,
+  windowsSide,
+} from './windowsSide';
 
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
@@ -221,17 +228,15 @@ export const wallsFirst = {
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first', mirrorZ }))(),
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
   rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
 };
 
 function makeSideFacadePanel({
   side,
-  mirrorZ,
   level,
 }: {
   side: 'left' | 'right';
-  mirrorZ: (z: number) => number;
   level: 'ground' | 'first';
 }) {
   const outer = getEnvelopeFirstOuterPolygon();
@@ -261,7 +266,13 @@ function makeSideFacadePanel({
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
+    const zMirror = (z: number) => {
+      const isActiveSide = side === windowsSide.side;
+      if (isActiveSide) return sideMirrorZ(z, windowsSide.zMin, windowsSide.zMax, windowsSide.mirrorZ);
+      return sideMirrorZ(z, minZ, maxZ, windowsSide.mirrorZ);
+    };
+
+    const zCenter = getSideWindowZCenter(spec, zMirror);
     const zMin = zCenter - spec.width / 2;
     const zMax = zCenter + spec.width / 2;
     const isTall = spec.kind === 'tall' || spec.type === 'tall';
@@ -277,6 +288,11 @@ function makeSideFacadePanel({
       yMaxLocal <= yMinLocal
     )
       return;
+
+    console.log('✅ wallsFirst side opening', level, side, spec.id, {
+      zCenter: zMirror(spec.zCenter),
+      panelCenterZ,
+    });
 
     const path = new Path();
     path.moveTo(zMin - panelCenterZ, yMinLocal - panelHeight / 2);

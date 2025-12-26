@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ceilingHeights, levelHeights } from './houseSpec';
+import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 
 type SideWindowMesh = {
@@ -33,6 +33,7 @@ const METAL_BAND_OUTSET = 0.015;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
+const REVEAL_FACE = 0.05;
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
 function windowVerticalExtents(spec: SideWindowSpec) {
@@ -139,6 +140,12 @@ const metalBandMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.2,
 });
 
+const revealMaterial = new THREE.MeshStandardMaterial({
+  color: '#e8e5df',
+  roughness: 0.85,
+  metalness: 0.05,
+});
+
 function createFrameGeometry(width: number, height: number): THREE.ExtrudeGeometry {
   const halfWidth = width / 2;
   const halfHeight = height / 2;
@@ -198,6 +205,60 @@ function createSill({
     rotation: [0, 0, 0],
     material: blueStoneMaterial,
   };
+}
+
+function createRevealMeshes({
+  spec,
+  zCenter,
+  xOuter,
+  xInner,
+}: {
+  spec: SideWindowSpec;
+  zCenter: number;
+  xOuter: number;
+  xInner: number;
+}): SideWindowMesh[] {
+  const { height, yBottom } = windowVerticalExtents(spec);
+  const yCenter = yBottom + height / 2;
+  const revealDepth = Math.abs(xOuter - xInner);
+  const xMid = (xOuter + xInner) / 2;
+  const halfWidth = spec.width / 2;
+  const jambThickness = Math.min(REVEAL_FACE, spec.width / 2);
+  const headThickness = Math.min(REVEAL_FACE, height / 2);
+  const clearWidth = Math.max(0.01, spec.width - 2 * jambThickness);
+
+  console.log('✅ REVEAL PLANES', spec.id, { xOuter, xInner, xMid, revealDepth });
+
+  return [
+    {
+      id: `${spec.id}_REVEAL_LEFT`,
+      geometry: new THREE.BoxGeometry(revealDepth, height, jambThickness),
+      position: [xMid, yCenter, zCenter - halfWidth + jambThickness / 2],
+      rotation: [0, 0, 0],
+      material: revealMaterial,
+    },
+    {
+      id: `${spec.id}_REVEAL_RIGHT`,
+      geometry: new THREE.BoxGeometry(revealDepth, height, jambThickness),
+      position: [xMid, yCenter, zCenter + halfWidth - jambThickness / 2],
+      rotation: [0, 0, 0],
+      material: revealMaterial,
+    },
+    {
+      id: `${spec.id}_REVEAL_HEAD`,
+      geometry: new THREE.BoxGeometry(revealDepth, headThickness, clearWidth),
+      position: [xMid, yBottom + height - headThickness / 2, zCenter],
+      rotation: [0, 0, 0],
+      material: revealMaterial,
+    },
+    {
+      id: `${spec.id}_REVEAL_SILL`,
+      geometry: new THREE.BoxGeometry(revealDepth, headThickness, clearWidth),
+      position: [xMid, yBottom + headThickness / 2, zCenter],
+      rotation: [0, 0, 0],
+      material: revealMaterial,
+    },
+  ];
 }
 
 function makeSimpleWindow({
@@ -377,16 +438,24 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   });
 
   const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
+  const outward = SIDE === 'right' ? 1 : -1;
+  const interiorDir = -outward;
+  const wallDepth = wallThickness.exterior ?? 0.3;
 
-  const frameXForWindow =
-    SIDE === 'left' ? xFaceForWindow - EPS + FRAME_DEPTH / 2 : xFaceForWindow + EPS - FRAME_DEPTH / 2;
+  const xOuterPlane = xFaceForWindow + outward * EPS;
+  const xInnerPlane = xOuterPlane + interiorDir * wallDepth;
 
-  const glassXForWindow = SIDE === 'left' ? frameXForWindow + GLASS_INSET : frameXForWindow - GLASS_INSET;
+  const frameXForWindow = xOuterPlane - outward * (FRAME_DEPTH / 2);
+  const glassXForWindow = frameXForWindow + interiorDir * GLASS_INSET;
+  const xOuterReveal = xOuterPlane;
+  const xInnerReveal = xInnerPlane + interiorDir * EPS;
 
   console.log('SIDE WINDOW POS', {
     id: spec.id,
     zCenter,
     xFaceForWindow,
+    xOuterPlane,
+    xInnerPlane,
     frameXForWindow,
     glassXForWindow,
   });
@@ -395,13 +464,20 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
     spec,
     frameX: frameXForWindow,
     glassX: glassXForWindow,
-    xFace: xFaceForWindow,
+    xFace: xOuterPlane,
     zCenter,
     side: SIDE,
   };
 
-  if (spec.kind === 'small') return makeSimpleWindow(commonProps);
-  return makeSplitTallWindow(commonProps);
+  const revealMeshes = createRevealMeshes({
+    spec,
+    zCenter,
+    xOuter: xOuterReveal,
+    xInner: xInnerReveal,
+  });
+
+  const windowMeshes = spec.kind === 'small' ? makeSimpleWindow(commonProps) : makeSplitTallWindow(commonProps);
+  return [...windowMeshes, ...revealMeshes];
 });
 
 export const windowsSide = {

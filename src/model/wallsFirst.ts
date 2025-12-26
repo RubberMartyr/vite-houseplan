@@ -1,7 +1,7 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
-import { RIGHT_FACADE_SEGMENTS, makeMirrorZ, sideWindowSpecs, sideWindowZ } from './windowsSide';
+import { getSideWindowZCenter, makeMirrorZ, RIGHT_FACADE_SEGMENTS, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
 
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
@@ -10,7 +10,14 @@ const firstFloorLevel = levelHeights.firstFloor;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
-const mirrorZ = makeMirrorZ();
+const envelopeBounds = (() => {
+  const outer = getEnvelopeFirstOuterPolygon();
+  return {
+    minZ: Math.min(...outer.map((point) => point.z)),
+    maxZ: Math.max(...outer.map((point) => point.z)),
+  };
+})();
+const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
 
 type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
@@ -254,7 +261,7 @@ function makeSideFacadePanel({
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach((spec) => {
-    const zCenter = sideWindowZ(spec, mirrorZ);
+    const zCenter = getSideWindowZCenter(spec, mirrorZ);
     const zMin = zCenter - spec.width / 2;
     const zMax = zCenter + spec.width / 2;
     const yMin = level === 'ground' ? spec.groundY0 : spec.firstY0;
@@ -295,7 +302,7 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
   );
 
   windowsForLevel.forEach((spec) => {
-    const zCenter = sideWindowZ(spec, mirrorZ);
+    const zCenter = getSideWindowZCenter(spec, mirrorZ);
     const segment = segmentForZ(zCenter);
     const widthZ = spec.width;
     const y0 = spec.firstY0;

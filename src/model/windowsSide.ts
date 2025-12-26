@@ -31,7 +31,7 @@ const METAL_BAND_DEPTH = 0.02;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
-const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
+export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
 function windowVerticalExtents(spec: SideWindowSpec) {
   const yBottom = spec.groundY0;
@@ -307,22 +307,30 @@ const pts = getEnvelopeOuterPolygon();
 const minX = Math.min(...pts.map((p) => p.x));
 export const sideZMin = Math.min(...pts.map((p) => p.z));
 export const sideZMax = Math.max(...pts.map((p) => p.z));
-export function makeMirrorZ() {
-  return (z: number) => (MIRROR_Z ? sideZMin + sideZMax - z : z);
+export function makeMirrorZ(zMin: number, zMax: number) {
+  return (z: number) => (MIRROR_Z ? zMin + (zMax - z) : z);
 }
+
+export function getSideWindowZCenter(spec: SideWindowSpec, mirrorZ: (z: number) => number) {
+  let zCenter = mirrorZ(spec.zCenter);
+
+  const isTall = spec.kind === 'tall' || spec.type === 'tall';
+  if (isTall) {
+    zCenter = zCenter - TALL_Z_OFFSET_TO_FRONT;
+  }
+  return zCenter;
+}
+
 export function sideWindowZ(spec: SideWindowSpec, mirrorZ: (z: number) => number) {
-  return mirrorZ(spec.zCenter);
+  return getSideWindowZCenter(spec, mirrorZ);
 }
-const mirrorZ = makeMirrorZ();
+
+const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
 console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  let zCenter = mirrorZ(spec.zCenter);
-
-  if (spec.kind === 'tall' || spec.type === 'tall') {
-    zCenter = zCenter - TALL_Z_OFFSET_TO_FRONT; // subtract = move toward smaller Z (front)
-  }
+  const zCenter = getSideWindowZCenter(spec, mirrorZ);
 
   console.log('✅ SIDE Z FINAL', spec.id, {
     base: spec.zCenter,

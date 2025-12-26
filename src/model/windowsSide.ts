@@ -30,7 +30,6 @@ const GLASS_THICKNESS = 0.01;
 const METAL_BAND_DEPTH = 0.02;
 const METAL_BAND_HEIGHT = 0.12;
 const METAL_BAND_OUTSET = 0.015;
-const SHOW_BRICK_REVEALS = false;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
@@ -229,10 +228,6 @@ function createRevealMeshes({
   const clearWidth = Math.max(0.01, spec.width - 2 * jambThickness);
 
   console.log('✅ REVEAL per window', spec.id, { zCenter, xOuter, xInner, revealDepth });
-
-  if (!SHOW_BRICK_REVEALS) {
-    return [];
-  }
 
   return [
     {

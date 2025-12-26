@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ceilingHeights } from './houseSpec';
+import { ceilingHeights, levelHeights } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 
 type SideWindowMesh = {
@@ -28,6 +28,8 @@ const FRAME_BORDER = 0.07;
 const GLASS_INSET = 0.015;
 const GLASS_THICKNESS = 0.01;
 const METAL_BAND_DEPTH = 0.02;
+const METAL_BAND_HEIGHT = 0.12;
+const METAL_BAND_OUTSET = 0.015;
 const SILL_DEPTH = 0.18;
 const SILL_HEIGHT = 0.05;
 const SILL_OVERHANG = 0.02;
@@ -129,6 +131,12 @@ const metalSlateMaterial = new THREE.MeshStandardMaterial({
   color: '#6b6f73',
   roughness: 0.4,
   metalness: 0.6,
+});
+
+const metalBandMaterial = new THREE.MeshStandardMaterial({
+  color: 0x2f3237,
+  roughness: 0.6,
+  metalness: 0.2,
 });
 
 function createFrameGeometry(width: number, height: number): THREE.ExtrudeGeometry {
@@ -299,6 +307,17 @@ function makeSplitTallWindow({
   });
 
   meshes.push(createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }));
+
+  const bandY = levelHeights.firstFloor;
+  const outward = side === 'left' ? -1 : 1;
+  const bandX = frameX + outward * (FRAME_DEPTH / 2 - METAL_BAND_DEPTH / 2 + METAL_BAND_OUTSET);
+  meshes.push({
+    id: `${id}_FLOOR_BAND`,
+    geometry: new THREE.BoxGeometry(METAL_BAND_DEPTH, METAL_BAND_HEIGHT, width),
+    position: [bandX, bandY, zCenter],
+    rotation: [0, 0, 0],
+    material: metalBandMaterial,
+  });
 
   return meshes;
 }

@@ -1,4 +1,4 @@
-import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
+import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, makeMirrorZ, sideWindowSpecs, sideWindowZ } from './windowsSide';
@@ -274,6 +274,7 @@ function makeSideFacadePanel({
 }
 
 function makeRightFacadePanels(mirrorZ: (z: number) => number) {
+  const panelDepth = exteriorThickness;
   const openingsBySegmentId: Record<SegmentId, Opening[]> = {
     R_A: [],
     R_B: [],
@@ -320,7 +321,8 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
       shape.holes.push(path);
     });
 
-    const panelGeometry = new ShapeGeometry(shape);
+    const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    panelGeometry.translate(0, 0, -panelDepth / 2);
     panelGeometry.rotateY(-Math.PI / 2);
     panelGeometry.computeVertexNormals();
 
@@ -328,7 +330,7 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
 
     return {
       geometry: panelGeometry,
-      position: [segment.x + 0.01, wallHeight / 2, panelCenterZ] as [number, number, number],
+      position: [segment.x - panelDepth / 2, wallHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
   });

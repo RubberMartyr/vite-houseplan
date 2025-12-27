@@ -12,7 +12,6 @@ import {
   windowsSide,
 } from './windowsSide';
 
-const ENABLE_FACADE_PANELS = false;
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
@@ -162,8 +161,7 @@ export const wallsFirst = {
     };
   })(),
 
-  rearFacade: ENABLE_FACADE_PANELS
-    ? (() => {
+  rearFacade: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const rearEdgePoints = outer.filter((point) => Math.abs(point.z - rearZ) < 1e-6);
@@ -221,18 +219,17 @@ export const wallsFirst = {
     const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsFirst rearFacade', 'back');
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsFirst rearFacade');
     panelGeometry.computeVertexNormals();
+    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
+
     return {
       geometry: panelGeometry,
       position: [panelCenterX, firstFloorLevel + panelHeight / 2, rearZ - panelDepth / 2] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
-      })()
-    : undefined,
+  })(),
 
-  leftFacade: ENABLE_FACADE_PANELS ? makeSideFacadePanel({ side: 'left', level: 'first' }) : undefined,
-  sideFacade: undefined,
-  rightFacade: ENABLE_FACADE_PANELS
-    ? (() => {
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
+  rightFacade: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const rightX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
     const edgePoints = outer.filter((p) => Math.abs(p.x - rightX) < EPSILON);
@@ -286,14 +283,15 @@ export const wallsFirst = {
     rawPanelGeometry.translate(0, 0, -panelDepth / 2);
     const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsFirst rightFacade', 'front');
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsFirst rightFacade');
+    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
+
     return {
       geometry: panelGeometry,
       position: [rightX - panelDepth / 2, firstFloorLevel + panelHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, -Math.PI / 2, 0] as [number, number, number],
     };
-      })()
-    : undefined,
-  rightFacades: ENABLE_FACADE_PANELS ? makeRightFacadePanels(mirrorZ) : [],
+  })(),
+  rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
 };
 
 function makeSideFacadePanel({
@@ -353,6 +351,11 @@ function makeSideFacadePanel({
     )
       return;
 
+    console.log('✅ wallsFirst side opening', level, side, spec.id, {
+      zCenter: zMirror(spec.zCenter),
+      panelCenterZ,
+    });
+
     const path = new Path();
     path.moveTo(zMin - panelCenterZ, yMinLocal - panelHeight / 2);
     path.lineTo(zMax - panelCenterZ, yMinLocal - panelHeight / 2);
@@ -369,6 +372,8 @@ function makeSideFacadePanel({
   const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
   panelGeometry.rotateY(rotationY);
   panelGeometry.computeVertexNormals();
+  console.log('✅ FACADE PANEL THICKNESS', panelDepth);
+
   return {
     geometry: panelGeometry,
     position: [panelCenterX, firstFloorLevel + panelHeight / 2, panelCenterZ] as [number, number, number],
@@ -427,6 +432,8 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
     const panelGeometry = new ShapeGeometry(shape);
     panelGeometry.rotateY(-Math.PI / 2);
     panelGeometry.computeVertexNormals();
+
+    console.log('✅ RIGHT PANEL', segment.id, { holeCount: holes.length, z0: segment.z0, z1: segment.z1, x: segment.x });
 
     return {
       geometry: panelGeometry,
@@ -509,6 +516,7 @@ function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string) {
   if (uv && keptUv.length) out.setAttribute('uv', new Float32BufferAttribute(keptUv, 2));
   out.computeVertexNormals();
 
+  console.log('✅ KEEP OUTER FACE ONLY', context, { removedTriangles: removed, keptTriangles: kept, maxProj, minProj });
   return out;
 }
 
@@ -565,6 +573,11 @@ function filterExtrudedSideFaces(
     filtered.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
   }
   filtered.computeVertexNormals();
+
+  console.log('✅ FACADE FILTER', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
+  if (removed > 0) {
+    console.log('🧱 DISABLED RETURN MESH', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
+  }
 
   return filtered;
 }

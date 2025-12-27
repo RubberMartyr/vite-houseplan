@@ -30,6 +30,7 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsSide } from '../model/windowsSide';
+import { loadingManager } from '../loadingManager';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -625,7 +626,9 @@ function HouseScene({
   const { glass, frame } = useBuildingMaterials();
 
   const { gl } = useThree();
-  const brickTex = useTexture('/textures/brick2.jpg');
+  const brickTex = useTexture('/textures/brick2.jpg', (loader) => {
+    loader.manager = loadingManager;
+  });
   const fallbackWallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

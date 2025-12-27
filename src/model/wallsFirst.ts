@@ -1,16 +1,4 @@
-import {
-  Box3,
-  BoxGeometry,
-  BufferGeometry,
-  ExtrudeGeometry,
-  Float32BufferAttribute,
-  Matrix4,
-  MeshStandardMaterial,
-  Path,
-  Quaternion,
-  Shape,
-  Vector3,
-} from 'three';
+import { BoxGeometry, ExtrudeGeometry, MeshStandardMaterial, Path, Shape } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import {
@@ -21,7 +9,6 @@ import {
   sideZMax,
   sideZMin,
 } from './windowsSide';
-import { rearWindowCutouts } from './windowsRear';
 
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;
@@ -35,118 +22,9 @@ const REVEAL_FACE = 0.05;
 const REVEAL_DEPTH = exteriorThickness;
 const REVEAL_MATERIAL = new MeshStandardMaterial({ color: '#e8e5df', roughness: 0.85, metalness: 0.05 });
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
-const openingEpsilon = 0.01;
 
-type OpeningBox = { id: string; box: Box3 };
-
-function getXFaceForRightAtZ(z: number) {
-  if (z <= RIGHT_FACADE_SEGMENTS[0].z1) return RIGHT_FACADE_SEGMENTS[0].x;
-  if (z <= RIGHT_FACADE_SEGMENTS[1].z1) return RIGHT_FACADE_SEGMENTS[1].x;
-  return RIGHT_FACADE_SEGMENTS[2].x;
-}
-
-function applyOpeningsToWallGeometry(geometry: ExtrudeGeometry, openings: OpeningBox[]) {
-  const nonIndexed = geometry.toNonIndexed();
-  const position = nonIndexed.getAttribute('position');
-  const uv = nonIndexed.getAttribute('uv');
-
-  const keptPositions: number[] = [];
-  const keptUVs: number[] = [];
-  let removedTotal = 0;
-  let keptTotal = 0;
-
-  const v0 = new Vector3();
-  const v1 = new Vector3();
-  const v2 = new Vector3();
-  const centroid = new Vector3();
-
-  for (let i = 0; i < position.count; i += 3) {
-    v0.fromBufferAttribute(position as any, i);
-    v1.fromBufferAttribute(position as any, i + 1);
-    v2.fromBufferAttribute(position as any, i + 2);
-
-    centroid.set(
-      (v0.x + v1.x + v2.x) / 3,
-      (v0.y + v1.y + v2.y) / 3,
-      (v0.z + v1.z + v2.z) / 3
-    );
-
-    const insideOpening = openings.some(({ box }) => box.containsPoint(centroid));
-
-    if (insideOpening) {
-      removedTotal += 3;
-      continue;
-    }
-
-    keptPositions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
-    if (uv) {
-      const uvAttr = uv as any;
-      keptUVs.push(
-        uvAttr.getX(i),
-        uvAttr.getY(i),
-        uvAttr.getX(i + 1),
-        uvAttr.getY(i + 1),
-        uvAttr.getX(i + 2),
-        uvAttr.getY(i + 2)
-      );
-    }
-    keptTotal += 3;
-  }
-
-  const opened = new BufferGeometry();
-  opened.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
-  if (uv && keptUVs.length === (keptPositions.length / 3) * 2) {
-    opened.setAttribute('uv', new Float32BufferAttribute(keptUVs, 2));
-  }
-  opened.computeVertexNormals();
-
-  console.log('✅ wallsFirst openings result', { removedTotal, keptTotal, openingCount: openings.length });
-
-  return { geometry: opened, stats: { removedTotal, keptTotal, openingCount: openings.length } };
-}
-
-function makeRearOpeningBoxes() {
-  const matrix = new Matrix4();
-  const quat = new Quaternion();
-  return rearWindowCutouts
-    .filter((cutout) => cutout.level === 'first')
-    .map((cutout, index) => {
-      if (!cutout.geometry.boundingBox) {
-        cutout.geometry.computeBoundingBox();
-      }
-      const box = cutout.geometry.boundingBox!.clone();
-      const position = new Vector3(...cutout.position);
-      position.y -= firstFloorLevel;
-      matrix.compose(position, quat, new Vector3(1, 1, 1));
-      box.applyMatrix4(matrix);
-      return { id: `rear-first-${index}`, box };
-    });
-}
-
-function makeSideOpeningBoxes() {
-  const outward = 1;
-  return sideWindowSpecs
-    .map((spec) => {
-      const zCenter = getSideWindowZCenter(spec, mirrorZ);
-      const xFace = getXFaceForRightAtZ(zCenter);
-      const xOuter = xFace + outward * openingEpsilon;
-      const xInner = xOuter - outward * exteriorThickness;
-      const minY = Math.max(0, spec.firstY0 - firstFloorLevel);
-      const maxY = Math.min(wallHeight, spec.firstY1 - firstFloorLevel);
-      if (maxY - minY < MIN_HOLE_H || spec.width < MIN_HOLE_W) {
-        return null;
-      }
-
-      const halfWidth = spec.width / 2;
-      const box = new Box3(
-        new Vector3(Math.min(xOuter, xInner) - openingEpsilon, minY, zCenter - halfWidth - openingEpsilon),
-        new Vector3(Math.max(xOuter, xInner) + openingEpsilon, maxY, zCenter + halfWidth + openingEpsilon)
-      );
-
-      return { id: spec.id, box };
-    })
-    .filter(Boolean) as OpeningBox[];
-}
+type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
+type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 
 export const wallsFirst = {
   shell: (() => {
@@ -188,14 +66,10 @@ export const wallsFirst = {
     geometry.rotateX(-Math.PI / 2);
     geometry.computeVertexNormals();
 
-    const openings = [...makeRearOpeningBoxes(), ...makeSideOpeningBoxes()];
-    const { geometry: openedGeometry, stats } = applyOpeningsToWallGeometry(geometry, openings);
-
     return {
-      geometry: openedGeometry,
+      geometry,
       position: [0, firstFloorLevel, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
-      openingsStats: stats,
     };
   })(),
 

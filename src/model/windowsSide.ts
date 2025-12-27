@@ -36,9 +36,30 @@ const SILL_OVERHANG = 0.02;
 const REVEAL_FACE = 0.05;
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
-function windowVerticalExtents(spec: SideWindowSpec) {
+function getWindowVerticalSpan(spec: SideWindowSpec) {
+  const hasGround = spec.groundY1 > spec.groundY0 + 0.001;
+  const hasFirst = spec.firstY1 > spec.firstY0 + 0.001;
+
+  // ✅ First-floor-only (like SIDE_OP_WIN_F)
+  if (!hasGround && hasFirst) {
+    return {
+      yBottom: spec.firstY0,
+      height: spec.firstY1 - spec.firstY0,
+    };
+  }
+
+  // ✅ Normal ground-only small windows (like SIDE_L_EXT)
+  if (hasGround && spec.kind !== 'tall') {
+    return {
+      yBottom: spec.groundY0,
+      height: spec.groundY1 - spec.groundY0,
+    };
+  }
+
+  // ✅ Tall windows spanning both floors
+  // (keeps your existing behavior)
   const yBottom = spec.groundY0;
-  const yTop = spec.kind === 'tall' ? Math.max(spec.groundY1, spec.firstY1) : spec.groundY1;
+  const yTop = Math.max(spec.groundY1, spec.firstY1);
 
   return {
     yBottom,
@@ -103,12 +124,41 @@ export const sideWindowSpecs: SideWindowSpec[] = [
     firstY0: ceilingHeights.ground,
     firstY1: 5.0,
   },
+  // ✅ NEW: Opposite-side ground door (anthracite solid)
+  {
+    id: 'SIDE_OP_DOOR_G',
+    kind: 'small',
+    zCenter: 6.25,
+    width: 0.9, // 90cm door
+    groundY0: 0.0,
+    groundY1: 2.15, // 2.15m door height
+    firstY0: 0.0,
+    firstY1: 0.0,
+  },
+
+  // ✅ NEW: Opposite-side first-floor window
+  {
+    id: 'SIDE_OP_WIN_F',
+    kind: 'small',
+    zCenter: 6.25,
+    width: 0.8, // 80cm window
+    groundY0: 0.0,
+    groundY1: 0.0, // IMPORTANT: indicates "not on ground"
+    firstY0: 4.1, // from your elevation: 4.10m to 5.00m
+    firstY1: 5.0,
+  },
 ];
 
 const frameMaterial = new THREE.MeshStandardMaterial({
   color: '#383E42',
   roughness: 0.55,
   metalness: 0.12,
+});
+
+const doorPanelMaterial = new THREE.MeshStandardMaterial({
+  color: '#383E42',
+  roughness: 0.65,
+  metalness: 0.05,
 });
 
 const glassMaterial = new THREE.MeshPhysicalMaterial({
@@ -218,7 +268,7 @@ function createRevealMeshes({
   xOuter: number;
   xInner: number;
 }): SideWindowMesh[] {
-  const { height, yBottom } = windowVerticalExtents(spec);
+  const { height, yBottom } = getWindowVerticalSpan(spec);
   const yCenter = yBottom + height / 2;
   const revealDepth = Math.abs(xOuter - xInner);
   const xMid = (xOuter + xInner) / 2;
@@ -277,15 +327,17 @@ function makeSimpleWindow({
   side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width } = spec;
-  const { height, yBottom } = windowVerticalExtents(spec);
+  const { height, yBottom } = getWindowVerticalSpan(spec);
   const yCenter = yBottom + height / 2;
+  const isDoor = spec.id === 'SIDE_OP_DOOR_G';
+  const outward = side === 'right' ? 1 : -1;
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
 
   const frameGeometry = createFrameGeometry(width, height);
   const glassGeometry = createGlassGeometry(innerWidth, innerHeight);
 
-  return [
+  const meshes: SideWindowMesh[] = [
     {
       id: `${id}_FRAME`,
       geometry: frameGeometry,
@@ -293,15 +345,33 @@ function makeSimpleWindow({
       rotation: [0, 0, 0],
       material: frameMaterial,
     },
-    {
+  ];
+
+  if (isDoor) {
+    const panelWidth = width - 2 * FRAME_BORDER;
+    const panelHeight = height - 2 * FRAME_BORDER;
+
+    const panelGeom = new THREE.PlaneGeometry(panelWidth, panelHeight);
+    meshes.push({
+      id: `${id}_PANEL`,
+      geometry: panelGeom,
+      position: [xFace + outward * (FRAME_DEPTH * 0.25), yBottom + height / 2, zCenter],
+      rotation: [0, SIDE === 'right' ? Math.PI / 2 : -Math.PI / 2, 0],
+      material: doorPanelMaterial,
+    });
+  } else {
+    meshes.push({
       id: `${id}_GLASS`,
       geometry: glassGeometry,
       position: [glassX, yCenter, zCenter],
       rotation: [0, 0, 0],
       material: glassMaterial,
-    },
-    createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }),
-  ];
+    });
+  }
+
+  meshes.push(createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }));
+
+  return meshes;
 }
 
 function makeSplitTallWindow({
@@ -320,7 +390,7 @@ function makeSplitTallWindow({
   side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width } = spec;
-  const { height, yBottom } = windowVerticalExtents(spec);
+  const { height, yBottom } = getWindowVerticalSpan(spec);
   const frameGeometry = createFrameGeometry(width, height);
   const yCenter = yBottom + height / 2;
   const windowBottomLocal = -height / 2;

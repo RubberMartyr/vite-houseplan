@@ -873,17 +873,6 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.rightFacade.geometry}
-              position={wallsFirst.rightFacade.position}
-              rotation={wallsFirst.rightFacade.rotation}
-              material={facadeMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
           {showFirst &&
             wallsFirst.rightFacades.map((facade, index) => (
               <mesh

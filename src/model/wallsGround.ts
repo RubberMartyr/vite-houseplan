@@ -390,7 +390,7 @@ export const wallsGround = {
 
       // FINAL: protect any triangle whose X-range intersects the wall thickness band
       // and whose Z-range intersects the extension segment span
-      const isExtensionLeftWallTriangle = !!extensionSeg && inExtensionZ && inExtensionXBand;
+      const isExtensionLeftWallTriangle = false;
 
       // --- existing removal gate (keep everything else unchanged) ---
       if (!isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment)) {

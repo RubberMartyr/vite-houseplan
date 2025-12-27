@@ -313,15 +313,37 @@ export const wallsGround = {
       const v2 = new Vector3(x2, y2, z2);
       const v3 = new Vector3(x3, y3, z3);
 
-      const onRearOuter = Math.abs(z1 - rearZ) < EPSILON && Math.abs(z2 - rearZ) < EPSILON && Math.abs(z3 - rearZ) < EPSILON;
+      const e1 = new Vector3().subVectors(v2, v1);
+      const e2 = new Vector3().subVectors(v3, v1);
+      const n = new Vector3().crossVectors(e1, e2).normalize();
+
+      // “Facing” helpers (tolerant)
+      const facesMostlyX = Math.abs(n.x) > 0.85;
+      const facesMostlyZ = Math.abs(n.z) > 0.85;
+
+      const onRearOuter =
+        facesMostlyZ &&
+        Math.abs(z1 - rearZ) < EPSILON &&
+        Math.abs(z2 - rearZ) < EPSILON &&
+        Math.abs(z3 - rearZ) < EPSILON;
       const onRearInner =
-        Math.abs(z1 - innerRearZ) < EPSILON && Math.abs(z2 - innerRearZ) < EPSILON && Math.abs(z3 - innerRearZ) < EPSILON;
-      const onLeftOuter = Math.abs(x1 - leftX) < EPSILON && Math.abs(x2 - leftX) < EPSILON && Math.abs(x3 - leftX) < EPSILON;
+        facesMostlyZ &&
+        Math.abs(z1 - innerRearZ) < EPSILON &&
+        Math.abs(z2 - innerRearZ) < EPSILON &&
+        Math.abs(z3 - innerRearZ) < EPSILON;
+      const onLeftOuter =
+        facesMostlyX &&
+        Math.abs(x1 - leftX) < EPSILON &&
+        Math.abs(x2 - leftX) < EPSILON &&
+        Math.abs(x3 - leftX) < EPSILON;
       const onLeftInner =
-        Math.abs(x1 - innerLeftX) < EPSILON && Math.abs(x2 - innerLeftX) < EPSILON && Math.abs(x3 - innerLeftX) < EPSILON;
+        facesMostlyX &&
+        Math.abs(x1 - innerLeftX) < EPSILON &&
+        Math.abs(x2 - innerLeftX) < EPSILON &&
+        Math.abs(x3 - innerLeftX) < EPSILON;
       const triZMin = Math.min(z1, z2, z3);
       const triZMax = Math.max(z1, z2, z3);
-      const onRightSegment = RIGHT_FACADE_SEGMENTS.some((segment) => {
+      const onRightSegment = facesMostlyX && RIGHT_FACADE_SEGMENTS.some((segment) => {
         const outerX = segment.x;
         const innerX = segment.x - exteriorThickness;
         const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;

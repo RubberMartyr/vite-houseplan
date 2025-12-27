@@ -886,11 +886,12 @@ function HouseScene({
               geometry={wallsGround.extensionPatchFacade.geometry}
               position={wallsGround.extensionPatchFacade.position}
               rotation={wallsGround.extensionPatchFacade.rotation}
-              material={facadeMaterial}
               castShadow
               receiveShadow
               visible={wallShellVisible}
-            />
+            >
+              <meshStandardMaterial side={THREE.DoubleSide} wireframe />
+            </mesh>
           )}
 
           {showFirst && (

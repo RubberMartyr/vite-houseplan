@@ -747,14 +747,7 @@ function makeLeftFacadePanels({
 
   return segments
     .map((segment, index) => {
-      if (
-        EXTENSION_SIDE_WALL &&
-        Math.abs(segment.z0 - EXTENSION_SIDE_WALL.z0) < EPSILON &&
-        Math.abs(segment.z1 - EXTENSION_SIDE_WALL.z1) < EPSILON
-      ) {
-        console.log('🛑 SKIP EXTENSION LEFT FACADE PANEL', { segment, index });
-        return null;
-      }
+      // ✅ DO NOT SKIP extension segment
 
       const widthZ = segment.z1 - segment.z0;
       const panelCenterZ = (segment.z0 + segment.z1) / 2;

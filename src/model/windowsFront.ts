@@ -42,6 +42,16 @@ const blueStoneMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.0,
 });
 
+// Apply this only to front facade windows and the front door; do not change rear or side windows.
+// Front facade: plan distances are measured from the LEFT edge,
+// but in the scene the front facade is mirrored in X.
+const FRONT_WIDTH_M = 9.6; // 960 cm
+const RIGHT_EDGE_X = FRONT_WIDTH_M / 2;
+
+export function frontXCenter(xFromLeft: number, openingWidth: number): number {
+  return RIGHT_EDGE_X - (xFromLeft + openingWidth / 2);
+}
+
 function makeWindowMeshes(params: {
   idBase: string;
   width: number;
@@ -272,25 +282,45 @@ function makeDoorMeshes(params: {
 // Coordinate convention: x = left→right across facade, z = depth, y = height.
 // left edge ≈ -4.8m, right edge ≈ +4.8m.
 
-const leftEdgeX = -4.8;
-
 // From chain: 115 | 110(win) | 70 | 110(win) | 95 | 100(door) | 115 | 70(win) | 175
+// Ground floor (from plan chains)
+const G_W1 = 1.15;
+const G_W2 = 1.15 + 1.10 + 0.70;
+const G_DOOR = 1.15 + 1.10 + 0.70 + 1.10 + 0.95;
+const G_W3 = 1.15 + 1.10 + 0.70 + 1.10 + 0.95 + 1.00 + 1.15;
+
+const xG_W1 = frontXCenter(G_W1, 1.10);
+const xG_W2 = frontXCenter(G_W2, 1.10);
+const xG_DOOR = frontXCenter(G_DOOR, 1.00);
+const xG_W3 = frontXCenter(G_W3, 0.70);
+
 const groundOpenings = [
-  { id: 'FRONT_G_W1', kind: 'window', width: 1.10, height: 1.60, xCenter: leftEdgeX + 1.15 + 1.10 / 2, yBottom: 0.70, mullions: 1 },
-  { id: 'FRONT_G_W2', kind: 'window', width: 1.10, height: 1.60, xCenter: leftEdgeX + (1.15 + 1.10 + 0.70) + 1.10 / 2, yBottom: 0.70, mullions: 1 },
-  { id: 'FRONT_G_DOOR', kind: 'door',   width: 1.00, height: 2.50, xCenter: leftEdgeX + (1.15 + 1.10 + 0.70 + 1.10 + 0.95) + 1.00 / 2, yBottom: 0.00 },
+  { id: 'FRONT_G_W1', kind: 'window', width: 1.10, height: 1.60, xCenter: xG_W1, yBottom: 0.70, mullions: 1 },
+  { id: 'FRONT_G_W2', kind: 'window', width: 1.10, height: 1.60, xCenter: xG_W2, yBottom: 0.70, mullions: 1 },
+  { id: 'FRONT_G_DOOR', kind: 'door',   width: 1.00, height: 2.50, xCenter: xG_DOOR, yBottom: 0.00 },
   // small WC window: 165..215 => yBottom=1.65 height=0.50
-  { id: 'FRONT_G_W3', kind: 'window', width: 0.70, height: 0.50, xCenter: leftEdgeX + (1.15 + 1.10 + 0.70 + 1.10 + 0.95 + 1.00 + 1.15) + 0.70 / 2, yBottom: 1.65, mullions: 0 },
+  { id: 'FRONT_G_W3', kind: 'window', width: 0.70, height: 0.50, xCenter: xG_W3, yBottom: 1.65, mullions: 0 },
 ] as const;
 
 // From chain: 125 | 90(win) | 90 | 90(win) | 110 | 90(win) | 120 | 70(win) | 175
+// First floor
+const F_W1 = 1.25;
+const F_W2 = 1.25 + 0.90 + 0.90;
+const F_W3 = 1.25 + 0.90 + 0.90 + 0.90 + 1.10;
+const F_W4 = 1.25 + 0.90 + 0.90 + 0.90 + 1.10 + 0.90 + 1.20;
+
+const xF_W1 = frontXCenter(F_W1, 0.90);
+const xF_W2 = frontXCenter(F_W2, 0.90);
+const xF_W3 = frontXCenter(F_W3, 0.90);
+const xF_W4 = frontXCenter(F_W4, 0.70);
+
 const firstOpenings = [
   // big windows: sill=3.40, top=5.00 => 1.60
-  { id: 'FRONT_F_W1', width: 0.90, height: 1.60, xCenter: leftEdgeX + 1.25 + 0.90 / 2, yBottom: 3.40, mullions: 1 },
-  { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: leftEdgeX + (1.25 + 0.90 + 0.90) + 0.90 / 2, yBottom: 3.40, mullions: 1 },
-  { id: 'FRONT_F_W3', width: 0.90, height: 1.60, xCenter: leftEdgeX + (1.25 + 0.90 + 0.90 + 0.90 + 1.10) + 0.90 / 2, yBottom: 3.40, mullions: 1 },
+  { id: 'FRONT_F_W1', width: 0.90, height: 1.60, xCenter: xF_W1, yBottom: 3.40, mullions: 1 },
+  { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, mullions: 1 },
+  { id: 'FRONT_F_W3', width: 0.90, height: 1.60, xCenter: xF_W3, yBottom: 3.40, mullions: 1 },
   // small window: sill=4.10, top=5.00 => 0.90
-  { id: 'FRONT_F_W4', width: 0.70, height: 0.90, xCenter: leftEdgeX + (1.25 + 0.90 + 0.90 + 0.90 + 1.10 + 0.90 + 1.20) + 0.70 / 2, yBottom: 4.10, mullions: 0 },
+  { id: 'FRONT_F_W4', width: 0.70, height: 0.90, xCenter: xF_W4, yBottom: 4.10, mullions: 0 },
 ] as const;
 
 // --- opening rects for facade holes (used by wallsGround/wallsFirst) ---

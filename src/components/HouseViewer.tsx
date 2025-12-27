@@ -700,6 +700,10 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
+  const groundShellEdges = useMemo(() => {
+    const g = new THREE.EdgesGeometry(wallsGround.shell.geometry, 20); // 20° threshold; tweak if needed
+    return g;
+  }, [wallsGround.shell.geometry]);
 
   const showBasement = activeFloors.basement;
   const showGround = activeFloors.ground;
@@ -843,15 +847,16 @@ function HouseScene({
                 receiveShadow
                 visible={wallShellVisible}
               />
-              <mesh
-                geometry={wallsGround.shell.geometry}
+              <lineSegments
+                geometry={groundShellEdges}
                 position={wallsGround.shell.position}
                 rotation={wallsGround.shell.rotation}
                 frustumCulled={false}
+                renderOrder={999}
                 visible={wallShellVisible}
               >
-                <meshBasicMaterial wireframe side={THREE.DoubleSide} />
-              </mesh>
+                <lineBasicMaterial depthTest={true} depthWrite={false} />
+              </lineSegments>
             </>
           )}
           {showGround &&

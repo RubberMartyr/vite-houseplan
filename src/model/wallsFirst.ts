@@ -1,4 +1,4 @@
-import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Mesh, Path, Shape, ShapeGeometry } from 'three';
+import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Mesh, Path, Shape, ShapeGeometry, Vector3 } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
@@ -11,6 +11,7 @@ import {
   sideZMin,
   windowsSide,
 } from './windowsSide';
+import { frontOpeningRectsFirst } from './windowsFront';
 
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.first;
@@ -34,6 +35,8 @@ export const wallsFirst = {
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
     const innerLeftX = leftX + exteriorThickness;
+    const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+    const innerFrontZ = frontZ + exteriorThickness;
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -78,6 +81,7 @@ export const wallsFirst = {
     const keptUvs: number[] = [];
     const triangleCount = position.count / 3;
     let removedOuter = 0;
+    let removedFront = 0;
     let removedInner = 0;
     let removedSide = 0;
     let keptTotal = 0;
@@ -98,30 +102,72 @@ export const wallsFirst = {
       const y3 = position.getY(indices[2]);
       const z3 = position.getZ(indices[2]);
 
-      const onRearOuter = Math.abs(z1 - rearZ) < EPSILON && Math.abs(z2 - rearZ) < EPSILON && Math.abs(z3 - rearZ) < EPSILON;
+      const v1 = new Vector3(x1, y1, z1);
+      const v2 = new Vector3(x2, y2, z2);
+      const v3 = new Vector3(x3, y3, z3);
+
+      const e1 = new Vector3().subVectors(v2, v1);
+      const e2 = new Vector3().subVectors(v3, v1);
+      const n = new Vector3().crossVectors(e1, e2).normalize();
+
+      const facesMostlyX = Math.abs(n.x) > 0.85;
+      const facesMostlyZ = Math.abs(n.z) > 0.85;
+
+      const onRearOuter =
+        facesMostlyZ &&
+        Math.abs(z1 - rearZ) < EPSILON &&
+        Math.abs(z2 - rearZ) < EPSILON &&
+        Math.abs(z3 - rearZ) < EPSILON;
       const onRearInner =
-        Math.abs(z1 - innerRearZ) < EPSILON && Math.abs(z2 - innerRearZ) < EPSILON && Math.abs(z3 - innerRearZ) < EPSILON;
-      const onLeftOuter = Math.abs(x1 - leftX) < EPSILON && Math.abs(x2 - leftX) < EPSILON && Math.abs(x3 - leftX) < EPSILON;
+        facesMostlyZ &&
+        Math.abs(z1 - innerRearZ) < EPSILON &&
+        Math.abs(z2 - innerRearZ) < EPSILON &&
+        Math.abs(z3 - innerRearZ) < EPSILON;
+      const onFrontOuter =
+        facesMostlyZ &&
+        Math.abs(z1 - frontZ) < EPSILON &&
+        Math.abs(z2 - frontZ) < EPSILON &&
+        Math.abs(z3 - frontZ) < EPSILON;
+      const onFrontInner =
+        facesMostlyZ &&
+        Math.abs(z1 - innerFrontZ) < EPSILON &&
+        Math.abs(z2 - innerFrontZ) < EPSILON &&
+        Math.abs(z3 - innerFrontZ) < EPSILON;
+      const onLeftOuter =
+        facesMostlyX &&
+        Math.abs(x1 - leftX) < EPSILON &&
+        Math.abs(x2 - leftX) < EPSILON &&
+        Math.abs(x3 - leftX) < EPSILON;
       const onLeftInner =
-        Math.abs(x1 - innerLeftX) < EPSILON && Math.abs(x2 - innerLeftX) < EPSILON && Math.abs(x3 - innerLeftX) < EPSILON;
-      const onRightSegment = RIGHT_FACADE_SEGMENTS.some((segment) => {
-        const outerX = segment.x;
-        const innerX = segment.x - exteriorThickness;
-        const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-        const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-        if (!onOuterX && !onInnerX) return false;
+        facesMostlyX &&
+        Math.abs(x1 - innerLeftX) < EPSILON &&
+        Math.abs(x2 - innerLeftX) < EPSILON &&
+        Math.abs(x3 - innerLeftX) < EPSILON;
+      const triZMin = Math.min(z1, z2, z3);
+      const triZMax = Math.max(z1, z2, z3);
+      const onRightSegment =
+        facesMostlyX &&
+        RIGHT_FACADE_SEGMENTS.some((segment) => {
+          const outerX = segment.x;
+          const innerX = segment.x - exteriorThickness;
+          const onOuterX =
+            Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
+          const onInnerX =
+            Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
+          if (!onOuterX && !onInnerX) return false;
 
-        const zMinTri = Math.min(z1, z2, z3);
-        const zMaxTri = Math.max(z1, z2, z3);
-        const inSegmentZ = zMaxTri >= segment.z0 - EPSILON && zMinTri <= segment.z1 + EPSILON;
-        return inSegmentZ;
-      });
+          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON;
+          return inSegmentZ;
+        });
 
-      if (onRearOuter || onRearInner || onLeftOuter || onLeftInner || onRightSegment) {
+      if (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onLeftOuter || onLeftInner || onRightSegment) {
         if (onRearOuter) {
           removedOuter += 1;
         }
-        if (onRearInner) {
+        if (onFrontOuter) {
+          removedFront += 1;
+        }
+        if (onRearInner || onFrontInner) {
           removedInner += 1;
         }
         if (onLeftOuter || onLeftInner || onRightSegment) {
@@ -147,10 +193,10 @@ export const wallsFirst = {
     }
     filteredGeometry.computeVertexNormals();
 
-    const removedTotal = removedOuter + removedInner + removedSide;
+    const removedTotal = removedOuter + removedFront + removedInner + removedSide;
     console.log(
       '✅ wallsFirst rear/side faces removed for facade panels',
-      { removedOuter, removedInner, removedSide, removedTotal, keptTotal },
+      { removedOuter, removedFront, removedInner, removedSide, removedTotal, keptTotal },
       Date.now(),
     );
 
@@ -224,6 +270,60 @@ export const wallsFirst = {
     return {
       geometry: panelGeometry,
       position: [panelCenterX, firstFloorLevel + panelHeight / 2, rearZ - panelDepth / 2] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  })(),
+
+  frontFacade: (() => {
+    const outer = getEnvelopeFirstOuterPolygon();
+    const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+
+    const frontEdgePoints = outer.filter((point) => Math.abs(point.z - frontZ) < 1e-6);
+    const leftX = frontEdgePoints.reduce((min, point) => Math.min(min, point.x), Infinity);
+    const rightX = frontEdgePoints.reduce((max, point) => Math.max(max, point.x), -Infinity);
+
+    const width = rightX - leftX;
+    const panelCenterX = (leftX + rightX) / 2;
+    const panelHeight = wallHeight;
+    const panelDepth = FACADE_PANEL_THICKNESS;
+
+    const toLocalRect = (rect: { xMin: number; xMax: number; yMin: number; yMax: number }) => ({
+      xMin: rect.xMin - panelCenterX,
+      xMax: rect.xMax - panelCenterX,
+      yMin: rect.yMin - panelHeight / 2,
+      yMax: rect.yMax - panelHeight / 2,
+    });
+
+    const shape = new Shape();
+    shape.moveTo(-width / 2, -panelHeight / 2);
+    shape.lineTo(width / 2, -panelHeight / 2);
+    shape.lineTo(width / 2, panelHeight / 2);
+    shape.lineTo(-width / 2, panelHeight / 2);
+    shape.closePath();
+
+    // Holes are LOCAL to the first-floor wall base
+    frontOpeningRectsFirst
+      .map((r) => toLocalRect(r))
+      .forEach((rect) => {
+        const path = new Path();
+        path.moveTo(rect.xMin, rect.yMin);
+        path.lineTo(rect.xMax, rect.yMin);
+        path.lineTo(rect.xMax, rect.yMax);
+        path.lineTo(rect.xMin, rect.yMax);
+        path.closePath();
+        shape.holes.push(path);
+      });
+
+    const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    rawPanelGeometry.translate(0, 0, -panelDepth / 2);
+
+    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsFirst frontFacade', 'front');
+    const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsFirst frontFacade');
+    panelGeometry.computeVertexNormals();
+
+    return {
+      geometry: panelGeometry,
+      position: [panelCenterX, firstFloorLevel + panelHeight / 2, frontZ + panelDepth / 2] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
   })(),

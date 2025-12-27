@@ -205,9 +205,33 @@ export const wallsGround = {
       const inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON);
       const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
 
-      const extensionTriangle = isExtensionSideWallFace(v1) && isExtensionSideWallFace(v2) && isExtensionSideWallFace(v3);
+      /**
+       * ✅ Robust extension-triangle protection:
+       * - We keep triangles that overlap the extension Z span
+       * - and touch either the left OUTER plane or left INNER plane
+       *
+       * This avoids the “all 3 vertices must be on the same plane” problem.
+       */
+      const extensionSeg = EXTENSION_SIDE_WALL;
 
-      if (!extensionTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment)) {
+      const inExtensionZ =
+        !!extensionSeg &&
+        triZMax >= extensionSeg.z0 - EPSILON &&
+        triZMin <= extensionSeg.z1 + EPSILON;
+
+      // “Touch” tests (any vertex is enough; this is the key difference)
+      const touchesLeftOuterPlane =
+        !!extensionSeg &&
+        (Math.abs(x1 - extensionSeg.x) < EPSILON || Math.abs(x2 - extensionSeg.x) < EPSILON || Math.abs(x3 - extensionSeg.x) < EPSILON);
+
+      const touchesLeftInnerPlane =
+        !!extensionSeg &&
+        (Math.abs(x1 - innerLeftX) < EPSILON || Math.abs(x2 - innerLeftX) < EPSILON || Math.abs(x3 - innerLeftX) < EPSILON);
+
+      // Final keep flag for extension-side-wall triangles
+      const isExtensionLeftWallTriangle = !!extensionSeg && inExtensionZ && (touchesLeftOuterPlane || touchesLeftInnerPlane);
+
+      if (!isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment)) {
         if (onRearOuter) {
           removedOuter += 1;
         }
@@ -225,7 +249,7 @@ export const wallsGround = {
         continue;
       }
 
-      if (extensionTriangle) {
+      if (isExtensionLeftWallTriangle) {
         extensionTrianglesKept += 1;
       }
 

@@ -13,9 +13,19 @@ export const leftFacadeProfileCm: EnvelopePoint[] = [
   { z: depthCm, x: -350 },
 ];
 
+export const rightFacadeProfileCm: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
+  z: point.z,
+  x: Math.abs(point.x),
+}));
+
 const cmToMeters = (value: number) => value / 100;
 
 export const leftFacadeProfile: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
+  x: cmToMeters(point.x),
+  z: cmToMeters(point.z),
+}));
+
+export const rightFacadeProfile: EnvelopePoint[] = rightFacadeProfileCm.map((point) => ({
   x: cmToMeters(point.x),
   z: cmToMeters(point.z),
 }));
@@ -144,4 +154,6 @@ export default {
   ceilingHeights,
   levelHeights,
   groundFloorRooms,
+  rightFacadeProfile,
+  rightFacadeProfileCm,
 };

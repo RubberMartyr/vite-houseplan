@@ -12,7 +12,7 @@ type SideWindowMesh = {
 
 export type SideWindowSpec = {
   id: string;
-  side: 'left' | 'right';
+  side?: 'left' | 'right'; // ✅ NEW (optional)
   kind: 'small' | 'tall';
   type?: 'small' | 'tall';
   zCenter: number;
@@ -37,35 +37,24 @@ const SILL_OVERHANG = 0.02;
 const REVEAL_FACE = 0.05;
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
-function getWindowVerticalSpan(spec: SideWindowSpec) {
+function windowVerticalExtents(spec: SideWindowSpec) {
   const hasGround = spec.groundY1 > spec.groundY0 + 0.001;
   const hasFirst = spec.firstY1 > spec.firstY0 + 0.001;
 
-  // ✅ First-floor-only (like SIDE_OP_WIN_F)
+  // ✅ First-floor-only (small) window
   if (!hasGround && hasFirst) {
-    return {
-      yBottom: spec.firstY0,
-      height: spec.firstY1 - spec.firstY0,
-    };
+    return { yBottom: spec.firstY0, height: spec.firstY1 - spec.firstY0 };
   }
 
-  // ✅ Normal ground-only small windows (like SIDE_L_EXT)
+  // ✅ Normal small ground window/door
   if (hasGround && spec.kind !== 'tall') {
-    return {
-      yBottom: spec.groundY0,
-      height: spec.groundY1 - spec.groundY0,
-    };
+    return { yBottom: spec.groundY0, height: spec.groundY1 - spec.groundY0 };
   }
 
-  // ✅ Tall windows spanning both floors
-  // (keeps your existing behavior)
+  // ✅ Tall (spans)
   const yBottom = spec.groundY0;
   const yTop = Math.max(spec.groundY1, spec.firstY1);
-
-  return {
-    yBottom,
-    height: yTop - yBottom,
-  };
+  return { yBottom, height: yTop - yBottom };
 }
 
 export const RIGHT_FACADE_SEGMENTS = [
@@ -132,7 +121,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   // ✅ NEW: Opposite-side ground door (anthracite solid)
   {
     id: 'SIDE_OP_DOOR_G',
-    side: 'right',
+    side: 'left', // ✅ opposite side from your existing ones
     kind: 'small',
     zCenter: 6.25,
     width: 0.9, // 90cm door
@@ -145,7 +134,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   // ✅ NEW: Opposite-side first-floor window
   {
     id: 'SIDE_OP_WIN_F',
-    side: 'right',
+    side: 'left', // ✅ same opposite side
     kind: 'small',
     zCenter: 6.25,
     width: 0.8, // 80cm window
@@ -275,7 +264,7 @@ function createRevealMeshes({
   xOuter: number;
   xInner: number;
 }): SideWindowMesh[] {
-  const { height, yBottom } = getWindowVerticalSpan(spec);
+  const { height, yBottom } = windowVerticalExtents(spec);
   const yCenter = yBottom + height / 2;
   const revealDepth = Math.abs(xOuter - xInner);
   const xMid = (xOuter + xInner) / 2;
@@ -334,7 +323,7 @@ function makeSimpleWindow({
   side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width } = spec;
-  const { height, yBottom } = getWindowVerticalSpan(spec);
+  const { height, yBottom } = windowVerticalExtents(spec);
   const yCenter = yBottom + height / 2;
   const isDoor = spec.id === 'SIDE_OP_DOOR_G';
   const outward = side === 'right' ? 1 : -1;
@@ -363,7 +352,7 @@ function makeSimpleWindow({
       id: `${id}_PANEL`,
       geometry: panelGeom,
       position: [xFace + outward * (FRAME_DEPTH * 0.25), yBottom + height / 2, zCenter],
-      rotation: [0, SIDE === 'right' ? Math.PI / 2 : -Math.PI / 2, 0],
+      rotation: [0, side === 'right' ? Math.PI / 2 : -Math.PI / 2, 0],
       material: doorPanelMaterial,
     });
   } else {
@@ -397,7 +386,7 @@ function makeSplitTallWindow({
   side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width } = spec;
-  const { height, yBottom } = getWindowVerticalSpan(spec);
+  const { height, yBottom } = windowVerticalExtents(spec);
   const frameGeometry = createFrameGeometry(width, height);
   const yCenter = yBottom + height / 2;
   const windowBottomLocal = -height / 2;
@@ -514,8 +503,10 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
     isTall: spec.kind === 'tall' || spec.type === 'tall',
   });
 
-  const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
-  const outward = SIDE === 'right' ? 1 : -1;
+  const sideForSpec: 'left' | 'right' = spec.side ?? SIDE;
+
+  const xFaceForWindow = sideForSpec === 'right' ? xFaceForRightAtZ(zCenter) : minX;
+  const outward = sideForSpec === 'right' ? 1 : -1;
   const interiorDir = -outward;
   const wallDepth = wallThickness.exterior ?? 0.3;
 
@@ -542,7 +533,7 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
     glassX: glassXForWindow,
     xFace: xOuterPlane,
     zCenter,
-    side: SIDE,
+    side: sideForSpec,
   };
 
   const revealMeshes = createRevealMeshes({

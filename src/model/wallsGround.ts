@@ -12,6 +12,7 @@ import {
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, leftFacadeProfileCm, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
+import { frontOpeningRectsGround } from './windowsFront';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -199,6 +200,8 @@ export const wallsGround = {
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
     const innerLeftX = leftX + exteriorThickness;
+    const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+    const innerFrontZ = frontZ + exteriorThickness;
     const leftZSegments = LEFT_Z_SEGMENTS;
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
@@ -276,11 +279,21 @@ export const wallsGround = {
         Math.abs(z1 - rearZ) < EPSILON &&
         Math.abs(z2 - rearZ) < EPSILON &&
         Math.abs(z3 - rearZ) < EPSILON;
+      const onFrontOuter =
+        facesMostlyZ &&
+        Math.abs(z1 - frontZ) < EPSILON &&
+        Math.abs(z2 - frontZ) < EPSILON &&
+        Math.abs(z3 - frontZ) < EPSILON;
       const onRearInner =
         facesMostlyZ &&
         Math.abs(z1 - innerRearZ) < EPSILON &&
         Math.abs(z2 - innerRearZ) < EPSILON &&
         Math.abs(z3 - innerRearZ) < EPSILON;
+      const onFrontInner =
+        facesMostlyZ &&
+        Math.abs(z1 - innerFrontZ) < EPSILON &&
+        Math.abs(z2 - innerFrontZ) < EPSILON &&
+        Math.abs(z3 - innerFrontZ) < EPSILON;
       const onLeftOuter =
         facesMostlyX &&
         Math.abs(x1 - leftX) < EPSILON &&
@@ -338,7 +351,8 @@ export const wallsGround = {
 
       // --- existing removal gate (keep everything else unchanged) ---
       const shouldRemove =
-        !isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment);
+        !isExtensionLeftWallTriangle &&
+        (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onRightSegment || onLeftFacadeSegment);
 
       if (shouldRemove) {
         continue;
@@ -420,6 +434,61 @@ export const wallsGround = {
     return {
       geometry: panelGeometry,
       position: [panelCenterX, panelHeight / 2, rearZ - panelDepth / 2] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  })(),
+
+  frontFacade: (() => {
+    const outer = getEnvelopeOuterPolygon();
+    const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+
+    const frontEdgePoints = outer.filter((point) => Math.abs(point.z - frontZ) < 1e-6);
+    const leftX = frontEdgePoints.reduce((min, point) => Math.min(min, point.x), Infinity);
+    const rightX = frontEdgePoints.reduce((max, point) => Math.max(max, point.x), -Infinity);
+
+    const width = rightX - leftX;
+    const panelCenterX = (leftX + rightX) / 2;
+    const panelHeight = wallHeight;
+    const panelDepth = FACADE_PANEL_THICKNESS;
+
+    const toLocalRect = (rect: { xMin: number; xMax: number; yMin: number; yMax: number }) => ({
+      xMin: rect.xMin - panelCenterX,
+      xMax: rect.xMax - panelCenterX,
+      yMin: rect.yMin - panelHeight / 2,
+      yMax: rect.yMax - panelHeight / 2,
+    });
+
+    const shape = new Shape();
+    shape.moveTo(-width / 2, -panelHeight / 2);
+    shape.lineTo(width / 2, -panelHeight / 2);
+    shape.lineTo(width / 2, panelHeight / 2);
+    shape.lineTo(-width / 2, panelHeight / 2);
+    shape.closePath();
+
+    // Holes from windowsFront.ts (ground level)
+    frontOpeningRectsGround
+      .map((r) => toLocalRect(r))
+      .forEach((rect) => {
+        const path = new Path();
+        path.moveTo(rect.xMin, rect.yMin);
+        path.lineTo(rect.xMax, rect.yMin);
+        path.lineTo(rect.xMax, rect.yMax);
+        path.lineTo(rect.xMin, rect.yMax);
+        path.closePath();
+        shape.holes.push(path);
+      });
+
+    const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    rawPanelGeometry.translate(0, 0, -panelDepth / 2);
+
+    // FRONT facade faces toward -Z, so keep the "front" facing side
+    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround frontFacade', 'front');
+    const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsGround frontFacade');
+    panelGeometry.computeVertexNormals();
+
+    return {
+      geometry: panelGeometry,
+      position: [panelCenterX, panelHeight / 2, frontZ + panelDepth / 2] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
   })(),

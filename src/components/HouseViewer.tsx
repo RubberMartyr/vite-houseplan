@@ -30,6 +30,7 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsSide } from '../model/windowsSide';
+import { windowsFront } from '../model/windowsFront';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 
 /**
@@ -883,6 +884,17 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {showGround && (wallsGround as any).frontFacade && (
+            <mesh
+              geometry={(wallsGround as any).frontFacade.geometry}
+              position={(wallsGround as any).frontFacade.position}
+              rotation={(wallsGround as any).frontFacade.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
           {showFirst && (
             <mesh
               geometry={wallsFirst.shell.geometry}
@@ -918,6 +930,17 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {showFirst && (wallsFirst as any).frontFacade && (
+            <mesh
+              geometry={(wallsFirst as any).frontFacade.geometry}
+              position={(wallsFirst as any).frontFacade.position}
+              rotation={(wallsFirst as any).frontFacade.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
           {eavesBandMesh}
           <group name="rearWindows" visible={wallShellVisible}>
             {windowsRear.meshes.map((mesh) => {
@@ -941,6 +964,25 @@ function HouseScene({
 
           <group name="sideWindows" visible={wallShellVisible}>
             {windowsSide.meshes.map((mesh) => {
+              const isGlass = mesh.id.toLowerCase().includes('_glass');
+              const fallbackMaterial = isGlass ? glass : frame;
+              const material = mesh.material ?? fallbackMaterial;
+              return (
+                <mesh
+                  key={mesh.id}
+                  geometry={mesh.geometry}
+                  position={mesh.position}
+                  rotation={mesh.rotation}
+                  material={material}
+                  castShadow={!isGlass}
+                  receiveShadow={!isGlass}
+                  renderOrder={isGlass ? 10 : undefined}
+                />
+              );
+            })}
+          </group>
+          <group name="frontWindows" visible={wallShellVisible}>
+            {windowsFront.meshes.map((mesh) => {
               const isGlass = mesh.id.toLowerCase().includes('_glass');
               const fallbackMaterial = isGlass ? glass : frame;
               const material = mesh.material ?? fallbackMaterial;

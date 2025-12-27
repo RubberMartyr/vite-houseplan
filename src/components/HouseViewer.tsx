@@ -312,7 +312,6 @@ function getBoxProps(bounds: { xMin: number; xMax: number; zMin: number; zMax: n
 function RoomHitbox({ room, highlighted, onSelect }: any) {
   const { position, size } = useMemo(() => getBoxProps(room.bounds), [room.bounds]);
   const geometry = useMemo(() => new THREE.BoxGeometry(...size), [size]);
-  const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
 
   return (
     <group position={position}>
@@ -332,12 +331,6 @@ function RoomHitbox({ room, highlighted, onSelect }: any) {
           depthWrite={false}
         />
       </mesh>
-
-      {highlighted && (
-        <lineSegments geometry={edgesGeometry}>
-          <lineBasicMaterial color="#4fa3f7" linewidth={1} />
-        </lineSegments>
-      )}
     </group>
   );
 }
@@ -664,13 +657,6 @@ function HouseScene({
 
     return material;
   }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
-  // ✅ Debug/compat material: only for wallsGround.shell to reveal flipped normals
-  const wallMaterialDoubleSide = useMemo(() => {
-    const m = wallMaterial.clone();
-    m.side = THREE.DoubleSide;
-    m.needsUpdate = true;
-    return m;
-  }, [wallMaterial]);
   const facadeMaterial = useMemo(() => {
     const material = wallMaterial.clone();
     material.side = THREE.DoubleSide;
@@ -700,10 +686,6 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
-  const groundShellEdges = useMemo(() => {
-    const g = new THREE.EdgesGeometry(wallsGround.shell.geometry, 20); // 20° threshold; tweak if needed
-    return g;
-  }, [wallsGround.shell.geometry]);
 
   const showBasement = activeFloors.basement;
   const showGround = activeFloors.ground;
@@ -837,27 +819,15 @@ function HouseScene({
             />
           )}
           {showGround && (
-            <>
-              <mesh
-                geometry={wallsGround.shell.geometry}
-                position={wallsGround.shell.position}
-                rotation={wallsGround.shell.rotation}
-                material={wallMaterialDoubleSide}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-              <lineSegments
-                geometry={groundShellEdges}
-                position={wallsGround.shell.position}
-                rotation={wallsGround.shell.rotation}
-                frustumCulled={false}
-                renderOrder={999}
-                visible={wallShellVisible}
-              >
-                <lineBasicMaterial depthTest={true} depthWrite={false} />
-              </lineSegments>
-            </>
+            <mesh
+              geometry={wallsGround.shell.geometry}
+              position={wallsGround.shell.position}
+              rotation={wallsGround.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
           )}
           {showGround &&
             wallsGround.leftFacades?.map((facade, index) => (

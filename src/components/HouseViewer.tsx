@@ -368,6 +368,8 @@ export default function HouseViewer() {
   const allFloorsActive = Object.values(activeFloors).every(Boolean);
 
   const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
+  console.log("🔎 wallsGround keys:", Object.keys(wallsGround));
+  console.log("🔎 wallsGround.extensionPatchFacade:", (wallsGround as any).extensionPatchFacade);
   const selectedRoom = useMemo(
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]

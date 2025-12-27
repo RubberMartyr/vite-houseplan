@@ -671,7 +671,9 @@ function makeExtensionSidePatchFacade(mirrorZ: (z: number) => number) {
 
   // Rotate so Shape X-axis (we used as Z) becomes world Z, and Shape Y becomes world Y.
   // Then rotate around Y so the plane faces outward.
-  raw.rotateY(isOnLeftExtreme ? Math.PI / 2 : -Math.PI / 2);
+  // Default ShapeGeometry normal is +Z.
+  // We want left facade to face outward (-X), right facade to face outward (+X).
+  raw.rotateY(isOnLeftExtreme ? -Math.PI / 2 : Math.PI / 2);
   raw.computeVertexNormals();
 
   console.log('🧱 EXTENSION PATCH FACADE', {

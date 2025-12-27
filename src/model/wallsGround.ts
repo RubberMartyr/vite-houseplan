@@ -22,6 +22,32 @@ const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
 
 type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
+type ZSeg = { z0: number; z1: number };
+
+function computeLeftFacadeSegments(): ZSeg[] {
+  const outer = getEnvelopeOuterPolygon();
+  const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
+  const segments: ZSeg[] = [];
+
+  for (let i = 0; i < outer.length; i += 1) {
+    const a = outer[i];
+    const b = outer[(i + 1) % outer.length];
+
+    if (Math.abs(a.x - leftX) < EPSILON && Math.abs(b.x - leftX) < EPSILON) {
+      const z0 = Math.min(a.z, b.z);
+      const z1 = Math.max(a.z, b.z);
+
+      if (Math.abs(z1 - z0) > EPSILON) {
+        segments.push({ z0, z1 });
+      }
+    }
+  }
+
+  segments.sort((a, b) => a.z0 - b.z0);
+  return segments;
+}
+
+const LEFT_Z_SEGMENTS = computeLeftFacadeSegments();
 
 export const wallsGround = {
   shell: (() => {
@@ -31,6 +57,8 @@ export const wallsGround = {
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
     const innerLeftX = leftX + exteriorThickness;
+    const leftZSegments = LEFT_Z_SEGMENTS;
+    console.log('🧱 LEFT FACADE Z SEGMENTS', leftZSegments);
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -77,6 +105,8 @@ export const wallsGround = {
     let removedOuter = 0;
     let removedInner = 0;
     let removedSide = 0;
+    let removedLeftSegment = 0;
+    let removedRightSegment = 0;
     let keptTotal = 0;
 
     for (let tri = 0; tri < triangleCount; tri += 1) {
@@ -101,6 +131,8 @@ export const wallsGround = {
       const onLeftOuter = Math.abs(x1 - leftX) < EPSILON && Math.abs(x2 - leftX) < EPSILON && Math.abs(x3 - leftX) < EPSILON;
       const onLeftInner =
         Math.abs(x1 - innerLeftX) < EPSILON && Math.abs(x2 - innerLeftX) < EPSILON && Math.abs(x3 - innerLeftX) < EPSILON;
+      const triZMin = Math.min(z1, z2, z3);
+      const triZMax = Math.max(z1, z2, z3);
       const onRightSegment = RIGHT_FACADE_SEGMENTS.some((segment) => {
         const outerX = segment.x;
         const innerX = segment.x - exteriorThickness;
@@ -108,21 +140,26 @@ export const wallsGround = {
         const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
         if (!onOuterX && !onInnerX) return false;
 
-        const zMinTri = Math.min(z1, z2, z3);
-        const zMaxTri = Math.max(z1, z2, z3);
-        const inSegmentZ = zMaxTri >= segment.z0 - EPSILON && zMinTri <= segment.z1 + EPSILON;
+        const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON;
         return inSegmentZ;
       });
+      const inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON);
+      const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
 
-      if (onRearOuter || onRearInner || onLeftOuter || onLeftInner || onRightSegment) {
+      if (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment) {
         if (onRearOuter) {
           removedOuter += 1;
         }
         if (onRearInner) {
           removedInner += 1;
         }
-        if (onLeftOuter || onLeftInner || onRightSegment) {
+        if (onRightSegment) {
           removedSide += 1;
+          removedRightSegment += 1;
+        }
+        if (onLeftFacadeSegment) {
+          removedSide += 1;
+          removedLeftSegment += 1;
         }
         continue;
       }
@@ -147,7 +184,7 @@ export const wallsGround = {
     const removedTotal = removedOuter + removedInner + removedSide;
     console.log(
       '✅ wallsGround rear/side faces removed for facade panels',
-      { removedOuter, removedInner, removedSide, removedTotal, keptTotal },
+      { removedOuter, removedInner, removedSide, removedLeftSegment, removedRightSegment, removedTotal, keptTotal },
       Date.now(),
     );
 
@@ -216,7 +253,7 @@ export const wallsGround = {
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ }))(),
+  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightFacades: (() => {
     const panels = makeRightFacadePanels(mirrorZ);
     const rightProfileM = (rightFacadeProfileCm || []).map((point) => ({
@@ -301,6 +338,74 @@ function makeSideFacadePanel({
     position: [panelCenterX, panelHeight / 2, panelCenterZ] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
+}
+
+function makeLeftFacadePanels({
+  segments,
+  mirrorZ,
+}: {
+  segments: ZSeg[];
+  mirrorZ: (z: number) => number;
+}) {
+  const outer = getEnvelopeOuterPolygon();
+  const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
+  const panelDepth = FACADE_PANEL_THICKNESS;
+
+  return segments.map((segment, index) => {
+    const widthZ = segment.z1 - segment.z0;
+    const panelCenterZ = (segment.z0 + segment.z1) / 2;
+    const panelBaseY = 0;
+
+    const openings: Opening[] = [];
+    sideWindowSpecs.forEach((spec) => {
+      const zCenter = getSideWindowZCenter(spec, mirrorZ);
+      if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
+
+      openings.push({
+        id: spec.id,
+        zCenter,
+        widthZ: spec.width,
+        y0: spec.groundY0,
+        y1: spec.groundY1,
+      });
+    });
+
+    const shape = new Shape();
+    shape.moveTo(-widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, wallHeight / 2);
+    shape.lineTo(-widthZ / 2, wallHeight / 2);
+    shape.closePath();
+
+    openings.forEach((opening) => {
+      const zMin = opening.zCenter - opening.widthZ / 2;
+      const zMax = opening.zCenter + opening.widthZ / 2;
+      const yMin = opening.y0;
+      const yMax = opening.y1;
+
+      if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
+
+      const path = new Path();
+      path.moveTo(zMin - panelCenterZ, yMin - (panelBaseY + wallHeight / 2));
+      path.lineTo(zMax - panelCenterZ, yMin - (panelBaseY + wallHeight / 2));
+      path.lineTo(zMax - panelCenterZ, yMax - (panelBaseY + wallHeight / 2));
+      path.lineTo(zMin - panelCenterZ, yMax - (panelBaseY + wallHeight / 2));
+      path.closePath();
+      shape.holes.push(path);
+    });
+
+    const panelGeometry = new ShapeGeometry(shape);
+    panelGeometry.rotateY(Math.PI / 2);
+    panelGeometry.computeVertexNormals();
+
+    console.log('✅ LEFT PANEL', { z0: segment.z0, z1: segment.z1, openings: openings.map((o) => o.id), index });
+
+    return {
+      geometry: panelGeometry,
+      position: [minX - panelDepth / 2, wallHeight / 2, panelCenterZ] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  });
 }
 
 function makeRightFacadePanels(mirrorZ: (z: number) => number) {

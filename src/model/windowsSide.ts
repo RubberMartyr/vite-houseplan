@@ -2,8 +2,6 @@ import * as THREE from 'three';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 
-export type SideName = 'left' | 'right';
-
 type SideWindowMesh = {
   id: string;
   geometry: THREE.BufferGeometry;
@@ -14,17 +12,15 @@ type SideWindowMesh = {
 
 export type SideWindowSpec = {
   id: string;
+  side: 'left' | 'right';
+  kind: 'small' | 'tall';
+  type?: 'small' | 'tall';
   zCenter: number;
   width: number;
   groundY0: number;
   groundY1: number;
   firstY0: number;
   firstY1: number;
-  kind: 'small' | 'tall';
-  type?: 'small' | 'tall';
-
-  // ✅ NEW: optional side for the spec
-  side?: SideName;
 };
 
 const EPS = 0.01;
@@ -84,6 +80,8 @@ function xFaceForRightAtZ(z: number) {
   return RIGHT_FACADE_SEGMENTS[2].x;
 }
 
+// Toggle which facade hosts the side windows and whether they should mirror along Z
+export const SIDE: 'left' | 'right' = 'right';
 export const MIRROR_Z = true;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
@@ -155,30 +153,6 @@ export const sideWindowSpecs: SideWindowSpec[] = [
     groundY1: 0.0, // IMPORTANT: indicates "not on ground"
     firstY0: 4.1, // from your elevation: 4.10m to 5.00m
     firstY1: 5.0,
-  },
-  // ✅ NEW: Opposite-side ground door (explicit right facade)
-  {
-    id: 'SIDE_R_NEW_DOOR',
-    side: 'right',
-    kind: 'small',
-    zCenter: 2.8,
-    width: 0.9,
-    groundY0: 0.0,
-    groundY1: 2.15,
-    firstY0: 0.0,
-    firstY1: 0.0,
-  },
-  // ✅ NEW: Opposite-side first-floor window
-  {
-    id: 'SIDE_R_NEW_FIRST',
-    side: 'right',
-    kind: 'small',
-    zCenter: 10.8,
-    width: 1.0,
-    groundY0: 0.0,
-    groundY1: 0.0,
-    firstY0: 3.01,
-    firstY1: 4.21,
   },
 ];
 
@@ -273,7 +247,7 @@ function createSill({
   width: number;
   zCenter: number;
   yBottom: number;
-  side: SideName;
+  side: 'left' | 'right';
   xFace: number;
 }): SideWindowMesh {
   const sillX = side === 'left' ? xFace - SILL_DEPTH / 2 - SILL_OVERHANG : xFace + SILL_DEPTH / 2 + SILL_OVERHANG;
@@ -357,12 +331,12 @@ function makeSimpleWindow({
   glassX: number;
   xFace: number;
   zCenter: number;
-  side: SideName;
+  side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width } = spec;
   const { height, yBottom } = getWindowVerticalSpan(spec);
   const yCenter = yBottom + height / 2;
-  const isDoor = spec.id === 'SIDE_OP_DOOR_G' || spec.id === 'SIDE_R_NEW_DOOR';
+  const isDoor = spec.id === 'SIDE_OP_DOOR_G';
   const outward = side === 'right' ? 1 : -1;
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
@@ -389,7 +363,7 @@ function makeSimpleWindow({
       id: `${id}_PANEL`,
       geometry: panelGeom,
       position: [xFace + outward * (FRAME_DEPTH * 0.25), yBottom + height / 2, zCenter],
-      rotation: [0, side === 'right' ? Math.PI / 2 : -Math.PI / 2, 0],
+      rotation: [0, SIDE === 'right' ? Math.PI / 2 : -Math.PI / 2, 0],
       material: doorPanelMaterial,
     });
   } else {
@@ -420,7 +394,7 @@ function makeSplitTallWindow({
   glassX: number;
   xFace: number;
   zCenter: number;
-  side: SideName;
+  side: 'left' | 'right';
 }): SideWindowMesh[] {
   const { id, width } = spec;
   const { height, yBottom } = getWindowVerticalSpan(spec);
@@ -502,7 +476,6 @@ function makeSplitTallWindow({
 
 const pts = getEnvelopeOuterPolygon();
 const minX = Math.min(...pts.map((p) => p.x));
-const maxX = Math.max(...pts.map((p) => p.x));
 export const sideZMin = Math.min(...pts.map((p) => p.z));
 export const sideZMax = Math.max(...pts.map((p) => p.z));
 export function sideMirrorZ(z: number, zMin: number, zMax: number, mirror: boolean) {
@@ -528,11 +501,10 @@ export function sideWindowZ(spec: SideWindowSpec, mirrorZ: (z: number) => number
 }
 
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
-console.log('✅ SIDE WINDOWS: per-window xFace enabled', { MIRROR_Z });
-console.log('✅ SIDE WINDOWS MODEL COORDS', { zMin: sideZMin, zMax: sideZMax });
+console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
+console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  const sideForSpec: SideName = spec.side ?? 'left';
   const zCenter = getSideWindowZCenter(spec, mirrorZ);
 
   console.log('✅ SIDE Z FINAL', spec.id, {
@@ -540,18 +512,16 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
     mirrored: mirrorZ(spec.zCenter),
     final: zCenter,
     isTall: spec.kind === 'tall' || spec.type === 'tall',
-    side: sideForSpec,
   });
 
-  const xFaceForWindow = sideForSpec === 'right' ? xFaceForRightAtZ(zCenter) : minX;
-  const outward = sideForSpec === 'right' ? 1 : -1;
+  const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
+  const outward = SIDE === 'right' ? 1 : -1;
   const interiorDir = -outward;
   const wallDepth = wallThickness.exterior ?? 0.3;
 
   const xOuterReveal = xFaceForWindow;
   const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
   const xOuterPlane = xOuterReveal + outward * EPS;
-  const xInnerPlane = xOuterPlane + interiorDir * wallDepth;
 
   const frameXForWindow = xOuterPlane - outward * (FRAME_DEPTH / 2);
   const glassXForWindow = frameXForWindow + interiorDir * GLASS_INSET;
@@ -559,10 +529,9 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   console.log('SIDE WINDOW POS', {
     id: spec.id,
     zCenter,
-    side: sideForSpec,
     xFaceForWindow,
     xOuterPlane,
-    xInnerPlane,
+    xInnerPlane: xInnerReveal,
     frameXForWindow,
     glassXForWindow,
   });
@@ -573,7 +542,7 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
     glassX: glassXForWindow,
     xFace: xOuterPlane,
     zCenter,
-    side: sideForSpec,
+    side: SIDE,
   };
 
   const revealMeshes = createRevealMeshes({
@@ -589,7 +558,7 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
 
 export const windowsSide = {
   meshes,
-  side: 'mixed' as const,
+  side: SIDE,
   zMin: sideZMin,
   zMax: sideZMax,
   mirrorZ: MIRROR_Z,

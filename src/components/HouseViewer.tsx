@@ -833,15 +833,26 @@ function HouseScene({
             />
           )}
           {showGround && (
-            <mesh
-              geometry={wallsGround.shell.geometry}
-              position={wallsGround.shell.position}
-              rotation={wallsGround.shell.rotation}
-              material={wallMaterialDoubleSide}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
+            <>
+              <mesh
+                geometry={wallsGround.shell.geometry}
+                position={wallsGround.shell.position}
+                rotation={wallsGround.shell.rotation}
+                material={wallMaterialDoubleSide}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+              <mesh
+                geometry={wallsGround.shell.geometry}
+                position={wallsGround.shell.position}
+                rotation={wallsGround.shell.rotation}
+                frustumCulled={false}
+                visible={wallShellVisible}
+              >
+                <meshBasicMaterial wireframe side={THREE.DoubleSide} />
+              </mesh>
+            </>
           )}
           {showGround &&
             wallsGround.leftFacades?.map((facade, index) => (

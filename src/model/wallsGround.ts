@@ -486,9 +486,6 @@ function makeSideFacadePanel({
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach((spec) => {
-    const specSide = spec.side ?? 'right';
-    if (specSide !== side) return;
-
     const zCenter = getSideWindowZCenter(spec, mirrorZ);
     const zMin = zCenter - spec.width / 2;
     const zMax = zCenter + spec.width / 2;
@@ -542,9 +539,6 @@ function makeLeftFacadePanels({
 
       const openings: Opening[] = [];
       sideWindowSpecs.forEach((spec) => {
-        const specSide = spec.side ?? 'right';
-        if (specSide !== 'left') return;
-
         const zCenter = getSideWindowZCenter(spec, mirrorZ);
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 
@@ -626,9 +620,6 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
   };
 
   sideWindowSpecs.forEach((spec) => {
-    const specSide = spec.side ?? 'right';
-    if (specSide !== 'right') return;
-
     const zCenter = getSideWindowZCenter(spec, mirrorZ);
     const segment = segmentForZ(zCenter);
     const widthZ = spec.width;

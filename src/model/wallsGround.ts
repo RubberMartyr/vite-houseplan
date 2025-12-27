@@ -89,9 +89,20 @@ const EXTENSION_SIDE_WALL = (() => {
     return a.z1 - a.z0 - (b.z1 - b.z0);
   });
 
-  const segment = candidates[0];
-  console.log('🧱 EXTENSION SIDE SEGMENT', { segment, candidateCount: candidates.length, segmentCount: segments.length });
-  return segment;
+  const extensionSideSegment = candidates[0];
+  console.log('🧱 EXTENSION SIDE SEGMENT', {
+    segment: extensionSideSegment,
+    candidateCount: candidates.length,
+    segmentCount: segments.length,
+  });
+
+  return extensionSideSegment
+    ? {
+        ...extensionSideSegment,
+        z0: mirrorZ(extensionSideSegment.z0),
+        z1: mirrorZ(extensionSideSegment.z1),
+      }
+    : null;
 })();
 
 function isExtensionSideWallFace(v: Vector3) {

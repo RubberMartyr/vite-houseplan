@@ -27,29 +27,24 @@ type ZSeg = { z0: number; z1: number };
 function computeLeftFacadeSegments(): ZSeg[] {
   const outer = getEnvelopeOuterPolygon();
   const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-  const X_EPS = 0.03;
-  const zsOnLeft = outer
-    .filter((p) => Math.abs(p.x - leftX) < X_EPS)
-    .map((p) => p.z);
+  const segments: ZSeg[] = [];
 
-  const uniq = (arr: number[]) => Array.from(new Set(arr.map((v) => Math.round(v * 1000) / 1000)));
-  const zs = uniq(zsOnLeft).sort((a, b) => a - b);
+  for (let i = 0; i < outer.length; i += 1) {
+    const a = outer[i];
+    const b = outer[(i + 1) % outer.length];
 
-  const leftZSegments: ZSeg[] = [];
-  for (let i = 0; i + 1 < zs.length; i += 2) {
-    const z0 = zs[i];
-    const z1 = zs[i + 1];
-    if (z1 - z0 > 0.05) leftZSegments.push({ z0, z1 });
+    if (Math.abs(a.x - leftX) < EPSILON && Math.abs(b.x - leftX) < EPSILON) {
+      const z0 = Math.min(a.z, b.z);
+      const z1 = Math.max(a.z, b.z);
+
+      if (Math.abs(z1 - z0) > EPSILON) {
+        segments.push({ z0, z1 });
+      }
+    }
   }
 
-  if (leftZSegments.length === 0) {
-    const minZ = Math.min(...outer.map((p) => p.z));
-    const maxZ = Math.max(...outer.map((p) => p.z));
-    leftZSegments.push({ z0: minZ, z1: maxZ });
-  }
-  console.log('🧱 LEFT FACADE Z SEGMENTS', leftZSegments, { leftX, zsOnLeft, zs });
-
-  return leftZSegments;
+  segments.sort((a, b) => a.z0 - b.z0);
+  return segments;
 }
 
 const LEFT_Z_SEGMENTS = computeLeftFacadeSegments();
@@ -63,6 +58,7 @@ export const wallsGround = {
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
     const innerLeftX = leftX + exteriorThickness;
     const leftZSegments = LEFT_Z_SEGMENTS;
+    console.log('🧱 LEFT FACADE Z SEGMENTS', leftZSegments);
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =

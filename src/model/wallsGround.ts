@@ -21,6 +21,36 @@ const FACADE_PANEL_THICKNESS = 0.025;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
+function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number) {
+  const xs: number[] = [];
+
+  for (let i = 0; i < poly.length - 1; i++) {
+    const a = poly[i];
+    const b = poly[i + 1];
+
+    // If the segment spans zQuery (including endpoints)
+    const zMin = Math.min(a.z, b.z);
+    const zMax = Math.max(a.z, b.z);
+
+    if (zQuery < zMin - EPSILON || zQuery > zMax + EPSILON) continue;
+
+    // If segment is horizontal in Z, take both endpoints (edge lies on the query Z)
+    if (Math.abs(a.z - b.z) < EPSILON) {
+      if (Math.abs(zQuery - a.z) < EPSILON) {
+        xs.push(a.x, b.x);
+      }
+      continue;
+    }
+
+    // Linear interpolate X at zQuery along the segment
+    const t = (zQuery - a.z) / (b.z - a.z);
+    const x = a.x + t * (b.x - a.x);
+    xs.push(x);
+  }
+
+  if (!xs.length) return null;
+  return { minX: Math.min(...xs), maxX: Math.max(...xs), xs };
+}
 const envelopeBounds = (() => {
   const outer = getEnvelopeOuterPolygon();
   return {
@@ -103,36 +133,59 @@ const EXTENSION_SIDE_WALL = (() => {
   let z1 = mirrorZ(raw.z1);
   if (z0 > z1) [z0, z1] = [z1, z0];
 
-  // ✅ NEW: choose X extreme based on the flat roof footprint
   const outer = getEnvelopeOuterPolygon();
   const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
   const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
 
-  const flat = getFlatRoofPolygon();
-  const flatMinX = flat.reduce((m, p) => Math.min(m, p.x), Infinity);
-  const flatMaxX = flat.reduce((m, p) => Math.max(m, p.x), -Infinity);
+  // We already mirrored z0/z1 into render space above
+  const zMid = (z0 + z1) / 2;
 
-  const dLeft = Math.abs(flatMinX - envMinX);
-  const dRight = Math.abs(flatMaxX - envMaxX);
+  // Find the facade X extremes *at the extension Z band*
+  const slice = getFacadeXExtremesAtZ(outer, zMid);
 
-  const x = dLeft <= dRight ? envMinX : envMaxX;
+  let x = raw.x; // fallback
 
-  const result = { x, z0, z1 };
+  if (slice) {
+    const { minX: sliceMinX, maxX: sliceMaxX } = slice;
 
-  console.log('🧱 FLAT ROOF SIDE PICK', {
-    envMinX,
-    envMaxX,
-    flatMinX,
-    flatMaxX,
-    dLeft,
-    dRight,
-    pickedX: x,
-    rawSegmentX: raw.x,
-    z0,
-    z1,
-  });
+    // Determine which side "steps in" compared to the full envelope
+    const rightStepsIn = sliceMaxX < envMaxX - 0.05;
+    const leftStepsIn = sliceMinX > envMinX + 0.05;
 
-  return result;
+    if (rightStepsIn && !leftStepsIn) {
+      // extension is on the right side (local right facade is inset)
+      x = sliceMaxX;
+    } else if (leftStepsIn && !rightStepsIn) {
+      // extension is on the left side (local left facade is inset)
+      x = sliceMinX;
+    } else {
+      // If both or neither step in, pick the nearer slice extreme to the flat roof footprint
+      const flat = getFlatRoofPolygon();
+      const flatMinX = flat.reduce((m, p) => Math.min(m, p.x), Infinity);
+      const flatMaxX = flat.reduce((m, p) => Math.max(m, p.x), -Infinity);
+
+      const dToRight = Math.abs(sliceMaxX - flatMaxX);
+      const dToLeft = Math.abs(sliceMinX - flatMinX);
+
+      x = dToRight <= dToLeft ? sliceMaxX : sliceMinX;
+    }
+
+    console.log('🧱 EXTENSION X FROM SLICE', {
+      zMid,
+      envMinX,
+      envMaxX,
+      sliceMinX,
+      sliceMaxX,
+      rightStepsIn,
+      leftStepsIn,
+      chosenX: x,
+      rawX: raw.x,
+    });
+  } else {
+    console.warn('⚠️ EXTENSION X FROM SLICE: no intersections', { zMid, z0, z1 });
+  }
+
+  return { x, z0, z1 };
 })();
 
 if (EXTENSION_SIDE_WALL && EXTENSION_SIDE_WALL.z0 > EXTENSION_SIDE_WALL.z1) {

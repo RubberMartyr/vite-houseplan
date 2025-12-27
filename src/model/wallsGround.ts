@@ -63,7 +63,7 @@ const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
 
 type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
-type ZSeg = { z0: number; z1: number };
+type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
 
 function computeLeftFacadeSegments(): ZSeg[] {
@@ -80,7 +80,7 @@ function computeLeftFacadeSegments(): ZSeg[] {
       const z1 = Math.max(a.z, b.z);
 
       if (Math.abs(z1 - z0) > EPSILON) {
-        segments.push({ z0, z1 });
+        segments.push({ z0, z1, x: leftX });
       }
     }
   }
@@ -742,7 +742,6 @@ function makeLeftFacadePanels({
   mirrorZ: (z: number) => number;
 }) {
   const outer = getEnvelopeOuterPolygon();
-  const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const panelDepth = FACADE_PANEL_THICKNESS;
 
   return segments
@@ -792,14 +791,38 @@ function makeLeftFacadePanels({
       });
 
       const panelGeometry = new ShapeGeometry(shape);
-      panelGeometry.rotateY(Math.PI / 2);
+
+      // Decide whether this segment is on the left or right side of the envelope
+      const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
+      const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
+
+      // segment.x is the OUTER facade plane for that segment (you pushed it in when you added the extension segment)
+      const dToLeft = Math.abs(segment.x - envMinX);
+      const dToRight = Math.abs(segment.x - envMaxX);
+      const isLeftSide = dToLeft <= dToRight;
+
+      // Small offset to avoid z-fighting with shell
+      const OUTSET = 0.002;
+
+      if (isLeftSide) {
+        // Left facade faces outward toward -X
+        panelGeometry.rotateY(Math.PI / 2);
+      } else {
+        // Right facade faces outward toward +X
+        panelGeometry.rotateY(-Math.PI / 2);
+      }
+
       panelGeometry.computeVertexNormals();
 
-      console.log('✅ LEFT PANEL', { z0: segment.z0, z1: segment.z1, openings: openings.map((o) => o.id), index });
+      const xPos = isLeftSide
+        ? segment.x - panelDepth / 2 - OUTSET
+        : segment.x + panelDepth / 2 + OUTSET;
+
+      console.log('✅ LEFT PANEL PLACE', { z0: segment.z0, z1: segment.z1, segX: segment.x, envMinX, envMaxX, isLeftSide, xPos });
 
       return {
         geometry: panelGeometry,
-        position: [minX - panelDepth / 2, wallHeight / 2, panelCenterZ] as [number, number, number],
+        position: [xPos, wallHeight / 2, panelCenterZ] as [number, number, number],
         rotation: [0, 0, 0] as [number, number, number],
       };
     })

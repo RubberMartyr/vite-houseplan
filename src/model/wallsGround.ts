@@ -1,6 +1,6 @@
-import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
+import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Mesh, Path, Shape, ShapeGeometry } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
-import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
+import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
 
 const ENABLE_BRICK_RETURNS = false;
@@ -217,7 +217,21 @@ export const wallsGround = {
   })(),
 
   leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ }))(),
-  rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
+  rightFacades: (() => {
+    const panels = makeRightFacadePanels(mirrorZ);
+    const rightProfileM = (rightFacadeProfileCm || []).map((point) => ({
+      z: point.z / 100,
+      x: point.x / 100,
+    }));
+    const rightReturnPanels = buildRightFacadeReturnPanels({
+      profile: rightProfileM,
+      y0: 0,
+      y1: wallHeight,
+      thickness: FACADE_PANEL_THICKNESS,
+    });
+    panels.push(...rightReturnPanels);
+    return panels;
+  })(),
 };
 
 function makeSideFacadePanel({
@@ -348,6 +362,40 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
       rotation: [0, 0, 0] as [number, number, number],
     };
   });
+}
+
+function buildRightFacadeReturnPanels(params: {
+  profile: { z: number; x: number }[];
+  y0: number;
+  y1: number;
+  thickness: number;
+  zOffset?: number;
+}) {
+  const { profile, y0, y1, thickness, zOffset = 0.002 } = params;
+
+  const panels: Mesh[] = [];
+  if (!profile || profile.length < 2) return panels;
+
+  for (let i = 0; i < profile.length - 1; i++) {
+    const a = profile[i];
+    const b = profile[i + 1];
+
+    if (Math.abs(a.x - b.x) < 1e-6) continue;
+
+    const zStep = b.z;
+    const xMin = Math.min(a.x, b.x);
+    const xMax = Math.max(a.x, b.x);
+    const widthX = xMax - xMin;
+    const heightY = y1 - y0;
+
+    const solidGeom = new BoxGeometry(widthX, heightY, thickness);
+    const mesh = new Mesh(solidGeom);
+    mesh.position.set((xMin + xMax) / 2, (y0 + y1) / 2, zStep - zOffset);
+
+    panels.push(mesh);
+  }
+
+  return panels;
 }
 
 function segmentForZ(zCenter: number) {

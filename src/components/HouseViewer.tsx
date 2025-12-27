@@ -1,5 +1,6 @@
 // @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
+console.log("✅ RIGHT FACADES COUNT", wallsGround.rightFacades.length, wallsFirst.rightFacades.length);
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -801,17 +802,6 @@ function HouseScene({
     console.log('✅ windowsSide parented under originOffset group');
   }, []);
 
-  useEffect(() => {
-    console.log("🧪 DEBUG facade arrays", {
-      groundRightFacades: wallsGround?.rightFacades?.length,
-      firstRightFacades: wallsFirst?.rightFacades?.length,
-      groundSideFacade: wallsGround?.sideFacade ? Object.keys(wallsGround.sideFacade) : null,
-      firstSideFacade: wallsFirst?.sideFacade ? Object.keys(wallsFirst.sideFacade) : null,
-      groundRearFacade: !!wallsGround?.rearFacade,
-      firstRearFacade: !!wallsFirst?.rearFacade,
-    });
-  }, []);
-
   return (
     <>
       {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
@@ -847,12 +837,71 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {showGround &&
+            wallsGround.rightFacades.map((facade, index) => (
+              <mesh
+                key={`ground-right-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={facadeMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
+          {showGround && (
+            <mesh
+              geometry={wallsGround.rearFacade.geometry}
+              position={wallsGround.rearFacade.position}
+              rotation={wallsGround.rearFacade.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
 
           {showFirst && (
             <mesh
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
+              material={wallMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {showFirst && (
+            <mesh
+              geometry={wallsFirst.rightFacade.geometry}
+              position={wallsFirst.rightFacade.position}
+              rotation={wallsFirst.rightFacade.rotation}
+              material={facadeMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
+          {showFirst &&
+            wallsFirst.rightFacades.map((facade, index) => (
+              <mesh
+                key={`first-right-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={facadeMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
+          {showFirst && (
+            <mesh
+              geometry={wallsFirst.rearFacade.geometry}
+              position={wallsFirst.rearFacade.position}
+              rotation={wallsFirst.rearFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow

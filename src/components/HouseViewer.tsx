@@ -3,7 +3,7 @@ console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { wallsBasement } from '../model/wallsBasement';
 import { wallsGround } from '../model/wallsGround';
@@ -30,7 +30,7 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsSide } from '../model/windowsSide';
-import { loadingManager } from '../loadingManager';
+import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -625,7 +625,8 @@ function HouseScene({
   const LOW_QUALITY = false;
   const { glass, frame } = useBuildingMaterials();
 
-  const { gl } = useThree();
+  const { gl, scene, camera } = useThree();
+  const firstFrameRef = useRef(false);
   const brickTex = useTexture('/textures/brick2.jpg', (loader) => {
     loader.manager = loadingManager;
   });
@@ -689,6 +690,19 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    // Pre-warm shaders once the scene graph exists to reduce first-frame stutter.
+    if (gl?.compile) {
+      gl.compile(scene, camera);
+    }
+  }, [camera, gl, scene]);
+
+  useFrame(() => {
+    if (firstFrameRef.current) return;
+    firstFrameRef.current = true;
+    markFirstFrameRendered();
+  });
 
   const showBasement = activeFloors.basement;
   const showGround = activeFloors.ground;

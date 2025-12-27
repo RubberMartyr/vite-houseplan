@@ -881,6 +881,22 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {/* 🔥 EXTENSION PATCH DEBUG (force render, no visibility flags) */}
+          {wallsGround.extensionPatchFacade && (
+            <group
+              position={wallsGround.extensionPatchFacade.position as any}
+              rotation={wallsGround.extensionPatchFacade.rotation as any}
+              name="EXTENSION_PATCH_DEBUG"
+            >
+              {/* Axes marker so you can’t miss it */}
+              <axesHelper args={[1]} />
+
+              {/* Wireframe panel (unlit) */}
+              <mesh geometry={wallsGround.extensionPatchFacade.geometry}>
+                <meshBasicMaterial wireframe side={THREE.DoubleSide} />
+              </mesh>
+            </group>
+          )}
           {showGround && wallsGround.extensionPatchFacade && (
             <mesh
               geometry={wallsGround.extensionPatchFacade.geometry}

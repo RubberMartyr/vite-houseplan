@@ -436,6 +436,7 @@ export const wallsGround = {
     panels.push(...rightReturnPanels);
     return panels;
   })(),
+  extensionPatchFacade: (() => makeExtensionSidePatchFacade(mirrorZ))(),
 };
 
 function makeSideFacadePanel({
@@ -592,6 +593,101 @@ function makeLeftFacadePanels({
       };
     })
     .filter((panel): panel is NonNullable<typeof panel> => !!panel);
+}
+
+function makeExtensionSidePatchFacade(mirrorZ: (z: number) => number) {
+  if (!EXTENSION_SIDE_WALL) return null;
+
+  const outer = getEnvelopeOuterPolygon();
+  const minX = outer.reduce((min, p) => Math.min(min, p.x), Infinity);
+  const maxX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
+
+  const seg = EXTENSION_SIDE_WALL;
+
+  const panelDepth = FACADE_PANEL_THICKNESS;
+  const widthZ = seg.z1 - seg.z0;
+  if (!Number.isFinite(widthZ) || widthZ <= EPSILON) return null;
+
+  const panelCenterZ = (seg.z0 + seg.z1) / 2;
+  const panelHeight = wallHeight;
+
+  // Determine whether this extension segment is on the "left extreme" or "right extreme" of the envelope
+  const isOnLeftExtreme = Math.abs(seg.x - minX) < 0.05; // tolerant, safe
+  const isOnRightExtreme = Math.abs(seg.x - maxX) < 0.05; // tolerant, safe
+
+  // If it’s not on either extreme, don’t place anything (prevents accidental patches elsewhere)
+  if (!isOnLeftExtreme && !isOnRightExtreme) {
+    console.warn('⚠️ Extension patch: segment.x not on envelope extremes', { seg, minX, maxX });
+    return null;
+  }
+
+  // Panel position just outside the shell to avoid z-fighting
+  const OUTSET = 0.002;
+  const panelCenterX = isOnLeftExtreme
+    ? seg.x - panelDepth / 2 - OUTSET
+    : seg.x + panelDepth / 2 + OUTSET;
+
+  // Build a 2D shape (Z vs Y) and rotate into place
+  const shape = new Shape();
+  shape.moveTo(-widthZ / 2, -panelHeight / 2);
+  shape.lineTo(widthZ / 2, -panelHeight / 2);
+  shape.lineTo(widthZ / 2, panelHeight / 2);
+  shape.lineTo(-widthZ / 2, panelHeight / 2);
+  shape.closePath();
+
+  // Cut openings that fall within this extension Z segment
+  const openings: Opening[] = [];
+  sideWindowSpecs.forEach((spec) => {
+    const zCenter = getSideWindowZCenter(spec, mirrorZ);
+    if (zCenter < seg.z0 - EPSILON || zCenter > seg.z1 + EPSILON) return;
+
+    openings.push({
+      id: spec.id,
+      zCenter,
+      widthZ: spec.width,
+      y0: spec.groundY0,
+      y1: spec.groundY1,
+    });
+  });
+
+  openings.forEach((o) => {
+    const zMin = o.zCenter - o.widthZ / 2;
+    const zMax = o.zCenter + o.widthZ / 2;
+    const yMin = o.y0;
+    const yMax = o.y1;
+
+    if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
+
+    const hole = new Path();
+    hole.moveTo(zMin - panelCenterZ, yMin - panelHeight / 2);
+    hole.lineTo(zMax - panelCenterZ, yMin - panelHeight / 2);
+    hole.lineTo(zMax - panelCenterZ, yMax - panelHeight / 2);
+    hole.lineTo(zMin - panelCenterZ, yMax - panelHeight / 2);
+    hole.closePath();
+    shape.holes.push(hole);
+  });
+
+  const raw = new ShapeGeometry(shape);
+
+  // Rotate so Shape X-axis (we used as Z) becomes world Z, and Shape Y becomes world Y.
+  // Then rotate around Y so the plane faces outward.
+  raw.rotateY(isOnLeftExtreme ? Math.PI / 2 : -Math.PI / 2);
+  raw.computeVertexNormals();
+
+  console.log('🧱 EXTENSION PATCH FACADE', {
+    seg,
+    isOnLeftExtreme,
+    isOnRightExtreme,
+    openings: openings.map((o) => o.id),
+    panelCenterX,
+    panelCenterZ,
+  });
+
+  return {
+    geometry: raw,
+    position: [panelCenterX, panelHeight / 2, panelCenterZ] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+  };
 }
 
 function makeRightFacadePanels(mirrorZ: (z: number) => number) {

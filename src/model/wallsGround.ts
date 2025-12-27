@@ -11,9 +11,7 @@ import {
 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, leftFacadeProfileCm, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
-import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
-
-let __holeProbeCount = 0;
+import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -121,11 +119,6 @@ const EXTENSION_SIDE_WALL = (() => {
     });
 
   const raw = candidates[0];
-  console.log('🧱 EXTENSION SIDE SEGMENT', {
-    raw,
-    candidateCount: candidates.length,
-    segmentCount: segments.length,
-  });
 
   // --- Convert to render space (same as windows/roof logic) ---
   let z0 = mirrorZ(raw.z0);
@@ -168,20 +161,6 @@ const EXTENSION_SIDE_WALL = (() => {
 
       x = dToRight <= dToLeft ? sliceMaxX : sliceMinX;
     }
-
-    console.log('🧱 EXTENSION X FROM SLICE', {
-      zMid,
-      envMinX,
-      envMaxX,
-      sliceMinX,
-      sliceMaxX,
-      rightStepsIn,
-      leftStepsIn,
-      chosenX: x,
-      rawX: raw.x,
-    });
-  } else {
-    console.warn('⚠️ EXTENSION X FROM SLICE: no intersections', { zMid, z0, z1 });
   }
 
   return { x, z0, z1 };
@@ -201,8 +180,6 @@ if (EXTENSION_SIDE_WALL) {
     z1: EXTENSION_SIDE_WALL.z1,
     x: EXTENSION_SIDE_WALL.x,
   });
-
-  console.log('🧱 LEFT FACADE + EXTENSION SEGMENT', EXTENSION_SIDE_WALL);
 }
 
 function isExtensionSideWallFace(v: Vector3) {
@@ -221,29 +198,8 @@ export const wallsGround = {
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-    const rightX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
     const innerLeftX = leftX + exteriorThickness;
     const leftZSegments = LEFT_Z_SEGMENTS;
-    console.log('🧱 LEFT FACADE Z SEGMENTS', leftZSegments);
-
-    if (EXTENSION_SIDE_WALL) {
-      const extensionOuterX = EXTENSION_SIDE_WALL.x;
-      const extensionInnerX = innerLeftX;
-
-      const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
-      const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
-
-      console.log('🧱 EXTENSION X BAND', {
-        extensionSeg: EXTENSION_SIDE_WALL, // { x, z0, z1 }
-        innerLeftX,
-        EPSILON,
-        bandMinX,
-        bandMaxX,
-        wallThicknessBand: Math.abs(extensionOuterX - extensionInnerX),
-      });
-    } else {
-      console.log('🧱 EXTENSION X BAND', { extensionSeg: null });
-    }
 
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
@@ -287,14 +243,6 @@ export const wallsGround = {
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
     const triangleCount = position.count / 3;
-    let removedOuter = 0;
-    let removedInner = 0;
-    let removedSide = 0;
-    let removedLeftSegment = 0;
-    let removedRightSegment = 0;
-    let keptTotal = 0;
-
-    let extensionTrianglesKept = 0;
     for (let tri = 0; tri < triangleCount; tri += 1) {
       const baseIndex = tri * 3;
       const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
@@ -358,44 +306,6 @@ export const wallsGround = {
       const inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON);
       const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
 
-      // TEMP DEBUG: show a few triangles that overlap extension Z and touch the left side region
-      if (EXTENSION_SIDE_WALL) {
-        const extensionOuterX = EXTENSION_SIDE_WALL.x;
-        const extensionInnerX = innerLeftX;
-
-        const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
-        const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
-
-        const triXMin = Math.min(x1, x2, x3);
-        const triXMax = Math.max(x1, x2, x3);
-
-        const inExtensionZ =
-          triZMax >= EXTENSION_SIDE_WALL.z0 - EPSILON &&
-          triZMin <= EXTENSION_SIDE_WALL.z1 + EPSILON;
-
-        const inExtensionXBand = triXMax >= bandMinX && triXMin <= bandMaxX;
-
-        if (inExtensionZ && inExtensionXBand) {
-          // limit spam
-          if ((window as any).__extTriCount == null) (window as any).__extTriCount = 0;
-          if ((window as any).__extTriCount < 8) {
-            (window as any).__extTriCount += 1;
-
-            console.log('🧱 EXT TRI CANDIDATE', {
-              triZMin,
-              triZMax,
-              triXMin,
-              triXMax,
-              x: [x1, x2, x3],
-              z: [z1, z2, z3],
-              onLeftOuter,
-              onLeftInner,
-              removedGate: { onRearOuter, onRearInner, onRightSegment, onLeftFacadeSegment },
-            });
-          }
-        }
-      }
-
       // --- EXTENSION WALL PROTECTION (robust) ---
 
       const extensionSeg = EXTENSION_SIDE_WALL;
@@ -426,111 +336,12 @@ export const wallsGround = {
       // and whose Z-range intersects the extension segment span
       const isExtensionLeftWallTriangle = false;
 
-      // --- HOLE PROBE: log a few triangles near the flat-roof/door-side corner ---
-      // Adjust these bounds if needed, but start with this.
-      const probe = EXTENSION_SIDE_WALL
-        ? {
-            // use extension z-range (where the flat roof extension is)
-            z0: EXTENSION_SIDE_WALL.z0 - 0.2,
-            z1: EXTENSION_SIDE_WALL.z1 + 0.2,
-
-            // probe both extremes in X to catch “wrong side” removals too
-            xMin: Math.min(leftX, rightX) - 0.3,
-            xMax: Math.max(leftX, rightX) + 0.3,
-
-            // near ground (these holes show at ground level)
-            yMax: 2.5,
-          }
-        : null;
-
-      if (probe && __holeProbeCount < 30) {
-        const triXMinProbe = Math.min(v1.x, v2.x, v3.x);
-        const triXMaxProbe = Math.max(v1.x, v2.x, v3.x);
-        const triYMin = Math.min(v1.y, v2.y, v3.y);
-        const triYMax = Math.max(v1.y, v2.y, v3.y);
-
-        const inZ = triZMax >= probe.z0 && triZMin <= probe.z1;
-        const inX = triXMaxProbe >= probe.xMin && triXMinProbe <= probe.xMax;
-        const nearGround = triYMin <= probe.yMax;
-
-        if (inZ && inX && nearGround) {
-          __holeProbeCount += 1;
-
-          console.log('🕳️ HOLE PROBE TRI', {
-            idx: __holeProbeCount,
-            triXMin: triXMinProbe,
-            triXMax: triXMaxProbe,
-            triYMin,
-            triYMax,
-            triZMin,
-            triZMax,
-            v1: [v1.x, v1.y, v1.z],
-            v2: [v2.x, v2.y, v2.z],
-            v3: [v3.x, v3.y, v3.z],
-            flags: {
-              onRearOuter,
-              onRearInner,
-              onRightSegment,
-              onLeftFacadeSegment,
-            },
-          });
-        }
-      }
-
       // --- existing removal gate (keep everything else unchanged) ---
       const shouldRemove =
         !isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment);
 
       if (shouldRemove) {
-        // If we probed this tri, log the reason
-        // (We can’t easily know if it was probed, so re-check quickly with same bounds)
-        if (probe && __holeProbeCount < 40) {
-          const triXMinProbe = Math.min(v1.x, v2.x, v3.x);
-          const triXMaxProbe = Math.max(v1.x, v2.x, v3.x);
-          const triYMin = Math.min(v1.y, v2.y, v3.y);
-          const triYMax = Math.max(v1.y, v2.y, v3.y);
-
-          const inZ = triZMax >= probe.z0 && triZMin <= probe.z1;
-          const inX = triXMaxProbe >= probe.xMin && triXMinProbe <= probe.xMax;
-          const nearGround = triYMin <= probe.yMax;
-
-          if (inZ && inX && nearGround) {
-            console.log('🧨 HOLE PROBE REMOVED', {
-              triXMin: triXMinProbe,
-              triXMax: triXMaxProbe,
-              triYMin,
-              triYMax,
-              triZMin,
-              triZMax,
-              removedBecause: {
-                onRearOuter,
-                onRearInner,
-                onRightSegment,
-                onLeftFacadeSegment,
-              },
-            });
-          }
-        }
-
-        if (onRearOuter) {
-          removedOuter += 1;
-        }
-        if (onRearInner) {
-          removedInner += 1;
-        }
-        if (onRightSegment) {
-          removedSide += 1;
-          removedRightSegment += 1;
-        }
-        if (onLeftFacadeSegment) {
-          removedSide += 1;
-          removedLeftSegment += 1;
-        }
         continue;
-      }
-
-      if (isExtensionLeftWallTriangle) {
-        extensionTrianglesKept += 1;
       }
 
       indices.forEach((index) => {
@@ -539,8 +350,6 @@ export const wallsGround = {
           keptUvs.push(uv.getX(index), uv.getY(index));
         }
       });
-
-      keptTotal += 1;
     }
 
     const filteredGeometry = new BufferGeometry();
@@ -549,29 +358,6 @@ export const wallsGround = {
       filteredGeometry.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
     }
     filteredGeometry.computeVertexNormals();
-
-    const removedTotal = removedOuter + removedInner + removedSide;
-    console.log(
-      '✅ wallsGround rear/side faces removed for facade panels',
-      {
-        removedOuter,
-        removedInner,
-        removedSide,
-        removedLeftSegment,
-        removedRightSegment,
-        removedTotal,
-        keptTotal,
-      },
-      Date.now(),
-    );
-    if (EXTENSION_SIDE_WALL) {
-      console.log('🧱 EXTENSION WALL TRIANGLES', {
-        kept: extensionTrianglesKept,
-        x: EXTENSION_SIDE_WALL.x,
-        z0: EXTENSION_SIDE_WALL.z0,
-        z1: EXTENSION_SIDE_WALL.z1,
-      });
-    }
 
     return {
       geometry: filteredGeometry,
@@ -654,7 +440,6 @@ export const wallsGround = {
     panels.push(...rightReturnPanels);
     return panels;
   })(),
-  extensionPatchFacade: (() => makeExtensionSidePatchFacade(mirrorZ))(),
 };
 
 function makeSideFacadePanel({
@@ -818,8 +603,6 @@ function makeLeftFacadePanels({
         ? segment.x - panelDepth / 2 - OUTSET
         : segment.x + panelDepth / 2 + OUTSET;
 
-      console.log('✅ LEFT PANEL PLACE', { z0: segment.z0, z1: segment.z1, segX: segment.x, envMinX, envMaxX, isLeftSide, xPos });
-
       return {
         geometry: panelGeometry,
         position: [xPos, wallHeight / 2, panelCenterZ] as [number, number, number],
@@ -827,103 +610,6 @@ function makeLeftFacadePanels({
       };
     })
     .filter((panel): panel is NonNullable<typeof panel> => !!panel);
-}
-
-function makeExtensionSidePatchFacade(mirrorZ: (z: number) => number) {
-  if (!EXTENSION_SIDE_WALL) return null;
-
-  const outer = getEnvelopeOuterPolygon();
-  const minX = outer.reduce((min, p) => Math.min(min, p.x), Infinity);
-  const maxX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
-
-  const seg = EXTENSION_SIDE_WALL;
-
-  const panelDepth = FACADE_PANEL_THICKNESS;
-  const widthZ = seg.z1 - seg.z0;
-  if (!Number.isFinite(widthZ) || widthZ <= EPSILON) return null;
-
-  const panelCenterZ = (seg.z0 + seg.z1) / 2;
-  const panelHeight = wallHeight;
-
-  // Determine whether this extension segment is on the "left extreme" or "right extreme" of the envelope
-  const isOnLeftExtreme = Math.abs(seg.x - minX) < 0.05; // tolerant, safe
-  const isOnRightExtreme = Math.abs(seg.x - maxX) < 0.05; // tolerant, safe
-
-  // If it’s not on either extreme, don’t place anything (prevents accidental patches elsewhere)
-  if (!isOnLeftExtreme && !isOnRightExtreme) {
-    console.warn('⚠️ Extension patch: segment.x not on envelope extremes', { seg, minX, maxX });
-    return null;
-  }
-
-  // Panel position just outside the shell to avoid z-fighting
-  const OUTSET = 0.002;
-  const panelCenterX = isOnLeftExtreme
-    ? seg.x - panelDepth / 2 - OUTSET
-    : seg.x + panelDepth / 2 + OUTSET;
-
-  // Build a 2D shape (Z vs Y) and rotate into place
-  const shape = new Shape();
-  shape.moveTo(-widthZ / 2, -panelHeight / 2);
-  shape.lineTo(widthZ / 2, -panelHeight / 2);
-  shape.lineTo(widthZ / 2, panelHeight / 2);
-  shape.lineTo(-widthZ / 2, panelHeight / 2);
-  shape.closePath();
-
-  // Cut openings that fall within this extension Z segment
-  const openings: Opening[] = [];
-  sideWindowSpecs.forEach((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    if (zCenter < seg.z0 - EPSILON || zCenter > seg.z1 + EPSILON) return;
-
-    openings.push({
-      id: spec.id,
-      zCenter,
-      widthZ: spec.width,
-      y0: spec.groundY0,
-      y1: spec.groundY1,
-    });
-  });
-
-  openings.forEach((o) => {
-    const zMin = o.zCenter - o.widthZ / 2;
-    const zMax = o.zCenter + o.widthZ / 2;
-    const yMin = o.y0;
-    const yMax = o.y1;
-
-    if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
-
-    const hole = new Path();
-    hole.moveTo(zMin - panelCenterZ, yMin - panelHeight / 2);
-    hole.lineTo(zMax - panelCenterZ, yMin - panelHeight / 2);
-    hole.lineTo(zMax - panelCenterZ, yMax - panelHeight / 2);
-    hole.lineTo(zMin - panelCenterZ, yMax - panelHeight / 2);
-    hole.closePath();
-    shape.holes.push(hole);
-  });
-
-  const raw = new ShapeGeometry(shape);
-
-  // Rotate so Shape X-axis (we used as Z) becomes world Z, and Shape Y becomes world Y.
-  // Then rotate around Y so the plane faces outward.
-  // Default ShapeGeometry normal is +Z.
-  // We want left facade to face outward (-X), right facade to face outward (+X).
-  raw.rotateY(isOnLeftExtreme ? -Math.PI / 2 : Math.PI / 2);
-  raw.computeVertexNormals();
-
-  console.log('🧱 EXTENSION PATCH FACADE', {
-    seg,
-    isOnLeftExtreme,
-    isOnRightExtreme,
-    openings: openings.map((o) => o.id),
-    panelCenterX,
-    panelCenterZ,
-  });
-
-  return {
-    geometry: raw,
-    position: [panelCenterX, panelHeight / 2, panelCenterZ] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
 }
 
 function makeRightFacadePanels(mirrorZ: (z: number) => number) {

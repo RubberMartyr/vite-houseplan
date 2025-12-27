@@ -505,8 +505,6 @@ console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
 console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
-  if (spec.side !== SIDE) return [];
-
   const zCenter = getSideWindowZCenter(spec, mirrorZ);
 
   console.log('✅ SIDE Z FINAL', spec.id, {

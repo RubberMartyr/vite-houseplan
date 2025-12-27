@@ -1,6 +1,5 @@
 // @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
-console.log("✅ RIGHT FACADES COUNT", wallsGround.rightFacades.length, wallsFirst.rightFacades.length);
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -368,28 +367,6 @@ export default function HouseViewer() {
   const allFloorsActive = Object.values(activeFloors).every(Boolean);
 
   const allRooms = useMemo(() => [...roomsGround, ...roomsFirst], []);
-  console.log("🔎 wallsGround keys:", Object.keys(wallsGround));
-  console.log("🔎 wallsGround.extensionPatchFacade:", (wallsGround as any).extensionPatchFacade);
-  const ext = (wallsGround as any).extensionPatchFacade;
-  if (ext?.geometry) {
-    const g = ext.geometry;
-    g.computeBoundingBox();
-    const posAttr = g.getAttribute?.("position");
-    console.log("📦 EXT PATCH GEOMETRY STATS", {
-      vertexCount: posAttr ? posAttr.count : null,
-      indexCount: g.index ? g.index.count : null,
-      bbox: g.boundingBox
-        ? {
-            min: g.boundingBox.min.toArray(),
-            max: g.boundingBox.max.toArray(),
-          }
-        : null,
-      position: ext.position,
-      rotation: ext.rotation,
-    });
-  } else {
-    console.log("📦 EXT PATCH GEOMETRY STATS", { ext: null });
-  }
   const selectedRoom = useMemo(
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]
@@ -903,51 +880,6 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {/* 🔥 EXTENSION PATCH DEBUG (force render, no visibility flags) */}
-          {wallsGround.extensionPatchFacade && (
-            <group
-              position={wallsGround.extensionPatchFacade.position as any}
-              rotation={wallsGround.extensionPatchFacade.rotation as any}
-              name="EXTENSION_PATCH_DEBUG"
-            >
-              {/* Axes marker so you can’t miss it */}
-              <axesHelper args={[1]} />
-
-              {/* Wireframe panel (unlit) */}
-              <mesh geometry={wallsGround.extensionPatchFacade.geometry}>
-                <meshBasicMaterial wireframe side={THREE.DoubleSide} />
-              </mesh>
-            </group>
-          )}
-          {(wallsGround as any).extensionPatchFacade?.geometry && (() => {
-            const g = (wallsGround as any).extensionPatchFacade.geometry;
-            g.computeBoundingBox();
-            if (!g.boundingBox) return null;
-
-            const box = g.boundingBox.clone();
-            const helper = new THREE.Box3Helper(box);
-
-            return (
-              <primitive
-                object={helper}
-                position={(wallsGround as any).extensionPatchFacade.position}
-                rotation={(wallsGround as any).extensionPatchFacade.rotation}
-              />
-            );
-          })()}
-          {showGround && wallsGround.extensionPatchFacade && (
-            <mesh
-              geometry={wallsGround.extensionPatchFacade.geometry}
-              position={wallsGround.extensionPatchFacade.position}
-              rotation={wallsGround.extensionPatchFacade.rotation}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            >
-              <meshStandardMaterial side={THREE.DoubleSide} wireframe />
-            </mesh>
-          )}
-
           {showFirst && (
             <mesh
               geometry={wallsFirst.shell.geometry}

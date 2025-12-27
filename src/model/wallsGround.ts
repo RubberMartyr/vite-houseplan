@@ -88,8 +88,6 @@ function computeLeftFacadeSegments(): ZSeg[] {
   return segments;
 }
 
-const LEFT_Z_SEGMENTS = computeLeftFacadeSegments();
-
 function profileCmToSegments(profileCm: { x: number; z: number }[]): FacadeSegment[] {
   const segments: FacadeSegment[] = [];
 
@@ -192,6 +190,18 @@ if (EXTENSION_SIDE_WALL && EXTENSION_SIDE_WALL.z0 > EXTENSION_SIDE_WALL.z1) {
   const tmp = EXTENSION_SIDE_WALL.z0;
   EXTENSION_SIDE_WALL.z0 = EXTENSION_SIDE_WALL.z1;
   EXTENSION_SIDE_WALL.z1 = tmp;
+}
+
+const LEFT_Z_SEGMENTS = computeLeftFacadeSegments();
+
+if (EXTENSION_SIDE_WALL) {
+  LEFT_Z_SEGMENTS.push({
+    z0: EXTENSION_SIDE_WALL.z0,
+    z1: EXTENSION_SIDE_WALL.z1,
+    x: EXTENSION_SIDE_WALL.x,
+  });
+
+  console.log('🧱 LEFT FACADE + EXTENSION SEGMENT', EXTENSION_SIDE_WALL);
 }
 
 function isExtensionSideWallFace(v: Vector3) {

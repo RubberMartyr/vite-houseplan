@@ -485,7 +485,12 @@ function makeSideFacadePanel({
       : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
-  openings.forEach((spec) => {
+  const openingsForSide = openings.filter((spec) => {
+    const sideForSpec = spec.side ?? 'left';
+    return sideForSpec === side;
+  });
+
+  openingsForSide.forEach((spec) => {
     const zCenter = getSideWindowZCenter(spec, mirrorZ);
     const zMin = zCenter - spec.width / 2;
     const zMax = zCenter + spec.width / 2;
@@ -537,8 +542,20 @@ function makeLeftFacadePanels({
       const panelCenterZ = (segment.z0 + segment.z1) / 2;
       const panelBaseY = 0;
 
+      // Decide whether this segment is on the left or right side of the envelope
+      const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
+      const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
+
+      // segment.x is the OUTER facade plane for that segment (you pushed it in when you added the extension segment)
+      const dToLeft = Math.abs(segment.x - envMinX);
+      const dToRight = Math.abs(segment.x - envMaxX);
+      const isLeftSide = dToLeft <= dToRight;
+      const targetSide = isLeftSide ? 'left' : 'right';
+
       const openings: Opening[] = [];
       sideWindowSpecs.forEach((spec) => {
+        const sideForSpec = spec.side ?? 'left';
+        if (sideForSpec !== targetSide) return;
         const zCenter = getSideWindowZCenter(spec, mirrorZ);
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 
@@ -577,15 +594,6 @@ function makeLeftFacadePanels({
 
       const panelGeometry = new ShapeGeometry(shape);
 
-      // Decide whether this segment is on the left or right side of the envelope
-      const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
-      const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
-
-      // segment.x is the OUTER facade plane for that segment (you pushed it in when you added the extension segment)
-      const dToLeft = Math.abs(segment.x - envMinX);
-      const dToRight = Math.abs(segment.x - envMaxX);
-      const isLeftSide = dToLeft <= dToRight;
-
       // Small offset to avoid z-fighting with shell
       const OUTSET = 0.002;
 
@@ -620,6 +628,8 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
   };
 
   sideWindowSpecs.forEach((spec) => {
+    const sideForSpec = spec.side ?? 'left';
+    if (sideForSpec !== 'right') return;
     const zCenter = getSideWindowZCenter(spec, mirrorZ);
     const segment = segmentForZ(zCenter);
     const widthZ = spec.width;

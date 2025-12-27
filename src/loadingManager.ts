@@ -9,6 +9,15 @@ export function hideLoader(reason: string = 'unknown') {
   screen.addEventListener('transitionend', () => screen.remove(), { once: true });
 }
 
+let managerDone = false;
+let firstFrameDone = false;
+
+function maybeHide(reason: string) {
+  if (managerDone && firstFrameDone) {
+    hideLoader(reason);
+  }
+}
+
 export const loadingManager = new THREE.LoadingManager();
 
 loadingManager.onStart = (url, loaded, total) => {
@@ -27,8 +36,15 @@ loadingManager.onError = (url) => {
 
 loadingManager.onLoad = () => {
   console.log('[Loader] onLoad (all managed items finished)');
-  hideLoader('onLoad');
+  managerDone = true;
+  maybeHide('onLoad+first-frame');
 };
 
 // Safety: if nothing is tracked by the manager, you would otherwise stay stuck.
 setTimeout(() => hideLoader('timeout-fallback'), 12000);
+
+export function markFirstFrameRendered() {
+  if (firstFrameDone) return;
+  firstFrameDone = true;
+  maybeHide('first-frame');
+}

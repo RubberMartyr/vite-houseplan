@@ -12,6 +12,7 @@ type SideWindowMesh = {
 
 export type SideWindowSpec = {
   id: string;
+  side: 'left' | 'right';
   kind: 'small' | 'tall';
   type?: 'small' | 'tall';
   zCenter: number;
@@ -86,6 +87,7 @@ export const MIRROR_Z = true;
 export const sideWindowSpecs: SideWindowSpec[] = [
   {
     id: 'SIDE_L_EXT',
+    side: 'left',
     kind: 'small',
     zCenter: 1.2,
     width: 1.0,
@@ -96,6 +98,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   },
   {
     id: 'SIDE_L_TALL_1',
+    side: 'left',
     kind: 'tall',
     zCenter: 4.6,
     width: 1.1,
@@ -106,6 +109,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   },
   {
     id: 'SIDE_L_TALL_2',
+    side: 'left',
     kind: 'tall',
     zCenter: 6.8,
     width: 1.1,
@@ -116,6 +120,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   },
   {
     id: 'SIDE_L_TALL_3',
+    side: 'left',
     kind: 'tall',
     zCenter: 9.35,
     width: 1.1,
@@ -127,6 +132,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   // ✅ NEW: Opposite-side ground door (anthracite solid)
   {
     id: 'SIDE_OP_DOOR_G',
+    side: 'right',
     kind: 'small',
     zCenter: 6.25,
     width: 0.9, // 90cm door
@@ -139,6 +145,7 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   // ✅ NEW: Opposite-side first-floor window
   {
     id: 'SIDE_OP_WIN_F',
+    side: 'right',
     kind: 'small',
     zCenter: 6.25,
     width: 0.8, // 80cm window

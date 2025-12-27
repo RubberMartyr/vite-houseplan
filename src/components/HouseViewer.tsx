@@ -665,6 +665,13 @@ function HouseScene({
 
     return material;
   }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
+  // ✅ Debug/compat material: only for wallsGround.shell to reveal flipped normals
+  const wallMaterialDoubleSide = useMemo(() => {
+    const m = wallMaterial.clone();
+    m.side = THREE.DoubleSide;
+    m.needsUpdate = true;
+    return m;
+  }, [wallMaterial]);
   const facadeMaterial = useMemo(() => {
     const material = wallMaterial.clone();
     material.side = THREE.DoubleSide;

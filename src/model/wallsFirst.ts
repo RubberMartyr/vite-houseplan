@@ -251,9 +251,8 @@ export const wallsFirst = {
     // IMPORTANT: mirrorZ must match windowsSide, not the first-floor minZ/maxZ
     const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 
-    // Create holes from sideWindowSpecs on the right facade
-    const rightSideSpecs = sideWindowSpecs.filter((spec) => (spec.side ?? 'left') === 'right');
-    rightSideSpecs.forEach((spec) => {
+    // Create holes from sideWindowSpecs
+    sideWindowSpecs.forEach((spec) => {
       const zCenter = getSideWindowZCenter(spec, mirrorZ);
 
       const zMinHole = zCenter - spec.width / 2;
@@ -342,10 +341,12 @@ function makeSideFacadePanel({
       : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
-  const openingsForSide = openings.filter((spec) => (spec.side ?? 'left') === side);
-  const zMirror = (z: number) => sideMirrorZ(z, windowsSide.zMin, windowsSide.zMax, windowsSide.mirrorZ);
-
-  openingsForSide.forEach((spec) => {
+  openings.forEach((spec) => {
+    const zMirror = (z: number) => {
+      const isActiveSide = side === windowsSide.side;
+      if (isActiveSide) return sideMirrorZ(z, windowsSide.zMin, windowsSide.zMax, windowsSide.mirrorZ);
+      return sideMirrorZ(z, minZ, maxZ, windowsSide.mirrorZ);
+    };
 
     const zCenter = getSideWindowZCenter(spec, zMirror);
     const zMin = zCenter - spec.width / 2;
@@ -414,9 +415,7 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
     R_B: [],
     R_C: [],
   };
-  const windowsForLevel = sideWindowSpecs.filter(
-    (spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H && (spec.side ?? 'left') === 'right'
-  );
+  const windowsForLevel = sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
 
   windowsForLevel.forEach((spec) => {
     const zCenter = getSideWindowZCenter(spec, mirrorZ);

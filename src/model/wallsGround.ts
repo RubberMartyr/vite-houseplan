@@ -13,6 +13,7 @@ import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } 
 import { ceilingHeights, leftFacadeProfileCm, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
 
+let __holeProbeCount = 0;
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -220,6 +221,7 @@ export const wallsGround = {
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
+    const rightX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
     const innerLeftX = leftX + exteriorThickness;
     const leftZSegments = LEFT_Z_SEGMENTS;
     console.log('🧱 LEFT FACADE Z SEGMENTS', leftZSegments);
@@ -424,8 +426,92 @@ export const wallsGround = {
       // and whose Z-range intersects the extension segment span
       const isExtensionLeftWallTriangle = false;
 
+      // --- HOLE PROBE: log a few triangles near the flat-roof/door-side corner ---
+      // Adjust these bounds if needed, but start with this.
+      const probe = EXTENSION_SIDE_WALL
+        ? {
+            // use extension z-range (where the flat roof extension is)
+            z0: EXTENSION_SIDE_WALL.z0 - 0.2,
+            z1: EXTENSION_SIDE_WALL.z1 + 0.2,
+
+            // probe both extremes in X to catch “wrong side” removals too
+            xMin: Math.min(leftX, rightX) - 0.3,
+            xMax: Math.max(leftX, rightX) + 0.3,
+
+            // near ground (these holes show at ground level)
+            yMax: 2.5,
+          }
+        : null;
+
+      if (probe && __holeProbeCount < 30) {
+        const triXMinProbe = Math.min(v1.x, v2.x, v3.x);
+        const triXMaxProbe = Math.max(v1.x, v2.x, v3.x);
+        const triYMin = Math.min(v1.y, v2.y, v3.y);
+        const triYMax = Math.max(v1.y, v2.y, v3.y);
+
+        const inZ = triZMax >= probe.z0 && triZMin <= probe.z1;
+        const inX = triXMaxProbe >= probe.xMin && triXMinProbe <= probe.xMax;
+        const nearGround = triYMin <= probe.yMax;
+
+        if (inZ && inX && nearGround) {
+          __holeProbeCount += 1;
+
+          console.log('🕳️ HOLE PROBE TRI', {
+            idx: __holeProbeCount,
+            triXMin: triXMinProbe,
+            triXMax: triXMaxProbe,
+            triYMin,
+            triYMax,
+            triZMin,
+            triZMax,
+            v1: [v1.x, v1.y, v1.z],
+            v2: [v2.x, v2.y, v2.z],
+            v3: [v3.x, v3.y, v3.z],
+            flags: {
+              onRearOuter,
+              onRearInner,
+              onRightSegment,
+              onLeftFacadeSegment,
+            },
+          });
+        }
+      }
+
       // --- existing removal gate (keep everything else unchanged) ---
-      if (!isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment)) {
+      const shouldRemove =
+        !isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment);
+
+      if (shouldRemove) {
+        // If we probed this tri, log the reason
+        // (We can’t easily know if it was probed, so re-check quickly with same bounds)
+        if (probe && __holeProbeCount < 40) {
+          const triXMinProbe = Math.min(v1.x, v2.x, v3.x);
+          const triXMaxProbe = Math.max(v1.x, v2.x, v3.x);
+          const triYMin = Math.min(v1.y, v2.y, v3.y);
+          const triYMax = Math.max(v1.y, v2.y, v3.y);
+
+          const inZ = triZMax >= probe.z0 && triZMin <= probe.z1;
+          const inX = triXMaxProbe >= probe.xMin && triXMinProbe <= probe.xMax;
+          const nearGround = triYMin <= probe.yMax;
+
+          if (inZ && inX && nearGround) {
+            console.log('🧨 HOLE PROBE REMOVED', {
+              triXMin: triXMinProbe,
+              triXMax: triXMaxProbe,
+              triYMin,
+              triYMax,
+              triZMin,
+              triZMax,
+              removedBecause: {
+                onRearOuter,
+                onRearInner,
+                onRightSegment,
+                onLeftFacadeSegment,
+              },
+            });
+          }
+        }
+
         if (onRearOuter) {
           removedOuter += 1;
         }

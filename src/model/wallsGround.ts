@@ -9,7 +9,7 @@ import {
   ShapeGeometry,
   Vector3,
 } from 'three';
-import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
+import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, leftFacadeProfileCm, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
 
@@ -91,35 +91,43 @@ const EXTENSION_SIDE_WALL = (() => {
       return a.z1 - a.z0 - (b.z1 - b.z0);
     });
 
-  const segment = candidates[0];
+  const raw = candidates[0];
   console.log('🧱 EXTENSION SIDE SEGMENT', {
-    segment,
+    raw,
     candidateCount: candidates.length,
     segmentCount: segments.length,
   });
 
   // --- Convert to render space (same as windows/roof logic) ---
-  let z0 = mirrorZ(segment.z0);
-  let z1 = mirrorZ(segment.z1);
+  let z0 = mirrorZ(raw.z0);
+  let z1 = mirrorZ(raw.z1);
   if (z0 > z1) [z0, z1] = [z1, z0];
 
-  // --- NEW: choose X sign that best matches the envelope left extreme ---
+  // ✅ NEW: choose X extreme based on the flat roof footprint
   const outer = getEnvelopeOuterPolygon();
   const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
+  const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
 
-  const xA = segment.x;
-  const xB = -segment.x;
+  const flat = getFlatRoofPolygon();
+  const flatMinX = flat.reduce((m, p) => Math.min(m, p.x), Infinity);
+  const flatMaxX = flat.reduce((m, p) => Math.max(m, p.x), -Infinity);
 
-  const pickX = Math.abs(xA - envMinX) <= Math.abs(xB - envMinX) ? xA : xB;
+  const dLeft = Math.abs(flatMinX - envMinX);
+  const dRight = Math.abs(flatMaxX - envMaxX);
 
-  const result = { x: pickX, z0, z1 };
+  const x = dLeft <= dRight ? envMinX : envMaxX;
 
-  console.log('🧱 EXTENSION SEGMENT (render)', {
-    raw: segment,
+  const result = { x, z0, z1 };
+
+  console.log('🧱 FLAT ROOF SIDE PICK', {
     envMinX,
-    xA,
-    xB,
-    pickX,
+    envMaxX,
+    flatMinX,
+    flatMaxX,
+    dLeft,
+    dRight,
+    pickedX: x,
+    rawSegmentX: raw.x,
     z0,
     z1,
   });

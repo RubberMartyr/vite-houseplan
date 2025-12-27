@@ -205,32 +205,37 @@ export const wallsGround = {
       const inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON);
       const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
 
-      /**
-       * ✅ Robust extension-triangle protection:
-       * - We keep triangles that overlap the extension Z span
-       * - and touch either the left OUTER plane or left INNER plane
-       *
-       * This avoids the “all 3 vertices must be on the same plane” problem.
-       */
+      // --- EXTENSION WALL PROTECTION (robust) ---
+
       const extensionSeg = EXTENSION_SIDE_WALL;
 
+      // triangle x/z bounds
+      const triXMin = Math.min(x1, x2, x3);
+      const triXMax = Math.max(x1, x2, x3);
+
+      // Z overlap with extension segment
       const inExtensionZ =
         !!extensionSeg &&
         triZMax >= extensionSeg.z0 - EPSILON &&
         triZMin <= extensionSeg.z1 + EPSILON;
 
-      // “Touch” tests (any vertex is enough; this is the key difference)
-      const touchesLeftOuterPlane =
-        !!extensionSeg &&
-        (Math.abs(x1 - extensionSeg.x) < EPSILON || Math.abs(x2 - extensionSeg.x) < EPSILON || Math.abs(x3 - extensionSeg.x) < EPSILON);
+      // X overlap with the *thickness band* of the left wall
+      // extensionSeg.x is expected to be the OUTER left plane (e.g. -4.8)
+      // innerLeftX is the INNER left plane (outer + wallThickness)
+      const extensionOuterX = extensionSeg?.x ?? 0;
+      const extensionInnerX = innerLeftX;
 
-      const touchesLeftInnerPlane =
-        !!extensionSeg &&
-        (Math.abs(x1 - innerLeftX) < EPSILON || Math.abs(x2 - innerLeftX) < EPSILON || Math.abs(x3 - innerLeftX) < EPSILON);
+      // normalize ordering (important if coordinates ever flip)
+      const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
+      const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
 
-      // Final keep flag for extension-side-wall triangles
-      const isExtensionLeftWallTriangle = !!extensionSeg && inExtensionZ && (touchesLeftOuterPlane || touchesLeftInnerPlane);
+      const inExtensionXBand = !!extensionSeg && triXMax >= bandMinX && triXMin <= bandMaxX;
 
+      // FINAL: protect any triangle whose X-range intersects the wall thickness band
+      // and whose Z-range intersects the extension segment span
+      const isExtensionLeftWallTriangle = !!extensionSeg && inExtensionZ && inExtensionXBand;
+
+      // --- existing removal gate (keep everything else unchanged) ---
       if (!isExtensionLeftWallTriangle && (onRearOuter || onRearInner || onRightSegment || onLeftFacadeSegment)) {
         if (onRearOuter) {
           removedOuter += 1;

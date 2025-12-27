@@ -114,6 +114,25 @@ export const wallsGround = {
     const leftZSegments = LEFT_Z_SEGMENTS;
     console.log('🧱 LEFT FACADE Z SEGMENTS', leftZSegments);
 
+    if (EXTENSION_SIDE_WALL) {
+      const extensionOuterX = EXTENSION_SIDE_WALL.x;
+      const extensionInnerX = innerLeftX;
+
+      const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
+      const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
+
+      console.log('🧱 EXTENSION X BAND', {
+        extensionSeg: EXTENSION_SIDE_WALL, // { x, z0, z1 }
+        innerLeftX,
+        EPSILON,
+        bandMinX,
+        bandMaxX,
+        wallThicknessBand: Math.abs(extensionOuterX - extensionInnerX),
+      });
+    } else {
+      console.log('🧱 EXTENSION X BAND', { extensionSeg: null });
+    }
+
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
         points.length > 1 && points[0].x === points[points.length - 1].x && points[0].z === points[points.length - 1].z
@@ -204,6 +223,44 @@ export const wallsGround = {
       });
       const inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON);
       const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
+
+      // TEMP DEBUG: show a few triangles that overlap extension Z and touch the left side region
+      if (EXTENSION_SIDE_WALL) {
+        const extensionOuterX = EXTENSION_SIDE_WALL.x;
+        const extensionInnerX = innerLeftX;
+
+        const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
+        const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
+
+        const triXMin = Math.min(x1, x2, x3);
+        const triXMax = Math.max(x1, x2, x3);
+
+        const inExtensionZ =
+          triZMax >= EXTENSION_SIDE_WALL.z0 - EPSILON &&
+          triZMin <= EXTENSION_SIDE_WALL.z1 + EPSILON;
+
+        const inExtensionXBand = triXMax >= bandMinX && triXMin <= bandMaxX;
+
+        if (inExtensionZ && inExtensionXBand) {
+          // limit spam
+          if ((window as any).__extTriCount == null) (window as any).__extTriCount = 0;
+          if ((window as any).__extTriCount < 8) {
+            (window as any).__extTriCount += 1;
+
+            console.log('🧱 EXT TRI CANDIDATE', {
+              triZMin,
+              triZMax,
+              triXMin,
+              triXMax,
+              x: [x1, x2, x3],
+              z: [z1, z2, z3],
+              onLeftOuter,
+              onLeftInner,
+              removedGate: { onRearOuter, onRearInner, onRightSegment, onLeftFacadeSegment },
+            });
+          }
+        }
+      }
 
       // --- EXTENSION WALL PROTECTION (robust) ---
 

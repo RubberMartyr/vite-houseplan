@@ -838,7 +838,7 @@ function HouseScene({
               geometry={wallsGround.shell.geometry}
               position={wallsGround.shell.position}
               rotation={wallsGround.shell.rotation}
-              material={wallMaterial}
+              material={wallMaterialDoubleSide}
               castShadow
               receiveShadow
               visible={wallShellVisible}

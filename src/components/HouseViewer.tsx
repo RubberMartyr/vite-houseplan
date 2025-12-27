@@ -1,7 +1,3 @@
-// @ts-nocheck
-console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
-console.log("✅ RIGHT FACADES COUNT", wallsGround.rightFacades.length, wallsFirst.rightFacades.length);
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
@@ -665,14 +661,6 @@ function HouseScene({
 
     return material;
   }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
-  const facadeMaterial = useMemo(() => {
-    const material = wallMaterial.clone();
-    material.side = THREE.DoubleSide;
-    material.polygonOffset = true;
-    material.polygonOffsetFactor = -1;
-    material.polygonOffsetUnits = -1;
-    return material;
-  }, [wallMaterial]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -796,6 +784,10 @@ function HouseScene({
     }));
     console.log('Origin offset applied:', originOffset);
     console.log('First two envelope points after offset:', offsetPoints);
+    console.log('✅ HouseViewer openings stats', {
+      ground: wallsGround.openingsStats,
+      first: wallsFirst.openingsStats,
+    });
   }, [firstEnvelopePolygon, groundEnvelopePolygon]);
 
   useEffect(() => {
@@ -837,86 +829,12 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showGround &&
-            wallsGround.rightFacades.map((facade, index) => (
-              <mesh
-                key={`ground-right-facade-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={(facade as any).material ?? facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showGround &&
-            wallsGround.rightReveals?.map((reveal, index) => (
-              <mesh
-                key={`ground-right-reveal-${index}`}
-                geometry={reveal.geometry}
-                position={reveal.position}
-                rotation={reveal.rotation}
-                material={(reveal as any).material ?? facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showGround && (
-            <mesh
-              geometry={wallsGround.rearFacade.geometry}
-              position={wallsGround.rearFacade.position}
-              rotation={wallsGround.rearFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
 
           {showFirst && (
             <mesh
               geometry={wallsFirst.shell.geometry}
               position={wallsFirst.shell.position}
               rotation={wallsFirst.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst &&
-            wallsFirst.rightFacades.map((facade, index) => (
-              <mesh
-                key={`first-right-facade-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={(facade as any).material ?? facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showFirst &&
-            wallsFirst.rightReveals?.map((reveal, index) => (
-              <mesh
-                key={`first-right-reveal-${index}`}
-                geometry={reveal.geometry}
-                position={reveal.position}
-                rotation={reveal.rotation}
-                material={(reveal as any).material ?? facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.rearFacade.geometry}
-              position={wallsFirst.rearFacade.position}
-              rotation={wallsFirst.rearFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow

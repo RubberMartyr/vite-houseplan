@@ -1,16 +1,18 @@
-import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
+import { BoxGeometry, ExtrudeGeometry, MeshStandardMaterial, Path, Shape } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon } from './envelope';
-import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
-import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, TALL_Z_OFFSET_TO_FRONT } from './windowsSide';
+import { ceilingHeights, wallThickness } from './houseSpec';
+import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 
-const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
-const RIGHT_PANEL_OUT = 0.02;
 const FACADE_PANEL_THICKNESS = 0.025;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
+const PANEL_EPS = 0.002;
+const REVEAL_FACE = 0.05;
+const REVEAL_DEPTH = exteriorThickness;
+const REVEAL_MATERIAL = new MeshStandardMaterial({ color: '#e8e5df', roughness: 0.85, metalness: 0.05 });
 const envelopeBounds = (() => {
   const outer = getEnvelopeOuterPolygon();
   return {
@@ -20,18 +22,10 @@ const envelopeBounds = (() => {
 })();
 const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
 
-type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
-type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
-
 export const wallsGround = {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
-    const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
-    const innerRearZ = rearZ - exteriorThickness;
-    const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-    const innerLeftX = leftX + exteriorThickness;
-
     const toShapePoints = (points: { x: number; z: number }[]) => {
       const openPoints =
         points.length > 1 && points[0].x === points[points.length - 1].x && points[0].z === points[points.length - 1].z
@@ -66,93 +60,10 @@ export const wallsGround = {
 
     const geometry = new ExtrudeGeometry(outerShape, { depth: wallHeight, bevelEnabled: false });
     geometry.rotateX(-Math.PI / 2);
-
-    const g = geometry.index ? geometry.toNonIndexed() : geometry;
-    const position = g.getAttribute('position');
-    const uv = g.getAttribute('uv');
-
-    const keptPositions: number[] = [];
-    const keptUvs: number[] = [];
-    const triangleCount = position.count / 3;
-    let removedOuter = 0;
-    let removedInner = 0;
-    let removedSide = 0;
-    let keptTotal = 0;
-
-    for (let tri = 0; tri < triangleCount; tri += 1) {
-      const baseIndex = tri * 3;
-      const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
-
-      const x1 = position.getX(indices[0]);
-      const y1 = position.getY(indices[0]);
-      const z1 = position.getZ(indices[0]);
-
-      const x2 = position.getX(indices[1]);
-      const y2 = position.getY(indices[1]);
-      const z2 = position.getZ(indices[1]);
-
-      const x3 = position.getX(indices[2]);
-      const y3 = position.getY(indices[2]);
-      const z3 = position.getZ(indices[2]);
-
-      const onRearOuter = Math.abs(z1 - rearZ) < EPSILON && Math.abs(z2 - rearZ) < EPSILON && Math.abs(z3 - rearZ) < EPSILON;
-      const onRearInner =
-        Math.abs(z1 - innerRearZ) < EPSILON && Math.abs(z2 - innerRearZ) < EPSILON && Math.abs(z3 - innerRearZ) < EPSILON;
-      const onLeftOuter = Math.abs(x1 - leftX) < EPSILON && Math.abs(x2 - leftX) < EPSILON && Math.abs(x3 - leftX) < EPSILON;
-      const onLeftInner =
-        Math.abs(x1 - innerLeftX) < EPSILON && Math.abs(x2 - innerLeftX) < EPSILON && Math.abs(x3 - innerLeftX) < EPSILON;
-      const onRightSegment = RIGHT_FACADE_SEGMENTS.some((segment) => {
-        const outerX = segment.x;
-        const innerX = segment.x - exteriorThickness;
-        const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-        const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-        if (!onOuterX && !onInnerX) return false;
-
-        const zMinTri = Math.min(z1, z2, z3);
-        const zMaxTri = Math.max(z1, z2, z3);
-        const inSegmentZ = zMaxTri >= segment.z0 - EPSILON && zMinTri <= segment.z1 + EPSILON;
-        return inSegmentZ;
-      });
-
-      if (onRearOuter || onRearInner || onLeftOuter || onLeftInner || onRightSegment) {
-        if (onRearOuter) {
-          removedOuter += 1;
-        }
-        if (onRearInner) {
-          removedInner += 1;
-        }
-        if (onLeftOuter || onLeftInner || onRightSegment) {
-          removedSide += 1;
-        }
-        continue;
-      }
-
-      indices.forEach((index) => {
-        keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
-        if (uv) {
-          keptUvs.push(uv.getX(index), uv.getY(index));
-        }
-      });
-
-      keptTotal += 1;
-    }
-
-    const filteredGeometry = new BufferGeometry();
-    filteredGeometry.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
-    if (uv && keptUvs.length > 0) {
-      filteredGeometry.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
-    }
-    filteredGeometry.computeVertexNormals();
-
-    const removedTotal = removedOuter + removedInner + removedSide;
-    console.log(
-      '✅ wallsGround rear/side faces removed for facade panels',
-      { removedOuter, removedInner, removedSide, removedTotal, keptTotal },
-      Date.now(),
-    );
+    geometry.computeVertexNormals();
 
     return {
-      geometry: filteredGeometry,
+      geometry,
       position: [0, 0, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
@@ -202,12 +113,9 @@ export const wallsGround = {
       shape.holes.push(path);
     });
 
-    const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
-    rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround rearFacade', 'back');
-    const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsGround rearFacade');
+    const panelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
+    panelGeometry.translate(0, 0, -panelDepth / 2);
     panelGeometry.computeVertexNormals();
-    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
     return {
       geometry: panelGeometry,
@@ -216,271 +124,166 @@ export const wallsGround = {
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'ground', mirrorZ }))(),
   rightFacades: (() => makeRightFacadePanels(mirrorZ))(),
+  rightReveals: (() => makeRightFacadeReveals(mirrorZ))(),
 };
 
-function makeSideFacadePanel({
-  side,
-  mirrorZ,
-  level,
-}: {
-  side: 'left' | 'right';
-  mirrorZ: (z: number) => number;
-  level: 'ground' | 'first';
-}) {
-  const outer = getEnvelopeOuterPolygon();
-  const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-  const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
-  const xFace = side === 'left' ? minX : maxX;
-  const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EPSILON);
-  const minZ = edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity);
-  const maxZ = edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity);
-  const panelWidth = maxZ - minZ;
-  const panelCenterZ = (minZ + maxZ) / 2;
-  const panelHeight = wallHeight;
-  const panelDepth = FACADE_PANEL_THICKNESS;
-  const panelCenterX = side === 'left' ? xFace + panelDepth / 2 : xFace - panelDepth / 2;
-
-  const shape = new Shape();
-  shape.moveTo(-panelWidth / 2, -panelHeight / 2);
-  shape.lineTo(panelWidth / 2, -panelHeight / 2);
-  shape.lineTo(panelWidth / 2, panelHeight / 2);
-  shape.lineTo(-panelWidth / 2, panelHeight / 2);
-  shape.closePath();
-
-  const openings =
-    level === 'ground'
-      ? sideWindowSpecs
-      : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
-  const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
-
-  openings.forEach((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    const zMin = zCenter - spec.width / 2;
-    const zMax = zCenter + spec.width / 2;
-    const yMin = level === 'ground' ? spec.groundY0 : spec.firstY0;
-    const yMax = level === 'ground' ? spec.groundY1 : spec.firstY1;
-
-    if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
-
-    const path = new Path();
-    path.moveTo(zMin - panelCenterZ, yMin - (panelBaseY + panelHeight / 2));
-    path.lineTo(zMax - panelCenterZ, yMin - (panelBaseY + panelHeight / 2));
-    path.lineTo(zMax - panelCenterZ, yMax - (panelBaseY + panelHeight / 2));
-    path.lineTo(zMin - panelCenterZ, yMax - (panelBaseY + panelHeight / 2));
-    path.closePath();
-    shape.holes.push(path);
-  });
-
-  const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
-  rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsGround sideFacade ${side} ${level}`, 'front');
-  const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, `wallsGround sideFacade ${side} ${level}`);
-  const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
-  panelGeometry.rotateY(rotationY);
-  panelGeometry.computeVertexNormals();
-  console.log('✅ FACADE PANEL THICKNESS', panelDepth);
-
-  return {
-    geometry: panelGeometry,
-    position: [panelCenterX, panelHeight / 2, panelCenterZ] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
-  };
-}
-
 function makeRightFacadePanels(mirrorZ: (z: number) => number) {
-  const openingsBySegmentId: Record<SegmentId, Opening[]> = {
-    R_A: [],
-    R_B: [],
-    R_C: [],
-  };
-
-  sideWindowSpecs.forEach((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    const segment = segmentForZ(zCenter);
-    const widthZ = spec.width;
-    const y0 = spec.groundY0;
-    const y1 = spec.groundY1;
-
-    openingsBySegmentId[segment.id].push({ id: spec.id, zCenter, widthZ, y0, y1 });
-  });
-
   return RIGHT_FACADE_SEGMENTS.map((segment) => {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
-    const holes: Opening[] = openingsBySegmentId[segment.id];
-    const panelBaseY = 0;
+    const holes = collectGroundHolesForSegment(segment, mirrorZ).map((opening) => ({
+      z0: opening.zCenter - opening.widthZ / 2 - segment.z0,
+      z1: opening.zCenter + opening.widthZ / 2 - segment.z0,
+      y0: opening.y0,
+      y1: opening.y1,
+      id: opening.id,
+    }));
 
-    const shape = new Shape();
-    shape.moveTo(-widthZ / 2, -wallHeight / 2);
-    shape.lineTo(widthZ / 2, -wallHeight / 2);
-    shape.lineTo(widthZ / 2, wallHeight / 2);
-    shape.lineTo(-widthZ / 2, wallHeight / 2);
-    shape.closePath();
-
-    holes.forEach((opening) => {
-      const zMin = opening.zCenter - opening.widthZ / 2;
-      const zMax = opening.zCenter + opening.widthZ / 2;
-      const yMin = opening.y0;
-      const yMax = opening.y1;
-
-      if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
-
-      const path = new Path();
-      path.moveTo(zMin - panelCenterZ, yMin - (panelBaseY + wallHeight / 2));
-      path.lineTo(zMax - panelCenterZ, yMin - (panelBaseY + wallHeight / 2));
-      path.lineTo(zMax - panelCenterZ, yMax - (panelBaseY + wallHeight / 2));
-      path.lineTo(zMin - panelCenterZ, yMax - (panelBaseY + wallHeight / 2));
-      path.closePath();
-      shape.holes.push(path);
+    holes.forEach((hole) => {
+      console.log('✅ SIDE PANEL HOLE (ground)', {
+        segment: segment.id,
+        zRange: [hole.z0, hole.z1],
+        yRange: [hole.y0, hole.y1],
+      });
     });
 
-    const panelGeometry = new ShapeGeometry(shape);
-    panelGeometry.rotateY(-Math.PI / 2);
-    panelGeometry.computeVertexNormals();
+    const panelGeometry = makeFacadePanelWithHoles({
+      width: widthZ,
+      height: wallHeight,
+      holes,
+      thickness: FACADE_PANEL_THICKNESS,
+    });
 
-    console.log('✅ RIGHT PANEL', segment.id, { holeCount: holes.length, z0: segment.z0, z1: segment.z1, x: segment.x });
+    console.log('✅ SIDE PANEL SEGMENT (ground)', segment.id, {
+      z0: segment.z0,
+      z1: segment.z1,
+      xFace: segment.x,
+      holes: holes.length,
+    });
 
     return {
       geometry: panelGeometry,
-      position: [segment.x + RIGHT_PANEL_OUT, wallHeight / 2, panelCenterZ] as [number, number, number],
+      position: [segment.x + PANEL_EPS - FACADE_PANEL_THICKNESS / 2, wallHeight / 2, panelCenterZ] as [
+        number,
+        number,
+        number,
+      ],
       rotation: [0, 0, 0] as [number, number, number],
     };
   });
 }
 
-function segmentForZ(zCenter: number) {
-  if (zCenter < 4.0) return RIGHT_FACADE_SEGMENTS[0];
-  if (zCenter < 8.45) return RIGHT_FACADE_SEGMENTS[1];
-  return RIGHT_FACADE_SEGMENTS[2];
-}
+function makeRightFacadeReveals(mirrorZ: (z: number) => number) {
+  return RIGHT_FACADE_SEGMENTS.flatMap((segment) => {
+    const widthZ = segment.z1 - segment.z0;
+    const panelCenterZ = (segment.z0 + segment.z1) / 2;
+    const panelCenterY = wallHeight / 2;
+    const holes = collectGroundHolesForSegment(segment, mirrorZ).map((opening) => ({
+      z0: opening.zCenter - opening.widthZ / 2 - segment.z0,
+      z1: opening.zCenter + opening.widthZ / 2 - segment.z0,
+      y0: opening.y0,
+      y1: opening.y1,
+      id: opening.id,
+    }));
 
-function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string) {
-  const source = geometry.index ? geometry.toNonIndexed() : geometry;
-  const pos = source.getAttribute('position');
-  const uv = source.getAttribute('uv');
+    return holes.flatMap((hole) => {
+      const holeWidth = hole.z1 - hole.z0;
+      const holeHeight = hole.y1 - hole.y0;
+      const clearWidth = Math.max(0.01, holeWidth - 2 * REVEAL_FACE);
+      const leftZLocal = hole.z0 + REVEAL_FACE / 2 - widthZ / 2;
+      const rightZLocal = hole.z1 - REVEAL_FACE / 2 - widthZ / 2;
+      const midZLocal = (hole.z0 + hole.z1) / 2 - widthZ / 2;
+      const topYLocal = hole.y1 - REVEAL_FACE / 2 - wallHeight / 2;
+      const bottomYLocal = hole.y0 + REVEAL_FACE / 2 - wallHeight / 2;
+      const midYLocal = (hole.y0 + hole.y1) / 2 - wallHeight / 2;
+      const revealX = segment.x - REVEAL_DEPTH / 2 + PANEL_EPS;
 
-  // Determine which depth-plane is “outer” by centroid projection clustering.
-  // After filterExtrudedSideFaces(), triangles should lie on exactly TWO parallel planes.
-  // We keep the plane with the larger average Z in local extrude space.
-  // (This works regardless of winding/material side and removes the inner plane entirely.)
-
-  const triCount = pos.count / 3;
-
-  let maxProj = -Infinity;
-  let minProj = Infinity;
-  const triProj: number[] = new Array(triCount);
-
-  for (let t = 0; t < triCount; t++) {
-    const i0 = t * 3;
-    const i1 = i0 + 1;
-    const i2 = i0 + 2;
-
-    // Use local Z as “depth axis” because extrusion depth is along local Z
-    const z0 = pos.getZ(i0),
-      z1 = pos.getZ(i1),
-      z2 = pos.getZ(i2);
-    const proj = (z0 + z1 + z2) / 3;
-
-    triProj[t] = proj;
-    if (proj > maxProj) maxProj = proj;
-    if (proj < minProj) minProj = proj;
-  }
-
-  const EPS = 1e-3;
-  // Keep the plane that’s at maxProj (outer). Remove the plane at minProj (inner).
-  const keptPos: number[] = [];
-  const keptUv: number[] = [];
-
-  let removed = 0;
-  let kept = 0;
-
-  for (let t = 0; t < triCount; t++) {
-    const proj = triProj[t];
-
-    // Keep only triangles close to the outer plane
-    if (Math.abs(proj - maxProj) > EPS) {
-      removed++;
-      continue;
-    }
-
-    kept++;
-    const i0 = t * 3;
-    for (let k = 0; k < 3; k++) {
-      const idx = i0 + k;
-      keptPos.push(pos.getX(idx), pos.getY(idx), pos.getZ(idx));
-      if (uv) keptUv.push(uv.getX(idx), uv.getY(idx));
-    }
-  }
-
-  const out = new BufferGeometry();
-  out.setAttribute('position', new Float32BufferAttribute(keptPos, 3));
-  if (uv && keptUv.length) out.setAttribute('uv', new Float32BufferAttribute(keptUv, 2));
-  out.computeVertexNormals();
-
-  console.log('✅ KEEP OUTER FACE ONLY', context, { removedTriangles: removed, keptTriangles: kept, maxProj, minProj });
-  return out;
-}
-
-function filterExtrudedSideFaces(
-  geometry: BufferGeometry,
-  depth: number,
-  context: string,
-  keepPlane: 'front' | 'back' | 'both' = 'both',
-) {
-  if (ENABLE_BRICK_RETURNS) return geometry;
-
-  const halfDepth = depth / 2;
-  const source = geometry.index ? geometry.toNonIndexed() : geometry;
-  const position = source.getAttribute('position');
-  const uv = source.getAttribute('uv');
-
-  const keptPositions: number[] = [];
-  const keptUvs: number[] = [];
-  let removed = 0;
-  let kept = 0;
-
-  const triangleCount = position.count / 3;
-  for (let tri = 0; tri < triangleCount; tri += 1) {
-    const baseIndex = tri * 3;
-    const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
-
-    const z1 = position.getZ(indices[0]);
-    const z2 = position.getZ(indices[1]);
-    const z3 = position.getZ(indices[2]);
-
-    const onFront = Math.abs(z1 + halfDepth) < EPSILON && Math.abs(z2 + halfDepth) < EPSILON && Math.abs(z3 + halfDepth) < EPSILON;
-    const onBack = Math.abs(z1 - halfDepth) < EPSILON && Math.abs(z2 - halfDepth) < EPSILON && Math.abs(z3 - halfDepth) < EPSILON;
-
-    const keepThisTriangle =
-      keepPlane === 'both' ? onFront || onBack : keepPlane === 'front' ? onFront : onBack;
-
-    if (!keepThisTriangle) {
-      removed += 1;
-      continue;
-    }
-
-    indices.forEach((index) => {
-      keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
-      if (uv) {
-        keptUvs.push(uv.getX(index), uv.getY(index));
-      }
+      return [
+        {
+          geometry: new BoxGeometry(REVEAL_DEPTH, holeHeight, REVEAL_FACE),
+          position: [revealX, panelCenterY + midYLocal, panelCenterZ + leftZLocal] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          material: REVEAL_MATERIAL,
+          id: `${hole.id}-reveal-left`,
+        },
+        {
+          geometry: new BoxGeometry(REVEAL_DEPTH, holeHeight, REVEAL_FACE),
+          position: [revealX, panelCenterY + midYLocal, panelCenterZ + rightZLocal] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          material: REVEAL_MATERIAL,
+          id: `${hole.id}-reveal-right`,
+        },
+        {
+          geometry: new BoxGeometry(REVEAL_DEPTH, REVEAL_FACE, clearWidth),
+          position: [revealX, panelCenterY + topYLocal, panelCenterZ + midZLocal] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          material: REVEAL_MATERIAL,
+          id: `${hole.id}-reveal-top`,
+        },
+        {
+          geometry: new BoxGeometry(REVEAL_DEPTH, REVEAL_FACE, clearWidth),
+          position: [revealX, panelCenterY + bottomYLocal, panelCenterZ + midZLocal] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          material: REVEAL_MATERIAL,
+          id: `${hole.id}-reveal-bottom`,
+        },
+      ];
     });
-    kept += 1;
-  }
+  });
+}
 
-  const filtered = new BufferGeometry();
-  filtered.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
-  if (uv && keptUvs.length > 0) {
-    filtered.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
-  }
-  filtered.computeVertexNormals();
+function collectGroundHolesForSegment(segment: (typeof RIGHT_FACADE_SEGMENTS)[number], mirrorZ: (z: number) => number) {
+  return sideWindowSpecs
+    .map((spec) => {
+      const zCenter = getSideWindowZCenter(spec, mirrorZ);
+      const widthZ = spec.width;
+      const y0 = spec.groundY0;
+      const y1 = spec.groundY1;
+      return { id: spec.id, zCenter, widthZ, y0, y1 };
+    })
+    .filter((opening) => {
+      const halfWidth = opening.widthZ / 2;
+      const z0 = opening.zCenter - halfWidth;
+      const z1 = opening.zCenter + halfWidth;
+      const overlaps = z1 > segment.z0 - EPSILON && z0 < segment.z1 + EPSILON;
+      const tallEnough = opening.y1 - opening.y0 >= MIN_HOLE_H;
+      const wideEnough = opening.widthZ >= MIN_HOLE_W;
+      return overlaps && tallEnough && wideEnough;
+    });
+}
 
-  console.log('✅ FACADE FILTER', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
-  if (removed > 0) {
-    console.log('🧱 DISABLED RETURN MESH', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
-  }
+function makeFacadePanelWithHoles({
+  width,
+  height,
+  holes,
+  thickness,
+}: {
+  width: number;
+  height: number;
+  holes: { z0: number; z1: number; y0: number; y1: number }[];
+  thickness: number;
+}) {
+  const shape = new Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(width, 0);
+  shape.lineTo(width, height);
+  shape.lineTo(0, height);
+  shape.closePath();
 
-  return filtered;
+  holes.forEach((hole) => {
+    const path = new Path();
+    path.moveTo(hole.z0, hole.y0);
+    path.lineTo(hole.z1, hole.y0);
+    path.lineTo(hole.z1, hole.y1);
+    path.lineTo(hole.z0, hole.y1);
+    path.closePath();
+    shape.holes.push(path);
+  });
+
+  const geometry = new ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+  geometry.translate(-width / 2, -height / 2, -thickness / 2);
+  geometry.rotateY(-Math.PI / 2);
+  geometry.computeVertexNormals();
+  return geometry;
 }

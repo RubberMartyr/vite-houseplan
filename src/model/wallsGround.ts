@@ -84,25 +84,47 @@ const EXTENSION_SIDE_WALL = (() => {
   if (!segments.length) return null;
 
   const minX = segments.reduce((min, seg) => Math.min(min, seg.x), Infinity);
-  const candidates = segments.filter((seg) => Math.abs(seg.x - minX) < EPSILON).sort((a, b) => {
-    if (Math.abs(a.z0 - b.z0) > EPSILON) return a.z0 - b.z0;
-    return a.z1 - a.z0 - (b.z1 - b.z0);
-  });
+  const candidates = segments
+    .filter((seg) => Math.abs(seg.x - minX) < EPSILON)
+    .sort((a, b) => {
+      if (Math.abs(a.z0 - b.z0) > EPSILON) return a.z0 - b.z0;
+      return a.z1 - a.z0 - (b.z1 - b.z0);
+    });
 
-  const extensionSideSegment = candidates[0];
+  const segment = candidates[0];
   console.log('🧱 EXTENSION SIDE SEGMENT', {
-    segment: extensionSideSegment,
+    segment,
     candidateCount: candidates.length,
     segmentCount: segments.length,
   });
 
-  return extensionSideSegment
-    ? {
-        ...extensionSideSegment,
-        z0: mirrorZ(extensionSideSegment.z0),
-        z1: mirrorZ(extensionSideSegment.z1),
-      }
-    : null;
+  // --- Convert to render space (same as windows/roof logic) ---
+  let z0 = mirrorZ(segment.z0);
+  let z1 = mirrorZ(segment.z1);
+  if (z0 > z1) [z0, z1] = [z1, z0];
+
+  // --- NEW: choose X sign that best matches the envelope left extreme ---
+  const outer = getEnvelopeOuterPolygon();
+  const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
+
+  const xA = segment.x;
+  const xB = -segment.x;
+
+  const pickX = Math.abs(xA - envMinX) <= Math.abs(xB - envMinX) ? xA : xB;
+
+  const result = { x: pickX, z0, z1 };
+
+  console.log('🧱 EXTENSION SEGMENT (render)', {
+    raw: segment,
+    envMinX,
+    xA,
+    xB,
+    pickX,
+    z0,
+    z1,
+  });
+
+  return result;
 })();
 
 if (EXTENSION_SIDE_WALL && EXTENSION_SIDE_WALL.z0 > EXTENSION_SIDE_WALL.z1) {

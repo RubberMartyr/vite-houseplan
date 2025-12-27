@@ -844,20 +844,7 @@ function HouseScene({
                 geometry={facade.geometry}
                 position={facade.position}
                 rotation={facade.rotation}
-                material={(facade as any).material ?? facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showGround &&
-            wallsGround.rightReveals?.map((reveal, index) => (
-              <mesh
-                key={`ground-right-reveal-${index}`}
-                geometry={reveal.geometry}
-                position={reveal.position}
-                rotation={reveal.rotation}
-                material={(reveal as any).material ?? facadeMaterial}
+                material={facadeMaterial}
                 castShadow
                 receiveShadow
                 visible={wallShellVisible}
@@ -886,6 +873,17 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {showFirst && (
+            <mesh
+              geometry={wallsFirst.rightFacade.geometry}
+              position={wallsFirst.rightFacade.position}
+              rotation={wallsFirst.rightFacade.rotation}
+              material={facadeMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
           {showFirst &&
             wallsFirst.rightFacades.map((facade, index) => (
               <mesh
@@ -893,20 +891,7 @@ function HouseScene({
                 geometry={facade.geometry}
                 position={facade.position}
                 rotation={facade.rotation}
-                material={(facade as any).material ?? facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showFirst &&
-            wallsFirst.rightReveals?.map((reveal, index) => (
-              <mesh
-                key={`first-right-reveal-${index}`}
-                geometry={reveal.geometry}
-                position={reveal.position}
-                rotation={reveal.rotation}
-                material={(reveal as any).material ?? facadeMaterial}
+                material={facadeMaterial}
                 castShadow
                 receiveShadow
                 visible={wallShellVisible}

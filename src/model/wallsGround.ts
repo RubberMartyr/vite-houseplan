@@ -105,6 +105,12 @@ const EXTENSION_SIDE_WALL = (() => {
     : null;
 })();
 
+if (EXTENSION_SIDE_WALL && EXTENSION_SIDE_WALL.z0 > EXTENSION_SIDE_WALL.z1) {
+  const tmp = EXTENSION_SIDE_WALL.z0;
+  EXTENSION_SIDE_WALL.z0 = EXTENSION_SIDE_WALL.z1;
+  EXTENSION_SIDE_WALL.z1 = tmp;
+}
+
 function isExtensionSideWallFace(v: Vector3) {
   if (!EXTENSION_SIDE_WALL) return false;
 

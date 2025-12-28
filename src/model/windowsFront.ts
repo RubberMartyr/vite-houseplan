@@ -211,6 +211,110 @@ function makeWindowMeshes(params: {
   return meshes;
 }
 
+// Matches elevation: 2 big panes on bottom + dense transom grid above with a separating bar
+function makeGroundClassicTransomWindowMeshes(params: {
+  idBase: string;
+  width: number;
+  height: number;
+  xCenter: number;
+  yBottom: number;
+  zFace: number;
+  transomHeight?: number;
+  topGrid?: { cols: number; rows: number };
+  hasSill?: boolean;
+  hasLintel?: boolean;
+}): WindowMesh[] {
+  const {
+    idBase,
+    width,
+    height,
+    xCenter,
+    yBottom,
+    zFace,
+    transomHeight = 0.35,
+    topGrid = { cols: 6, rows: 2 },
+    hasSill = true,
+    hasLintel = true,
+  } = params;
+
+  // Base frame + glass (+ sill/lintel) with no full-height grid
+  const meshes = makeWindowMeshes({
+    idBase,
+    width,
+    height,
+    xCenter,
+    yBottom,
+    zFace,
+    hasSill,
+    hasLintel,
+  });
+
+  const innerWidth = width - 2 * FRAME_BORDER;
+  const innerHeight = height - 2 * FRAME_BORDER;
+
+  const clampedTransomHeight = Math.min(transomHeight, innerHeight * 0.45);
+  const innerBottomY = yBottom + FRAME_BORDER;
+  const innerTopY = yBottom + height - FRAME_BORDER;
+  const transomBottomY = innerTopY - clampedTransomHeight;
+  const bottomHeight = transomBottomY - innerBottomY;
+
+  const frameZ = zFace - EPS + FRAME_DEPTH / 2;
+  const muntinThickness = Math.max(FRAME_BORDER * 0.45, 0.012);
+
+  // Bottom mullion (two large panes)
+  meshes.push({
+    id: `${idBase}_MULLION_BOTTOM_V`,
+    geometry: new THREE.BoxGeometry(muntinThickness, bottomHeight, FRAME_DEPTH),
+    position: [xCenter, innerBottomY + bottomHeight / 2, frameZ],
+    rotation: [0, 0, 0],
+    material: frameMaterial,
+  });
+
+  // Transom separator bar
+  meshes.push({
+    id: `${idBase}_TRANSOM_BAR`,
+    geometry: new THREE.BoxGeometry(innerWidth, muntinThickness, FRAME_DEPTH),
+    position: [xCenter, transomBottomY, frameZ],
+    rotation: [0, 0, 0],
+    material: frameMaterial,
+  });
+
+  const transomCenterY = transomBottomY + clampedTransomHeight / 2;
+  const { cols, rows } = topGrid;
+
+  // Transom vertical grid
+  if (cols && cols > 1) {
+    const colSpacing = innerWidth / cols;
+    for (let col = 1; col < cols; col += 1) {
+      const xOffset = -innerWidth / 2 + colSpacing * col;
+      meshes.push({
+        id: `${idBase}_TRANSOM_V${col}`,
+        geometry: new THREE.BoxGeometry(muntinThickness, clampedTransomHeight, FRAME_DEPTH),
+        position: [xCenter + xOffset, transomCenterY, frameZ],
+        rotation: [0, 0, 0],
+        material: frameMaterial,
+      });
+    }
+  }
+
+  // Transom horizontal grid
+  if (rows && rows > 1) {
+    const rowSpacing = clampedTransomHeight / rows;
+    for (let row = 1; row < rows; row += 1) {
+      const yOffset = -clampedTransomHeight / 2 + rowSpacing * row;
+      meshes.push({
+        id: `${idBase}_TRANSOM_H${row}`,
+        geometry: new THREE.BoxGeometry(innerWidth, muntinThickness, FRAME_DEPTH),
+        position: [xCenter, transomCenterY + yOffset, frameZ],
+        rotation: [0, 0, 0],
+        material: frameMaterial,
+      });
+    }
+  }
+
+  return meshes;
+}
+
 function makeSill({
   id,
   width,
@@ -407,6 +511,18 @@ export const frontOpeningRectsFirst: FrontOpeningRect[] = firstOpenings.map((o) 
 const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
   if (o.kind === 'door') {
     return makeDoorMeshes({ idBase: o.id, width: o.width, height: o.height, xCenter: o.xCenter, yBottom: o.yBottom, zFace: frontZ });
+  }
+  if (o.kind === 'window' && (o.id === 'FRONT_G_W1' || o.id === 'FRONT_G_W2')) {
+    return makeGroundClassicTransomWindowMeshes({
+      idBase: o.id,
+      width: o.width,
+      height: o.height,
+      xCenter: o.xCenter,
+      yBottom: o.yBottom,
+      zFace: frontZ,
+      transomHeight: 0.35,
+      topGrid: { cols: 6, rows: 2 },
+    });
   }
   return makeWindowMeshes({
     idBase: o.id,

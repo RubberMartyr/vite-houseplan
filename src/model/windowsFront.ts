@@ -18,11 +18,32 @@ export type FrontOpeningRect = {
   yMax: number;
 };
 
+type FrontOpeningSpec =
+  | {
+      id: string;
+      kind: 'window';
+      width: number;
+      height: number;
+      xCenter: number;
+      yBottom: number;
+      grid?: { cols: number; rows: number };
+    }
+  | {
+      id: string;
+      kind: 'door';
+      width: number;
+      height: number;
+      xCenter: number;
+      yBottom: number;
+    };
+
 // --- shared constants (mirrors windowsRear.ts conventions) ---
 const EPS = 0.01;
 const FRAME_DEPTH = 0.08;
-const FRAME_BORDER = 0.07;
+// Front facade frame thickness set to ≈5.5 cm to match elevation
+const FRAME_BORDER = 0.055;
 const GLASS_INSET = 0.015;
+const MUNTIN_WIDTH = 0.03; // thinner than frame border
 
 const SILL_DEPTH = 0.10;
 const SILL_HEIGHT = 0.05;
@@ -52,6 +73,7 @@ export function frontXCenter(xFromLeft: number, openingWidth: number): number {
   return RIGHT_EDGE_X - (xFromLeft + openingWidth / 2);
 }
 
+// Front facade utility: builds a framed window with optional muntin grid (vertical + horizontal)
 function makeWindowMeshes(params: {
   idBase: string;
   width: number;
@@ -59,7 +81,7 @@ function makeWindowMeshes(params: {
   xCenter: number;
   yBottom: number;
   zFace: number;
-  mullions?: number;
+  grid?: { cols: number; rows: number };
   hasSill?: boolean;
   hasLintel?: boolean;
 }): WindowMesh[] {
@@ -70,7 +92,7 @@ function makeWindowMeshes(params: {
     xCenter,
     yBottom,
     zFace,
-    mullions = 0,
+    grid,
     hasSill = true,
     hasLintel = true,
   } = params;
@@ -132,15 +154,30 @@ function makeWindowMeshes(params: {
     },
   ];
 
-  if (mullions > 0) {
-    const mullionWidth = FRAME_BORDER / 2;
-    const spacing = innerWidth / (mullions + 1);
-    for (let i = 1; i <= mullions; i += 1) {
-      const xOffset = -innerWidth / 2 + spacing * i;
+  // Grid-style muntins for front facade elevation (keeps mesh approach used elsewhere)
+  if (grid && grid.cols >= 1 && grid.rows >= 1) {
+    const columnSpacing = innerWidth / grid.cols;
+    const rowSpacing = innerHeight / grid.rows;
+
+    // vertical muntins (between columns)
+    for (let col = 1; col < grid.cols; col += 1) {
+      const xOffset = -innerWidth / 2 + columnSpacing * col;
       meshes.push({
-        id: `${idBase}_MULLION_${i}`,
-        geometry: new THREE.BoxGeometry(mullionWidth, innerHeight, FRAME_DEPTH),
+        id: `${idBase}_MULLION_V${col}`,
+        geometry: new THREE.BoxGeometry(MUNTIN_WIDTH, innerHeight, FRAME_DEPTH),
         position: [xCenter + xOffset, yCenter, frameZ],
+        rotation: [0, 0, 0],
+        material: frameMaterial,
+      });
+    }
+
+    // horizontal muntins (between rows)
+    for (let row = 1; row < grid.rows; row += 1) {
+      const yOffset = -innerHeight / 2 + rowSpacing * row;
+      meshes.push({
+        id: `${idBase}_MULLION_H${row}`,
+        geometry: new THREE.BoxGeometry(innerWidth, MUNTIN_WIDTH, FRAME_DEPTH),
+        position: [xCenter, yCenter + yOffset, frameZ],
         rotation: [0, 0, 0],
         material: frameMaterial,
       });
@@ -294,12 +331,36 @@ const xG_W2 = frontXCenter(G_W2, 1.10);
 const xG_DOOR = frontXCenter(G_DOOR, 1.00);
 const xG_W3 = frontXCenter(G_W3, 0.70);
 
-const groundOpenings = [
-  { id: 'FRONT_G_W1', kind: 'window', width: 1.10, height: 1.60, xCenter: xG_W1, yBottom: 0.70, mullions: 1 },
-  { id: 'FRONT_G_W2', kind: 'window', width: 1.10, height: 1.60, xCenter: xG_W2, yBottom: 0.70, mullions: 1 },
-  { id: 'FRONT_G_DOOR', kind: 'door',   width: 1.00, height: 2.50, xCenter: xG_DOOR, yBottom: 0.00 },
+const groundOpenings: FrontOpeningSpec[] = [
+  {
+    id: 'FRONT_G_W1',
+    kind: 'window',
+    width: 1.10,
+    height: 1.60,
+    xCenter: xG_W1,
+    yBottom: 0.70,
+    grid: { cols: 2, rows: 3 }, // big window: 2 columns x 3 rows
+  },
+  {
+    id: 'FRONT_G_W2',
+    kind: 'window',
+    width: 1.10,
+    height: 1.60,
+    xCenter: xG_W2,
+    yBottom: 0.70,
+    grid: { cols: 2, rows: 3 }, // big window: 2 columns x 3 rows
+  },
+  { id: 'FRONT_G_DOOR', kind: 'door', width: 1.00, height: 2.50, xCenter: xG_DOOR, yBottom: 0.00 },
   // small WC window: 165..215 => yBottom=1.65 height=0.50
-  { id: 'FRONT_G_W3', kind: 'window', width: 0.70, height: 0.50, xCenter: xG_W3, yBottom: 1.65, mullions: 0 },
+  {
+    id: 'FRONT_G_W3',
+    kind: 'window',
+    width: 0.70,
+    height: 0.50,
+    xCenter: xG_W3,
+    yBottom: 1.65,
+    grid: { cols: 2, rows: 2 }, // small window: 2 columns x 2 rows
+  },
 ] as const;
 
 // From chain: 125 | 90(win) | 90 | 90(win) | 110 | 90(win) | 120 | 70(win) | 175
@@ -314,13 +375,13 @@ const xF_W2 = frontXCenter(F_W2, 0.90);
 const xF_W3 = frontXCenter(F_W3, 0.90);
 const xF_W4 = frontXCenter(F_W4, 0.70);
 
-const firstOpenings = [
+const firstOpenings: FrontOpeningSpec[] = [
   // big windows: sill=3.40, top=5.00 => 1.60
-  { id: 'FRONT_F_W1', width: 0.90, height: 1.60, xCenter: xF_W1, yBottom: 3.40, mullions: 1 },
-  { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, mullions: 1 },
-  { id: 'FRONT_F_W3', width: 0.90, height: 1.60, xCenter: xF_W3, yBottom: 3.40, mullions: 1 },
+  { id: 'FRONT_F_W1', width: 0.90, height: 1.60, xCenter: xF_W1, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
+  { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
+  { id: 'FRONT_F_W3', width: 0.90, height: 1.60, xCenter: xF_W3, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
   // small window: sill=4.10, top=5.00 => 0.90
-  { id: 'FRONT_F_W4', width: 0.70, height: 0.90, xCenter: xF_W4, yBottom: 4.10, mullions: 0 },
+  { id: 'FRONT_F_W4', width: 0.70, height: 0.90, xCenter: xF_W4, yBottom: 4.10, grid: { cols: 2, rows: 2 } },
 ] as const;
 
 // --- opening rects for facade holes (used by wallsGround/wallsFirst) ---
@@ -354,7 +415,7 @@ const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
     xCenter: o.xCenter,
     yBottom: o.yBottom,
     zFace: frontZ,
-    mullions: (o as any).mullions ?? 0,
+    grid: o.grid,
   });
 });
 
@@ -366,7 +427,7 @@ const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) =>
     xCenter: o.xCenter,
     yBottom: o.yBottom,
     zFace: frontZ,
-    mullions: o.mullions,
+    grid: o.grid,
   })
 );
 

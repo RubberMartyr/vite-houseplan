@@ -63,6 +63,12 @@ const blueStoneMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.05,
 });
 
+const anthraciteStoneMaterial = new THREE.MeshStandardMaterial({
+  color: 0x1f1f1f,
+  roughness: 0.82,
+  metalness: 0.05,
+});
+
 const oakMaterial = new THREE.MeshStandardMaterial({
   color: 0xd7b58a,
   roughness: 0.75,
@@ -497,7 +503,7 @@ function makeFrontDoorDetailedMeshes(params: {
   const { idBase, width, height, xCenter, yBottom, zFace } = params;
   const yCenter = yBottom + height / 2;
 
-  // 1) Bluestone surround ring
+  // 1) Anthracite surround ring
   const surroundDepth = 0.06;
   const surroundMargin = 0.1;
   const outerWidth = width + 2 * surroundMargin;
@@ -588,19 +594,27 @@ function makeFrontDoorDetailedMeshes(params: {
   const muntinBarDepth = FRAME_DEPTH;
   const muntinLength = Math.sqrt(transomWidth * transomWidth + transomHeight * transomHeight);
 
-  // 7) Bluestone threshold
+  // 7) Anthracite threshold
   const thresholdHeight = 0.06;
   const thresholdDepth = 0.2;
   const thresholdWidth = outerWidth;
   const thresholdZ = zFace - EPS - thresholdDepth / 2;
 
+  // 8) Anthracite head cap
+  const capHeight = 0.08;
+  const capDepth = 0.06;
+  const capOverhang = 0.05;
+  const capWidth = outerWidth + 2 * capOverhang;
+  const capY = yBottom + height + surroundMargin - capHeight / 2;
+  const capZ = zFace - EPS - capDepth / 2 - 0.002;
+
   const meshes: WindowMesh[] = [
     {
-      id: `${idBase}_BLUESTONE_RING`,
+      id: `${idBase}_SURROUND_RING`,
       geometry: surroundGeometry,
       position: [xCenter, yCenter, surroundZ],
       rotation: [0, 0, 0],
-      material: blueStoneMaterial,
+      material: anthraciteStoneMaterial,
     },
     {
       id: `${idBase}_FRAME`,
@@ -652,19 +666,26 @@ function makeFrontDoorDetailedMeshes(params: {
       material: frameMaterial,
     },
     {
-      id: `${idBase}_BLUESTONE_THRESHOLD`,
+      id: `${idBase}_THRESHOLD`,
       geometry: new THREE.BoxGeometry(thresholdWidth, thresholdHeight, thresholdDepth),
       position: [xCenter, yBottom + thresholdHeight / 2, thresholdZ],
       rotation: [0, 0, 0],
-      material: blueStoneMaterial,
+      material: anthraciteStoneMaterial,
     },
-    makeLintel({
+    {
       id: `${idBase}_LINTEL`,
-      width,
-      xCenter,
-      yCenter: yBottom + height + LINTEL_HEIGHT / 2,
-      zFace,
-    }),
+      geometry: new THREE.BoxGeometry(width + 0.12, LINTEL_HEIGHT, LINTEL_DEPTH),
+      position: [xCenter, yBottom + height + LINTEL_HEIGHT / 2, zFace - EPS - LINTEL_DEPTH / 2],
+      rotation: [0, 0, 0],
+      material: anthraciteStoneMaterial,
+    },
+    {
+      id: `${idBase}_SURROUND_CAP`,
+      geometry: new THREE.BoxGeometry(capWidth, capHeight, capDepth),
+      position: [xCenter, capY, capZ],
+      rotation: [0, 0, 0],
+      material: anthraciteStoneMaterial,
+    },
   ];
 
   return meshes;

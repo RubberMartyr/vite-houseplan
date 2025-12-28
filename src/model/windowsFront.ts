@@ -602,7 +602,9 @@ const xF_W4 = frontXCenter(F_W4, 0.70);
 
 const dormerWidth = 0.9;
 const dormerHeight = 1.0;
-const dormerYBottom = DORMER_GLASS_TOP_Y - dormerHeight;
+// Anchor the dormer vertically from the glass top so adjusting DORMER_GLASS_TOP_Y alone shifts it.
+const dormerGlassTopY = DORMER_GLASS_TOP_Y;
+const dormerYBottom = dormerGlassTopY - dormerHeight;
 
 const firstOpenings: FrontOpeningSpec[] = [
   // big windows: sill=3.40, top=5.00 => 1.60

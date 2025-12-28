@@ -70,7 +70,7 @@ const anthraciteBandMaterial = new THREE.MeshStandardMaterial({
 });
 
 // Architectural eaves reference for aligning upper openings
-const EAVES_Y = 5.0;
+const EAVES_BAND_TOP_Y = 5.70;
 
 // Apply this only to front facade windows and the front door; do not change rear or side windows.
 // Front facade: plan distances are measured from the LEFT edge,
@@ -273,6 +273,60 @@ function makeWindowBandMeshes(params: {
       material: anthraciteBandMaterial,
     },
   ];
+}
+
+function makeAnthraciteSurroundRing(params: {
+  idBase: string;
+  width: number;
+  height: number;
+  xCenter: number;
+  yBottom: number;
+  zFace: number;
+  bandMargin?: number;
+  holeClearance?: number;
+  depth?: number;
+}): WindowMesh {
+  const { idBase, width, height, xCenter, yBottom, zFace, bandMargin = 0.1, holeClearance = 0.015, depth = 0.04 } = params;
+
+  const outerWidth = width + 2 * bandMargin;
+  const outerHeight = height + 2 * bandMargin;
+  const holeWidth = width + 2 * holeClearance;
+  const holeHeight = height + 2 * holeClearance;
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-outerWidth / 2, -outerHeight / 2);
+  shape.lineTo(outerWidth / 2, -outerHeight / 2);
+  shape.lineTo(outerWidth / 2, outerHeight / 2);
+  shape.lineTo(-outerWidth / 2, outerHeight / 2);
+  shape.closePath();
+
+  const hole = new THREE.Path();
+  hole.moveTo(-holeWidth / 2, -holeHeight / 2);
+  hole.lineTo(holeWidth / 2, -holeHeight / 2);
+  hole.lineTo(holeWidth / 2, holeHeight / 2);
+  hole.lineTo(-holeWidth / 2, holeHeight / 2);
+  hole.closePath();
+  shape.holes.push(hole);
+
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+  geometry.translate(0, 0, -depth / 2);
+
+  const yCenter = yBottom + height / 2;
+  const z = zFace - EPS - depth / 2;
+
+  const anthracite = new THREE.MeshStandardMaterial({
+    color: 0x2b2b2b,
+    roughness: 0.7,
+    metalness: 0.1,
+  });
+
+  return {
+    id: `${idBase}_BAND_RING`,
+    geometry,
+    position: [xCenter, yCenter, z],
+    rotation: [0, 0, 0],
+    material: anthracite,
+  };
 }
 
 // Matches elevation: 2 big panes on bottom + dense transom grid above with a separating bar
@@ -545,7 +599,7 @@ const xF_W4 = frontXCenter(F_W4, 0.70);
 
 const dormerWidth = 0.9;
 const dormerHeight = 1.0;
-const dormerYBottom = EAVES_Y - dormerHeight; // Dormer vertical position derived from eaves height
+const dormerYBottom = EAVES_BAND_TOP_Y - dormerHeight; // Dormer vertical position derived from eaves band top
 
 const firstOpenings: FrontOpeningSpec[] = [
   // big windows: sill=3.40, top=5.00 => 1.60
@@ -610,8 +664,8 @@ const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
   });
 });
 
-const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) =>
-  makeWindowMeshes({
+const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) => {
+  const windowMeshes = makeWindowMeshes({
     idBase: o.id,
     width: o.width,
     height: o.height,
@@ -619,19 +673,23 @@ const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) =>
     yBottom: o.yBottom,
     zFace: frontZ,
     grid: o.grid,
-  }).concat(
-    o.id === 'FRONT_F_W3'
-      ? makeWindowBandMeshes({
-          idBase: o.id,
-          width: o.width,
-          height: o.height,
-          xCenter: o.xCenter,
-          yBottom: o.yBottom,
-          zFace: frontZ,
-        })
-      : []
-  )
-);
+  });
+
+  if (o.id === 'FRONT_F_W3') {
+    return windowMeshes.concat(
+      makeAnthraciteSurroundRing({
+        idBase: o.id,
+        width: o.width,
+        height: o.height,
+        xCenter: o.xCenter,
+        yBottom: o.yBottom,
+        zFace: frontZ,
+      })
+    );
+  }
+
+  return windowMeshes;
+});
 
 export const windowsFront: { meshes: WindowMesh[] } = {
   meshes: [...groundMeshes, ...firstMeshes],

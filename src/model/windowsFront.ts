@@ -69,6 +69,9 @@ const anthraciteBandMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.1,
 });
 
+// Architectural eaves reference for aligning upper openings
+const EAVES_Y = 5.0;
+
 // Apply this only to front facade windows and the front door; do not change rear or side windows.
 // Front facade: plan distances are measured from the LEFT edge,
 // but in the scene the front facade is mirrored in X.
@@ -496,6 +499,8 @@ const xG_W2 = frontXCenter(G_W2, 1.10);
 const xG_DOOR = frontXCenter(G_DOOR, 1.00);
 const xG_W3 = frontXCenter(G_W3, 0.70);
 
+const xFrontDoorCenter = xG_DOOR;
+
 const groundOpenings: FrontOpeningSpec[] = [
   {
     id: 'FRONT_G_W1',
@@ -532,13 +537,15 @@ const groundOpenings: FrontOpeningSpec[] = [
 // First floor
 const F_W1 = 1.25;
 const F_W2 = 1.25 + 0.90 + 0.90;
-const F_W3 = 1.25 + 0.90 + 0.90 + 0.90 + 1.10;
 const F_W4 = 1.25 + 0.90 + 0.90 + 0.90 + 1.10 + 0.90 + 1.20;
 
 const xF_W1 = frontXCenter(F_W1, 0.90);
 const xF_W2 = frontXCenter(F_W2, 0.90);
-const xF_W3 = frontXCenter(F_W3, 0.90);
 const xF_W4 = frontXCenter(F_W4, 0.70);
+
+const dormerWidth = 0.9;
+const dormerHeight = 1.0;
+const dormerYBottom = EAVES_Y - dormerHeight; // Dormer vertical position derived from eaves height
 
 const firstOpenings: FrontOpeningSpec[] = [
   // big windows: sill=3.40, top=5.00 => 1.60
@@ -546,10 +553,10 @@ const firstOpenings: FrontOpeningSpec[] = [
   { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
   {
     id: 'FRONT_F_W3',
-    width: 0.90,
-    height: 1.60,
-    xCenter: xF_W3,
-    yBottom: 5.0, // Dormer window above door: raised to match elevation
+    width: dormerWidth,
+    height: dormerHeight,
+    xCenter: xFrontDoorCenter,
+    yBottom: dormerYBottom,
     grid: { cols: 3, rows: 3 },
   },
   // small window: sill=4.10, top=5.00 => 0.90

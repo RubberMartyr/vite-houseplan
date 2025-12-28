@@ -58,8 +58,22 @@ const frameMaterial = new THREE.MeshStandardMaterial({
 });
 
 const blueStoneMaterial = new THREE.MeshStandardMaterial({
-  color: '#5f6b73',
-  roughness: 0.8,
+  color: 0x2a2f33,
+  roughness: 0.85,
+  metalness: 0.05,
+});
+
+const oakMaterial = new THREE.MeshStandardMaterial({
+  color: 0xd7b58a,
+  roughness: 0.75,
+  metalness: 0.0,
+});
+
+const doorGlassMaterial = new THREE.MeshStandardMaterial({
+  color: 0x99aabb,
+  transparent: true,
+  opacity: 0.35,
+  roughness: 0.2,
   metalness: 0.0,
 });
 
@@ -472,7 +486,7 @@ function makeLintel({
   return { id, geometry: geom, position: [xCenter, yCenter, z], rotation: [0, 0, 0], material: blueStoneMaterial };
 }
 
-function makeDoorMeshes(params: {
+function makeFrontDoorDetailedMeshes(params: {
   idBase: string;
   width: number;
   height: number;
@@ -483,39 +497,111 @@ function makeDoorMeshes(params: {
   const { idBase, width, height, xCenter, yBottom, zFace } = params;
   const yCenter = yBottom + height / 2;
 
-  const border = FRAME_BORDER;
+  // 1) Bluestone surround ring
+  const surroundDepth = 0.06;
+  const surroundMargin = 0.1;
+  const outerWidth = width + 2 * surroundMargin;
+  const outerHeight = height + 2 * surroundMargin;
+  const surroundShape = new THREE.Shape();
+  surroundShape.moveTo(-outerWidth / 2, -outerHeight / 2);
+  surroundShape.lineTo(outerWidth / 2, -outerHeight / 2);
+  surroundShape.lineTo(outerWidth / 2, outerHeight / 2);
+  surroundShape.lineTo(-outerWidth / 2, outerHeight / 2);
+  surroundShape.closePath();
 
-  const outerShape = new THREE.Shape();
-  outerShape.moveTo(-width / 2, -height / 2);
-  outerShape.lineTo(width / 2, -height / 2);
-  outerShape.lineTo(width / 2, height / 2);
-  outerShape.lineTo(-width / 2, height / 2);
-  outerShape.closePath();
+  const surroundHole = new THREE.Path();
+  surroundHole.moveTo(-width / 2, -height / 2);
+  surroundHole.lineTo(width / 2, -height / 2);
+  surroundHole.lineTo(width / 2, height / 2);
+  surroundHole.lineTo(-width / 2, height / 2);
+  surroundHole.closePath();
+  surroundShape.holes.push(surroundHole);
 
-  const innerHole = new THREE.Path();
-  innerHole.moveTo(-width / 2 + border, -height / 2 + border);
-  innerHole.lineTo(width / 2 - border, -height / 2 + border);
-  innerHole.lineTo(width / 2 - border, height / 2 - border);
-  innerHole.lineTo(-width / 2 + border, height / 2 - border);
-  innerHole.closePath();
-  outerShape.holes.push(innerHole);
-
-  const frameGeometry = new THREE.ExtrudeGeometry(outerShape, {
-    depth: FRAME_DEPTH,
+  const surroundGeometry = new THREE.ExtrudeGeometry(surroundShape, {
+    depth: surroundDepth,
     bevelEnabled: false,
   });
-  frameGeometry.translate(0, 0, -FRAME_DEPTH / 2);
+  surroundGeometry.translate(0, 0, -surroundDepth / 2);
 
-  const frameZ = zFace - EPS + FRAME_DEPTH / 2;
+  const surroundZ = zFace - EPS - surroundDepth / 2 - 0.002;
 
-  // Door leaf/panel slightly behind the frame (toward inside = +Z)
-  const panelWidth = width - 2 * border;
-  const panelHeight = height - 2 * border;
-  const panelThickness = 0.04;
-  const panelGeometry = new THREE.BoxGeometry(panelWidth, panelHeight, panelThickness);
-  const panelZ = frameZ + 0.015 + panelThickness / 2;
+  // 2) Inner door frame
+  const doorFrameBorder = 0.05;
+  const doorFrameDepth = 0.07;
+  const frameOuterWidth = width;
+  const frameOuterHeight = height;
+  const frameInnerWidth = frameOuterWidth - 2 * doorFrameBorder;
+  const frameInnerHeight = frameOuterHeight - 2 * doorFrameBorder;
+  const frameShape = new THREE.Shape();
+  frameShape.moveTo(-frameOuterWidth / 2, -frameOuterHeight / 2);
+  frameShape.lineTo(frameOuterWidth / 2, -frameOuterHeight / 2);
+  frameShape.lineTo(frameOuterWidth / 2, frameOuterHeight / 2);
+  frameShape.lineTo(-frameOuterWidth / 2, frameOuterHeight / 2);
+  frameShape.closePath();
 
-  return [
+  const frameHole = new THREE.Path();
+  frameHole.moveTo(-frameInnerWidth / 2, -frameInnerHeight / 2);
+  frameHole.lineTo(frameInnerWidth / 2, -frameInnerHeight / 2);
+  frameHole.lineTo(frameInnerWidth / 2, frameInnerHeight / 2);
+  frameHole.lineTo(-frameInnerWidth / 2, frameInnerHeight / 2);
+  frameHole.closePath();
+  frameShape.holes.push(frameHole);
+
+  const frameGeometry = new THREE.ExtrudeGeometry(frameShape, {
+    depth: doorFrameDepth,
+    bevelEnabled: false,
+  });
+  frameGeometry.translate(0, 0, -doorFrameDepth / 2);
+
+  const frameZ = zFace - EPS + doorFrameDepth / 2;
+
+  // 3) Door leaf (light oak)
+  const transomHeight = 0.35;
+  const leafHeight = height - transomHeight;
+  const leafWidth = width - 2 * doorFrameBorder;
+  const leafThickness = 0.045;
+  const leafGeometry = new THREE.BoxGeometry(leafWidth, leafHeight, leafThickness);
+  const leafZ = surroundZ + surroundDepth / 2 + 0.03 + leafThickness / 2;
+  const leafYCenter = yBottom + leafHeight / 2;
+
+  // 4) Door panels
+  const panelInset = 0.012;
+  const panelBorder = 0.08;
+  const panelThickness = 0.015;
+  const panelZoneHeight = leafHeight * 0.45;
+  const panelWidth = leafWidth - 2 * panelBorder;
+  const panelHeight = panelZoneHeight - 2 * panelBorder;
+  const panelZ = leafZ - leafThickness / 2 + panelThickness / 2 + panelInset;
+  const panelGap = leafHeight * 0.1;
+  const bottomPanelCenterY = yBottom + panelZoneHeight / 2;
+  const topPanelCenterY = yBottom + panelZoneHeight + panelGap + panelZoneHeight / 2;
+
+  // 5) Transom glazing
+  const transomWidth = leafWidth;
+  const glassThickness = 0.01;
+  const transomCenterY = yBottom + leafHeight + transomHeight / 2;
+  const transomGlassZ = zFace - EPS + FRAME_DEPTH / 2 + GLASS_INSET;
+
+  // 6) Transom diagonal muntins
+  const transomAngle = Math.atan2(transomHeight, transomWidth);
+  const muntinBarThickness = 0.018;
+  const muntinBarDepth = FRAME_DEPTH;
+  const muntinLength = Math.sqrt(transomWidth * transomWidth + transomHeight * transomHeight);
+
+  // 7) Bluestone threshold
+  const thresholdHeight = 0.06;
+  const thresholdDepth = 0.2;
+  const thresholdWidth = outerWidth;
+  const thresholdZ = zFace - EPS - thresholdDepth / 2;
+
+  const meshes: WindowMesh[] = [
+    {
+      id: `${idBase}_BLUESTONE_RING`,
+      geometry: surroundGeometry,
+      position: [xCenter, yCenter, surroundZ],
+      rotation: [0, 0, 0],
+      material: blueStoneMaterial,
+    },
     {
       id: `${idBase}_FRAME`,
       geometry: frameGeometry,
@@ -524,11 +610,53 @@ function makeDoorMeshes(params: {
       material: frameMaterial,
     },
     {
-      id: `${idBase}_PANEL`,
-      geometry: panelGeometry,
-      position: [xCenter, yCenter, panelZ],
+      id: `${idBase}_LEAF`,
+      geometry: leafGeometry,
+      position: [xCenter, leafYCenter, leafZ],
       rotation: [0, 0, 0],
+      material: oakMaterial,
+    },
+    {
+      id: `${idBase}_PANEL_BOTTOM`,
+      geometry: new THREE.BoxGeometry(panelWidth, panelHeight, panelThickness),
+      position: [xCenter, bottomPanelCenterY, panelZ],
+      rotation: [0, 0, 0],
+      material: oakMaterial,
+    },
+    {
+      id: `${idBase}_PANEL_TOP`,
+      geometry: new THREE.BoxGeometry(panelWidth, panelHeight, panelThickness),
+      position: [xCenter, topPanelCenterY, panelZ],
+      rotation: [0, 0, 0],
+      material: oakMaterial,
+    },
+    {
+      id: `${idBase}_TRANSOM_GLASS`,
+      geometry: new THREE.BoxGeometry(transomWidth, transomHeight, glassThickness),
+      position: [xCenter, transomCenterY, transomGlassZ],
+      rotation: [0, 0, 0],
+      material: doorGlassMaterial,
+    },
+    {
+      id: `${idBase}_TRANSOM_X1`,
+      geometry: new THREE.BoxGeometry(muntinLength, muntinBarThickness, muntinBarDepth),
+      position: [xCenter, transomCenterY, frameZ],
+      rotation: [0, 0, transomAngle],
       material: frameMaterial,
+    },
+    {
+      id: `${idBase}_TRANSOM_X2`,
+      geometry: new THREE.BoxGeometry(muntinLength, muntinBarThickness, muntinBarDepth),
+      position: [xCenter, transomCenterY, frameZ],
+      rotation: [0, 0, -transomAngle],
+      material: frameMaterial,
+    },
+    {
+      id: `${idBase}_BLUESTONE_THRESHOLD`,
+      geometry: new THREE.BoxGeometry(thresholdWidth, thresholdHeight, thresholdDepth),
+      position: [xCenter, yBottom + thresholdHeight / 2, thresholdZ],
+      rotation: [0, 0, 0],
+      material: blueStoneMaterial,
     },
     makeLintel({
       id: `${idBase}_LINTEL`,
@@ -538,6 +666,8 @@ function makeDoorMeshes(params: {
       zFace,
     }),
   ];
+
+  return meshes;
 }
 
 // --- FRONT FACADE SPEC (derived from your 960cm chain dimensions) ---
@@ -644,7 +774,17 @@ export const frontOpeningRectsFirst: FrontOpeningRect[] = firstOpenings.map((o) 
 // --- meshes ---
 const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
   if (o.kind === 'door') {
-    return makeDoorMeshes({ idBase: o.id, width: o.width, height: o.height, xCenter: o.xCenter, yBottom: o.yBottom, zFace: frontZ });
+    if (o.id === 'FRONT_G_DOOR') {
+      return makeFrontDoorDetailedMeshes({
+        idBase: o.id,
+        width: o.width,
+        height: o.height,
+        xCenter: o.xCenter,
+        yBottom: o.yBottom,
+        zFace: frontZ,
+      });
+    }
+    return [];
   }
   if (o.kind === 'window' && (o.id === 'FRONT_G_W1' || o.id === 'FRONT_G_W2')) {
     return makeGroundClassicTransomWindowMeshes({

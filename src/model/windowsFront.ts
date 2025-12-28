@@ -72,7 +72,7 @@ const anthraciteBandMaterial = new THREE.MeshStandardMaterial({
 // Architectural eaves reference for aligning upper openings
 const EAVES_BAND_TOP_Y = 5.70;
 // Dormer glass top aligned to visible eaves band edge (calibrated)
-const DORMER_GLASS_TOP_Y = 5.55;
+const DORMER_GLASS_TOP_Y = 5.40; // lowered further to match elevation
 
 // Apply this only to front facade windows and the front door; do not change rear or side windows.
 // Front facade: plan distances are measured from the LEFT edge,
@@ -676,6 +676,7 @@ const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) => {
     yBottom: o.yBottom,
     zFace: frontZ,
     grid: o.grid,
+    ...(o.id === 'FRONT_F_W3' ? { hasSill: false, hasLintel: false } : {}),
   });
 
   if (o.id === 'FRONT_F_W3') {

@@ -463,7 +463,7 @@ const groundOpenings: FrontOpeningSpec[] = [
     height: 0.50,
     xCenter: xG_W3,
     yBottom: 1.65,
-    grid: { cols: 2, rows: 2 }, // small window: 2 columns x 2 rows
+    grid: { cols: 3, rows: 3 }, // small window: 3 columns x 3 rows
   },
 ] as const;
 

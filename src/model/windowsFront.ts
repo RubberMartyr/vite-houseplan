@@ -63,6 +63,12 @@ const blueStoneMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.0,
 });
 
+const anthraciteBandMaterial = new THREE.MeshStandardMaterial({
+  color: 0x2b2b2b,
+  roughness: 0.7,
+  metalness: 0.1,
+});
+
 // Apply this only to front facade windows and the front door; do not change rear or side windows.
 // Front facade: plan distances are measured from the LEFT edge,
 // but in the scene the front facade is mirrored in X.
@@ -209,6 +215,61 @@ function makeWindowMeshes(params: {
   }
 
   return meshes;
+}
+
+function makeWindowBandMeshes(params: {
+  idBase: string;
+  width: number;
+  height: number;
+  xCenter: number;
+  yBottom: number;
+  zFace: number;
+  margin?: number;
+  thickness?: number;
+  depth?: number;
+}): WindowMesh[] {
+  const { idBase, width, height, xCenter, yBottom, zFace, margin = 0.08, thickness = 0.04, depth = 0.03 } = params;
+
+  const outerWidth = width + 2 * margin;
+  const outerHeight = height + 2 * margin;
+  const bandZ = zFace - EPS - depth / 2;
+
+  const leftX = xCenter - (width / 2 + margin - thickness / 2);
+  const rightX = xCenter + (width / 2 + margin - thickness / 2);
+  const centerY = yBottom + height / 2;
+  const topY = yBottom + height + margin - thickness / 2;
+  const bottomY = yBottom - margin + thickness / 2;
+
+  return [
+    {
+      id: `${idBase}_BAND_TOP`,
+      geometry: new THREE.BoxGeometry(outerWidth, thickness, depth),
+      position: [xCenter, topY, bandZ],
+      rotation: [0, 0, 0],
+      material: anthraciteBandMaterial,
+    },
+    {
+      id: `${idBase}_BAND_BOTTOM`,
+      geometry: new THREE.BoxGeometry(outerWidth, thickness, depth),
+      position: [xCenter, bottomY, bandZ],
+      rotation: [0, 0, 0],
+      material: anthraciteBandMaterial,
+    },
+    {
+      id: `${idBase}_BAND_LEFT`,
+      geometry: new THREE.BoxGeometry(thickness, outerHeight, depth),
+      position: [leftX, centerY, bandZ],
+      rotation: [0, 0, 0],
+      material: anthraciteBandMaterial,
+    },
+    {
+      id: `${idBase}_BAND_RIGHT`,
+      geometry: new THREE.BoxGeometry(thickness, outerHeight, depth),
+      position: [rightX, centerY, bandZ],
+      rotation: [0, 0, 0],
+      material: anthraciteBandMaterial,
+    },
+  ];
 }
 
 // Matches elevation: 2 big panes on bottom + dense transom grid above with a separating bar
@@ -483,7 +544,14 @@ const firstOpenings: FrontOpeningSpec[] = [
   // big windows: sill=3.40, top=5.00 => 1.60
   { id: 'FRONT_F_W1', width: 0.90, height: 1.60, xCenter: xF_W1, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
   { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
-  { id: 'FRONT_F_W3', width: 0.90, height: 1.60, xCenter: xF_W3, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
+  {
+    id: 'FRONT_F_W3',
+    width: 0.90,
+    height: 1.60,
+    xCenter: xF_W3,
+    yBottom: 5.0, // Dormer window above door: raised to match elevation
+    grid: { cols: 3, rows: 3 },
+  },
   // small window: sill=4.10, top=5.00 => 0.90
   { id: 'FRONT_F_W4', width: 0.70, height: 0.90, xCenter: xF_W4, yBottom: 4.10, grid: { cols: 2, rows: 2 } },
 ] as const;
@@ -544,7 +612,18 @@ const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) =>
     yBottom: o.yBottom,
     zFace: frontZ,
     grid: o.grid,
-  })
+  }).concat(
+    o.id === 'FRONT_F_W3'
+      ? makeWindowBandMeshes({
+          idBase: o.id,
+          width: o.width,
+          height: o.height,
+          xCenter: o.xCenter,
+          yBottom: o.yBottom,
+          zFace: frontZ,
+        })
+      : []
+  )
 );
 
 export const windowsFront: { meshes: WindowMesh[] } = {

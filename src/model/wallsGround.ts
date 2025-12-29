@@ -72,7 +72,7 @@ type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: nu
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
 
-const facadeSegments = RIGHT_FACADE_SEGMENTS;
+const facadeSegments = LEFT_FACADE_SEGMENTS;
 
 const sideFacadeProfileCm = leftFacadeProfileCm;
 

@@ -25,7 +25,7 @@ const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 type SegmentId = (typeof LEFT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 
-const facadeSegments = RIGHT_FACADE_SEGMENTS;
+const facadeSegments = LEFT_FACADE_SEGMENTS;
 
 const sideFacadeProfileCm = leftFacadeProfileCm;
 

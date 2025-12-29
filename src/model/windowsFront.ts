@@ -868,10 +868,11 @@ const dormerYBottom = dormerGlassTopY - dormerHeight;
 
 const firstOpenings: FrontOpeningSpec[] = [
   // big windows: sill=3.40, top=5.00 => 1.60
-  { id: 'FRONT_F_W1', width: 0.90, height: 1.60, xCenter: xF_W1, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
-  { id: 'FRONT_F_W2', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
+  { id: 'FRONT_F_W1', kind: 'window', width: 0.90, height: 1.60, xCenter: xF_W1, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
+  { id: 'FRONT_F_W2', kind: 'window', width: 0.90, height: 1.60, xCenter: xF_W2, yBottom: 3.40, grid: { cols: 2, rows: 3 } },
   {
     id: 'FRONT_F_W3',
+    kind: 'window',
     width: dormerWidth,
     height: dormerHeight,
     xCenter: xFrontDoorCenter,
@@ -879,7 +880,7 @@ const firstOpenings: FrontOpeningSpec[] = [
     grid: { cols: 3, rows: 3 },
   },
   // small window: sill=4.10, top=5.00 => 0.90
-  { id: 'FRONT_F_W4', width: 0.70, height: 0.90, xCenter: xF_W4, yBottom: 4.10, grid: { cols: 2, rows: 2 } },
+  { id: 'FRONT_F_W4', kind: 'window', width: 0.70, height: 0.90, xCenter: xF_W4, yBottom: 4.10, grid: { cols: 2, rows: 2 } },
 ] as const;
 
 // --- opening rects for facade holes (used by wallsGround/wallsFirst) ---

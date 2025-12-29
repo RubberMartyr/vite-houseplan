@@ -1,16 +1,7 @@
 import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Mesh, Path, Shape, ShapeGeometry, Vector3 } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
-import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
-import {
-  getSideWindowZCenter,
-  makeMirrorZ,
-  RIGHT_FACADE_SEGMENTS,
-  sideMirrorZ,
-  sideWindowSpecs,
-  sideZMax,
-  sideZMin,
-  windowsSide,
-} from './windowsSide';
+import { LEFT_FACADE_SEGMENTS, ceilingHeights, leftFacadeProfileCm, levelHeights, wallThickness } from './houseSpec';
+import { getSideWindowZCenter, makeMirrorZ, sideMirrorZ, sideWindowSpecs, sideZMax, sideZMin, windowsSide } from './windowsSide';
 import { frontOpeningRectsFirst } from './windowsFront';
 
 const ENABLE_BRICK_RETURNS = false;
@@ -24,8 +15,12 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 
-type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
+type SegmentId = (typeof LEFT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
+
+const facadeSegments = LEFT_FACADE_SEGMENTS;
+
+const sideFacadeProfileCm = leftFacadeProfileCm;
 
 export const wallsFirst = {
   shell: (() => {
@@ -147,9 +142,10 @@ export const wallsFirst = {
       const triZMax = Math.max(z1, z2, z3);
       const onRightSegment =
         facesMostlyX &&
-        RIGHT_FACADE_SEGMENTS.some((segment) => {
+        facadeSegments.some((segment) => {
           const outerX = segment.x;
-          const innerX = segment.x - exteriorThickness;
+          const sign = Math.sign(segment.x) || 1;
+          const innerX = segment.x - exteriorThickness * sign;
           const onOuterX =
             Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
           const onInnerX =
@@ -392,13 +388,13 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const panels = makeRightFacadePanels(mirrorZ);
-    const rightProfileM = (rightFacadeProfileCm || []).map((point) => ({
+    const panels = makeRightFacadePanels(mirrorZ, facadeSegments);
+    const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
     }));
     const rightReturnPanels = buildRightFacadeReturnPanels({
-      profile: rightProfileM,
+      profile: sideProfileM,
       y0: firstFloorLevel,
       y1: firstFloorLevel + wallHeight,
       thickness: FACADE_PANEL_THICKNESS,
@@ -509,7 +505,7 @@ function makeSideFacadePanel({
   };
 }
 
-function makeRightFacadePanels(mirrorZ: (z: number) => number) {
+function makeRightFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
   const openingsBySegmentId: Record<SegmentId, Opening[]> = {
     R_A: [],
     R_B: [],
@@ -519,7 +515,7 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
 
   windowsForLevel.forEach((spec) => {
     const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    const segment = segmentForZ(zCenter);
+    const segment = segmentForZ(zCenter, segments);
     const widthZ = spec.width;
     const isTall = spec.kind === 'tall' || spec.type === 'tall';
     const y0 = isTall ? 0 : spec.firstY0 - firstFloorLevel;
@@ -528,7 +524,7 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
     openingsBySegmentId[segment.id].push({ id: spec.id, zCenter, widthZ, y0, y1 });
   });
 
-  return RIGHT_FACADE_SEGMENTS.map((segment) => {
+  return segments.map((segment) => {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
     const holes: Opening[] = openingsBySegmentId[segment.id];
@@ -563,9 +559,11 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number) {
 
     console.log('✅ RIGHT PANEL', segment.id, { holeCount: holes.length, z0: segment.z0, z1: segment.z1, x: segment.x });
 
+    const sideDir = Math.sign(segment.x) || 1;
+
     return {
       geometry: panelGeometry,
-      position: [segment.x + RIGHT_PANEL_OUT, firstFloorLevel + wallHeight / 2, panelCenterZ] as [
+      position: [segment.x + sideDir * RIGHT_PANEL_OUT, firstFloorLevel + wallHeight / 2, panelCenterZ] as [
         number,
         number,
         number,
@@ -609,10 +607,11 @@ function buildRightFacadeReturnPanels(params: {
   return panels;
 }
 
-function segmentForZ(zCenter: number) {
-  if (zCenter < 4.0) return RIGHT_FACADE_SEGMENTS[0];
-  if (zCenter < 8.45) return RIGHT_FACADE_SEGMENTS[1];
-  return RIGHT_FACADE_SEGMENTS[2];
+function segmentForZ(zCenter: number, segments = facadeSegments) {
+  for (const segment of segments) {
+    if (zCenter < segment.z1) return segment;
+  }
+  return segments[segments.length - 1];
 }
 
 function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string) {

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000 --strictPort",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:visual": "playwright test tests/visual-regression.spec.ts --project=chromium"
   },
   "dependencies": {
     "react": "^18.3.1",

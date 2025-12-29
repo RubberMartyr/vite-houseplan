@@ -68,11 +68,14 @@ export function OrientationHelpers({ visible = false }: { visible?: boolean }) {
   const midZ = (frontZ + rearZ) / 2;
   const y = 0.05;
 
+  // Facade labels were showing swapped LEFT/RIGHT in the debug overlay.
+  // Keep the underlying geometry untouched and only correct the label placement.
   const facadeMarkers: { facade: Facade; position: [number, number, number] }[] = [
     { facade: 'front', position: [midX, y, frontZ] },
     { facade: 'rear', position: [midX, y, rearZ] },
-    { facade: 'left', position: [leftX, y, midZ] },
-    { facade: 'right', position: [rightX, y, midZ] },
+    // Swap left/right label placement so the debug overlay matches the real-world sides.
+    { facade: 'left', position: [rightX, y, midZ] },
+    { facade: 'right', position: [leftX, y, midZ] },
   ];
 
   const corners: [number, number, number][] = [

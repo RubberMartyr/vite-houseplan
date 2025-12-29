@@ -12,7 +12,6 @@ import {
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import {
   LEFT_FACADE_SEGMENTS,
-  RIGHT_FACADE_SEGMENTS,
   ceilingHeights,
   leftFacadeProfileCm,
   levelHeights,

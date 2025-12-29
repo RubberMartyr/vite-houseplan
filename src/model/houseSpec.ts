@@ -30,16 +30,17 @@ export const rightFacadeProfile: EnvelopePoint[] = rightFacadeProfileCm.map((poi
   z: cmToMeters(point.z),
 }));
 
-export const RIGHT_FACADE_SEGMENTS = [
+export const LEFT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: -4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: -4.1 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
+] as const;
+
+export const RIGHT_FACADE_SEGMENTS: typeof LEFT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
   { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },
   { id: 'R_C', z0: 8.45, z1: 12.0, x: 3.5 },
 ] as const;
-
-export const LEFT_FACADE_SEGMENTS: typeof RIGHT_FACADE_SEGMENTS = RIGHT_FACADE_SEGMENTS.map((segment) => ({
-  ...segment,
-  x: -segment.x,
-})) as typeof RIGHT_FACADE_SEGMENTS;
 
 const frontLeft = leftFacadeProfile[0];
 const rearLeft = leftFacadeProfile[leftFacadeProfile.length - 1];

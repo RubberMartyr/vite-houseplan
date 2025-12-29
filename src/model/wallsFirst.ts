@@ -1,6 +1,13 @@
 import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Mesh, Path, Shape, ShapeGeometry, Vector3 } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
-import { LEFT_FACADE_SEGMENTS, ceilingHeights, leftFacadeProfileCm, levelHeights, wallThickness } from './houseSpec';
+import {
+  LEFT_FACADE_SEGMENTS,
+  RIGHT_FACADE_SEGMENTS,
+  ceilingHeights,
+  leftFacadeProfileCm,
+  levelHeights,
+  wallThickness,
+} from './houseSpec';
 import { getSideWindowZCenter, makeMirrorZ, sideMirrorZ, sideWindowSpecs, sideZMax, sideZMin, windowsSide } from './windowsSide';
 import { frontOpeningRectsFirst } from './windowsFront';
 
@@ -18,7 +25,7 @@ const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 type SegmentId = (typeof LEFT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 
-const facadeSegments = LEFT_FACADE_SEGMENTS;
+const facadeSegments = RIGHT_FACADE_SEGMENTS;
 
 const sideFacadeProfileCm = leftFacadeProfileCm;
 
@@ -388,7 +395,7 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const panels = makeRightFacadePanels(mirrorZ, facadeSegments);
+    const panels = makeSideFacadePanels(mirrorZ, facadeSegments);
     const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
@@ -505,7 +512,7 @@ function makeSideFacadePanel({
   };
 }
 
-function makeRightFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
+function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
   const openingsBySegmentId: Record<SegmentId, Opening[]> = {
     R_A: [],
     R_B: [],
@@ -553,13 +560,19 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number, segments = facade
       shape.holes.push(path);
     });
 
+    const sideDir = Math.sign(segment.x) || 1;
+    const rotationY = sideDir > 0 ? -Math.PI / 2 : Math.PI / 2;
     const panelGeometry = new ShapeGeometry(shape);
-    panelGeometry.rotateY(-Math.PI / 2);
+    panelGeometry.rotateY(rotationY);
     panelGeometry.computeVertexNormals();
 
-    console.log('✅ RIGHT PANEL', segment.id, { holeCount: holes.length, z0: segment.z0, z1: segment.z1, x: segment.x });
-
-    const sideDir = Math.sign(segment.x) || 1;
+    console.log('✅ RIGHT PANEL', segment.id, {
+      holeCount: holes.length,
+      z0: segment.z0,
+      z1: segment.z1,
+      x: segment.x,
+      sideDir,
+    });
 
     return {
       geometry: panelGeometry,

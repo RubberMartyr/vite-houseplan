@@ -1,4 +1,5 @@
 // @ts-nocheck
+// @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -32,6 +33,8 @@ import { windowsRear } from '../model/windowsRear';
 import { windowsSide } from '../model/windowsSide';
 import { windowsFront } from '../model/windowsFront';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
+import { logOrientationAssertions } from '../model/orientation';
+import { OrientationHelpers } from './debug/OrientationHelpers';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -340,6 +343,18 @@ function RoomHitbox({ room, highlighted, onSelect }: any) {
 // --- MAIN SCENE ---
 
 export default function HouseViewer() {
+  const searchParams =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const debugOrientation = import.meta.env.VITE_DEBUG_ORIENTATION === 'true' || searchParams.get('debug') === '1';
+  const screenshotMode = searchParams.get('screenshot') === '1';
+  const deterministicDpr = screenshotMode ? 1 : undefined;
+  const cameraPreset = screenshotMode
+    ? {
+        position: [10, 5, 15] as [number, number, number],
+        target: [0, 1.2, 0] as [number, number, number],
+      }
+    : null;
+
   const [activeFloors, setActiveFloors] = useState({
     basement: true,
     ground: true,
@@ -581,13 +596,17 @@ export default function HouseViewer() {
 
         <Canvas
           shadows
-          camera={{ position: [10, 5, 15], fov: 50 }}
-          gl={{ antialias: true }}
+          camera={{ position: cameraPreset?.position ?? [10, 5, 15], fov: 50 }}
+          gl={{ antialias: true, dpr: deterministicDpr }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
         >
           <HouseScene
+            debugOrientation={debugOrientation}
+            screenshotMode={screenshotMode}
+            cameraPreset={cameraPreset}
+            cameraRef={cameraRef}
             activeFloors={activeFloors}
             showTerrain={showTerrain}
             showRoof={showRoof}
@@ -603,6 +622,10 @@ export default function HouseViewer() {
 }
 
 function HouseScene({
+  debugOrientation,
+  screenshotMode,
+  cameraPreset,
+  cameraRef,
   activeFloors,
   showTerrain,
   showRoof,
@@ -612,6 +635,10 @@ function HouseScene({
   onSelectRoom,
   controlsRef,
 }: {
+  debugOrientation: boolean;
+  screenshotMode: boolean;
+  cameraPreset: { position: [number, number, number]; target: [number, number, number] } | null;
+  cameraRef: React.MutableRefObject<THREE.PerspectiveCamera | null>;
   activeFloors: { basement: boolean; ground: boolean; first: boolean; attic: boolean };
   showTerrain: boolean;
   showRoof: boolean;
@@ -698,6 +725,19 @@ function HouseScene({
       gl.compile(scene, camera);
     }
   }, [camera, gl, scene]);
+
+  useEffect(() => {
+    if (debugOrientation) {
+      logOrientationAssertions();
+    }
+  }, [debugOrientation]);
+
+  useEffect(() => {
+    if (!cameraPreset || !cameraRef.current || !controlsRef.current) return;
+    cameraRef.current.position.set(...cameraPreset.position);
+    controlsRef.current.target.set(...cameraPreset.target);
+    controlsRef.current.update();
+  }, [cameraPreset]);
 
   useFrame(() => {
     if (firstFrameRef.current) return;
@@ -821,6 +861,8 @@ function HouseScene({
       <directionalLight position={[10, 15, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]}>
         <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
       </directionalLight>
+
+      <OrientationHelpers visible={debugOrientation || screenshotMode} />
 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>

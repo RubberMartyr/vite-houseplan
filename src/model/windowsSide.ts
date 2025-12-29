@@ -1,12 +1,5 @@
 import * as THREE from 'three';
-import {
-  EnvelopePoint,
-  ceilingHeights,
-  leftFacadeProfile,
-  levelHeights,
-  rightFacadeProfile,
-  wallThickness,
-} from './houseSpec';
+import { LEFT_FACADE_SEGMENTS, RIGHT_FACADE_SEGMENTS, ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 
 type SideWindowMesh = {
@@ -98,35 +91,15 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   },
 ];
 
-function profileXAtZ(profile: EnvelopePoint[], z: number): number {
-  if (!profile.length) return 0;
-
-  const minZ = Math.min(...profile.map((point) => point.z));
-  const maxZ = Math.max(...profile.map((point) => point.z));
-  const clampedZ = Math.min(Math.max(z, minZ), maxZ);
-
-  for (let i = 0; i < profile.length - 1; i += 1) {
-    const a = profile[i];
-    const b = profile[i + 1];
-    const zMin = Math.min(a.z, b.z);
-    const zMax = Math.max(a.z, b.z);
-
-    if (clampedZ < zMin - EPS || clampedZ > zMax + EPS) continue;
-
-    if (Math.abs(a.x - b.x) < EPS || Math.abs(zMax - zMin) < EPS) {
-      return a.x;
-    }
-
-    const t = (clampedZ - a.z) / (b.z - a.z || 1);
-    return a.x + t * (b.x - a.x);
-  }
-
-  return profile[profile.length - 1].x;
+function segmentForZ(z: number, facade: 'left' | 'right') {
+  const segments = facade === 'left' ? LEFT_FACADE_SEGMENTS : RIGHT_FACADE_SEGMENTS;
+  const found = segments.find((segment) => z >= segment.z0 - EPS && z <= segment.z1 + EPS);
+  return found ?? segments[segments.length - 1];
 }
 
 export function xAtZ(facade: 'left' | 'right', z: number): number {
-  const profile = facade === 'left' ? leftFacadeProfile : rightFacadeProfile;
-  return profileXAtZ(profile, z);
+  const segment = segmentForZ(z, facade);
+  return segment?.x ?? 0;
 }
 
 const frameMaterial = new THREE.MeshStandardMaterial({

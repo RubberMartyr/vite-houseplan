@@ -152,9 +152,8 @@ function createRoofPlaneGeometry(
 
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
   geometry.setIndex(indices);
-  geometry.computeVertexNormals();
 
-  return geometry;
+  return ensureRoofGeometryFacingOutward(geometry);
 }
 
 function createRoofPlaneGeometryVariableEave(
@@ -194,8 +193,7 @@ function createRoofPlaneGeometryVariableEave(
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.computeVertexNormals();
-  return geometry;
+  return ensureRoofGeometryFacingOutward(geometry);
 }
 
 type RoofSegment = {
@@ -426,6 +424,54 @@ function createTriangleGeometry(
   ]);
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
   geometry.setIndex([0, 1, 2]);
+  return ensureRoofGeometryFacingOutward(geometry);
+}
+
+function flipTriangleWinding(geometry: THREE.BufferGeometry) {
+  const index = geometry.getIndex();
+  if (index) {
+    const arr = index.array as ArrayLike<number>;
+    for (let i = 0; i < arr.length; i += 3) {
+      const tmp = arr[i + 1];
+      // eslint-disable-next-line no-param-reassign
+      (arr as any)[i + 1] = arr[i + 2];
+      // eslint-disable-next-line no-param-reassign
+      (arr as any)[i + 2] = tmp;
+    }
+    index.needsUpdate = true;
+    return;
+  }
+
+  const position = geometry.getAttribute('position');
+  for (let i = 0; i < position.count; i += 3) {
+    const x1 = position.getX(i + 1);
+    const y1 = position.getY(i + 1);
+    const z1 = position.getZ(i + 1);
+
+    const x2 = position.getX(i + 2);
+    const y2 = position.getY(i + 2);
+    const z2 = position.getZ(i + 2);
+
+    position.setXYZ(i + 1, x2, y2, z2);
+    position.setXYZ(i + 2, x1, y1, z1);
+  }
+  position.needsUpdate = true;
+}
+
+function ensureRoofGeometryFacingOutward(geometry: THREE.BufferGeometry) {
+  const position = geometry.getAttribute('position');
+  if (!position || position.count < 3) return geometry;
+
+  const a = new THREE.Vector3(position.getX(0), position.getY(0), position.getZ(0));
+  const b = new THREE.Vector3(position.getX(1), position.getY(1), position.getZ(1));
+  const c = new THREE.Vector3(position.getX(2), position.getY(2), position.getZ(2));
+
+  const normal = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+
+  if (normal.y < 0) {
+    flipTriangleWinding(geometry);
+  }
+
   geometry.computeVertexNormals();
   return geometry;
 }

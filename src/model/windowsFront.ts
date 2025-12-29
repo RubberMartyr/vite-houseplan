@@ -917,7 +917,12 @@ const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
     }
     return [];
   }
-  if (o.kind === 'window' && (o.id === 'FRONT_G_W1' || o.id === 'FRONT_G_W2')) {
+
+  if (o.kind !== 'window') {
+    return [];
+  }
+
+  if (o.id === 'FRONT_G_W1' || o.id === 'FRONT_G_W2') {
     return makeGroundClassicTransomWindowMeshes({
       idBase: o.id,
       width: o.width,
@@ -941,6 +946,10 @@ const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
 });
 
 const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) => {
+  if (o.kind !== 'window') {
+    return [];
+  }
+
   if (o.id === 'FRONT_F_W1' || o.id === 'FRONT_F_W2') {
     return makeFrontFirstFloorTransomWindowMeshes({
       idBase: o.id,

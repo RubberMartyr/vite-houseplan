@@ -456,6 +456,115 @@ function makeGroundClassicTransomWindowMeshes(params: {
   return meshes;
 }
 
+// First-floor front windows: main 3x3 grid + shallow 3x2 transom above
+function makeFrontFirstFloorTransomWindowMeshes(params: {
+  idBase: string;
+  width: number;
+  height: number;
+  xCenter: number;
+  yBottom: number;
+  zFace: number;
+  transomHeight?: number;
+  hasSill?: boolean;
+  hasLintel?: boolean;
+}): WindowMesh[] {
+  const {
+    idBase,
+    width,
+    height,
+    xCenter,
+    yBottom,
+    zFace,
+    transomHeight = 0.32,
+    hasSill = true,
+    hasLintel = true,
+  } = params;
+
+  // Base frame + glass (+ sill/lintel) with no full-height grid
+  const meshes = makeWindowMeshes({
+    idBase,
+    width,
+    height,
+    xCenter,
+    yBottom,
+    zFace,
+    hasSill,
+    hasLintel,
+  });
+
+  const innerWidth = width - 2 * FRAME_BORDER;
+  const innerHeight = height - 2 * FRAME_BORDER;
+  const clampedTransomHeight = Math.min(transomHeight, innerHeight * 0.45);
+  const mainHeight = innerHeight - clampedTransomHeight;
+
+  const innerBottomY = yBottom + FRAME_BORDER;
+  const mainCenterY = innerBottomY + mainHeight / 2;
+  const transomBottomY = innerBottomY + mainHeight;
+  const transomCenterY = transomBottomY + clampedTransomHeight / 2;
+
+  const frameZ = zFace - EPS + FRAME_DEPTH / 2;
+  const transomMuntinWidth = MUNTIN_WIDTH * 0.7;
+
+  // Main lower window: 3 columns x 3 rows (2 vertical + 2 horizontal muntins)
+  const mainColSpacing = innerWidth / 3;
+  for (let col = 1; col < 3; col += 1) {
+    const xOffset = -innerWidth / 2 + mainColSpacing * col;
+    meshes.push({
+      id: `${idBase}_MAIN_V${col}`,
+      geometry: new THREE.BoxGeometry(MUNTIN_WIDTH, mainHeight, FRAME_DEPTH),
+      position: [xCenter + xOffset, mainCenterY, frameZ],
+      rotation: [0, 0, 0],
+      material: frameMaterial,
+    });
+  }
+
+  const mainRowSpacing = mainHeight / 3;
+  for (let row = 1; row < 3; row += 1) {
+    const yOffset = -mainHeight / 2 + mainRowSpacing * row;
+    meshes.push({
+      id: `${idBase}_MAIN_H${row}`,
+      geometry: new THREE.BoxGeometry(innerWidth, MUNTIN_WIDTH, FRAME_DEPTH),
+      position: [xCenter, mainCenterY + yOffset, frameZ],
+      rotation: [0, 0, 0],
+      material: frameMaterial,
+    });
+  }
+
+  // Transom separator bar
+  meshes.push({
+    id: `${idBase}_TRANSOM_BAR`,
+    geometry: new THREE.BoxGeometry(innerWidth, MUNTIN_WIDTH, FRAME_DEPTH),
+    position: [xCenter, transomBottomY, frameZ],
+    rotation: [0, 0, 0],
+    material: frameMaterial,
+  });
+
+  // Transom: 3 columns x 2 rows (2 vertical + 1 horizontal) with thinner muntins
+  const transomColSpacing = innerWidth / 3;
+  for (let col = 1; col < 3; col += 1) {
+    const xOffset = -innerWidth / 2 + transomColSpacing * col;
+    meshes.push({
+      id: `${idBase}_TRANSOM_V${col}`,
+      geometry: new THREE.BoxGeometry(transomMuntinWidth, clampedTransomHeight, FRAME_DEPTH),
+      position: [xCenter + xOffset, transomCenterY, frameZ],
+      rotation: [0, 0, 0],
+      material: frameMaterial,
+    });
+  }
+
+  const transomRowSpacing = clampedTransomHeight / 2;
+  const transomYOffset = -clampedTransomHeight / 2 + transomRowSpacing;
+  meshes.push({
+    id: `${idBase}_TRANSOM_H1`,
+    geometry: new THREE.BoxGeometry(innerWidth, transomMuntinWidth, FRAME_DEPTH),
+    position: [xCenter, transomCenterY + transomYOffset, frameZ],
+    rotation: [0, 0, 0],
+    material: frameMaterial,
+  });
+
+  return meshes;
+}
+
 function makeSill({
   id,
   width,
@@ -831,6 +940,17 @@ const groundMeshes: WindowMesh[] = groundOpenings.flatMap((o) => {
 });
 
 const firstMeshes: WindowMesh[] = firstOpenings.flatMap((o) => {
+  if (o.id === 'FRONT_F_W1' || o.id === 'FRONT_F_W2') {
+    return makeFrontFirstFloorTransomWindowMeshes({
+      idBase: o.id,
+      width: o.width,
+      height: o.height,
+      xCenter: o.xCenter,
+      yBottom: o.yBottom,
+      zFace: frontZ,
+    });
+  }
+
   const windowMeshes = makeWindowMeshes({
     idBase: o.id,
     width: o.width,

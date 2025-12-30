@@ -67,6 +67,7 @@ const envelopeOutlineRaw: EnvelopePoint[] = [
   ...leftFacadeProfile.slice(1, -1).reverse(),
 ];
 
+// Keep the outline in world space without mirroring so the indented facade stays on -X.
 export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(envelopeOutlineRaw);
 
 export const envelopeBoundsCm = envelopeOutline.reduce(

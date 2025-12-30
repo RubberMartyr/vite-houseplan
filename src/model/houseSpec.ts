@@ -36,15 +36,15 @@ export const LEFT_FACADE_SEGMENTS = [
   { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
 ] as const;
 
-export const RIGHT_FACADE_SEGMENTS = [
-  { id: 'R', z0: 0.0, z1: 15.0, x: 4.8 },
-] as const;
-
 const frontLeft = leftFacadeProfile[0];
 const rearLeft = leftFacadeProfile[leftFacadeProfile.length - 1];
 export const frontWidth = cmToMeters(frontWidthCm);
 export const rearWidth = cmToMeters(rearWidthCm);
 export const depth = cmToMeters(depthCm);
+
+export const RIGHT_FACADE_SEGMENTS = [
+  { id: 'R', z0: 0.0, z1: depth, x: 4.8 },
+] as const;
 const frontRight = { x: frontLeft.x + frontWidth, z: 0 };
 const rearRight = { x: rearLeft.x + rearWidth, z: depth };
 

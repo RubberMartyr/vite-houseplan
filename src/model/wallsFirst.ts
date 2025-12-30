@@ -331,69 +331,8 @@ export const wallsFirst = {
   })(),
 
   leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
-  rightFacade: (() => {
-    const outer = getEnvelopeFirstOuterPolygon();
-    const rightX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
-    const edgePoints = outer.filter((p) => Math.abs(p.x - rightX) < EPSILON);
-    const minZ = edgePoints.reduce((m, p) => Math.min(m, p.z), Infinity);
-    const maxZ = edgePoints.reduce((m, p) => Math.max(m, p.z), -Infinity);
-
-    const panelWidth = maxZ - minZ;
-    const panelCenterZ = (minZ + maxZ) / 2;
-    const panelHeight = wallHeight;
-    const panelDepth = FACADE_PANEL_THICKNESS;
-
-    const shape = new Shape();
-    shape.moveTo(-panelWidth / 2, -panelHeight / 2);
-    shape.lineTo(panelWidth / 2, -panelHeight / 2);
-    shape.lineTo(panelWidth / 2, panelHeight / 2);
-    shape.lineTo(-panelWidth / 2, panelHeight / 2);
-    shape.closePath();
-
-    // IMPORTANT: mirrorZ must match windowsSide, not the first-floor minZ/maxZ
-    const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
-
-    // Create holes from sideWindowSpecs
-    sideWindowSpecs.forEach((spec) => {
-      const zCenter = getSideWindowZCenter(spec, mirrorZ);
-
-      const zMinHole = zCenter - spec.width / 2;
-      const zMaxHole = zCenter + spec.width / 2;
-
-      // Convert world Y to first-floor local panel Y:
-      // panel local Y is 0..wallHeight, but shape space is centered => subtract panelHeight/2.
-      const yMinWorld = spec.firstY0; // e.g. levelHeights.firstFloor
-      const yMaxWorld = spec.firstY1; // e.g. levelHeights.firstFloor + ceilingHeights.first
-
-      // Convert to local within this first-floor panel:
-      const yMinLocal = yMinWorld - firstFloorLevel - panelHeight / 2;
-      const yMaxLocal = yMaxWorld - firstFloorLevel - panelHeight / 2;
-
-      // guard
-      if (zMaxHole - zMinHole < 0.05 || yMaxLocal - yMinLocal < 0.05) return;
-
-      const path = new Path();
-      path.moveTo(zMinHole - panelCenterZ, yMinLocal);
-      path.lineTo(zMaxHole - panelCenterZ, yMinLocal);
-      path.lineTo(zMaxHole - panelCenterZ, yMaxLocal);
-      path.lineTo(zMinHole - panelCenterZ, yMaxLocal);
-      path.closePath();
-      shape.holes.push(path);
-    });
-
-    const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
-    rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsFirst rightFacade', 'front');
-    const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsFirst rightFacade');
-    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
-
-    return {
-      geometry: panelGeometry,
-      position: [rightX - panelDepth / 2, firstFloorLevel + panelHeight / 2, panelCenterZ] as [number, number, number],
-      rotation: [0, -Math.PI / 2, 0] as [number, number, number],
-    };
-  })(),
-  rightFacades: (() => {
+  rightFacade: (() => makeSideFacadePanel({ side: 'right', level: 'first' }))(),
+  leftFacades: (() => {
     const panels = makeSideFacadePanels(mirrorZ, facadeSegments);
     const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
@@ -407,6 +346,11 @@ export const wallsFirst = {
     });
     panels.push(...rightReturnPanels);
     return panels;
+  })(),
+  rightFacades: (() => {
+    const panel = makeSideFacadePanel({ side: 'right', level: 'first' });
+    if (!panel) return [];
+    return [panel];
   })(),
 };
 
@@ -512,11 +456,10 @@ function makeSideFacadePanel({
 }
 
 function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
-  const openingsBySegmentId: Record<SegmentId, Opening[]> = {
-    R_A: [],
-    R_B: [],
-    R_C: [],
-  };
+  const openingsBySegmentId = segments.reduce<Record<SegmentId, Opening[]>>((acc, segment) => {
+    acc[segment.id] = [];
+    return acc;
+  }, {} as Record<SegmentId, Opening[]>);
   const windowsForLevel = sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
 
   windowsForLevel.forEach((spec) => {

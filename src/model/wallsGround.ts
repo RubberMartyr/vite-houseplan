@@ -562,9 +562,11 @@ function makeSideFacadePanel({
   shape.closePath();
 
   const openings =
-    level === 'ground'
-      ? sideWindowSpecs
-      : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+    side === 'right'
+      ? []
+      : level === 'ground'
+        ? sideWindowSpecs
+        : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach((spec) => {

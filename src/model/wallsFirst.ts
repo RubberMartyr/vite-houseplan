@@ -10,6 +10,8 @@ import {
 import { getSideWindowZCenter, makeMirrorZ, sideMirrorZ, sideWindowSpecs, sideZMax, sideZMin, windowsSide } from './windowsSide';
 import { frontOpeningRectsFirst } from './windowsFront';
 
+console.log('WALLS_FIRST LOADED', new Date().toISOString());
+
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.first;
 const exteriorThickness = wallThickness.exterior;

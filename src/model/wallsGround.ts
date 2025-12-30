@@ -508,19 +508,9 @@ export const wallsGround = {
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightFacades: (() => {
-    const panels = makeSideFacadePanels(mirrorZ, facadeSegments);
-    const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
-      z: point.z / 100,
-      x: point.x / 100,
-    }));
-    const rightReturnPanels = buildRightFacadeReturnPanels({
-      profile: sideProfileM,
-      y0: 0,
-      y1: wallHeight,
-      thickness: FACADE_PANEL_THICKNESS,
-    });
-    panels.push(...rightReturnPanels);
-    return panels;
+    const panel = makeSideFacadePanel({ side: 'right', mirrorZ, level: 'ground' });
+    if (!panel) return [];
+    return [panel];
   })(),
 };
 
@@ -537,8 +527,14 @@ function makeSideFacadePanel({
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
   const xFace = side === 'left' ? minX : maxX;
-  const minZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
-  const maxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const EDGE_MATCH_EPSILON = 0.02;
+  const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EDGE_MATCH_EPSILON);
+  const globalMinZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+  const globalMaxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const minZ =
+    edgePoints.length >= 2 ? edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity) : globalMinZ;
+  const maxZ =
+    edgePoints.length >= 2 ? edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity) : globalMaxZ;
   if (!Number.isFinite(minZ) || !Number.isFinite(maxZ) || maxZ <= minZ) {
     console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
     return null;

@@ -340,13 +340,13 @@ export const wallsFirst = {
       z: point.z / 100,
       x: point.x / 100,
     }));
-    const rightReturnPanels = buildRightFacadeReturnPanels({
+    const leftReturnPanels = buildRightFacadeReturnPanels({
       profile: sideProfileM,
       y0: firstFloorLevel,
       y1: firstFloorLevel + wallHeight,
       thickness: FACADE_PANEL_THICKNESS,
     });
-    panels.push(...rightReturnPanels);
+    panels.push(...leftReturnPanels);
     return panels;
   })(),
   rightFacades: (() => {
@@ -367,8 +367,18 @@ function makeSideFacadePanel({
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
   const xFace = side === 'left' ? minX : maxX;
-  const minZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
-  const maxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const EDGE_MATCH_EPSILON = 0.02;
+  const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EDGE_MATCH_EPSILON);
+  const globalMinZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+  const globalMaxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const minZ =
+    edgePoints.length >= 2 ? edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity) : globalMinZ;
+  const maxZ =
+    edgePoints.length >= 2 ? edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity) : globalMaxZ;
+  if (!Number.isFinite(minZ) || !Number.isFinite(maxZ) || maxZ <= minZ) {
+    console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
+    return null;
+  }
   const panelWidth = maxZ - minZ;
   const panelCenterZ = (minZ + maxZ) / 2;
   const panelHeight = wallHeight;
@@ -511,7 +521,7 @@ function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeS
     panelGeometry.rotateY(rotationY);
     panelGeometry.computeVertexNormals();
 
-    console.log('✅ RIGHT PANEL', segment.id, {
+    console.log('✅ LEFT PANEL', segment.id, {
       holeCount: holes.length,
       z0: segment.z0,
       z1: segment.z1,

@@ -2,9 +2,10 @@ import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, M
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import {
   LEFT_FACADE_SEGMENTS,
+  RIGHT_FACADE_SEGMENTS,
   ceilingHeights,
-  leftFacadeProfileCm,
   levelHeights,
+  rightFacadeProfileCm,
   wallThickness,
 } from './houseSpec';
 import { getSideWindowZCenter, makeMirrorZ, sideMirrorZ, sideWindowSpecs, sideZMax, sideZMin, windowsSide } from './windowsSide';
@@ -21,12 +22,12 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 
-type SegmentId = (typeof LEFT_FACADE_SEGMENTS)[number]['id'];
+type SegmentId = (typeof LEFT_FACADE_SEGMENTS | typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 
-const facadeSegments = LEFT_FACADE_SEGMENTS;
+const facadeSegments = [...LEFT_FACADE_SEGMENTS, ...RIGHT_FACADE_SEGMENTS];
 
-const sideFacadeProfileCm = leftFacadeProfileCm;
+const sideFacadeProfileCm = rightFacadeProfileCm;
 
 export const wallsFirst = {
   shell: (() => {
@@ -334,7 +335,7 @@ export const wallsFirst = {
   rightFacade: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const rightX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
-    const edgePoints = outer.filter((p) => Math.abs(p.x - rightX) < EPSILON);
+    const edgePoints = outer.filter(({ x }) => Math.abs(x - rightX) < EPSILON);
     const minZ = edgePoints.reduce((m, p) => Math.min(m, p.z), Infinity);
     const maxZ = edgePoints.reduce((m, p) => Math.max(m, p.z), -Infinity);
 
@@ -394,7 +395,7 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const panels = makeSideFacadePanels(mirrorZ, facadeSegments);
+    const panels = makeSideFacadePanels(mirrorZ, RIGHT_FACADE_SEGMENTS);
     const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
@@ -421,7 +422,7 @@ function makeSideFacadePanel({
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
   const xFace = side === 'left' ? minX : maxX;
-  const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EPSILON);
+  const edgePoints = outer.filter(({ x }) => Math.abs(x - xFace) < EPSILON);
   const minZ = edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity);
   const maxZ = edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity);
   const panelWidth = maxZ - minZ;
@@ -512,11 +513,10 @@ function makeSideFacadePanel({
 }
 
 function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
-  const openingsBySegmentId: Record<SegmentId, Opening[]> = {
-    R_A: [],
-    R_B: [],
-    R_C: [],
-  };
+  const openingsBySegmentId = segments.reduce<Record<SegmentId, Opening[]>>((acc, segment) => {
+    acc[segment.id] = [];
+    return acc;
+  }, {} as Record<SegmentId, Opening[]>);
   const windowsForLevel = sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
 
   windowsForLevel.forEach((spec) => {

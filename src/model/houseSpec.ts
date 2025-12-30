@@ -13,10 +13,10 @@ export const leftFacadeProfileCm: EnvelopePoint[] = [
   { z: depthCm, x: -350 },
 ];
 
-export const rightFacadeProfileCm: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
-  z: point.z,
-  x: Math.abs(point.x),
-}));
+export const rightFacadeProfileCm: EnvelopePoint[] = [
+  { z: 0, x: 480 },
+  { z: depthCm, x: 480 },
+];
 
 const cmToMeters = (value: number) => value / 100;
 
@@ -36,10 +36,8 @@ export const LEFT_FACADE_SEGMENTS = [
   { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
 ] as const;
 
-export const RIGHT_FACADE_SEGMENTS: typeof LEFT_FACADE_SEGMENTS = [
-  { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
-  { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },
-  { id: 'R_C', z0: 8.45, z1: 12.0, x: 3.5 },
+export const RIGHT_FACADE_SEGMENTS = [
+  { id: 'R', z0: 0.0, z1: depth, x: 4.8 },
 ] as const;
 
 const frontLeft = leftFacadeProfile[0];

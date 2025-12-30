@@ -949,6 +949,19 @@ function HouseScene({
             />
           )}
           {showFirst &&
+            wallsFirst.leftFacades?.map((facade, index) => (
+              <mesh
+                key={`first-left-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={facadeMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
+          {showFirst &&
             wallsFirst.rightFacades.map((facade, index) => (
               <mesh
                 key={`first-right-facade-${index}`}

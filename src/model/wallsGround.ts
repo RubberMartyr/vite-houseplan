@@ -12,11 +12,9 @@ import {
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import {
   LEFT_FACADE_SEGMENTS,
-  RIGHT_FACADE_SEGMENTS,
   ceilingHeights,
   leftFacadeProfileCm,
   levelHeights,
-  rightFacadeProfileCm,
   wallThickness,
 } from './houseSpec';
 import { getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
@@ -68,14 +66,14 @@ const envelopeBounds = (() => {
 })();
 const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
 
-type SegmentId = (typeof LEFT_FACADE_SEGMENTS | typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
+type SegmentId = (typeof LEFT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
 
-const facadeSegments = [...LEFT_FACADE_SEGMENTS, ...RIGHT_FACADE_SEGMENTS];
+const facadeSegments = LEFT_FACADE_SEGMENTS;
 
-const sideFacadeProfileCm = rightFacadeProfileCm;
+const sideFacadeProfileCm = leftFacadeProfileCm;
 
 function computeLeftFacadeSegments(): ZSeg[] {
   const outer = getEnvelopeOuterPolygon();
@@ -508,7 +506,7 @@ export const wallsGround = {
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightFacades: (() => {
-    const panels = makeSideFacadePanels(mirrorZ, RIGHT_FACADE_SEGMENTS);
+    const panels = makeSideFacadePanels(mirrorZ, facadeSegments);
     const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
@@ -695,10 +693,11 @@ function makeLeftFacadePanels({
 }
 
 function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
-  const openingsBySegmentId = segments.reduce<Record<SegmentId, Opening[]>>((acc, segment) => {
-    acc[segment.id] = [];
-    return acc;
-  }, {} as Record<SegmentId, Opening[]>);
+  const openingsBySegmentId: Record<SegmentId, Opening[]> = {
+    R_A: [],
+    R_B: [],
+    R_C: [],
+  };
 
   sideWindowSpecs.forEach((spec) => {
     const zCenter = getSideWindowZCenter(spec, mirrorZ);

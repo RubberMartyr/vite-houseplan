@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FootprintPoint, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
+import { LEFT_FACADE_SEGMENTS, RIGHT_FACADE_SEGMENTS } from './houseSpec';
 import { EAVES_BAND_TOP_Y } from './wallsEavesBand';
 
 const EAVES_Y = EAVES_BAND_TOP_Y;
@@ -201,6 +202,28 @@ type RoofSegment = {
   zStart: number;
   zEnd: number;
 };
+
+function facadeSegmentsToRoofSegments(
+  segments: readonly { z0: number; z1: number; x: number }[]
+): RoofSegment[] {
+  return segments.map(({ x, z0, z1 }) => ({ x, zStart: z0, zEnd: z1 }));
+}
+
+function xAtZFromFacadeSegments(
+  segments: readonly RoofSegment[],
+  z: number,
+  fallbackX: number
+): number {
+  const epsilon = 1e-4;
+  for (const segment of segments) {
+    if (z + epsilon >= segment.zStart && z - epsilon <= segment.zEnd) {
+      return segment.x;
+    }
+  }
+
+  console.warn('⚠️ xAtZFromFacadeSegments FALLBACK', { z, fallbackX, segments });
+  return fallbackX;
+}
 
 function normalizeClosedPolygon(points: FootprintPoint[]) {
   if (points.length < 3) return points;
@@ -588,16 +611,17 @@ export function buildRoofMeshes(): {
   const frontApexOffset = ridgeFrontZ - baseFrontZ;
   const ridgeBackZRaw = eaveBackZ - frontApexOffset;
   const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
-  const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
+  const leftFacadeSegments = facadeSegmentsToRoofSegments(LEFT_FACADE_SEGMENTS);
+  const rightSegments = facadeSegmentsToRoofSegments(RIGHT_FACADE_SEGMENTS);
   console.log(
     'RIGHT SEGMENTS X VALUES',
     Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)
   );
   const stepStartZ = getStepStartZ(rightSegments, bounds.maxX);
-  const xLeftFront = xAtZSafe(mainFootprint, baseFrontZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
-  const xLeftBack = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const xLeftFront = xAtZFromFacadeSegments(leftFacadeSegments, baseFrontZ, bounds.minX);
+  const xLeftFrontInset = xAtZFromFacadeSegments(leftFacadeSegments, ridgeFrontZ, bounds.minX);
+  const xLeftBackInset = xAtZFromFacadeSegments(leftFacadeSegments, ridgeBackZ, bounds.minX);
+  const xLeftBack = xAtZFromFacadeSegments(leftFacadeSegments, eaveBackZ, bounds.minX);
 
   console.log('ROOF +X segments', rightSegments);
   console.log('ROOF ridgeX', ridgeX);
@@ -626,9 +650,9 @@ export function buildRoofMeshes(): {
 
   const epsilon = 1e-4;
 
-  const xRightFront = xAtZSafe(mainFootprint, baseFrontZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightBack = xAtZSafe(mainFootprint, eaveBackZ, 'max', bounds.minZ, bounds.maxZ);
-  const xRightFrontInset = xAtZSafe(mainFootprint, ridgeFrontZ, 'max', bounds.minZ, bounds.maxZ);
+  const xRightFront = xAtZFromFacadeSegments(rightSegments, baseFrontZ, bounds.maxX);
+  const xRightBack = xAtZFromFacadeSegments(rightSegments, eaveBackZ, bounds.maxX);
+  const xRightFrontInset = xAtZFromFacadeSegments(rightSegments, ridgeFrontZ, bounds.maxX);
   const xRightBackInset = findRightXAtZClosestToRidge(
     rightSegments,
     ridgeBackZ,
@@ -680,7 +704,7 @@ export function buildRoofMeshes(): {
   const frontLeftEaveInset = new THREE.Vector3(xLeftFrontInset, eavesY, ridgeFrontZ);
   const frontRightEave = new THREE.Vector3(xRightFront, eavesY, baseFrontZ);
   const frontRightEaveInset = new THREE.Vector3(xRightFrontInset, eavesY, ridgeFrontZ);
-  const xBackMin = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
+  const xBackMin = xLeftBack;
   const xBackMax = findRightXAtZClosestToX(
     rightSegments,
     eaveBackZ,

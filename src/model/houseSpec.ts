@@ -37,7 +37,7 @@ export const LEFT_FACADE_SEGMENTS = [
 ] as const;
 
 export const RIGHT_FACADE_SEGMENTS = [
-  { id: 'R', z0: 0.0, z1: depth, x: 4.8 },
+  { id: 'R', z0: 0.0, z1: 15.0, x: 4.8 },
 ] as const;
 
 const frontLeft = leftFacadeProfile[0];

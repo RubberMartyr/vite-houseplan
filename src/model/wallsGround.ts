@@ -10,13 +10,7 @@ import {
   Vector3,
 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
-import {
-  LEFT_FACADE_SEGMENTS,
-  ceilingHeights,
-  leftFacadeProfileCm,
-  levelHeights,
-  wallThickness,
-} from './houseSpec';
+import { LEFT_FACADE_SEGMENTS, ceilingHeights, leftFacadeProfileCm, levelHeights, wallThickness } from './houseSpec';
 import { getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 import { frontOpeningRectsGround } from './windowsFront';
 
@@ -73,7 +67,7 @@ type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: nu
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
 
-const facadeSegments = LEFT_FACADE_SEGMENTS;
+const leftFacadeSegments = LEFT_FACADE_SEGMENTS;
 
 const sideFacadeProfileCm = leftFacadeProfileCm;
 
@@ -318,7 +312,7 @@ export const wallsGround = {
         Math.abs(x3 - innerLeftX) < EPSILON;
       const triZMin = Math.min(z1, z2, z3);
       const triZMax = Math.max(z1, z2, z3);
-      const onRightSegment = facesMostlyX && facadeSegments.some((segment) => {
+      const onRightSegment = facesMostlyX && leftFacadeSegments.some((segment) => {
         const outerX = segment.x;
         const sign = Math.sign(segment.x) || 1;
         const innerX = segment.x - exteriorThickness * sign;
@@ -531,10 +525,11 @@ function makeSideFacadePanel({
   const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EDGE_MATCH_EPSILON);
   const globalMinZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
   const globalMaxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
-  const minZ =
-    edgePoints.length >= 2 ? edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity) : globalMinZ;
-  const maxZ =
-    edgePoints.length >= 2 ? edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity) : globalMaxZ;
+  const edgeMinZ = Math.min(...edgePoints.map((p) => p.z));
+  const edgeMaxZ = Math.max(...edgePoints.map((p) => p.z));
+  const hasEdgeSpan = edgePoints.length >= 2 && Number.isFinite(edgeMinZ) && Number.isFinite(edgeMaxZ);
+  const minZ = hasEdgeSpan ? edgeMinZ : globalMinZ;
+  const maxZ = hasEdgeSpan ? edgeMaxZ : globalMaxZ;
   if (!Number.isFinite(minZ) || !Number.isFinite(maxZ) || maxZ <= minZ) {
     console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
     return null;
@@ -553,11 +548,11 @@ function makeSideFacadePanel({
   shape.closePath();
 
   const openings =
-    side === 'right'
-      ? []
-      : level === 'ground'
+    side === 'left'
+      ? level === 'ground'
         ? sideWindowSpecs
-        : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+        : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
+      : [];
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach((spec) => {
@@ -687,7 +682,7 @@ function makeLeftFacadePanels({
     .filter((panel): panel is NonNullable<typeof panel> => !!panel);
 }
 
-function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
+function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = leftFacadeSegments) {
   const openingsBySegmentId: Record<SegmentId, Opening[]> = {
     R_A: [],
     R_B: [],
@@ -740,7 +735,7 @@ function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeS
     panelGeometry.rotateY(rotationY);
     panelGeometry.computeVertexNormals();
 
-    console.log('✅ SIDE PANEL', segment.id, {
+    console.log('✅ LEFT PANEL', segment.id, {
       holeCount: holes.length,
       z0: segment.z0,
       z1: segment.z1,
@@ -790,7 +785,7 @@ function buildRightFacadeReturnPanels(params: {
   return panels;
 }
 
-function segmentForZ(zCenter: number, segments = facadeSegments) {
+function segmentForZ(zCenter: number, segments = leftFacadeSegments) {
   for (const segment of segments) {
     if (zCenter < segment.z1) return segment;
   }

@@ -1,12 +1,6 @@
 import { BoxGeometry, BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Mesh, Path, Shape, ShapeGeometry, Vector3 } from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
-import {
-  LEFT_FACADE_SEGMENTS,
-  ceilingHeights,
-  leftFacadeProfileCm,
-  levelHeights,
-  wallThickness,
-} from './houseSpec';
+import { LEFT_FACADE_SEGMENTS, ceilingHeights, leftFacadeProfileCm, levelHeights, wallThickness } from './houseSpec';
 import { getSideWindowZCenter, makeMirrorZ, sideMirrorZ, sideWindowSpecs, sideZMax, sideZMin, windowsSide } from './windowsSide';
 import { frontOpeningRectsFirst } from './windowsFront';
 
@@ -26,7 +20,7 @@ const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 type SegmentId = (typeof LEFT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 
-const facadeSegments = LEFT_FACADE_SEGMENTS;
+const leftFacadeSegments = LEFT_FACADE_SEGMENTS;
 
 const sideFacadeProfileCm = leftFacadeProfileCm;
 
@@ -150,7 +144,7 @@ export const wallsFirst = {
       const triZMax = Math.max(z1, z2, z3);
       const onRightSegment =
         facesMostlyX &&
-        facadeSegments.some((segment) => {
+        leftFacadeSegments.some((segment) => {
           const outerX = segment.x;
           const sign = Math.sign(segment.x) || 1;
           const innerX = segment.x - exteriorThickness * sign;
@@ -335,7 +329,7 @@ export const wallsFirst = {
   leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
   rightFacade: (() => makeSideFacadePanel({ side: 'right', level: 'first' }))(),
   leftFacades: (() => {
-    const panels = makeSideFacadePanels(mirrorZ, facadeSegments);
+    const panels = makeSideFacadePanels(mirrorZ, leftFacadeSegments);
     const sideProfileM = (sideFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
@@ -371,10 +365,11 @@ function makeSideFacadePanel({
   const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EDGE_MATCH_EPSILON);
   const globalMinZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
   const globalMaxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
-  const minZ =
-    edgePoints.length >= 2 ? edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity) : globalMinZ;
-  const maxZ =
-    edgePoints.length >= 2 ? edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity) : globalMaxZ;
+  const edgeMinZ = Math.min(...edgePoints.map((p) => p.z));
+  const edgeMaxZ = Math.max(...edgePoints.map((p) => p.z));
+  const hasEdgeSpan = edgePoints.length >= 2 && Number.isFinite(edgeMinZ) && Number.isFinite(edgeMaxZ);
+  const minZ = hasEdgeSpan ? edgeMinZ : globalMinZ;
+  const maxZ = hasEdgeSpan ? edgeMaxZ : globalMaxZ;
   if (!Number.isFinite(minZ) || !Number.isFinite(maxZ) || maxZ <= minZ) {
     console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
     return null;
@@ -393,11 +388,11 @@ function makeSideFacadePanel({
   shape.closePath();
 
   const openings =
-    side === 'right'
-      ? []
-      : level === 'ground'
+    side === 'left'
+      ? level === 'ground'
         ? sideWindowSpecs
-        : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+        : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
+      : [];
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach((spec) => {
@@ -468,7 +463,7 @@ function makeSideFacadePanel({
   };
 }
 
-function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = facadeSegments) {
+function makeSideFacadePanels(mirrorZ: (z: number) => number, segments = leftFacadeSegments) {
   const openingsBySegmentId = segments.reduce<Record<SegmentId, Opening[]>>((acc, segment) => {
     acc[segment.id] = [];
     return acc;
@@ -575,7 +570,7 @@ function buildRightFacadeReturnPanels(params: {
   return panels;
 }
 
-function segmentForZ(zCenter: number, segments = facadeSegments) {
+function segmentForZ(zCenter: number, segments = leftFacadeSegments) {
   for (const segment of segments) {
     if (zCenter < segment.z1) return segment;
   }

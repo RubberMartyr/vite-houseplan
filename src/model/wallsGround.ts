@@ -537,13 +537,8 @@ function makeSideFacadePanel({
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
   const xFace = side === 'left' ? minX : maxX;
-  const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EPSILON);
-  if (edgePoints.length === 0) {
-    console.warn('⚠️ sideFacade edgePoints empty', side, level);
-    return null;
-  }
-  const minZ = edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity);
-  const maxZ = edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const minZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+  const maxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
   if (!Number.isFinite(minZ) || !Number.isFinite(maxZ) || maxZ <= minZ) {
     console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
     return null;

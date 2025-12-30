@@ -367,9 +367,8 @@ function makeSideFacadePanel({
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
   const xFace = side === 'left' ? minX : maxX;
-  const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EPSILON);
-  const minZ = edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity);
-  const maxZ = edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity);
+  const minZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
+  const maxZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
   const panelWidth = maxZ - minZ;
   const panelCenterZ = (minZ + maxZ) / 2;
   const panelHeight = wallHeight;

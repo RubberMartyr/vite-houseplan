@@ -209,6 +209,8 @@ function facadeSegmentsToRoofSegments(
   return segments.map(({ x, z0, z1 }) => ({ x, zStart: z0, zEnd: z1 }));
 }
 
+const rightSegments = facadeSegmentsToRoofSegments(RIGHT_FACADE_SEGMENTS);
+
 function xAtZFromFacadeSegments(
   segments: readonly RoofSegment[],
   z: number,
@@ -535,12 +537,6 @@ function chamferFootprint(
 
 function chamferPolygon(points: FootprintPoint[], chamfer: number): FootprintPoint[] {
   const bounds = computeBounds(points);
-  const ridgeX = (bounds.minX + bounds.maxX) / 2;
-  const rightSegments = extractRightRoofSegments(points, ridgeX);
-  console.log(
-    'RIGHT SEGMENTS X VALUES',
-    Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)
-  );
   const frontRightChamferX = findRightXAtZ(rightSegments, bounds.minZ, bounds.maxX);
   const backRightChamferX = findRightXAtZ(rightSegments, bounds.maxZ, bounds.maxX);
   return chamferFootprint(points, bounds, frontRightChamferX, backRightChamferX, chamfer);
@@ -612,7 +608,6 @@ export function buildRoofMeshes(): {
   const ridgeBackZRaw = eaveBackZ - frontApexOffset;
   const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
   const leftFacadeSegments = facadeSegmentsToRoofSegments(LEFT_FACADE_SEGMENTS);
-  const rightSegments = facadeSegmentsToRoofSegments(RIGHT_FACADE_SEGMENTS);
   console.log(
     'RIGHT SEGMENTS X VALUES',
     Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)

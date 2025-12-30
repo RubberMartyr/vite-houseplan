@@ -19,6 +19,8 @@ import {
 } from './houseSpec';
 import { getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 import { frontOpeningRectsGround } from './windowsFront';
+
+console.log('WALLS_GROUND LOADED', new Date().toISOString());
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;

@@ -15,7 +15,7 @@ export const leftFacadeProfileCm: EnvelopePoint[] = [
 
 export const rightFacadeProfileCm: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
   z: point.z,
-  x: 480,
+  x: 480, // flat right side at +480cm
 }));
 
 const cmToMeters = (value: number) => value / 100;

@@ -866,6 +866,17 @@ function HouseScene({
 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>
+        {/* DEBUG MARKERS */}
+        <mesh position={[-6, 1, 6]}>
+          <boxGeometry args={[0.5, 0.5, 0.5]} />
+          <meshStandardMaterial />
+        </mesh>
+
+        <mesh position={[6, 1, 6]}>
+          <boxGeometry args={[0.5, 0.5, 0.5]} />
+          <meshStandardMaterial />
+        </mesh>
+
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh

@@ -349,10 +349,11 @@ export default function HouseViewer() {
   const screenshotMode = searchParams.get('screenshot') === '1';
   const deterministicDpr = screenshotMode ? 1 : undefined;
   const defaultCameraPosition: [number, number, number] = [10, 5, -15];
+  const screenshotCameraPosition: [number, number, number] = [10, 5, 15];
 
   const cameraPreset = screenshotMode
     ? {
-        position: defaultCameraPosition,
+        position: screenshotCameraPosition,
         target: [0, 2.5, 0] as [number, number, number],
       }
     : null;
@@ -750,12 +751,12 @@ function HouseScene({
   }, [cameraPreset]);
 
   useEffect(() => {
-    if (!cameraRef.current || !controlsRef.current) return;
+    if (!cameraRef.current || !controlsRef.current || screenshotMode) return;
 
-    cameraRef.current.position.set(10, 5, -15);
+    cameraRef.current.position.set(...defaultCameraPosition);
     controlsRef.current.target.set(0, 1.2, 0);
     controlsRef.current.update();
-  }, []);
+  }, [screenshotMode]);
 
   useFrame(() => {
     if (firstFrameRef.current) return;
@@ -1130,7 +1131,8 @@ function HouseScene({
       {/* CONTROLS */}
       <OrbitControls
         ref={controlsRef}
-        target={[0, 2.5, 0]}
+        makeDefault
+        target={[0, 1.2, 0]}
         enableDamping
         dampingFactor={0.08}
         screenSpacePanning={false}

@@ -350,8 +350,8 @@ export default function HouseViewer() {
   const deterministicDpr = screenshotMode ? 1 : undefined;
   const cameraPreset = screenshotMode
     ? {
-        position: [10, 5, 15] as [number, number, number],
-        target: [0, 1.2, 0] as [number, number, number],
+        position: [10, 5, -15] as [number, number, number],
+        target: [0, 2.5, 0] as [number, number, number],
       }
     : null;
 
@@ -594,28 +594,28 @@ export default function HouseViewer() {
         </div>
       </div>
 
-        <Canvas
-          shadows
-          camera={{ position: cameraPreset?.position ?? [10, 5, 15], fov: 50 }}
-          gl={{ antialias: true, dpr: deterministicDpr }}
+      <Canvas
+        shadows
+        camera={{ position: cameraPreset?.position ?? [10, 5, -15], fov: 50 }}
+        gl={{ antialias: true, dpr: deterministicDpr }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
-        >
-          <HouseScene
-            debugOrientation={debugOrientation}
-            screenshotMode={screenshotMode}
-            cameraPreset={cameraPreset}
-            cameraRef={cameraRef}
-            activeFloors={activeFloors}
-            showTerrain={showTerrain}
-            showRoof={showRoof}
-            cutawayEnabled={cutawayEnabled}
-            facadeVisibility={facadeVisibility}
-            selectedRoomId={selectedRoomId}
-            onSelectRoom={setSelectedRoomId}
-            controlsRef={controlsRef}
-          />
+      >
+        <HouseScene
+          debugOrientation={debugOrientation}
+          screenshotMode={screenshotMode}
+          cameraPreset={cameraPreset}
+          cameraRef={cameraRef}
+          activeFloors={activeFloors}
+          showTerrain={showTerrain}
+          showRoof={showRoof}
+          cutawayEnabled={cutawayEnabled}
+          facadeVisibility={facadeVisibility}
+          selectedRoomId={selectedRoomId}
+          onSelectRoom={setSelectedRoomId}
+          controlsRef={controlsRef}
+        />
       </Canvas>
     </div>
   );
@@ -1112,6 +1112,7 @@ function HouseScene({
       {/* CONTROLS */}
       <OrbitControls
         ref={controlsRef}
+        target={[0, 2.5, 0]}
         minDistance={5}
         maxDistance={40}
         maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground

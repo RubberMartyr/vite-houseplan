@@ -418,6 +418,14 @@ export default function HouseViewer() {
     controlsRef.current.update();
   };
 
+  useEffect(() => {
+    if (!cameraRef.current || !controlsRef.current) return;
+
+    cameraRef.current.position.set(0, 6, -18);
+    controlsRef.current.target.set(0, 2.5, 0);
+    controlsRef.current.update();
+  }, [originOffset.x, originOffset.z]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
       <div
@@ -1113,6 +1121,9 @@ function HouseScene({
       <OrbitControls
         ref={controlsRef}
         target={[0, 2.5, 0]}
+        enableDamping
+        dampingFactor={0.08}
+        screenSpacePanning={false}
         minDistance={5}
         maxDistance={40}
         maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground

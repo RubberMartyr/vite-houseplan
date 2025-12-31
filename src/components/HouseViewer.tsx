@@ -874,15 +874,15 @@ function HouseScene({
 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>
-        {/* DEBUG MARKERS */}
-        <mesh position={[-20, 1, 6]} scale={[2, 2, 2]}>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="red" />
+        {/* DEBUG MARKERS (unlit, impossible to confuse) */}
+        <mesh position={[-20, 3, 0]}>
+          <boxGeometry args={[3, 3, 3]} />
+          <meshBasicMaterial color="red" />
         </mesh>
 
-        <mesh position={[20, 1, 6]} scale={[1, 1, 1]}>
+        <mesh position={[20, 3, 0]}>
           <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="blue" />
+          <meshBasicMaterial color="blue" />
         </mesh>
 
         <group ref={wallGroupRef} name="wallGroup">

@@ -749,6 +749,14 @@ function HouseScene({
     controlsRef.current.update();
   }, [cameraPreset]);
 
+  useEffect(() => {
+    if (!cameraRef.current || !controlsRef.current) return;
+
+    cameraRef.current.position.set(10, 5, -15);
+    controlsRef.current.target.set(0, 1.2, 0);
+    controlsRef.current.update();
+  }, []);
+
   useFrame(() => {
     if (firstFrameRef.current) return;
     firstFrameRef.current = true;

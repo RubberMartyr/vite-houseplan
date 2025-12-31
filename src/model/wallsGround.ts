@@ -501,11 +501,7 @@ export const wallsGround = {
   })(),
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
-  rightFacades: (() => {
-    const panel = makeSideFacadePanel({ side: 'right', mirrorZ, level: 'ground' });
-    if (!panel) return [];
-    return [panel];
-  })(),
+  rightFacades: (() => [])(),
 };
 
 function makeSideFacadePanel({
@@ -547,12 +543,7 @@ function makeSideFacadePanel({
   shape.lineTo(-panelWidth / 2, panelHeight / 2);
   shape.closePath();
 
-  const openings =
-    side === 'left'
-      ? level === 'ground'
-        ? sideWindowSpecs
-        : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
-      : [];
+  const openings = side === 'left' ? (level === 'ground' ? sideWindowSpecs : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)) : [];
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach((spec) => {

@@ -2,7 +2,7 @@
 // @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
@@ -423,13 +423,18 @@ export default function HouseViewer() {
     controlsRef.current.update();
   };
 
-  useEffect(() => {
+  const resetCamera = useCallback(() => {
     if (!cameraRef.current || !controlsRef.current) return;
 
-    cameraRef.current.position.set(0, 6, -18);
-    controlsRef.current.target.set(0, 2.5, 0);
+    cameraRef.current.position.set(...defaultCameraPosition); // front-ish
+    controlsRef.current.target.set(0, 1.2, 0); // center-ish
     controlsRef.current.update();
-  }, [originOffset.x, originOffset.z]);
+  }, []);
+
+  useEffect(() => {
+    if (screenshotMode) return;
+    resetCamera();
+  }, [resetCamera, screenshotMode, originOffset.x, originOffset.z]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>

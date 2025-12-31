@@ -369,6 +369,7 @@ export default function HouseViewer() {
   const [showRoof, setShowRoof] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<any>(null);
+  const focusFrontAlignedRef = useRef<() => void>(() => {});
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
   const [facadeVisibility, setFacadeVisibility] = useState<Record<FacadeKey, boolean>>({
     front: true,
@@ -559,6 +560,9 @@ export default function HouseViewer() {
           <button style={{ ...buttonStyle, width: '100%' }} onClick={handleBasementView}>
             Basement View
           </button>
+          <button style={{ ...buttonStyle, width: '100%' }} onClick={() => focusFrontAlignedRef.current?.()}>
+            Front (Aligned)
+          </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
@@ -627,6 +631,7 @@ export default function HouseViewer() {
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
           controlsRef={controlsRef}
+          focusFrontAlignedRef={focusFrontAlignedRef}
         />
       </Canvas>
     </div>
@@ -646,6 +651,7 @@ function HouseScene({
   selectedRoomId,
   onSelectRoom,
   controlsRef,
+  focusFrontAlignedRef,
 }: {
   debugOrientation: boolean;
   screenshotMode: boolean;
@@ -659,6 +665,7 @@ function HouseScene({
   selectedRoomId: string | null;
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<any>;
+  focusFrontAlignedRef: React.MutableRefObject<() => void>;
 }) {
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
@@ -730,6 +737,12 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
+  const envelopeBounds = {
+    minX: leftX,
+    maxX: rightX,
+    minZ: frontZ,
+    maxZ: rearZ,
+  };
 
   useEffect(() => {
     // Pre-warm shaders once the scene graph exists to reduce first-frame stutter.
@@ -750,6 +763,37 @@ function HouseScene({
     controlsRef.current.target.set(...cameraPreset.target);
     controlsRef.current.update();
   }, [cameraPreset]);
+
+  /**
+   * NOTE:
+   * If indentation/windows appear on the "wrong side",
+   * always press "Front (Aligned)" before judging.
+   * Geometry is authored in world space; camera angle
+   * can invert perceived left/right.
+   */
+  const focusFrontAligned = () => {
+    if (!cameraRef.current || !controlsRef.current) return;
+
+    const cx = (envelopeBounds.minX + envelopeBounds.maxX) / 2;
+    const cz = (envelopeBounds.minZ + envelopeBounds.maxZ) / 2;
+
+    const width = envelopeBounds.maxX - envelopeBounds.minX;
+    const depth = envelopeBounds.maxZ - envelopeBounds.minZ;
+    const dist = Math.max(width, depth) * 1.6;
+
+    // Front is minZ by contract
+    const frontZ = envelopeBounds.minZ;
+
+    cameraRef.current.position.set(cx, 6, frontZ - dist);
+    cameraRef.current.up.set(0, 1, 0);
+
+    controlsRef.current.target.set(cx, 2.2, cz);
+    controlsRef.current.update();
+  };
+
+  useEffect(() => {
+    focusFrontAlignedRef.current = focusFrontAligned;
+  }, [focusFrontAlignedRef]);
 
   useEffect(() => {
     if (!cameraRef.current || !controlsRef.current || screenshotMode) return;

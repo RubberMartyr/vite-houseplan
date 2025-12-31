@@ -63,6 +63,9 @@ const SPECS = {
   },
 };
 
+const defaultCameraPosition: [number, number, number] = [10, 5, -15];
+const screenshotCameraPosition: [number, number, number] = [10, 5, 15];
+
 // --- GEOMETRY HELPERS ---
 
 // Create a 2D Shape for Extrusion
@@ -348,8 +351,6 @@ export default function HouseViewer() {
   const debugOrientation = import.meta.env.VITE_DEBUG_ORIENTATION === 'true' || searchParams.get('debug') === '1';
   const screenshotMode = searchParams.get('screenshot') === '1';
   const deterministicDpr = screenshotMode ? 1 : undefined;
-  const defaultCameraPosition: [number, number, number] = [10, 5, -15];
-  const screenshotCameraPosition: [number, number, number] = [10, 5, 15];
 
   const cameraPreset = screenshotMode
     ? {

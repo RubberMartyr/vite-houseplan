@@ -348,9 +348,11 @@ export default function HouseViewer() {
   const debugOrientation = import.meta.env.VITE_DEBUG_ORIENTATION === 'true' || searchParams.get('debug') === '1';
   const screenshotMode = searchParams.get('screenshot') === '1';
   const deterministicDpr = screenshotMode ? 1 : undefined;
+  const defaultCameraPosition: [number, number, number] = [10, 5, -15];
+
   const cameraPreset = screenshotMode
     ? {
-        position: [10, 5, -15] as [number, number, number],
+        position: defaultCameraPosition,
         target: [0, 2.5, 0] as [number, number, number],
       }
     : null;
@@ -604,7 +606,7 @@ export default function HouseViewer() {
 
       <Canvas
         shadows
-        camera={{ position: cameraPreset?.position ?? [10, 5, -15], fov: 50 }}
+        camera={{ position: cameraPreset?.position ?? defaultCameraPosition, fov: 50 }}
         gl={{ antialias: true, dpr: deterministicDpr }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;

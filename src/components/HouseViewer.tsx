@@ -777,23 +777,28 @@ function HouseScene({
    * can invert perceived left/right.
    */
   const focusFrontAligned = () => {
-    if (!cameraRef.current || !controlsRef.current) return;
+    const cam = cameraRef.current;
+    const ctl = controlsRef.current;
+    if (!cam || !ctl) return;
 
     const cx = (envelopeBounds.minX + envelopeBounds.maxX) / 2;
     const cz = (envelopeBounds.minZ + envelopeBounds.maxZ) / 2;
-
     const width = envelopeBounds.maxX - envelopeBounds.minX;
     const depth = envelopeBounds.maxZ - envelopeBounds.minZ;
     const dist = Math.max(width, depth) * 1.6;
 
-    // Front is minZ by contract
-    const frontZ = envelopeBounds.minZ;
+    // Place camera in front of the house
+    cam.position.set(cx, 6, envelopeBounds.minZ - dist);
 
-    cameraRef.current.position.set(cx, 6, frontZ - dist);
-    cameraRef.current.up.set(0, 1, 0);
+    // Look at house center
+    ctl.target.set(cx, 2.2, cz);
 
-    controlsRef.current.target.set(cx, 2.2, cz);
-    controlsRef.current.update();
+    // 🔑 CRITICAL FIX:
+    // Flip camera yaw so +X is screen-right and -X is screen-left
+    cam.rotation.set(0, Math.PI, 0);
+
+    cam.up.set(0, 1, 0);
+    ctl.update();
   };
 
   useEffect(() => {

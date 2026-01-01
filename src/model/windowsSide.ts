@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LEFT_FACADE_SEGMENTS, RIGHT_FACADE_SEGMENTS, ceilingHeights, levelHeights, wallThickness } from './houseSpec';
+import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 
 type SideWindowMesh = {
@@ -46,6 +46,20 @@ function windowVerticalExtents(spec: SideWindowSpec) {
   };
 }
 
+export const RIGHT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: 3.5 },
+] as const;
+
+function xFaceForRightAtZ(z: number) {
+  if (z <= RIGHT_FACADE_SEGMENTS[0].z1) return RIGHT_FACADE_SEGMENTS[0].x;
+  if (z <= RIGHT_FACADE_SEGMENTS[1].z1) return RIGHT_FACADE_SEGMENTS[1].x;
+  return RIGHT_FACADE_SEGMENTS[2].x;
+}
+
+// Toggle which facade hosts the side windows and whether they should mirror along Z
+export const SIDE: 'left' | 'right' = 'right';
 export const MIRROR_Z = true;
 
 export const sideWindowSpecs: SideWindowSpec[] = [
@@ -90,17 +104,6 @@ export const sideWindowSpecs: SideWindowSpec[] = [
     firstY1: 5.0,
   },
 ];
-
-function segmentForZ(z: number, facade: 'left' | 'right') {
-  const segments = facade === 'left' ? LEFT_FACADE_SEGMENTS : RIGHT_FACADE_SEGMENTS;
-  const found = segments.find((segment) => z >= segment.z0 - EPS && z <= segment.z1 + EPS);
-  return found ?? segments[segments.length - 1];
-}
-
-export function xAtZ(facade: 'left' | 'right', z: number): number {
-  const segment = segmentForZ(z, facade);
-  return segment?.x ?? 0;
-}
 
 const frameMaterial = new THREE.MeshStandardMaterial({
   color: '#383E42',
@@ -395,6 +398,7 @@ function makeSplitTallWindow({
 }
 
 const pts = getEnvelopeOuterPolygon();
+const minX = Math.min(...pts.map((p) => p.x));
 export const sideZMin = Math.min(...pts.map((p) => p.z));
 export const sideZMax = Math.max(...pts.map((p) => p.z));
 export function sideMirrorZ(z: number, zMin: number, zMax: number, mirror: boolean) {
@@ -419,66 +423,67 @@ export function sideWindowZ(spec: SideWindowSpec, mirrorZ: (z: number) => number
   return getSideWindowZCenter(spec, mirrorZ);
 }
 
-function buildSideWindowMeshes(specs: SideWindowSpec[], facade: 'left' | 'right', mirrorZ: (z: number) => number) {
-  const outward = facade === 'right' ? 1 : -1;
+const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
+console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
+console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
+
+const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
+  const zCenter = getSideWindowZCenter(spec, mirrorZ);
+
+  console.log('✅ SIDE Z FINAL', spec.id, {
+    base: spec.zCenter,
+    mirrored: mirrorZ(spec.zCenter),
+    final: zCenter,
+    isTall: spec.kind === 'tall' || spec.type === 'tall',
+  });
+
+  const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
+  const outward = SIDE === 'right' ? 1 : -1;
   const interiorDir = -outward;
   const wallDepth = wallThickness.exterior ?? 0.3;
 
-  return specs.flatMap((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    const xFaceForWindow = xAtZ(facade, zCenter);
+  const xOuterReveal = xFaceForWindow;
+  const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
+  const xOuterPlane = xOuterReveal + outward * EPS;
 
-    const xOuterReveal = xFaceForWindow;
-    const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
-    const xOuterPlane = xOuterReveal + outward * EPS;
+  const frameXForWindow = xOuterPlane - outward * (FRAME_DEPTH / 2);
+  const glassXForWindow = frameXForWindow + interiorDir * GLASS_INSET;
 
-    const frameXForWindow = xOuterPlane - outward * (FRAME_DEPTH / 2);
-    const glassXForWindow = frameXForWindow + interiorDir * GLASS_INSET;
-
-    console.log('SIDE WINDOW POS', {
-      id: spec.id,
-      zCenter,
-      xFaceForWindow,
-      xOuterPlane,
-      xInnerPlane: xInnerReveal,
-      frameXForWindow,
-      glassXForWindow,
-    });
-
-    const commonProps = {
-      spec,
-      frameX: frameXForWindow,
-      glassX: glassXForWindow,
-      xFace: xOuterPlane,
-      zCenter,
-      side: facade,
-    };
-
-    const revealMeshes = createRevealMeshes({
-      spec,
-      zCenter,
-      xOuter: xOuterReveal,
-      xInner: xInnerReveal,
-    });
-
-    const windowMeshes = spec.kind === 'small' ? makeSimpleWindow(commonProps) : makeSplitTallWindow(commonProps);
-    return [...windowMeshes, ...revealMeshes];
+  console.log('SIDE WINDOW POS', {
+    id: spec.id,
+    zCenter,
+    xFaceForWindow,
+    xOuterPlane,
+    xInnerPlane: xInnerReveal,
+    frameXForWindow,
+    glassXForWindow,
   });
-}
 
-export function buildSideWindows(specs: SideWindowSpec[], facade: 'left' | 'right') {
-  const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
-  console.log('✅ SIDE WINDOWS MODEL COORDS', { side: facade, zMin: sideZMin, zMax: sideZMax, mirrorZ: MIRROR_Z });
-
-  const meshes = buildSideWindowMeshes(specs, facade, mirrorZ);
-
-  return {
-    meshes,
-    side: facade,
-    zMin: sideZMin,
-    zMax: sideZMax,
-    mirrorZ: MIRROR_Z,
+  const commonProps = {
+    spec,
+    frameX: frameXForWindow,
+    glassX: glassXForWindow,
+    xFace: xOuterPlane,
+    zCenter,
+    side: SIDE,
   };
-}
 
-export const windowsSide = buildSideWindows(sideWindowSpecs, 'left');
+  const revealMeshes = createRevealMeshes({
+    spec,
+    zCenter,
+    xOuter: xOuterReveal,
+    xInner: xInnerReveal,
+  });
+
+  const windowMeshes = spec.kind === 'small' ? makeSimpleWindow(commonProps) : makeSplitTallWindow(commonProps);
+  return [...windowMeshes, ...revealMeshes];
+});
+
+export const windowsSide = {
+  meshes,
+  side: SIDE,
+  zMin: sideZMin,
+  zMax: sideZMax,
+  mirrorZ: MIRROR_Z,
+  profile: RIGHT_FACADE_SEGMENTS,
+};

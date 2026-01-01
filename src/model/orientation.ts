@@ -1,23 +1,6 @@
 import * as THREE from 'three';
 import { frontZ, rearZ, leftX, rightX } from './houseSpec';
 
-/**
- * CANONICAL ORIENTATION CONTRACT
- *
- * - World axes:
- *   X+: right
- *   X-: left
- *   Z+: back
- *   Z-: front
- *
- * - "Front facade" is ALWAYS the facade at envelopeBounds.minZ
- * - "Left side" is ALWAYS the side at envelopeBounds.minX
- * - "Right side" is ALWAYS the side at envelopeBounds.maxX
- *
- * All geometry generation already follows this contract.
- * Any perceived inversion is a camera/orbit issue, not geometry.
- */
-
 export type Facade = 'front' | 'rear' | 'left' | 'right';
 
 type FacadePlane = {

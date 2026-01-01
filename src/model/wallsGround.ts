@@ -3,7 +3,6 @@ import {
   BufferGeometry,
   ExtrudeGeometry,
   Float32BufferAttribute,
-  Mesh,
   Path,
   Shape,
   ShapeGeometry,
@@ -64,6 +63,7 @@ type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
+type FacadePanel = { geometry: BufferGeometry; position: [number, number, number]; rotation: [number, number, number] };
 
 function computeLeftFacadeSegments(): ZSeg[] {
   const outer = getEnvelopeOuterPolygon();
@@ -495,7 +495,7 @@ export const wallsGround = {
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightFacades: (() => {
-    const panels = makeRightFacadePanels(mirrorZ);
+    const panels: FacadePanel[] = makeRightFacadePanels(mirrorZ);
     const rightProfileM = (rightFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
@@ -519,7 +519,7 @@ function makeSideFacadePanel({
   side: 'left' | 'right';
   mirrorZ: (z: number) => number;
   level: 'ground' | 'first';
-}) {
+}): FacadePanel | null {
   const outer = getEnvelopeOuterPolygon();
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
   const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
@@ -681,7 +681,7 @@ function makeLeftFacadePanels({
     .filter((panel): panel is NonNullable<typeof panel> => !!panel);
 }
 
-function makeRightFacadePanels(mirrorZ: (z: number) => number) {
+function makeRightFacadePanels(mirrorZ: (z: number) => number): FacadePanel[] {
   const openingsBySegmentId: Record<SegmentId, Opening[]> = {
     R_A: [],
     R_B: [],
@@ -748,10 +748,10 @@ function buildRightFacadeReturnPanels(params: {
   y1: number;
   thickness: number;
   zOffset?: number;
-}) {
+}): FacadePanel[] {
   const { profile, y0, y1, thickness, zOffset = 0.002 } = params;
 
-  const panels: Mesh[] = [];
+  const panels: FacadePanel[] = [];
   if (!profile || profile.length < 2) return panels;
 
   for (let i = 0; i < profile.length - 1; i++) {
@@ -767,10 +767,11 @@ function buildRightFacadeReturnPanels(params: {
     const heightY = y1 - y0;
 
     const solidGeom = new BoxGeometry(widthX, heightY, thickness);
-    const mesh = new Mesh(solidGeom);
-    mesh.position.set((xMin + xMax) / 2, (y0 + y1) / 2, zStep - zOffset);
-
-    panels.push(mesh);
+    panels.push({
+      geometry: solidGeom,
+      position: [(xMin + xMax) / 2, (y0 + y1) / 2, zStep - zOffset],
+      rotation: [0, 0, 0],
+    });
   }
 
   return panels;

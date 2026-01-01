@@ -15,7 +15,7 @@ export const leftFacadeProfileCm: EnvelopePoint[] = [
 
 export const rightFacadeProfileCm: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
   z: point.z,
-  x: Math.abs(point.x),
+  x: 480, // flat right side at +480cm
 }));
 
 const cmToMeters = (value: number) => value / 100;
@@ -30,13 +30,25 @@ export const rightFacadeProfile: EnvelopePoint[] = rightFacadeProfileCm.map((poi
   z: cmToMeters(point.z),
 }));
 
+export const LEFT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: -4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: -4.1 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
+] as const;
+
 const frontLeft = leftFacadeProfile[0];
 const rearLeft = leftFacadeProfile[leftFacadeProfile.length - 1];
+const frontRight = rightFacadeProfile[0];
+const rearRight = rightFacadeProfile[rightFacadeProfile.length - 1];
 export const frontWidth = cmToMeters(frontWidthCm);
 export const rearWidth = cmToMeters(rearWidthCm);
 export const depth = cmToMeters(depthCm);
-const frontRight = { x: frontLeft.x + frontWidth, z: 0 };
-const rearRight = { x: rearLeft.x + rearWidth, z: depth };
+
+export const RIGHT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.8 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: 4.8 },
+] as const;
 
 function polygonArea(points: EnvelopePoint[]): number {
   return points.reduce((area, point, index) => {
@@ -57,12 +69,8 @@ const envelopeOutlineRaw: EnvelopePoint[] = [
   ...leftFacadeProfile.slice(1, -1).reverse(),
 ];
 
-const mirroredEnvelopeOutline = envelopeOutlineRaw.map((point) => ({
-  x: -point.x,
-  z: point.z,
-}));
-
-export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(mirroredEnvelopeOutline);
+// Keep the outline in world space without mirroring so the indented facade stays on -X.
+export const envelopeOutline = ensureCounterClockwise(envelopeOutlineRaw);
 
 export const envelopeBoundsCm = envelopeOutline.reduce(
   (acc, point) => ({

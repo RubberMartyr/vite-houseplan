@@ -2,7 +2,7 @@
 // @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
@@ -62,6 +62,9 @@ const SPECS = {
     int: 0.14, // Binnenmuur
   },
 };
+
+const defaultCameraPosition: [number, number, number] = [10, 5, -15];
+const screenshotCameraPosition: [number, number, number] = [10, 5, 15];
 
 // --- GEOMETRY HELPERS ---
 
@@ -348,10 +351,11 @@ export default function HouseViewer() {
   const debugOrientation = import.meta.env.VITE_DEBUG_ORIENTATION === 'true' || searchParams.get('debug') === '1';
   const screenshotMode = searchParams.get('screenshot') === '1';
   const deterministicDpr = screenshotMode ? 1 : undefined;
+
   const cameraPreset = screenshotMode
     ? {
-        position: [10, 5, 15] as [number, number, number],
-        target: [0, 1.2, 0] as [number, number, number],
+        position: screenshotCameraPosition,
+        target: [0, 2.5, 0] as [number, number, number],
       }
     : null;
 
@@ -365,6 +369,7 @@ export default function HouseViewer() {
   const [showRoof, setShowRoof] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<any>(null);
+  const focusFrontAlignedRef = useRef<() => void>(() => {});
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
   const [facadeVisibility, setFacadeVisibility] = useState<Record<FacadeKey, boolean>>({
     front: true,
@@ -417,6 +422,19 @@ export default function HouseViewer() {
     controlsRef.current.maxPolarAngle = Math.PI / 2 - 0.1;
     controlsRef.current.update();
   };
+
+  const resetCamera = useCallback(() => {
+    if (!cameraRef.current || !controlsRef.current) return;
+
+    cameraRef.current.position.set(...defaultCameraPosition); // front-ish
+    controlsRef.current.target.set(0, 1.2, 0); // center-ish
+    controlsRef.current.update();
+  }, []);
+
+  useEffect(() => {
+    if (screenshotMode) return;
+    resetCamera();
+  }, [resetCamera, screenshotMode, originOffset.x, originOffset.z]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
@@ -547,6 +565,9 @@ export default function HouseViewer() {
           <button style={{ ...buttonStyle, width: '100%' }} onClick={handleBasementView}>
             Basement View
           </button>
+          <button style={{ ...buttonStyle, width: '100%' }} onClick={() => focusFrontAlignedRef.current?.()}>
+            Front (Aligned)
+          </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
@@ -594,28 +615,29 @@ export default function HouseViewer() {
         </div>
       </div>
 
-        <Canvas
-          shadows
-          camera={{ position: cameraPreset?.position ?? [10, 5, 15], fov: 50 }}
-          gl={{ antialias: true, dpr: deterministicDpr }}
+      <Canvas
+        shadows
+        camera={{ position: cameraPreset?.position ?? defaultCameraPosition, fov: 50 }}
+        gl={{ antialias: true, dpr: deterministicDpr }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
-        >
-          <HouseScene
-            debugOrientation={debugOrientation}
-            screenshotMode={screenshotMode}
-            cameraPreset={cameraPreset}
-            cameraRef={cameraRef}
-            activeFloors={activeFloors}
-            showTerrain={showTerrain}
-            showRoof={showRoof}
-            cutawayEnabled={cutawayEnabled}
-            facadeVisibility={facadeVisibility}
-            selectedRoomId={selectedRoomId}
-            onSelectRoom={setSelectedRoomId}
-            controlsRef={controlsRef}
-          />
+      >
+        <HouseScene
+          debugOrientation={debugOrientation}
+          screenshotMode={screenshotMode}
+          cameraPreset={cameraPreset}
+          cameraRef={cameraRef}
+          activeFloors={activeFloors}
+          showTerrain={showTerrain}
+          showRoof={showRoof}
+          cutawayEnabled={cutawayEnabled}
+          facadeVisibility={facadeVisibility}
+          selectedRoomId={selectedRoomId}
+          onSelectRoom={setSelectedRoomId}
+          controlsRef={controlsRef}
+          focusFrontAlignedRef={focusFrontAlignedRef}
+        />
       </Canvas>
     </div>
   );
@@ -634,6 +656,7 @@ function HouseScene({
   selectedRoomId,
   onSelectRoom,
   controlsRef,
+  focusFrontAlignedRef,
 }: {
   debugOrientation: boolean;
   screenshotMode: boolean;
@@ -647,6 +670,7 @@ function HouseScene({
   selectedRoomId: string | null;
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<any>;
+  focusFrontAlignedRef: React.MutableRefObject<() => void>;
 }) {
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
@@ -718,6 +742,12 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
+  const envelopeBounds = {
+    minX: leftX,
+    maxX: rightX,
+    minZ: frontZ,
+    maxZ: rearZ,
+  };
 
   useEffect(() => {
     // Pre-warm shaders once the scene graph exists to reduce first-frame stutter.
@@ -738,6 +768,50 @@ function HouseScene({
     controlsRef.current.target.set(...cameraPreset.target);
     controlsRef.current.update();
   }, [cameraPreset]);
+
+  /**
+   * NOTE:
+   * If indentation/windows appear on the "wrong side",
+   * always press "Front (Aligned)" before judging.
+   * Geometry is authored in world space; camera angle
+   * can invert perceived left/right.
+   */
+  const focusFrontAligned = () => {
+    const cam = cameraRef.current;
+    const ctl = controlsRef.current;
+    if (!cam || !ctl) return;
+
+    const cx = (envelopeBounds.minX + envelopeBounds.maxX) / 2;
+    const cz = (envelopeBounds.minZ + envelopeBounds.maxZ) / 2;
+    const width = envelopeBounds.maxX - envelopeBounds.minX;
+    const depth = envelopeBounds.maxZ - envelopeBounds.minZ;
+    const dist = Math.max(width, depth) * 1.6;
+
+    // Place camera in front of the house
+    cam.position.set(cx, 6, envelopeBounds.minZ - dist);
+
+    // Look at house center
+    ctl.target.set(cx, 2.2, cz);
+
+    // 🔑 CRITICAL FIX:
+    // Flip camera yaw so +X is screen-right and -X is screen-left
+    cam.rotation.set(0, Math.PI, 0);
+
+    cam.up.set(0, 1, 0);
+    ctl.update();
+  };
+
+  useEffect(() => {
+    focusFrontAlignedRef.current = focusFrontAligned;
+  }, [focusFrontAlignedRef]);
+
+  useEffect(() => {
+    if (!cameraRef.current || !controlsRef.current || screenshotMode) return;
+
+    cameraRef.current.position.set(...defaultCameraPosition);
+    controlsRef.current.target.set(0, 1.2, 0);
+    controlsRef.current.update();
+  }, [screenshotMode]);
 
   useFrame(() => {
     if (firstFrameRef.current) return;
@@ -866,6 +940,17 @@ function HouseScene({
 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>
+        {/* DEBUG MARKERS (unlit, impossible to confuse) */}
+        <mesh position={[-20, 3, 0]}>
+          <boxGeometry args={[3, 3, 3]} />
+          <meshBasicMaterial color="red" />
+        </mesh>
+
+        <mesh position={[20, 3, 0]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="blue" />
+        </mesh>
+
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh
@@ -948,6 +1033,19 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
+          {showFirst &&
+            wallsFirst.leftFacades?.map((facade, index) => (
+              <mesh
+                key={`first-left-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={facadeMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
           {showFirst &&
             wallsFirst.rightFacades.map((facade, index) => (
               <mesh
@@ -1088,6 +1186,11 @@ function HouseScene({
       {/* CONTROLS */}
       <OrbitControls
         ref={controlsRef}
+        makeDefault
+        target={[0, 1.2, 0]}
+        enableDamping
+        dampingFactor={0.08}
+        screenSpacePanning={false}
         minDistance={5}
         maxDistance={40}
         maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground

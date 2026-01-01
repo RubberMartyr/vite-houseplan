@@ -866,6 +866,17 @@ function HouseScene({
 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>
+        {/* ORIENTATION DEBUG — WORLD SPACE */}
+        <mesh position={[-10, 1, 0]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="blue" />
+        </mesh>
+
+        <mesh position={[10, 1, 0]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="red" />
+        </mesh>
+
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh

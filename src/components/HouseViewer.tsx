@@ -197,7 +197,7 @@ function Window({ w, h, x, y, z, rot = 0, type = 'standard' }) {
   const depth = 0.2; // Frame depth
 
   return (
-    <group position={[x, y, z]} rotation={[0, rot, 0]}>
+    <group position={[x, y, z]} rotation={[0, Math.PI, 0]}>
       {/* Frame Box */}
       <mesh position={[0, h / 2, 0]} castShadow>
         <boxGeometry args={[w, h, depth]} />
@@ -863,7 +863,7 @@ function HouseScene({
       </directionalLight>
 
       <OrientationHelpers visible={debugOrientation || screenshotMode} />
-
+ 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>
         {/* ORIENTATION DEBUG — WORLD SPACE */}

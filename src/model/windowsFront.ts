@@ -67,13 +67,14 @@ const EAVES_BAND_TOP_Y = 5.70;
 const DORMER_GLASS_TOP_Y = 5.15; // lowered further to match elevation
 
 // Apply this only to front facade windows and the front door; do not change rear or side windows.
-// Front facade: plan distances measured from LEFT edge.
-// Envelope is no longer mirrored; map directly to world X.
+// Plan chain dimensions run RIGHT-TO-LEFT (measured from the right edge of the facade).
+// The envelope is no longer mirrored in X, but the subtraction from HALF_WIDTH is
+// correct independently of that — it reflects the measurement direction of the chains.
 const FRONT_WIDTH_M = 9.6; // 960 cm
-const HALF_WIDTH = FRONT_WIDTH_M / 2;
+const HALF_WIDTH = FRONT_WIDTH_M / 2; // 4.80 m (right edge in world space)
 
 export function frontXCenter(xFromLeft: number, openingWidth: number): number {
-  return -HALF_WIDTH + xFromLeft + openingWidth / 2;
+  return HALF_WIDTH - (xFromLeft + openingWidth / 2);
 }
 
 // Front facade utility: builds a framed window with optional muntin grid (vertical + horizontal)

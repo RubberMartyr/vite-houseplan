@@ -447,7 +447,7 @@ function makeSideFacadePanel({
 
     // Only ground-level “tall” openings should be allowed to run full height (if that’s your intent).
     // On first floor, ALWAYS use firstY0/firstY1 so brick remains above.
-    const isFullHeightTall = level === 'ground' && isTall;
+    const isFullHeightTall = isTall;
 
     const yMinLocal =
       level === 'ground'
@@ -494,5 +494,4 @@ function makeSideFacadePanel({
     rotation: [0, 0, 0] as [number, number, number],
   };
 }
-
 

@@ -5,6 +5,7 @@ export const GLASS_THICKNESS = 0.01;
 export const SILL_DEPTH = 0.18;
 export const SILL_HEIGHT = 0.05;
 export const SILL_OVERHANG = 0.02;
+export const SILL_WIDTH_OVERHANG = 0.04;
 export const CUTOUT_DEPTH = 0.6;
 export const CUTOUT_MARGIN = 0.01;
 export const EPS = 0.01;

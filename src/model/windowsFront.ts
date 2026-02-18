@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { frontZ, levelHeights } from './houseSpec';
 import { EPS, FRAME_DEPTH, GLASS_INSET } from './constants/windowConstants';
+import { buildFrameGeometry } from './builders/buildFrameGeometry';
+import { buildSill } from './builders/buildSill';
 import {
   anthraciteBandMaterial,
   anthraciteStoneMaterial,
@@ -53,7 +55,6 @@ type FrontWindowSpec = Extract<FrontOpeningSpec, { kind: 'window' }>;
 const FRAME_BORDER = 0.055;
 const MUNTIN_WIDTH = 0.03; // thinner than frame border
 
-const SILL_DEPTH = 0.10;
 const SILL_HEIGHT = 0.05;
 
 const LINTEL_DEPTH = 0.05;
@@ -100,32 +101,9 @@ function makeWindowMeshes(params: {
 
   const yCenter = yBottom + height / 2;
 
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
-
-  // Frame shape (extruded ring)
-  const outerShape = new THREE.Shape();
-  outerShape.moveTo(-halfWidth, -halfHeight);
-  outerShape.lineTo(halfWidth, -halfHeight);
-  outerShape.lineTo(halfWidth, halfHeight);
-  outerShape.lineTo(-halfWidth, halfHeight);
-  outerShape.closePath();
-
-  const innerHole = new THREE.Path();
-  innerHole.moveTo(-innerWidth / 2, -innerHeight / 2);
-  innerHole.lineTo(innerWidth / 2, -innerHeight / 2);
-  innerHole.lineTo(innerWidth / 2, innerHeight / 2);
-  innerHole.lineTo(-innerWidth / 2, innerHeight / 2);
-  innerHole.closePath();
-  outerShape.holes.push(innerHole);
-
-  const frameGeometry = new THREE.ExtrudeGeometry(outerShape, {
-    depth: FRAME_DEPTH,
-    bevelEnabled: false,
-  });
-  frameGeometry.translate(0, 0, -FRAME_DEPTH / 2);
+  const frameGeometry = buildFrameGeometry(width, height, { frameBorder: FRAME_BORDER });
 
   const glassGeometry = new THREE.BoxGeometry(innerWidth, innerHeight, 0.01);
 
@@ -187,12 +165,13 @@ function makeWindowMeshes(params: {
 
   if (hasSill) {
     meshes.push(
-      makeSill({
+      buildSill({
         id: `${idBase}_SILL`,
-        width,
+        width: width + 0.1,
         xCenter,
         yCenter: yBottom + SILL_HEIGHT / 2,
         zFace,
+        facing: 'front',
       })
     );
   }
@@ -533,24 +512,6 @@ function makeFrontFirstFloorTransomWindowMeshes(params: {
   });
 
   return meshes;
-}
-
-function makeSill({
-  id,
-  width,
-  xCenter,
-  yCenter,
-  zFace,
-}: {
-  id: string;
-  width: number;
-  xCenter: number;
-  yCenter: number;
-  zFace: number;
-}): WindowMesh {
-  const geom = new THREE.BoxGeometry(width + 0.10, SILL_HEIGHT, SILL_DEPTH);
-  const z = zFace - EPS - SILL_DEPTH / 2; // outwards (-Z)
-  return { id, geometry: geom, position: [xCenter, yCenter, z], rotation: [0, 0, 0], material: frontBlueStoneMaterial };
 }
 
 function makeLintel({

@@ -1,5 +1,4 @@
 import {
-  BoxGeometry,
   BufferGeometry,
   ExtrudeGeometry,
   Float32BufferAttribute,
@@ -12,6 +11,14 @@ import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } 
 import { ceilingHeights, leftFacadeProfileCm, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 import { frontOpeningRectsGround } from './windowsFront';
+import { buildExtrudedShell } from './builders/buildExtrudedShell';
+import {
+  buildRightFacadeReturnPanels,
+  FacadePanel,
+  filterExtrudedSideFaces,
+  keepOnlyOuterFacePlane,
+  segmentForZ,
+} from './builders/facadePanel';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -63,8 +70,6 @@ type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
 type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
-type FacadePanel = { geometry: BufferGeometry; position: [number, number, number]; rotation: [number, number, number] };
-
 function computeLeftFacadeSegments(): ZSeg[] {
   const outer = getEnvelopeOuterPolygon();
   const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
@@ -204,40 +209,13 @@ export const wallsGround = {
     const innerFrontZ = frontZ + exteriorThickness;
     const leftZSegments = LEFT_Z_SEGMENTS;
 
-    const toShapePoints = (points: { x: number; z: number }[]) => {
-      const openPoints =
-        points.length > 1 && points[0].x === points[points.length - 1].x && points[0].z === points[points.length - 1].z
-          ? points.slice(0, -1)
-          : points;
-
-      return openPoints;
-    };
-
-    const outerShape = new Shape();
-    const outerPoints = toShapePoints(outer);
-    outerPoints.forEach((point, index) => {
-      if (index === 0) {
-        outerShape.moveTo(point.x, -point.z);
-      } else {
-        outerShape.lineTo(point.x, -point.z);
-      }
+    const raw = buildExtrudedShell({
+      outerPoints: outer,
+      innerPoints: inner,
+      height: wallHeight,
+      baseY: 0,
     });
-    outerShape.closePath();
-
-    const holePath = new Path();
-    const innerPoints = toShapePoints(inner);
-    innerPoints.forEach((point, index) => {
-      if (index === 0) {
-        holePath.moveTo(point.x, -point.z);
-      } else {
-        holePath.lineTo(point.x, -point.z);
-      }
-    });
-    holePath.closePath();
-    outerShape.holes.push(holePath);
-
-    const geometry = new ExtrudeGeometry(outerShape, { depth: wallHeight, bevelEnabled: false });
-    geometry.rotateX(-Math.PI / 2);
+    const geometry = raw.geometry;
 
     const g = geometry.index ? geometry.toNonIndexed() : geometry;
     const position = g.getAttribute('position');
@@ -375,8 +353,8 @@ export const wallsGround = {
 
     return {
       geometry: filteredGeometry,
-      position: [0, 0, 0] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
+      position: raw.position,
+      rotation: raw.rotation,
     };
   })(),
 
@@ -426,7 +404,7 @@ export const wallsGround = {
 
     const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
     rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround rearFacade', 'back');
+    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround rearFacade', 'back', ENABLE_BRICK_RETURNS);
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsGround rearFacade');
     panelGeometry.computeVertexNormals();
     console.log('✅ FACADE PANEL THICKNESS', panelDepth);
@@ -482,7 +460,7 @@ export const wallsGround = {
     rawPanelGeometry.translate(0, 0, -panelDepth / 2);
 
     // FRONT facade faces toward -Z, so keep the "front" facing side
-    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround frontFacade', 'front');
+    const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsGround frontFacade', 'front', ENABLE_BRICK_RETURNS);
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsGround frontFacade');
     panelGeometry.computeVertexNormals();
 
@@ -574,7 +552,7 @@ function makeSideFacadePanel({
 
   const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
   rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsGround sideFacade ${side} ${level}`, 'front');
+  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsGround sideFacade ${side} ${level}`, 'front', ENABLE_BRICK_RETURNS);
   const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, `wallsGround sideFacade ${side} ${level}`);
   const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
   panelGeometry.rotateY(rotationY);
@@ -740,174 +718,4 @@ function makeRightFacadePanels(mirrorZ: (z: number) => number): FacadePanel[] {
       rotation: [0, 0, 0] as [number, number, number],
     };
   });
-}
-
-function buildRightFacadeReturnPanels(params: {
-  profile: { z: number; x: number }[];
-  y0: number;
-  y1: number;
-  thickness: number;
-  zOffset?: number;
-}): FacadePanel[] {
-  const { profile, y0, y1, thickness, zOffset = 0.002 } = params;
-
-  const panels: FacadePanel[] = [];
-  if (!profile || profile.length < 2) return panels;
-
-  for (let i = 0; i < profile.length - 1; i++) {
-    const a = profile[i];
-    const b = profile[i + 1];
-
-    if (Math.abs(a.x - b.x) < 1e-6) continue;
-
-    const zStep = b.z;
-    const xMin = Math.min(a.x, b.x);
-    const xMax = Math.max(a.x, b.x);
-    const widthX = xMax - xMin;
-    const heightY = y1 - y0;
-
-    const solidGeom = new BoxGeometry(widthX, heightY, thickness);
-    panels.push({
-      geometry: solidGeom,
-      position: [(xMin + xMax) / 2, (y0 + y1) / 2, zStep - zOffset],
-      rotation: [0, 0, 0],
-    });
-  }
-
-  return panels;
-}
-
-function segmentForZ(zCenter: number) {
-  if (zCenter < 4.0) return RIGHT_FACADE_SEGMENTS[0];
-  if (zCenter < 8.45) return RIGHT_FACADE_SEGMENTS[1];
-  return RIGHT_FACADE_SEGMENTS[2];
-}
-
-function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string) {
-  const source = geometry.index ? geometry.toNonIndexed() : geometry;
-  const pos = source.getAttribute('position');
-  const uv = source.getAttribute('uv');
-
-  // Determine which depth-plane is “outer” by centroid projection clustering.
-  // After filterExtrudedSideFaces(), triangles should lie on exactly TWO parallel planes.
-  // We keep the plane with the larger average Z in local extrude space.
-  // (This works regardless of winding/material side and removes the inner plane entirely.)
-
-  const triCount = pos.count / 3;
-
-  let maxProj = -Infinity;
-  let minProj = Infinity;
-  const triProj: number[] = new Array(triCount);
-
-  for (let t = 0; t < triCount; t++) {
-    const i0 = t * 3;
-    const i1 = i0 + 1;
-    const i2 = i0 + 2;
-
-    // Use local Z as “depth axis” because extrusion depth is along local Z
-    const z0 = pos.getZ(i0),
-      z1 = pos.getZ(i1),
-      z2 = pos.getZ(i2);
-    const proj = (z0 + z1 + z2) / 3;
-
-    triProj[t] = proj;
-    if (proj > maxProj) maxProj = proj;
-    if (proj < minProj) minProj = proj;
-  }
-
-  const EPS = 1e-3;
-  // Keep the plane that’s at maxProj (outer). Remove the plane at minProj (inner).
-  const keptPos: number[] = [];
-  const keptUv: number[] = [];
-
-  let removed = 0;
-  let kept = 0;
-
-  for (let t = 0; t < triCount; t++) {
-    const proj = triProj[t];
-
-    // Keep only triangles close to the outer plane
-    if (Math.abs(proj - maxProj) > EPS) {
-      removed++;
-      continue;
-    }
-
-    kept++;
-    const i0 = t * 3;
-    for (let k = 0; k < 3; k++) {
-      const idx = i0 + k;
-      keptPos.push(pos.getX(idx), pos.getY(idx), pos.getZ(idx));
-      if (uv) keptUv.push(uv.getX(idx), uv.getY(idx));
-    }
-  }
-
-  const out = new BufferGeometry();
-  out.setAttribute('position', new Float32BufferAttribute(keptPos, 3));
-  if (uv && keptUv.length) out.setAttribute('uv', new Float32BufferAttribute(keptUv, 2));
-  out.computeVertexNormals();
-
-  console.log('✅ KEEP OUTER FACE ONLY', context, { removedTriangles: removed, keptTriangles: kept, maxProj, minProj });
-  return out;
-}
-
-function filterExtrudedSideFaces(
-  geometry: BufferGeometry,
-  depth: number,
-  context: string,
-  keepPlane: 'front' | 'back' | 'both' = 'both',
-) {
-  if (ENABLE_BRICK_RETURNS) return geometry;
-
-  const halfDepth = depth / 2;
-  const source = geometry.index ? geometry.toNonIndexed() : geometry;
-  const position = source.getAttribute('position');
-  const uv = source.getAttribute('uv');
-
-  const keptPositions: number[] = [];
-  const keptUvs: number[] = [];
-  let removed = 0;
-  let kept = 0;
-
-  const triangleCount = position.count / 3;
-  for (let tri = 0; tri < triangleCount; tri += 1) {
-    const baseIndex = tri * 3;
-    const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
-
-    const z1 = position.getZ(indices[0]);
-    const z2 = position.getZ(indices[1]);
-    const z3 = position.getZ(indices[2]);
-
-    const onFront = Math.abs(z1 + halfDepth) < EPSILON && Math.abs(z2 + halfDepth) < EPSILON && Math.abs(z3 + halfDepth) < EPSILON;
-    const onBack = Math.abs(z1 - halfDepth) < EPSILON && Math.abs(z2 - halfDepth) < EPSILON && Math.abs(z3 - halfDepth) < EPSILON;
-
-    const keepThisTriangle =
-      keepPlane === 'both' ? onFront || onBack : keepPlane === 'front' ? onFront : onBack;
-
-    if (!keepThisTriangle) {
-      removed += 1;
-      continue;
-    }
-
-    indices.forEach((index) => {
-      keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
-      if (uv) {
-        keptUvs.push(uv.getX(index), uv.getY(index));
-      }
-    });
-    kept += 1;
-  }
-
-  const filtered = new BufferGeometry();
-  filtered.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
-  if (uv && keptUvs.length > 0) {
-    filtered.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
-  }
-  filtered.computeVertexNormals();
-
-  console.log('✅ FACADE FILTER', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
-  if (removed > 0) {
-    console.log('🧱 DISABLED RETURN MESH', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
-  }
-
-  return filtered;
 }

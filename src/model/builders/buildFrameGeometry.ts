@@ -4,12 +4,13 @@ import { FRAME_BORDER, FRAME_DEPTH } from '../constants/windowConstants';
 export function buildFrameGeometry(
   width: number,
   height: number,
-  options?: { rotateForSide?: boolean }
+  options?: { rotateForSide?: boolean; frameBorder?: number }
 ): ExtrudeGeometry {
+  const border = options?.frameBorder ?? FRAME_BORDER;
   const halfWidth = width / 2;
   const halfHeight = height / 2;
-  const innerWidth = width - 2 * FRAME_BORDER;
-  const innerHeight = height - 2 * FRAME_BORDER;
+  const innerWidth = width - 2 * border;
+  const innerHeight = height - 2 * border;
 
   const outerShape = new Shape();
   outerShape.moveTo(-halfWidth, -halfHeight);

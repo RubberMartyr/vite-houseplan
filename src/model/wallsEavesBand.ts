@@ -13,22 +13,6 @@ export const wallsEavesBand = {
   shell: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
-    const bounds = outer.reduce(
-      (acc, point) => ({
-        minX: Math.min(acc.minX, point.x),
-        maxX: Math.max(acc.maxX, point.x),
-        minZ: Math.min(acc.minZ, point.z),
-        maxZ: Math.max(acc.maxZ, point.z),
-      }),
-      {
-        minX: Number.POSITIVE_INFINITY,
-        maxX: Number.NEGATIVE_INFINITY,
-        minZ: Number.POSITIVE_INFINITY,
-        maxZ: Number.NEGATIVE_INFINITY,
-      }
-    );
-    console.log('EAVES BAND footprint bounds', bounds);
-
     return buildExtrudedShell({
       outerPoints: outer,
       innerPoints: inner,

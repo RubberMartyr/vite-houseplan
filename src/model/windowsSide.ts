@@ -33,8 +33,11 @@ const REVEAL_FACE = 0.05;
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
 function windowVerticalExtents(spec: SideWindowSpec) {
-  const yBottom = spec.groundY0;
-  const yTop = spec.kind === 'tall' ? Math.max(spec.groundY1, spec.firstY1) : spec.groundY1;
+  // Side windows belong to FIRST FLOOR.
+  // After removing envelope X-mirroring, facade indexing shifted,
+  // so we explicitly anchor to levelTop.first.
+  const yBottom = spec.kind === 'tall' ? spec.firstY0 : spec.groundY0;
+  const yTop = spec.kind === 'tall' ? spec.firstY1 : spec.groundY1;
 
   return {
     yBottom,

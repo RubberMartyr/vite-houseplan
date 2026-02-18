@@ -1,4 +1,4 @@
-import { BoxGeometry, BufferGeometry, Float32BufferAttribute } from 'three';
+import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
 
 const EPSILON = 0.01;
 import { RIGHT_FACADE_SEGMENTS } from '../windowsSide';
@@ -8,6 +8,14 @@ export type FacadePanel = {
   position: [number, number, number];
   rotation: [number, number, number];
 };
+
+export interface RightPanelOpening {
+  id: string;
+  zCenter: number;
+  widthZ: number;
+  y0: number;
+  y1: number;
+}
 
 /**
  * Filters an extruded geometry to only keep triangles lying on the
@@ -73,11 +81,6 @@ export function filterExtrudedSideFaces(
   }
   filtered.computeVertexNormals();
 
-  console.log('✅ FACADE FILTER', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
-  if (removed > 0) {
-    console.log('🧱 DISABLED RETURN MESH', context, { depth, keepPlane, removedTriangles: removed, keptTriangles: kept });
-  }
-
   return filtered;
 }
 
@@ -140,7 +143,6 @@ export function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string
   if (uv && keptUv.length) out.setAttribute('uv', new Float32BufferAttribute(keptUv, 2));
   out.computeVertexNormals();
 
-  console.log('✅ KEEP OUTER FACE ONLY', context, { removedTriangles: removed, keptTriangles: kept, maxProj, minProj });
   return out;
 }
 
@@ -190,4 +192,67 @@ export function buildRightFacadeReturnPanels(params: {
   }
 
   return panels;
+}
+
+export function makeRightFacadePanels(params: {
+  mirrorZ: (z: number) => number;
+  wallHeight: number;
+  baseY: number;
+  panelOutset: number;
+  openings: RightPanelOpening[];
+  minHoleW: number;
+  minHoleH: number;
+}): FacadePanel[] {
+  const { wallHeight, baseY, panelOutset, openings, minHoleW, minHoleH } = params;
+
+  const openingsBySegmentId: Record<(typeof RIGHT_FACADE_SEGMENTS)[number]['id'], RightPanelOpening[]> = {
+    R_A: [],
+    R_B: [],
+    R_C: [],
+  };
+
+  openings.forEach((opening) => {
+    const segment = segmentForZ(opening.zCenter);
+    openingsBySegmentId[segment.id].push(opening);
+  });
+
+  return RIGHT_FACADE_SEGMENTS.map((segment) => {
+    const widthZ = segment.z1 - segment.z0;
+    const panelCenterZ = (segment.z0 + segment.z1) / 2;
+    const holes = openingsBySegmentId[segment.id];
+
+    const shape = new Shape();
+    shape.moveTo(-widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, wallHeight / 2);
+    shape.lineTo(-widthZ / 2, wallHeight / 2);
+    shape.closePath();
+
+    holes.forEach((opening) => {
+      const zMin = opening.zCenter - opening.widthZ / 2;
+      const zMax = opening.zCenter + opening.widthZ / 2;
+      const yMin = opening.y0;
+      const yMax = opening.y1;
+
+      if (zMax - zMin < minHoleW || yMax - yMin < minHoleH || zMax <= zMin || yMax <= yMin) return;
+
+      const path = new Path();
+      path.moveTo(zMin - panelCenterZ, yMin - (baseY + wallHeight / 2));
+      path.lineTo(zMax - panelCenterZ, yMin - (baseY + wallHeight / 2));
+      path.lineTo(zMax - panelCenterZ, yMax - (baseY + wallHeight / 2));
+      path.lineTo(zMin - panelCenterZ, yMax - (baseY + wallHeight / 2));
+      path.closePath();
+      shape.holes.push(path);
+    });
+
+    const panelGeometry = new ShapeGeometry(shape);
+    panelGeometry.rotateY(-Math.PI / 2);
+    panelGeometry.computeVertexNormals();
+
+    return {
+      geometry: panelGeometry,
+      position: [segment.x + panelOutset, baseY + wallHeight / 2, panelCenterZ],
+      rotation: [0, 0, 0],
+    };
+  });
 }

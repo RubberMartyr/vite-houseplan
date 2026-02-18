@@ -51,17 +51,7 @@ export function getEnvelopeInnerPolygon(thickness: number, outerPolygon?: Footpr
   return isClosed ? insetPolygon : [...insetPolygon, first];
 }
 
-let hasLoggedEnvelope = false;
-
 export function getEnvelopeOuterPolygon(): FootprintPoint[] {
-  if (!hasLoggedEnvelope) {
-    const first = envelopeOuterPolygon[0];
-    const last = envelopeOuterPolygon[envelopeOuterPolygon.length - 1];
-    const isClosed = first.x === last.x && first.z === last.z;
-    console.log('Envelope outer polygon (closed):', envelopeOuterPolygon);
-    console.log('First equals last:', isClosed, 'first:', first, 'last:', last);
-    hasLoggedEnvelope = true;
-  }
   return envelopeOuterPolygon;
 }
 

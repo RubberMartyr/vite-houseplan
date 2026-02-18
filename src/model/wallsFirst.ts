@@ -18,7 +18,8 @@ import {
   FacadePanel,
   filterExtrudedSideFaces,
   keepOnlyOuterFacePlane,
-  segmentForZ,
+  makeRightFacadePanels,
+  type RightPanelOpening,
 } from './builders/facadePanel';
 
 const ENABLE_BRICK_RETURNS = false;
@@ -32,8 +33,6 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 
-type SegmentId = (typeof RIGHT_FACADE_SEGMENTS)[number]['id'];
-type Opening = { id: string; zCenter: number; widthZ: number; y0: number; y1: number };
 export const wallsFirst = {
   shell: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
@@ -174,12 +173,6 @@ export const wallsFirst = {
     filteredGeometry.computeVertexNormals();
 
     const removedTotal = removedOuter + removedFront + removedInner + removedSide;
-    console.log(
-      '✅ wallsFirst rear/side faces removed for facade panels',
-      { removedOuter, removedFront, removedInner, removedSide, removedTotal, keptTotal },
-      Date.now(),
-    );
-
     return {
       geometry: filteredGeometry,
       position: raw.position,
@@ -245,7 +238,6 @@ export const wallsFirst = {
     const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsFirst rearFacade', 'back', ENABLE_BRICK_RETURNS);
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsFirst rearFacade');
     panelGeometry.computeVertexNormals();
-    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
     return {
       geometry: panelGeometry,
@@ -363,7 +355,6 @@ export const wallsFirst = {
     rawPanelGeometry.translate(0, 0, -panelDepth / 2);
     const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, 'wallsFirst rightFacade', 'front', ENABLE_BRICK_RETURNS);
     const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, 'wallsFirst rightFacade');
-    console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
     return {
       geometry: panelGeometry,
@@ -372,7 +363,28 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const panels: FacadePanel[] = makeRightFacadePanels(mirrorZ);
+    const firstOpenings: RightPanelOpening[] = sideWindowSpecs
+      .filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
+      .map((spec) => {
+        const isTall = spec.kind === 'tall' || spec.type === 'tall';
+        return {
+          id: spec.id,
+          zCenter: getSideWindowZCenter(spec, mirrorZ),
+          widthZ: spec.width,
+          y0: isTall ? 0 : spec.firstY0 - firstFloorLevel,
+          y1: isTall ? wallHeight : spec.firstY1 - firstFloorLevel,
+        };
+      });
+
+    const panels: FacadePanel[] = makeRightFacadePanels({
+      mirrorZ,
+      wallHeight,
+      baseY: firstFloorLevel,
+      panelOutset: RIGHT_PANEL_OUT,
+      openings: firstOpenings,
+      minHoleW: MIN_HOLE_W,
+      minHoleH: MIN_HOLE_H,
+    });
     const rightProfileM = (rightFacadeProfileCm || []).map((point) => ({
       z: point.z / 100,
       x: point.x / 100,
@@ -459,11 +471,6 @@ function makeSideFacadePanel({
     )
       return;
 
-    console.log('✅ wallsFirst side opening', level, side, spec.id, {
-      zCenter: zMirror(spec.zCenter),
-      panelCenterZ,
-    });
-
     const path = new Path();
     path.moveTo(zMin - panelCenterZ, yMinLocal - panelHeight / 2);
     path.lineTo(zMax - panelCenterZ, yMinLocal - panelHeight / 2);
@@ -480,7 +487,6 @@ function makeSideFacadePanel({
   const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
   panelGeometry.rotateY(rotationY);
   panelGeometry.computeVertexNormals();
-  console.log('✅ FACADE PANEL THICKNESS', panelDepth);
 
   return {
     geometry: panelGeometry,
@@ -489,68 +495,4 @@ function makeSideFacadePanel({
   };
 }
 
-function makeRightFacadePanels(mirrorZ: (z: number) => number): FacadePanel[] {
-  const openingsBySegmentId: Record<SegmentId, Opening[]> = {
-    R_A: [],
-    R_B: [],
-    R_C: [],
-  };
-  const windowsForLevel = sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
 
-  windowsForLevel.forEach((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    const segment = segmentForZ(zCenter);
-    const widthZ = spec.width;
-    const isTall = spec.kind === 'tall' || spec.type === 'tall';
-    const y0 = isTall ? 0 : spec.firstY0 - firstFloorLevel;
-    const y1 = isTall ? wallHeight : spec.firstY1 - firstFloorLevel;
-
-    openingsBySegmentId[segment.id].push({ id: spec.id, zCenter, widthZ, y0, y1 });
-  });
-
-  return RIGHT_FACADE_SEGMENTS.map((segment) => {
-    const widthZ = segment.z1 - segment.z0;
-    const panelCenterZ = (segment.z0 + segment.z1) / 2;
-    const holes: Opening[] = openingsBySegmentId[segment.id];
-
-    const shape = new Shape();
-    shape.moveTo(-widthZ / 2, -wallHeight / 2);
-    shape.lineTo(widthZ / 2, -wallHeight / 2);
-    shape.lineTo(widthZ / 2, wallHeight / 2);
-    shape.lineTo(-widthZ / 2, wallHeight / 2);
-    shape.closePath();
-
-    holes.forEach((opening) => {
-      const zMin = opening.zCenter - opening.widthZ / 2;
-      const zMax = opening.zCenter + opening.widthZ / 2;
-      const yMin = opening.y0;
-      const yMax = opening.y1;
-
-      if (zMax - zMin < MIN_HOLE_W || yMax - yMin < MIN_HOLE_H || zMax <= zMin || yMax <= yMin) return;
-
-      const path = new Path();
-      path.moveTo(zMin - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(zMax - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(zMax - panelCenterZ, yMax - wallHeight / 2);
-      path.lineTo(zMin - panelCenterZ, yMax - wallHeight / 2);
-      path.closePath();
-      shape.holes.push(path);
-    });
-
-    const panelGeometry = new ShapeGeometry(shape);
-    panelGeometry.rotateY(-Math.PI / 2);
-    panelGeometry.computeVertexNormals();
-
-    console.log('✅ RIGHT PANEL', segment.id, { holeCount: holes.length, z0: segment.z0, z1: segment.z1, x: segment.x });
-
-    return {
-      geometry: panelGeometry,
-      position: [segment.x + RIGHT_PANEL_OUT, firstFloorLevel + wallHeight / 2, panelCenterZ] as [
-        number,
-        number,
-        number,
-      ],
-      rotation: [0, 0, 0] as [number, number, number],
-    };
-  });
-}

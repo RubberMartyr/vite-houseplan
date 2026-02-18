@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { frontZ, levelHeights } from './houseSpec';
 import { EPS, FRAME_DEPTH, GLASS_INSET } from './constants/windowConstants';
 import { buildFrameGeometry } from './builders/buildFrameGeometry';
+import { buildRingGeometry } from './builders/buildRingGeometry';
 import { buildSill } from './builders/buildSill';
 import {
   anthraciteBandMaterial,
@@ -52,7 +53,7 @@ type FrontWindowSpec = Extract<FrontOpeningSpec, { kind: 'window' }>;
 
 // --- shared constants (mirrors windowsRear.ts conventions) ---
 // Front facade frame thickness set to ≈5.5 cm to match elevation
-const FRAME_BORDER = 0.055;
+const FRONT_FRAME_BORDER = 0.055; // Front facade frames are slimmer than standard (0.07)
 const MUNTIN_WIDTH = 0.03; // thinner than frame border
 
 const SILL_HEIGHT = 0.05;
@@ -101,9 +102,9 @@ function makeWindowMeshes(params: {
 
   const yCenter = yBottom + height / 2;
 
-  const innerWidth = width - 2 * FRAME_BORDER;
-  const innerHeight = height - 2 * FRAME_BORDER;
-  const frameGeometry = buildFrameGeometry(width, height, { frameBorder: FRAME_BORDER });
+  const innerWidth = width - 2 * FRONT_FRAME_BORDER;
+  const innerHeight = height - 2 * FRONT_FRAME_BORDER;
+  const frameGeometry = buildFrameGeometry(width, height, { frameBorder: FRONT_FRAME_BORDER });
 
   const glassGeometry = new THREE.BoxGeometry(innerWidth, innerHeight, 0.01);
 
@@ -265,23 +266,13 @@ function makeAnthraciteSurroundRing(params: {
   const holeWidth = width + 2 * holeClearance;
   const holeHeight = height + 2 * holeClearance;
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-outerWidth / 2, -outerHeight / 2);
-  shape.lineTo(outerWidth / 2, -outerHeight / 2);
-  shape.lineTo(outerWidth / 2, outerHeight / 2);
-  shape.lineTo(-outerWidth / 2, outerHeight / 2);
-  shape.closePath();
-
-  const hole = new THREE.Path();
-  hole.moveTo(-holeWidth / 2, -holeHeight / 2);
-  hole.lineTo(holeWidth / 2, -holeHeight / 2);
-  hole.lineTo(holeWidth / 2, holeHeight / 2);
-  hole.lineTo(-holeWidth / 2, holeHeight / 2);
-  hole.closePath();
-  shape.holes.push(hole);
-
-  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-  geometry.translate(0, 0, -depth / 2);
+  const geometry = buildRingGeometry({
+    outerWidth,
+    outerHeight,
+    innerWidth: holeWidth,
+    innerHeight: holeHeight,
+    depth,
+  });
 
   const yCenter = yBottom + height / 2;
   const z = zFace - EPS - depth / 2 - 0.002;
@@ -339,17 +330,17 @@ function makeGroundClassicTransomWindowMeshes(params: {
     hasLintel,
   });
 
-  const innerWidth = width - 2 * FRAME_BORDER;
-  const innerHeight = height - 2 * FRAME_BORDER;
+  const innerWidth = width - 2 * FRONT_FRAME_BORDER;
+  const innerHeight = height - 2 * FRONT_FRAME_BORDER;
 
   const clampedTransomHeight = Math.min(transomHeight, innerHeight * 0.45);
-  const innerBottomY = yBottom + FRAME_BORDER;
-  const innerTopY = yBottom + height - FRAME_BORDER;
+  const innerBottomY = yBottom + FRONT_FRAME_BORDER;
+  const innerTopY = yBottom + height - FRONT_FRAME_BORDER;
   const transomBottomY = innerTopY - clampedTransomHeight;
   const bottomHeight = transomBottomY - innerBottomY;
 
   const frameZ = zFace - EPS + FRAME_DEPTH / 2;
-  const muntinThickness = Math.max(FRAME_BORDER * 0.45, 0.012);
+  const muntinThickness = Math.max(FRONT_FRAME_BORDER * 0.45, 0.012);
 
   // Bottom mullion (two large panes)
   meshes.push({
@@ -441,12 +432,12 @@ function makeFrontFirstFloorTransomWindowMeshes(params: {
     hasLintel,
   });
 
-  const innerWidth = width - 2 * FRAME_BORDER;
-  const innerHeight = height - 2 * FRAME_BORDER;
+  const innerWidth = width - 2 * FRONT_FRAME_BORDER;
+  const innerHeight = height - 2 * FRONT_FRAME_BORDER;
   const clampedTransomHeight = Math.min(transomHeight, innerHeight * 0.45);
   const mainHeight = innerHeight - clampedTransomHeight;
 
-  const innerBottomY = yBottom + FRAME_BORDER;
+  const innerBottomY = yBottom + FRONT_FRAME_BORDER;
   const mainCenterY = innerBottomY + mainHeight / 2;
   const transomBottomY = innerBottomY + mainHeight;
   const transomCenterY = transomBottomY + clampedTransomHeight / 2;
@@ -548,26 +539,13 @@ function makeFrontDoorDetailedMeshes(params: {
   const surroundMargin = 0.1;
   const outerWidth = width + 2 * surroundMargin;
   const outerHeight = height + 2 * surroundMargin;
-  const surroundShape = new THREE.Shape();
-  surroundShape.moveTo(-outerWidth / 2, -outerHeight / 2);
-  surroundShape.lineTo(outerWidth / 2, -outerHeight / 2);
-  surroundShape.lineTo(outerWidth / 2, outerHeight / 2);
-  surroundShape.lineTo(-outerWidth / 2, outerHeight / 2);
-  surroundShape.closePath();
-
-  const surroundHole = new THREE.Path();
-  surroundHole.moveTo(-width / 2, -height / 2);
-  surroundHole.lineTo(width / 2, -height / 2);
-  surroundHole.lineTo(width / 2, height / 2);
-  surroundHole.lineTo(-width / 2, height / 2);
-  surroundHole.closePath();
-  surroundShape.holes.push(surroundHole);
-
-  const surroundGeometry = new THREE.ExtrudeGeometry(surroundShape, {
+  const surroundGeometry = buildRingGeometry({
+    outerWidth,
+    outerHeight,
+    innerWidth: width,
+    innerHeight: height,
     depth: surroundDepth,
-    bevelEnabled: false,
   });
-  surroundGeometry.translate(0, 0, -surroundDepth / 2);
 
   const surroundZ = zFace - EPS - surroundDepth / 2 - 0.002;
 
@@ -578,26 +556,13 @@ function makeFrontDoorDetailedMeshes(params: {
   const frameOuterHeight = height;
   const frameInnerWidth = frameOuterWidth - 2 * doorFrameBorder;
   const frameInnerHeight = frameOuterHeight - 2 * doorFrameBorder;
-  const frameShape = new THREE.Shape();
-  frameShape.moveTo(-frameOuterWidth / 2, -frameOuterHeight / 2);
-  frameShape.lineTo(frameOuterWidth / 2, -frameOuterHeight / 2);
-  frameShape.lineTo(frameOuterWidth / 2, frameOuterHeight / 2);
-  frameShape.lineTo(-frameOuterWidth / 2, frameOuterHeight / 2);
-  frameShape.closePath();
-
-  const frameHole = new THREE.Path();
-  frameHole.moveTo(-frameInnerWidth / 2, -frameInnerHeight / 2);
-  frameHole.lineTo(frameInnerWidth / 2, -frameInnerHeight / 2);
-  frameHole.lineTo(frameInnerWidth / 2, frameInnerHeight / 2);
-  frameHole.lineTo(-frameInnerWidth / 2, frameInnerHeight / 2);
-  frameHole.closePath();
-  frameShape.holes.push(frameHole);
-
-  const frameGeometry = new THREE.ExtrudeGeometry(frameShape, {
+  const frameGeometry = buildRingGeometry({
+    outerWidth: frameOuterWidth,
+    outerHeight: frameOuterHeight,
+    innerWidth: frameInnerWidth,
+    innerHeight: frameInnerHeight,
     depth: doorFrameDepth,
-    bevelEnabled: false,
   });
-  frameGeometry.translate(0, 0, -doorFrameDepth / 2);
 
   const frameZ = zFace - EPS + doorFrameDepth / 2;
 

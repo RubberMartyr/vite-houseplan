@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { ceilingHeights, levelHeights, wallThickness } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
+import { EPS, FRAME_BORDER, FRAME_DEPTH, GLASS_INSET, GLASS_THICKNESS } from './constants/windowConstants';
+import { buildFrameGeometry } from './builders/buildFrameGeometry';
+import { buildSill } from './builders/buildSill';
+import { frameMaterial, glassMaterial, metalBandMaterial, revealMaterial } from './materials/windowMaterials';
 
 type SideWindowMesh = {
   id: string;
@@ -22,17 +26,9 @@ export type SideWindowSpec = {
   firstY1: number;
 };
 
-const EPS = 0.01;
-const FRAME_DEPTH = 0.08;
-const FRAME_BORDER = 0.07;
-const GLASS_INSET = 0.015;
-const GLASS_THICKNESS = 0.01;
 const METAL_BAND_DEPTH = 0.02;
 const METAL_BAND_HEIGHT = 0.12;
 const METAL_BAND_OUTSET = 0.015;
-const SILL_DEPTH = 0.18;
-const SILL_HEIGHT = 0.05;
-const SILL_OVERHANG = 0.02;
 const REVEAL_FACE = 0.05;
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
@@ -61,6 +57,12 @@ function xFaceForRightAtZ(z: number) {
 // Toggle which facade hosts the side windows and whether they should mirror along Z
 export const SIDE: 'left' | 'right' = 'right';
 export const MIRROR_Z = true;
+
+const metalSlateMaterial = new THREE.MeshStandardMaterial({
+  color: '#6b6f73',
+  roughness: 0.4,
+  metalness: 0.6,
+});
 
 export const sideWindowSpecs: SideWindowSpec[] = [
   {
@@ -105,106 +107,8 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   },
 ];
 
-const frameMaterial = new THREE.MeshStandardMaterial({
-  color: '#383E42',
-  roughness: 0.55,
-  metalness: 0.12,
-});
-
-const glassMaterial = new THREE.MeshPhysicalMaterial({
-  color: '#e6e8ea',
-  transmission: 0.85,
-  roughness: 0.05,
-  ior: 1.5,
-  metalness: 0,
-  clearcoat: 0,
-  depthWrite: false,
-  side: THREE.DoubleSide,
-});
-
-const blueStoneMaterial = new THREE.MeshStandardMaterial({
-  color: '#5f6b73',
-  roughness: 0.8,
-  metalness: 0.0,
-});
-
-const metalSlateMaterial = new THREE.MeshStandardMaterial({
-  color: '#6b6f73',
-  roughness: 0.4,
-  metalness: 0.6,
-});
-
-const metalBandMaterial = new THREE.MeshStandardMaterial({
-  color: 0x2f3237,
-  roughness: 0.6,
-  metalness: 0.2,
-});
-
-const revealMaterial = new THREE.MeshStandardMaterial({
-  color: '#e8e5df',
-  roughness: 0.85,
-  metalness: 0.05,
-});
-
-function createFrameGeometry(width: number, height: number): THREE.ExtrudeGeometry {
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
-  const innerWidth = width - 2 * FRAME_BORDER;
-  const innerHeight = height - 2 * FRAME_BORDER;
-
-  const outerShape = new THREE.Shape();
-  outerShape.moveTo(-halfWidth, -halfHeight);
-  outerShape.lineTo(halfWidth, -halfHeight);
-  outerShape.lineTo(halfWidth, halfHeight);
-  outerShape.lineTo(-halfWidth, halfHeight);
-  outerShape.lineTo(-halfWidth, -halfHeight);
-
-  const innerPath = new THREE.Path();
-  innerPath.moveTo(-innerWidth / 2, -innerHeight / 2);
-  innerPath.lineTo(-innerWidth / 2, innerHeight / 2);
-  innerPath.lineTo(innerWidth / 2, innerHeight / 2);
-  innerPath.lineTo(innerWidth / 2, -innerHeight / 2);
-  innerPath.lineTo(-innerWidth / 2, -innerHeight / 2);
-  outerShape.holes.push(innerPath);
-
-  const geometry = new THREE.ExtrudeGeometry(outerShape, { depth: FRAME_DEPTH, bevelEnabled: false });
-  geometry.translate(0, 0, -FRAME_DEPTH / 2);
-  geometry.rotateY(-Math.PI / 2);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
 function createGlassGeometry(width: number, height: number): THREE.BoxGeometry {
   return new THREE.BoxGeometry(GLASS_THICKNESS, height, width);
-}
-
-function createSill({
-  id,
-  width,
-  zCenter,
-  yBottom,
-  side,
-  xFace,
-}: {
-  id: string;
-  width: number;
-  zCenter: number;
-  yBottom: number;
-  side: 'left' | 'right';
-  xFace: number;
-}): SideWindowMesh {
-  const sillX = side === 'left' ? xFace - SILL_DEPTH / 2 - SILL_OVERHANG : xFace + SILL_DEPTH / 2 + SILL_OVERHANG;
-
-  const geometry = new THREE.BoxGeometry(SILL_DEPTH, SILL_HEIGHT, width + 0.04);
-  const position: [number, number, number] = [sillX, yBottom - SILL_HEIGHT / 2, zCenter];
-
-  return {
-    id,
-    geometry,
-    position,
-    rotation: [0, 0, 0],
-    material: blueStoneMaterial,
-  };
 }
 
 function createRevealMeshes({
@@ -282,7 +186,7 @@ function makeSimpleWindow({
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
 
-  const frameGeometry = createFrameGeometry(width, height);
+  const frameGeometry = buildFrameGeometry(width, height, { rotateForSide: true });
   const glassGeometry = createGlassGeometry(innerWidth, innerHeight);
 
   return [
@@ -300,7 +204,7 @@ function makeSimpleWindow({
       rotation: [0, 0, 0],
       material: glassMaterial,
     },
-    createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }),
+    buildSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }),
   ];
 }
 
@@ -321,7 +225,7 @@ function makeSplitTallWindow({
 }): SideWindowMesh[] {
   const { id, width } = spec;
   const { height, yBottom } = windowVerticalExtents(spec);
-  const frameGeometry = createFrameGeometry(width, height);
+  const frameGeometry = buildFrameGeometry(width, height, { rotateForSide: true });
   const yCenter = yBottom + height / 2;
   const windowBottomLocal = -height / 2;
 
@@ -367,7 +271,7 @@ function makeSplitTallWindow({
     material: metalSlateMaterial,
   });
 
-  meshes.push(createSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }));
+  meshes.push(buildSill({ id: `${id}_SILL`, width, zCenter, yBottom, side, xFace }));
 
   const slateBandWidth = spec.width + 0.06;
   const slateBandHeight = 0.08;

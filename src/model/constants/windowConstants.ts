@@ -1,0 +1,10 @@
+export const FRAME_DEPTH = 0.08;
+export const FRAME_BORDER = 0.07;
+export const GLASS_INSET = 0.015;
+export const GLASS_THICKNESS = 0.01;
+export const SILL_DEPTH = 0.18;
+export const SILL_HEIGHT = 0.05;
+export const SILL_OVERHANG = 0.02;
+export const CUTOUT_DEPTH = 0.6;
+export const CUTOUT_MARGIN = 0.01;
+export const EPS = 0.01;

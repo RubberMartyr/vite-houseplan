@@ -8,6 +8,7 @@ import {
   leftX,
   rightX,
 } from './houseSpec';
+import { layoutFloor } from './builders/layoutFloor';
 
 const interior = {
   xMin: leftX + wallThickness.exterior,
@@ -19,81 +20,41 @@ const interior = {
 const interiorWidth = interior.xMax - interior.xMin;
 const interiorDepth = interior.zMax - interior.zMin;
 
-const livingWidth = groundFloorRooms.zithoek.width;
-const serviceWidth = groundFloorRooms.serviceStrip.width;
-
-let zoneA: Pick<RoomRange, 'xMin' | 'xMax'> = {
-  xMin: interior.xMin,
-  xMax: interior.xMin + livingWidth,
-};
-let zoneB: Pick<RoomRange, 'xMin' | 'xMax'> = {
-  xMin: zoneA.xMax,
-  xMax: zoneA.xMax + serviceWidth,
-};
-
-const totalWidth = zoneB.xMax - zoneA.xMin;
-if (totalWidth > interiorWidth) {
-  const overlap = totalWidth - interiorWidth;
-  zoneA = {
-    xMin: zoneA.xMin - overlap / 2,
-    xMax: zoneA.xMax - overlap / 2,
-  };
-  zoneB = {
-    xMin: zoneB.xMin - overlap / 2,
-    xMax: zoneB.xMax - overlap / 2,
-  };
-}
-
-const livingDepths = [
-  groundFloorRooms.zithoek.depth,
-  groundFloorRooms.keuken.depth,
-  groundFloorRooms.eethoek.depth,
-];
-const serviceDepths = [
-  groundFloorRooms.serviceStrip.hallDepth,
-  groundFloorRooms.serviceStrip.stairDepth,
-  groundFloorRooms.serviceStrip.bergingDepth,
+const zones = [
+  {
+    id: 'living',
+    width: groundFloorRooms.zithoek.width,
+    rooms: [
+      { id: 'zithoek', label: 'Zithoek', depth: groundFloorRooms.zithoek.depth },
+      { id: 'keuken', label: 'Keuken', depth: groundFloorRooms.keuken.depth },
+      { id: 'eethoek', label: 'Eethoek', depth: groundFloorRooms.eethoek.depth },
+    ],
+  },
+  {
+    id: 'service',
+    width: groundFloorRooms.serviceStrip.width,
+    rooms: [
+      { id: 'hall', label: 'Inkom', depth: groundFloorRooms.serviceStrip.hallDepth },
+      { id: 'stair', label: 'Trap', depth: groundFloorRooms.serviceStrip.stairDepth },
+      { id: 'berging', label: 'Berging', depth: groundFloorRooms.serviceStrip.bergingDepth },
+    ],
+  },
 ];
 
-const livingDepthTotal = livingDepths.reduce((total, value) => total + value, 0);
-const serviceDepthTotal = serviceDepths.reduce((total, value) => total + value, 0);
-const maxDepthTotal = Math.max(livingDepthTotal, serviceDepthTotal);
-const depthScale = maxDepthTotal > interiorDepth ? interiorDepth / maxDepthTotal : 1;
+const layout = layoutFloor({ interior, zones });
 
-const scaledLivingDepths = livingDepths.map((depth) => depth * depthScale);
-const scaledServiceDepths = serviceDepths.map((depth) => depth * depthScale);
+const livingDepthTotal = zones[0].rooms.reduce((total, room) => total + room.depth, 0);
+const serviceDepthTotal = zones[1].rooms.reduce((total, room) => total + room.depth, 0);
+const livingEnd = layout.rooms.eethoek.zMax;
+const serviceEnd = layout.rooms.berging.zMax;
 
-function accumulateRanges(start: number, lengths: number[]): { ranges: RoomRange[]; end: number } {
-  const ranges: RoomRange[] = [];
-  let cursor = start;
-  lengths.forEach((length) => {
-    ranges.push({
-      xMin: 0,
-      xMax: 0,
-      zMin: cursor,
-      zMax: cursor + length,
-    });
-    cursor += length;
-  });
-  return { ranges, end: cursor };
-}
-
-const { ranges: livingZRanges, end: livingEnd } = accumulateRanges(
-  interior.zMin,
-  scaledLivingDepths
-);
-const { ranges: serviceZRanges, end: serviceEnd } = accumulateRanges(
-  interior.zMin,
-  scaledServiceDepths
-);
-
-const roomRanges = {
-  zithoek: { ...livingZRanges[0], ...zoneA },
-  keuken: { ...livingZRanges[1], ...zoneA },
-  eethoek: { ...livingZRanges[2], ...zoneA },
-  hall: { ...serviceZRanges[0], ...zoneB },
-  stair: { ...serviceZRanges[1], ...zoneB },
-  berging: { ...serviceZRanges[2], ...zoneB },
+const roomRanges: Record<string, RoomRange> = {
+  zithoek: layout.rooms.zithoek,
+  keuken: layout.rooms.keuken,
+  eethoek: layout.rooms.eethoek,
+  hall: layout.rooms.hall,
+  stair: layout.rooms.stair,
+  berging: layout.rooms.berging,
 };
 
 export const layoutGround = {
@@ -105,10 +66,10 @@ export const layoutGround = {
     depth: interiorDepth,
   },
   zones: {
-    living: zoneA,
-    service: zoneB,
+    living: layout.zones.living,
+    service: layout.zones.service,
   },
-  depthScale,
+  depthScale: layout.depthScale,
   livingDepthTotal,
   serviceDepthTotal,
   livingEnd,

@@ -1,3 +1,7 @@
+import { ensureCounterClockwise } from './utils/geometry';
+import { cmToMeters } from './utils/units';
+import type { HouseSpec } from './types/HouseSpec';
+
 export type EnvelopePoint = { x: number; z: number };
 
 export const depthCm = 1500;
@@ -18,8 +22,6 @@ export const rightFacadeProfileCm: EnvelopePoint[] = leftFacadeProfileCm.map((po
   x: Math.abs(point.x),
 }));
 
-const cmToMeters = (value: number) => value / 100;
-
 export const leftFacadeProfile: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
   x: cmToMeters(point.x),
   z: cmToMeters(point.z),
@@ -37,17 +39,6 @@ export const rearWidth = cmToMeters(rearWidthCm);
 export const depth = cmToMeters(depthCm);
 const frontRight = { x: frontLeft.x + frontWidth, z: 0 };
 const rearRight = { x: rearLeft.x + rearWidth, z: depth };
-
-function polygonArea(points: EnvelopePoint[]): number {
-  return points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return area + point.x * next.z - next.x * point.z;
-  }, 0);
-}
-
-function ensureCounterClockwise(points: EnvelopePoint[]): EnvelopePoint[] {
-  return polygonArea(points) < 0 ? [...points].reverse() : points;
-}
 
 const envelopeOutlineRaw: EnvelopePoint[] = [
   frontLeft,
@@ -142,6 +133,15 @@ export const groundFloorRooms = {
 };
 
 export type RoomRange = { xMin: number; xMax: number; zMin: number; zMax: number };
+
+export const houseSpec: HouseSpec = {
+  envelopeOutline,
+  wallThickness,
+  ceilingHeights,
+  levelHeights,
+  originOffset,
+  groundFloorRooms,
+};
 
 export default {
   frontWidth,

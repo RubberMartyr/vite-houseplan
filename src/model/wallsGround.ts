@@ -8,7 +8,7 @@ import {
   Vector3,
 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
-import { ceilingHeights, leftFacadeProfileCm, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
+import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
@@ -112,7 +112,7 @@ function profileCmToSegments(profileCm: { x: number; z: number }[]): FacadeSegme
 }
 
 const EXTENSION_SIDE_WALL = (() => {
-  const segments = profileCmToSegments(leftFacadeProfileCm);
+  const segments = profileCmToSegments(rightFacadeProfileCm);
   if (!segments.length) return null;
 
   const minX = segments.reduce((min, seg) => Math.min(min, seg.x), Infinity);

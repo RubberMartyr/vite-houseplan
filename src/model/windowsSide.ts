@@ -42,6 +42,9 @@ function windowVerticalExtents(spec: SideWindowSpec) {
   };
 }
 
+// NOTE: The envelope is no longer mirrored in X (as of this refactor).
+// Positive X is the architectural RIGHT facade in world space.
+// These segment X values are correct as-is and need no adjustment.
 export const RIGHT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
   { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },

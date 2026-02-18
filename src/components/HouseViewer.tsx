@@ -350,7 +350,7 @@ export default function HouseViewer() {
   const deterministicDpr = screenshotMode ? 1 : undefined;
   const cameraPreset = screenshotMode
     ? {
-        position: [10, 5, 15] as [number, number, number],
+        position: [-8, 5, -16] as [number, number, number],
         target: [0, 1.2, 0] as [number, number, number],
       }
     : null;
@@ -596,7 +596,7 @@ export default function HouseViewer() {
 
         <Canvas
           shadows
-          camera={{ position: cameraPreset?.position ?? [10, 5, 15], fov: 50 }}
+          camera={{ position: cameraPreset?.position ?? [0, 5, -18], fov: 50 }}
           gl={{ antialias: true, dpr: deterministicDpr }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
@@ -1099,6 +1099,7 @@ function HouseScene({
       {/* CONTROLS */}
       <OrbitControls
         ref={controlsRef}
+        target={[0, 1.5, 0]}
         minDistance={5}
         maxDistance={40}
         maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground

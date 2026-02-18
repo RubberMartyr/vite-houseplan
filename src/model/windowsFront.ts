@@ -70,10 +70,10 @@ const DORMER_GLASS_TOP_Y = 5.15; // lowered further to match elevation
 // Front facade: plan distances measured from LEFT edge.
 // Envelope is no longer mirrored; map directly to world X.
 const FRONT_WIDTH_M = 9.6; // 960 cm
-const HALF_WIDTH = FRONT_WIDTH_M / 2;
+const LEFT_EDGE_X = -FRONT_WIDTH_M / 2;
 
 export function frontXCenter(xFromLeft: number, openingWidth: number): number {
-  return -HALF_WIDTH + xFromLeft + openingWidth / 2;
+  return LEFT_EDGE_X + xFromLeft + openingWidth / 2;
 }
 
 // Front facade utility: builds a framed window with optional muntin grid (vertical + horizontal)
@@ -698,7 +698,7 @@ function makeFrontDoorDetailedMeshes(params: {
 
 // --- FRONT FACADE SPEC (derived from your 960cm chain dimensions) ---
 // Coordinate convention: x = left→right across facade, z = depth, y = height.
-// left edge ≈ -4.8m, right edge ≈ +4.8m.
+// Plan chain distances are measured from the LEFT edge of the front facade.
 
 // From chain: 115 | 110(win) | 70 | 110(win) | 95 | 100(door) | 115 | 70(win) | 175
 // Ground floor (from plan chains)

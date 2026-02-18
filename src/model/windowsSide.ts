@@ -131,7 +131,6 @@ function createRevealMeshes({
   const headThickness = Math.min(REVEAL_FACE, height / 2);
   const clearWidth = Math.max(0.01, spec.width - 2 * jambThickness);
 
-  console.log('✅ REVEAL per window', spec.id, { zCenter, xOuter, xInner, revealDepth });
 
   return [
     {
@@ -328,18 +327,10 @@ export function sideWindowZ(spec: SideWindowSpec, mirrorZ: (z: number) => number
 }
 
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
-console.log('✅ SIDE WINDOWS: per-window xFace enabled', { SIDE, MIRROR_Z });
-console.log('✅ SIDE WINDOWS MODEL COORDS', { side: SIDE, zMin: sideZMin, zMax: sideZMax });
 
 const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   const zCenter = getSideWindowZCenter(spec, mirrorZ);
 
-  console.log('✅ SIDE Z FINAL', spec.id, {
-    base: spec.zCenter,
-    mirrored: mirrorZ(spec.zCenter),
-    final: zCenter,
-    isTall: spec.kind === 'tall' || spec.type === 'tall',
-  });
 
   const xFaceForWindow = SIDE === 'right' ? xFaceForRightAtZ(zCenter) : minX;
   const outward = SIDE === 'right' ? 1 : -1;
@@ -353,15 +344,6 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   const frameXForWindow = xOuterPlane - outward * (FRAME_DEPTH / 2);
   const glassXForWindow = frameXForWindow + interiorDir * GLASS_INSET;
 
-  console.log('SIDE WINDOW POS', {
-    id: spec.id,
-    zCenter,
-    xFaceForWindow,
-    xOuterPlane,
-    xInnerPlane: xInnerReveal,
-    frameXForWindow,
-    glassXForWindow,
-  });
 
   const commonProps = {
     spec,

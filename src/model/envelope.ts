@@ -1,17 +1,8 @@
 import { EnvelopePoint, envelopeOutline, originOffset } from './houseSpec';
+import { ensureClockwise, lineIntersection, normalizeVector, polygonArea, type Line2D } from './utils/geometry';
 
 export type FootprintPoint = EnvelopePoint;
 
-function polygonArea(points: EnvelopePoint[]): number {
-  return points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return area + point.x * next.z - next.x * point.z;
-  }, 0);
-}
-
-function ensureClockwise(points: EnvelopePoint[]): EnvelopePoint[] {
-  return polygonArea(points) > 0 ? [...points].reverse() : points;
-}
 
 const envelopeOuterPolygon = (() => {
   const clockwise = ensureClockwise(envelopeOutline);
@@ -22,32 +13,6 @@ const envelopeOuterPolygon = (() => {
   return closed;
 })();
 
-type Line2D = {
-  point: EnvelopePoint;
-  direction: { x: number; z: number };
-};
-
-function normalizeVector(dx: number, dz: number): { x: number; z: number } {
-  const length = Math.hypot(dx, dz) || 1;
-  return { x: dx / length, z: dz / length };
-}
-
-function lineIntersection(l1: Line2D, l2: Line2D): EnvelopePoint {
-  const cross = (a: { x: number; z: number }, b: { x: number; z: number }) => a.x * b.z - a.z * b.x;
-  const denominator = cross(l1.direction, l2.direction);
-
-  if (Math.abs(denominator) < 1e-10) {
-    return l1.point;
-  }
-
-  const diff = { x: l2.point.x - l1.point.x, z: l2.point.z - l1.point.z };
-  const t = cross(diff, l2.direction) / denominator;
-
-  return {
-    x: l1.point.x + l1.direction.x * t,
-    z: l1.point.z + l1.direction.z * t,
-  };
-}
 
 export function getEnvelopeInnerPolygon(thickness: number, outerPolygon?: FootprintPoint[]): FootprintPoint[] {
   const outer = outerPolygon ?? getEnvelopeOuterPolygon();

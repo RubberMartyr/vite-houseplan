@@ -1,5 +1,14 @@
 import * as THREE from 'three';
 import { frontZ, levelHeights } from './houseSpec';
+import { EPS, FRAME_DEPTH, GLASS_INSET } from './constants/windowConstants';
+import {
+  anthraciteBandMaterial,
+  anthraciteStoneMaterial,
+  doorGlassMaterial,
+  frameMaterial,
+  frontBlueStoneMaterial,
+  oakMaterial,
+} from './materials/windowMaterials';
 
 type WindowMesh = {
   id: string;
@@ -40,11 +49,8 @@ type FrontOpeningSpec =
 type FrontWindowSpec = Extract<FrontOpeningSpec, { kind: 'window' }>;
 
 // --- shared constants (mirrors windowsRear.ts conventions) ---
-const EPS = 0.01;
-const FRAME_DEPTH = 0.08;
 // Front facade frame thickness set to ≈5.5 cm to match elevation
 const FRAME_BORDER = 0.055;
-const GLASS_INSET = 0.015;
 const MUNTIN_WIDTH = 0.03; // thinner than frame border
 
 const SILL_DEPTH = 0.10;
@@ -52,44 +58,6 @@ const SILL_HEIGHT = 0.05;
 
 const LINTEL_DEPTH = 0.05;
 const LINTEL_HEIGHT = 0.08;
-
-const frameMaterial = new THREE.MeshStandardMaterial({
-  color: '#383E42',
-  roughness: 0.55,
-  metalness: 0.12,
-});
-
-const blueStoneMaterial = new THREE.MeshStandardMaterial({
-  color: 0x2a2f33,
-  roughness: 0.85,
-  metalness: 0.05,
-});
-
-const anthraciteStoneMaterial = new THREE.MeshStandardMaterial({
-  color: 0x1f1f1f,
-  roughness: 0.82,
-  metalness: 0.05,
-});
-
-const oakMaterial = new THREE.MeshStandardMaterial({
-  color: 0xd7b58a,
-  roughness: 0.75,
-  metalness: 0.0,
-});
-
-const doorGlassMaterial = new THREE.MeshStandardMaterial({
-  color: 0x99aabb,
-  transparent: true,
-  opacity: 0.35,
-  roughness: 0.2,
-  metalness: 0.0,
-});
-
-const anthraciteBandMaterial = new THREE.MeshStandardMaterial({
-  color: 0x2b2b2b,
-  roughness: 0.7,
-  metalness: 0.1,
-});
 
 // Architectural eaves reference for aligning upper openings
 const EAVES_BAND_TOP_Y = 5.70;
@@ -582,7 +550,7 @@ function makeSill({
 }): WindowMesh {
   const geom = new THREE.BoxGeometry(width + 0.10, SILL_HEIGHT, SILL_DEPTH);
   const z = zFace - EPS - SILL_DEPTH / 2; // outwards (-Z)
-  return { id, geometry: geom, position: [xCenter, yCenter, z], rotation: [0, 0, 0], material: blueStoneMaterial };
+  return { id, geometry: geom, position: [xCenter, yCenter, z], rotation: [0, 0, 0], material: frontBlueStoneMaterial };
 }
 
 function makeLintel({
@@ -600,7 +568,7 @@ function makeLintel({
 }): WindowMesh {
   const geom = new THREE.BoxGeometry(width + 0.12, LINTEL_HEIGHT, LINTEL_DEPTH);
   const z = zFace - EPS - LINTEL_DEPTH / 2; // outwards (-Z)
-  return { id, geometry: geom, position: [xCenter, yCenter, z], rotation: [0, 0, 0], material: blueStoneMaterial };
+  return { id, geometry: geom, position: [xCenter, yCenter, z], rotation: [0, 0, 0], material: frontBlueStoneMaterial };
 }
 
 function makeFrontDoorDetailedMeshes(params: {

@@ -32,28 +32,32 @@ export const rightFacadeProfile: EnvelopePoint[] = rightFacadeProfileCm.map((poi
   z: cmToMeters(point.z),
 }));
 
-const frontLeft = leftFacadeProfile[0];
-const rearLeft = leftFacadeProfile[leftFacadeProfile.length - 1];
 export const frontWidth = cmToMeters(frontWidthCm);
 export const rearWidth = cmToMeters(rearWidthCm);
 export const depth = cmToMeters(depthCm);
-const frontRight = { x: frontLeft.x + frontWidth, z: 0 };
-const rearRight = { x: rearLeft.x + rearWidth, z: depth };
+
+// Stepped facade is on the right (+X) side. rightFacadeProfile already
+// carries correct positive-X coordinates — no X-flip needed.
+const frontLeft: EnvelopePoint = { x: -(frontWidth / 2), z: 0 };
+const rearRight = rightFacadeProfile[rightFacadeProfile.length - 1];
+const rearLeft: EnvelopePoint = { x: rearRight.x - rearWidth, z: depth };
 
 const envelopeOutlineRaw: EnvelopePoint[] = [
   frontLeft,
-  frontRight,
-  rearRight,
+  ...rightFacadeProfile,
   rearLeft,
-  ...leftFacadeProfile.slice(1, -1).reverse(),
 ];
 
-const mirroredEnvelopeOutline = envelopeOutlineRaw.map((point) => ({
-  x: -point.x,
-  z: point.z,
-}));
+if (import.meta.env.DEV) {
+  const ccw = ensureCounterClockwise([...envelopeOutlineRaw]);
+  const reversed = ccw[0].x !== envelopeOutlineRaw[0].x || ccw[0].z !== envelopeOutlineRaw[0].z;
 
-export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(mirroredEnvelopeOutline);
+  if (reversed) {
+    console.error('[houseSpec] winding reversed — check rightFacadeProfile order');
+  }
+}
+
+export const envelopeOutline: EnvelopePoint[] = ensureCounterClockwise(envelopeOutlineRaw);
 
 export const envelopeBoundsCm = envelopeOutline.reduce(
   (acc, point) => ({
@@ -87,6 +91,10 @@ export const originOffset = {
   x: -(bounds.minX + bounds.maxX) / 2,
   z: -(bounds.minZ + bounds.maxZ) / 2,
 };
+
+if (import.meta.env.DEV && Math.abs(originOffset.x) > 1e-4) {
+  console.error(`[houseSpec] originOffset.x = ${originOffset.x} — envelope not X-centred`);
+}
 
 export const frontZ = bounds.minZ;
 export const rearZ = bounds.maxZ;

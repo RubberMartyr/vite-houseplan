@@ -644,7 +644,7 @@ function makeLeftFacadePanels({
       // segment.x is the OUTER facade plane for that segment (you pushed it in when you added the extension segment)
       const dToLeft = Math.abs(segment.x - envMinX);
       const dToRight = Math.abs(segment.x - envMaxX);
-      const isLeftSide = dToLeft <= dToRight;
+      const isLeftSide = dToLeft < dToRight;
 
       // Small offset to avoid z-fighting with shell
       const OUTSET = 0.002;
@@ -671,5 +671,4 @@ function makeLeftFacadePanels({
     })
     .filter((panel): panel is NonNullable<typeof panel> => !!panel);
 }
-
 

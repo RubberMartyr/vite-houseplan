@@ -9,14 +9,7 @@ import {
 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
-import {
-  RIGHT_FACADE_SEGMENTS,
-  LEFT_FACADE_SEGMENTS,
-  getSideWindowZCenter,
-  makeMirrorZ,
-  sideWindowSpecs,
-  rightSideWindowSpecs,
-} from './windowsSide';
+import { RIGHT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs } from './windowsSide';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
@@ -300,24 +293,6 @@ export const wallsGround = {
         const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON;
         return inSegmentZ;
       });
-      const onLeftSegment =
-        facesMostlyX &&
-        LEFT_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = segment.x + exteriorThickness;
-          const onOuterX =
-            Math.abs(x1 - outerX) < EPSILON &&
-            Math.abs(x2 - outerX) < EPSILON &&
-            Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX =
-            Math.abs(x1 - innerX) < EPSILON &&
-            Math.abs(x2 - innerX) < EPSILON &&
-            Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
-
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON;
-          return inSegmentZ;
-        });
       const inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin <= segment.z1 + EPSILON);
       const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
 
@@ -354,7 +329,7 @@ export const wallsGround = {
       // --- existing removal gate (keep everything else unchanged) ---
       const shouldRemove =
         !isExtensionLeftWallTriangle &&
-        (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onRightSegment || onLeftSegment || onLeftFacadeSegment);
+        (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onRightSegment || onLeftFacadeSegment);
 
       if (shouldRemove) {
         continue;
@@ -495,7 +470,6 @@ export const wallsGround = {
   })(),
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
-  rightSideFacades: makeLeftSegmentPanels(),
   rightFacades: (() => {
     const groundOpenings: RightPanelOpening[] = sideWindowSpecs.map((spec) => ({
       id: spec.id,
@@ -642,59 +616,6 @@ function makeSideFacadePanel({
     position: [panelCenterX, panelHeight / 2, panelCenterZ] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
   };
-}
-
-/**
- * Replacement panels for the architectural RIGHT facade (negative X world space).
- * Covers all three stepped segments L_A / L_B / L_C with window/door holes.
- */
-export function makeLeftSegmentPanels(): FacadePanel[] {
-  const panelDepth = FACADE_PANEL_THICKNESS;
-  const OUTSET = 0.002;
-
-  return LEFT_FACADE_SEGMENTS.map((segment) => {
-    const widthZ = segment.z1 - segment.z0;
-    const panelCenterZ = (segment.z0 + segment.z1) / 2;
-
-    const shape = new Shape();
-    shape.moveTo(-widthZ / 2, -wallHeight / 2);
-    shape.lineTo(widthZ / 2, -wallHeight / 2);
-    shape.lineTo(widthZ / 2, wallHeight / 2);
-    shape.lineTo(-widthZ / 2, wallHeight / 2);
-    shape.closePath();
-
-    // Cut ground-floor openings
-    rightSideWindowSpecs.forEach((spec) => {
-      const zCenter = spec.zCenter;
-      if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
-      if (spec.groundY1 - spec.groundY0 < MIN_HOLE_H) return;
-
-      const zMin = zCenter - spec.width / 2;
-      const zMax = zCenter + spec.width / 2;
-      const yMin = spec.groundY0;
-      const yMax = spec.groundY1;
-
-      const path = new Path();
-      path.moveTo(zMin - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(zMax - panelCenterZ, yMin - wallHeight / 2);
-      path.lineTo(zMax - panelCenterZ, yMax - wallHeight / 2);
-      path.lineTo(zMin - panelCenterZ, yMax - wallHeight / 2);
-      path.closePath();
-      shape.holes.push(path);
-    });
-
-    const panelGeometry = new ShapeGeometry(shape);
-    panelGeometry.rotateY(Math.PI / 2);
-    panelGeometry.computeVertexNormals();
-
-    const xPos = segment.x - panelDepth / 2 - OUTSET;
-
-    return {
-      geometry: panelGeometry,
-      position: [xPos, wallHeight / 2, panelCenterZ] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-    };
-  });
 }
 
 function makeLeftFacadePanels({

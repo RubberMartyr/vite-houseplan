@@ -30,7 +30,7 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsSide } from '../model/windowsSide';
+import { windowsSide, windowsRightSide } from '../model/windowsSide';
 import { windowsFront } from '../model/windowsFront';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
@@ -914,6 +914,19 @@ function HouseScene({
               />
             ))}
           {showGround &&
+            wallsGround.rightSideFacades?.map((facade, index) => (
+              <mesh
+                key={`ground-right-side-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={facadeMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
+          {showGround &&
             wallsGround.rightFacades.map((facade, index) => (
               <mesh
                 key={`ground-right-facade-${index}`}
@@ -974,6 +987,19 @@ function HouseScene({
             wallsFirst.rightFacades.map((facade, index) => (
               <mesh
                 key={`first-right-facade-${index}`}
+                geometry={facade.geometry}
+                position={facade.position}
+                rotation={facade.rotation}
+                material={facadeMaterial}
+                castShadow
+                receiveShadow
+                visible={wallShellVisible}
+              />
+            ))}
+          {showFirst &&
+            (wallsFirst as any).rightSideFacades?.map((facade: any, index: number) => (
+              <mesh
+                key={`first-right-side-${index}`}
                 geometry={facade.geometry}
                 position={facade.position}
                 rotation={facade.rotation}
@@ -1052,6 +1078,22 @@ function HouseScene({
                   castShadow={!isGlass}
                   receiveShadow={!isGlass}
                   renderOrder={isGlass ? 10 : undefined}
+                />
+              );
+            })}
+            {/* Architectural RIGHT facade window/door meshes */}
+            {windowsRightSide.meshes.map((m) => {
+              const isGlass = m.id.toLowerCase().includes('_glass');
+              const material = m.material ?? (isGlass ? glass : frame);
+              return (
+                <mesh
+                  key={m.id}
+                  geometry={m.geometry}
+                  position={m.position}
+                  rotation={m.rotation as [number, number, number]}
+                  material={material}
+                  castShadow
+                  receiveShadow
                 />
               );
             })}

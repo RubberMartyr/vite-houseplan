@@ -1,5 +1,5 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry, Vector3 } from 'three';
-import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
+import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
   getSideWindowZCenter,
@@ -178,6 +178,17 @@ export const wallsFirst = {
       position: raw.position,
       rotation: raw.rotation,
     };
+  })(),
+
+  extensionShell: (() => {
+    const outer = getFlatRoofPolygon();
+    const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
+    return buildExtrudedShell({
+      outerPoints: outer,
+      innerPoints: inner,
+      height: wallHeight,
+      baseY: firstFloorLevel,
+    });
   })(),
 
   rearFacade: (() => {

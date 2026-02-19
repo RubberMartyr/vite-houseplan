@@ -926,6 +926,17 @@ function HouseScene({
                 visible={wallShellVisible}
               />
             ))}
+          {showGround && (wallsGround as any).extensionRightWall && (
+            <mesh
+              geometry={(wallsGround as any).extensionRightWall.geometry}
+              position={(wallsGround as any).extensionRightWall.position}
+              rotation={(wallsGround as any).extensionRightWall.rotation}
+              material={facadeMaterial}
+              castShadow
+              receiveShadow
+              visible={wallShellVisible}
+            />
+          )}
           {showGround && (
             <mesh
               geometry={wallsGround.rearFacade.geometry}

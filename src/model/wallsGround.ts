@@ -501,6 +501,45 @@ export const wallsGround = {
     panels.push(...rightReturnPanels);
     return panels;
   })(),
+
+  extensionRightWall: (() => {
+    const outer = getEnvelopeOuterPolygon();
+    const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
+    const extensionStartZ = 12.0;
+    const xFace = RIGHT_FACADE_SEGMENTS[2].x;
+    const widthZ = rearZ - extensionStartZ;
+    const panelCenterZ = (extensionStartZ + rearZ) / 2;
+
+    const winZCenter = mirrorZ(sideWindowSpecs[0].zCenter);
+    const winWidth = sideWindowSpecs[0].width;
+    const winY0 = sideWindowSpecs[0].groundY0;
+    const winY1 = sideWindowSpecs[0].groundY1;
+
+    const shape = new Shape();
+    shape.moveTo(-widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, -wallHeight / 2);
+    shape.lineTo(widthZ / 2, wallHeight / 2);
+    shape.lineTo(-widthZ / 2, wallHeight / 2);
+    shape.closePath();
+
+    const path = new Path();
+    path.moveTo(winZCenter - winWidth / 2 - panelCenterZ, winY0 - wallHeight / 2);
+    path.lineTo(winZCenter + winWidth / 2 - panelCenterZ, winY0 - wallHeight / 2);
+    path.lineTo(winZCenter + winWidth / 2 - panelCenterZ, winY1 - wallHeight / 2);
+    path.lineTo(winZCenter - winWidth / 2 - panelCenterZ, winY1 - wallHeight / 2);
+    path.closePath();
+    shape.holes.push(path);
+
+    const geometry = new ShapeGeometry(shape);
+    geometry.rotateY(-Math.PI / 2);
+    geometry.computeVertexNormals();
+
+    return {
+      geometry,
+      position: [xFace + FACADE_PANEL_THICKNESS / 2 + 0.002, wallHeight / 2, panelCenterZ] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number],
+    };
+  })(),
 };
 
 function makeSideFacadePanel({
@@ -671,4 +710,3 @@ function makeLeftFacadePanels({
     })
     .filter((panel): panel is NonNullable<typeof panel> => !!panel);
 }
-

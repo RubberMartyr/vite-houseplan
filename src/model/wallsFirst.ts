@@ -371,8 +371,8 @@ export const wallsFirst = {
           id: spec.id,
           zCenter: getSideWindowZCenter(spec, mirrorZ),
           widthZ: spec.width,
-          y0: isTall ? 0 : spec.firstY0 - firstFloorLevel,
-          y1: isTall ? wallHeight : spec.firstY1 - firstFloorLevel,
+          y0: isTall ? firstFloorLevel : spec.firstY0,
+          y1: isTall ? firstFloorLevel + wallHeight : spec.firstY1,
         };
       });
 
@@ -494,4 +494,3 @@ function makeSideFacadePanel({
     rotation: [0, 0, 0] as [number, number, number],
   };
 }
-

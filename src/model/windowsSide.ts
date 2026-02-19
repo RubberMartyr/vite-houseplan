@@ -43,12 +43,19 @@ function windowVerticalExtents(spec: SideWindowSpec) {
 }
 
 // NOTE: The envelope is no longer mirrored in X (as of this refactor).
-// Positive X is the architectural RIGHT facade in world space.
-// These segment X values are correct as-is and need no adjustment.
+// Positive X is the architectural LEFT facade in world space (mirrored).
+// Negative X is the architectural RIGHT facade in world space.
 export const RIGHT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
   { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },
   { id: 'R_C', z0: 8.45, z1: 12.0, x: 3.5 },
+] as const;
+
+// Architectural RIGHT facade (negative X world space)
+export const LEFT_FACADE_SEGMENTS = [
+  { id: 'L_A', z0: 0.0, z1: 4.0, x: -4.8 },
+  { id: 'L_B', z0: 4.0, z1: 8.45, x: -4.1 },
+  { id: 'L_C', z0: 8.45, z1: 12.0, x: -3.5 },
 ] as const;
 
 function xFaceForRightAtZ(z: number) {
@@ -106,6 +113,31 @@ export const sideWindowSpecs: SideWindowSpec[] = [
     groundY0: 0.0,
     groundY1: ceilingHeights.ground,
     firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
+];
+
+// Architectural RIGHT facade (negative X world space) — door + first-floor window
+// zCenter values are direct world-space Z coordinates (no mirroring)
+export const rightSideWindowSpecs: SideWindowSpec[] = [
+  {
+    id: 'SIDE_R_DOOR',
+    kind: 'small',
+    zCenter: 5.5,
+    width: 1.0,
+    groundY0: 0.0,
+    groundY1: 2.15,
+    firstY0: 0.0,
+    firstY1: 0.0,
+  },
+  {
+    id: 'SIDE_R_WIN',
+    kind: 'small',
+    zCenter: 5.5,
+    width: 0.9,
+    groundY0: 0.0,
+    groundY1: 0.0,
+    firstY0: 4.1,
     firstY1: 5.0,
   },
 ];
@@ -375,4 +407,49 @@ export const windowsSide = {
   zMax: sideZMax,
   mirrorZ: MIRROR_Z,
   profile: RIGHT_FACADE_SEGMENTS,
+};
+
+// ── Architectural RIGHT facade meshes (negative X world space) ──────────────
+
+function xFaceForLeftAtZ(z: number): number {
+  if (z <= LEFT_FACADE_SEGMENTS[0].z1) return LEFT_FACADE_SEGMENTS[0].x;
+  if (z <= LEFT_FACADE_SEGMENTS[1].z1) return LEFT_FACADE_SEGMENTS[1].x;
+  return LEFT_FACADE_SEGMENTS[2].x;
+}
+
+const rightSideMeshes: SideWindowMesh[] = rightSideWindowSpecs.flatMap((spec) => {
+  // zCenter is already in world space — no mirroring needed
+  const zCenter = spec.zCenter;
+  const xFace = xFaceForLeftAtZ(zCenter); // e.g. -4.1
+  const outward = -1; // faces outward toward negative X
+  const interiorDir = 1;
+  const wallDepth = wallThickness.exterior ?? 0.3;
+
+  const xOuterReveal = xFace;
+  const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
+  const xOuterPlane = xOuterReveal + outward * EPS;
+  const frameX = xOuterPlane - outward * (FRAME_DEPTH / 2);
+  const glassX = frameX + interiorDir * GLASS_INSET;
+
+  const commonProps = {
+    spec,
+    frameX,
+    glassX,
+    xFace: xOuterPlane,
+    zCenter,
+    side: 'left' as const,
+  };
+
+  const revealMeshes = createRevealMeshes({
+    spec,
+    zCenter,
+    xOuter: xOuterReveal,
+    xInner: xInnerReveal,
+  });
+
+  return [...makeSimpleWindow(commonProps), ...revealMeshes];
+});
+
+export const windowsRightSide = {
+  meshes: rightSideMeshes,
 };

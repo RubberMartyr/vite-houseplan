@@ -3,9 +3,9 @@ import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelop
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
   getSideWindowZCenter,
-  LEFT_FACADE_SEGMENTS,
+  ARCH_LEFT_FACADE_SEGMENTS,
   makeMirrorZ,
-  RIGHT_FACADE_SEGMENTS,
+  ARCH_RIGHT_FACADE_SEGMENTS,
   rightSideWindowSpecs,
   sideMirrorZ,
   sideWindowSpecs,
@@ -128,7 +128,7 @@ export const wallsFirst = {
       const triZMax = Math.max(z1, z2, z3);
       const onRightSegment =
         facesMostlyX &&
-        RIGHT_FACADE_SEGMENTS.some((segment) => {
+        ARCH_LEFT_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
           const innerX = segment.x - exteriorThickness;
           const onOuterX =
@@ -143,7 +143,7 @@ export const wallsFirst = {
 
       const onLeftSegment =
         facesMostlyX &&
-        LEFT_FACADE_SEGMENTS.some((segment) => {
+        ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
           const innerX = segment.x + exteriorThickness; // inward = positive for negative-x facade
           const onOuterX =
@@ -453,7 +453,8 @@ function makeSideFacadePanel({
 
   openings.forEach((spec) => {
     const zMirror = (z: number) => {
-      const isActiveSide = side === windowsSide.side;
+      const sideArch = side === 'left' ? 'RIGHT' : 'LEFT';
+      const isActiveSide = sideArch === windowsSide.side;
       if (isActiveSide) return sideMirrorZ(z, windowsSide.zMin, windowsSide.zMax, windowsSide.mirrorZ);
       return sideMirrorZ(z, minZ, maxZ, windowsSide.mirrorZ);
     };
@@ -518,7 +519,7 @@ function makeRightSideFirstFloorPanels(): FacadePanel[] {
   const panelDepth = FACADE_PANEL_THICKNESS;
   const OUTSET = 0.002;
 
-  return LEFT_FACADE_SEGMENTS.map((segment) => {
+  return ARCH_RIGHT_FACADE_SEGMENTS.map((segment) => {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
     const panelBaseY = firstFloorLevel;

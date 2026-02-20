@@ -1,9 +1,8 @@
 import type { SideWindowSpec } from './windowFactory';
-import { createFacadeContext } from './facadeContext';
-import { buildFacadeWindowPlacements } from './buildFacadeWindowPlacements';
+import { buildFacadePlan } from './buildFacadePlan';
 import { buildSideWindows } from './buildSideWindows';
-import { buildWallOpenings } from './buildWallOpenings';
 import type { FacadePlan } from '../types/FacadePlan';
+import type { FacadeSide } from './facadeContext';
 
 type FacadeAssembly = FacadePlan & {
   windowMeshes: ReturnType<typeof buildSideWindows>;
@@ -13,18 +12,18 @@ export function buildFacadeAssembly({
   facade,
   windowSpecs,
 }: {
-  facade: 'left' | 'right';
+  facade: FacadeSide;
   windowSpecs: SideWindowSpec[];
 }): FacadeAssembly {
-  const ctx = createFacadeContext(facade);
-  const placements = buildFacadeWindowPlacements(ctx, windowSpecs);
-  const windowMeshes = buildSideWindows({ ctx, placements });
-  const openingCuts = buildWallOpenings(ctx, placements);
+  const plan = buildFacadePlan({ facade, windowSpecs });
+
+  const windowMeshes = buildSideWindows({
+    ctx: plan.ctx,
+    placements: plan.placements,
+  });
 
   return {
-    ctx,
-    placements,
+    ...plan,
     windowMeshes,
-    openingCuts,
   };
 }

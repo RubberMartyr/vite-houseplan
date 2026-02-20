@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 3000 --strictPort",
     "build": "vite build",
     "preview": "vite preview",
-    "test:visual": "playwright test tests/visual-regression.spec.ts --project=chromium",
+    "test:visual": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@types/react-dom": "^18.3.0",
     "vite": "^5.4.2",
     "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@playwright/test": "^1.41.0"
   }
 }

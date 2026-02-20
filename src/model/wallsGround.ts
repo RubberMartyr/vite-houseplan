@@ -545,7 +545,6 @@ export function buildWallsGround({
   };
 }
 
-export const wallsGround = buildWallsGround();
 
 function makeSideFacadePanel({
   side,

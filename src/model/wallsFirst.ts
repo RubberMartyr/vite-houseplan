@@ -45,11 +45,11 @@ type WallMesh = {
 };
 
 export function buildWallsFirst({
-  rightPlacements,
+  rightPlacements = [],
 }: {
-  rightPlacements: FacadeWindowPlacement[];
+  rightPlacements?: FacadeWindowPlacement[];
 }) {
-  const placements = rightPlacements;
+  const placements = rightPlacements ?? [];
 
   return {
     shell: (() => {

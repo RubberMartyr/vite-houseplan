@@ -52,6 +52,6 @@ const sideWindowSpecs: SideWindowSpec[] = [
 ];
 
 export const windowsLeft = {
-  meshes: buildSideWindows(sideWindowSpecs, { profile: ARCH_LEFT_FACADE_SEGMENTS, outwardX: 1 }),
+  meshes: buildSideWindows(sideWindowSpecs, { profile: ARCH_LEFT_FACADE_SEGMENTS, outwardX: 1, alignToFacadePanels: true }),
   profile: ARCH_LEFT_FACADE_SEGMENTS,
 };

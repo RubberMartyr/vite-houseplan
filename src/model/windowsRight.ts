@@ -29,5 +29,5 @@ const rightSpecs: SideWindowSpec[] = [
 ];
 
 export const windowsRight = {
-  meshes: buildSideWindows(rightSpecs, { profile: ARCH_RIGHT_FACADE_SEGMENTS, outwardX: -1 }),
+  meshes: buildSideWindows(rightSpecs, { profile: ARCH_RIGHT_FACADE_SEGMENTS, outwardX: -1, alignToFacadePanels: true }),
 };

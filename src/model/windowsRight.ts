@@ -25,6 +25,19 @@ const EPS = 0.001;
 
 const wallThickness = { exterior:0.3 };
 
+const glassMat = new THREE.MeshPhysicalMaterial({
+  color: 0xffffff,
+  transmission: 1,
+  transparent: true,
+  opacity: 1,
+  roughness: 0,
+  metalness: 0,
+  thickness: 0.02,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  toneMapped: false,   // 🔥 THIS is the real fix
+});
+
 // 🔥 YOUR RIGHT WINDOWS
 const rightSideWindowSpecs:SideWindowSpec[] = [
   {
@@ -75,6 +88,7 @@ function makeSimpleWindow({
     color: 0x222222,
     roughness: 0.6,
     metalness: 0.1,
+    toneMapped: false,   // 🔥 REQUIRED
   });
 
   const frame = new THREE.Mesh(
@@ -83,19 +97,6 @@ function makeSimpleWindow({
   );
 
   frame.position.set(frameX,y0+height/2,zCenter);
-
-  const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    transmission: 1,
-    transparent: true,
-    opacity: 1,
-    roughness: 0,
-    metalness: 0,
-    thickness: 0.02,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-    toneMapped: false,
-  });
 
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(0.02,height-0.05,width-0.05),

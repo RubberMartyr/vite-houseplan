@@ -35,6 +35,11 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
 
+type WallMesh = {
+  geometry: BufferGeometry;
+  role?: 'shell' | 'facade';
+};
+
 export const wallsFirst = {
   shell: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
@@ -60,6 +65,7 @@ export const wallsFirst = {
 
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
+    const mesh: WallMesh = { geometry, role: 'facade' };
     const triangleCount = position.count / 3;
     let removedOuter = 0;
     let removedFront = 0;
@@ -126,35 +132,39 @@ export const wallsFirst = {
         Math.abs(x3 - innerLeftX) < EPSILON;
       const triZMin = Math.min(z1, z2, z3);
       const triZMax = Math.max(z1, z2, z3);
-      const onRightSegment =
-        facesMostlyX &&
-        ARCH_LEFT_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = segment.x - exteriorThickness;
-          const onOuterX =
-            Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX =
-            Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
+      let onRightSegment = false;
+      let onLeftSegment = false;
+      if (mesh.role === 'facade') {
+        onRightSegment =
+          facesMostlyX &&
+          ARCH_LEFT_FACADE_SEGMENTS.some((segment) => {
+            const outerX = segment.x;
+            const innerX = segment.x - exteriorThickness;
+            const onOuterX =
+              Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
+            const onInnerX =
+              Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
+            if (!onOuterX && !onInnerX) return false;
 
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
-          return inSegmentZ;
-        });
+            const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
+            return inSegmentZ;
+          });
 
-      const onLeftSegment =
-        facesMostlyX &&
-        ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = segment.x + exteriorThickness; // inward = positive for negative-x facade
-          const onOuterX =
-            Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX =
-            Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
+        onLeftSegment =
+          facesMostlyX &&
+          ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
+            const outerX = segment.x;
+            const innerX = segment.x + exteriorThickness; // inward = positive for negative-x facade
+            const onOuterX =
+              Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
+            const onInnerX =
+              Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
+            if (!onOuterX && !onInnerX) return false;
 
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
-          return inSegmentZ;
-        });
+            const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
+            return inSegmentZ;
+          });
+      }
 
       if (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onLeftOuter || onLeftInner || onRightSegment || onLeftSegment) {
         if (onRearOuter) {
@@ -192,6 +202,7 @@ export const wallsFirst = {
     const removedTotal = removedOuter + removedFront + removedInner + removedSide;
     return {
       geometry: filteredGeometry,
+      role: 'shell' as const,
       position: raw.position,
       rotation: raw.rotation,
     };
@@ -563,6 +574,7 @@ function makeRightSideFirstFloorPanels(): FacadePanel[] {
 
     return {
       geometry: panelGeometry,
+      role: 'facade' as const,
       position: [xPos, firstFloorLevel + wallHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };

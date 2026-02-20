@@ -42,19 +42,18 @@ function windowVerticalExtents(spec: SideWindowSpec) {
   };
 }
 
-// NOTE: The envelope is no longer mirrored in X (as of this refactor).
-// Positive X is the architectural LEFT facade in world space (mirrored).
-// Negative X is the architectural RIGHT facade in world space.
+// NOTE: Positive X = architectural LEFT facade (mirrored from source).
+//       Negative X = architectural RIGHT facade.
 export const RIGHT_FACADE_SEGMENTS = [
   { id: 'R_A', z0: 0.0, z1: 4.0, x: 4.8 },
   { id: 'R_B', z0: 4.0, z1: 8.45, x: 4.1 },
   { id: 'R_C', z0: 8.45, z1: 12.0, x: 3.5 },
 ] as const;
 
-// Architectural RIGHT facade (negative X world space)
+// Architectural RIGHT facade (negative X world space).
 export const LEFT_FACADE_SEGMENTS = [
-  { id: 'L_A', z0: 0.0, z1: 4.0, x: -4.8 },
-  { id: 'L_B', z0: 4.0, z1: 8.45, x: -4.1 },
+  { id: 'L_A', z0: 0.0,  z1: 4.0,  x: -4.8 },
+  { id: 'L_B', z0: 4.0,  z1: 8.45, x: -4.1 },
   { id: 'L_C', z0: 8.45, z1: 12.0, x: -3.5 },
 ] as const;
 
@@ -117,10 +116,11 @@ export const sideWindowSpecs: SideWindowSpec[] = [
   },
 ];
 
-// Architectural RIGHT facade (negative X world space) — door + first-floor window
-// zCenter values are direct world-space Z coordinates (no mirroring)
+// Windows on the architectural RIGHT facade (negative X world space).
+// zCenter values are direct world-space Z — no mirrorZ applied.
 export const rightSideWindowSpecs: SideWindowSpec[] = [
   {
+    // Ground-floor door (rendered as full-glass window)
     id: 'SIDE_R_DOOR',
     kind: 'small',
     zCenter: 5.5,
@@ -131,12 +131,14 @@ export const rightSideWindowSpecs: SideWindowSpec[] = [
     firstY1: 0.0,
   },
   {
+    // First-floor window: absolute world Y 4.1 → 5.0 m
+    // kind:'tall' so windowVerticalExtents picks up firstY1 for height
     id: 'SIDE_R_WIN',
-    kind: 'small',
+    kind: 'tall',
     zCenter: 5.5,
     width: 0.9,
-    groundY0: 0.0,
-    groundY1: 0.0,
+    groundY0: 4.1,  // yBottom = groundY0 (bottom of window in world Y)
+    groundY1: 4.1,  // equal to groundY0 so no ground-floor glass renders
     firstY0: 4.1,
     firstY1: 5.0,
   },
@@ -418,18 +420,17 @@ function xFaceForLeftAtZ(z: number): number {
 }
 
 const rightSideMeshes: SideWindowMesh[] = rightSideWindowSpecs.flatMap((spec) => {
-  // zCenter is already in world space — no mirroring needed
-  const zCenter = spec.zCenter;
-  const xFace = xFaceForLeftAtZ(zCenter); // e.g. -4.1
-  const outward = -1; // faces outward toward negative X
-  const interiorDir = 1;
-  const wallDepth = wallThickness.exterior ?? 0.3;
+  const zCenter     = spec.zCenter; // direct world Z, no mirrorZ
+  const xFace       = xFaceForLeftAtZ(zCenter);
+  const outward     = -1;           // faces outward toward −X
+  const interiorDir =  1;
+  const wallDepth   = wallThickness.exterior ?? 0.3;
 
   const xOuterReveal = xFace;
   const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
-  const xOuterPlane = xOuterReveal + outward * EPS;
-  const frameX = xOuterPlane - outward * (FRAME_DEPTH / 2);
-  const glassX = frameX + interiorDir * GLASS_INSET;
+  const xOuterPlane  = xOuterReveal + outward * EPS;
+  const frameX       = xOuterPlane  - outward * (FRAME_DEPTH / 2);
+  const glassX       = frameX       + interiorDir * GLASS_INSET;
 
   const commonProps = {
     spec,

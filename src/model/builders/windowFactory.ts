@@ -1,14 +1,20 @@
 import * as THREE from 'three';
-import { EPS, FRAME_BORDER, FRAME_DEPTH, GLASS_INSET, GLASS_THICKNESS } from '../constants/windowConstants';
+import {
+  EPS,
+  FRAME_BORDER,
+  FRAME_DEPTH,
+  GLASS_INSET,
+  GLASS_THICKNESS,
+  METAL_BAND_DEPTH,
+  METAL_BAND_HEIGHT,
+  METAL_BAND_OUTSET,
+} from '../constants/windowConstants';
 import { buildFrameGeometry } from './buildFrameGeometry';
 import { buildSill } from './buildSill';
 import { frameMaterial, glassMaterial, metalBandMaterial, revealMaterial } from '../materials/windowMaterials';
 import { ceilingHeights, type ArchSide } from '../houseSpec';
 import { getEnvelopeOuterPolygon } from '../envelope';
 
-const METAL_BAND_DEPTH = 0.02;
-const METAL_BAND_HEIGHT = 0.12;
-const METAL_BAND_OUTSET = 0.015;
 const REVEAL_FACE = 0.05;
 
 const metalSlateMaterial = new THREE.MeshStandardMaterial({
@@ -20,7 +26,6 @@ const metalSlateMaterial = new THREE.MeshStandardMaterial({
 export type WindowFactorySpec = {
   id: string;
   kind: 'small' | 'tall';
-  type?: 'small' | 'tall';
   width: number;
   groundY0: number;
   groundY1: number;
@@ -37,7 +42,7 @@ export type SideWindowSpec = WindowFactorySpec & {
 
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
-export const ARCH_LEFT_FACADE_SEGMENTS = [
+export const RIGHT_WORLD_FACADE_SEGMENTS = [
   { id: 'L_A', z0: 0.0, z1: 4.0, x: +4.8 },
   { id: 'L_B', z0: 4.0, z1: 8.45, x: +4.1 },
   { id: 'L_C', z0: 8.45, z1: 12.0, x: +3.5 },
@@ -50,13 +55,10 @@ export const ARCH_RIGHT_FACADE_SEGMENTS = [
 ] as const;
 
 export function xFaceForArchSideAtZ(side: SideArchSide, z: number) {
-  const profile = side === 'LEFT' ? ARCH_LEFT_FACADE_SEGMENTS : ARCH_RIGHT_FACADE_SEGMENTS;
+  const profile = side === 'LEFT' ? RIGHT_WORLD_FACADE_SEGMENTS : ARCH_RIGHT_FACADE_SEGMENTS;
   const segment = profile.find((candidate) => z >= candidate.z0 && z <= candidate.z1) ?? profile[profile.length - 1];
   return segment.x;
 }
-
-const PRIMARY_ARCH_SIDE: SideArchSide = 'LEFT';
-export const MIRROR_Z = true;
 
 const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
   LEFT: [
@@ -138,25 +140,10 @@ const envelope = getEnvelopeOuterPolygon();
 export const sideZMin = Math.min(...envelope.map((p) => p.z));
 export const sideZMax = Math.max(...envelope.map((p) => p.z));
 
-export function sideMirrorZ(z: number, zMin: number, zMax: number, mirror: boolean) {
-  return mirror ? zMin + zMax - z : z;
-}
-
-export function makeMirrorZ(zMin: number, zMax: number) {
-  return (z: number) => sideMirrorZ(z, zMin, zMax, MIRROR_Z);
-}
-
 export function getSideWindowZCenter(spec: SideWindowSpec, mirrorZ: (z: number) => number) {
   const baseZ = mirrorZ(spec.zCenter);
-  return spec.kind === 'tall' || spec.type === 'tall' ? baseZ - TALL_Z_OFFSET_TO_FRONT : baseZ;
+  return spec.kind === 'tall' ? baseZ - TALL_Z_OFFSET_TO_FRONT : baseZ;
 }
-
-export const windowsSideConfig = {
-  side: PRIMARY_ARCH_SIDE,
-  zMin: sideZMin,
-  zMax: sideZMax,
-  mirrorZ: MIRROR_Z,
-};
 
 export type WindowFactoryMesh = {
   id: string;
@@ -177,8 +164,16 @@ function windowVerticalExtents(spec: WindowFactorySpec) {
 }
 
 function createGlassGeometry(width: number, height: number): THREE.BoxGeometry {
-  return new THREE.BoxGeometry(GLASS_THICKNESS, height, width);
+  const key = `${width}:${height}`;
+  const cached = glassGeomCache.get(key);
+  if (cached) return cached;
+
+  const geometry = new THREE.BoxGeometry(GLASS_THICKNESS, height, width);
+  glassGeomCache.set(key, geometry);
+  return geometry;
 }
+
+const glassGeomCache = new Map<string, THREE.BoxGeometry>();
 
 export function createRevealMeshes({
   spec,

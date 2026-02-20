@@ -3,7 +3,7 @@ import { buildSideWindows, type SideWindowSpec } from './builders/sideWindowBuil
 import type { FacadeSegment } from './builders/sideFacade';
 import { getEnvelopeOuterPolygon } from './envelope';
 
-export const ARCH_LEFT_FACADE_SEGMENTS: readonly FacadeSegment[] = [
+export const RIGHT_WORLD_FACADE_SEGMENTS: readonly FacadeSegment[] = [
   { id: 'L_A', z0: 0.0, z1: 4.0, x: 4.8 },
   { id: 'L_B', z0: 4.0, z1: 8.45, x: 4.1 },
   { id: 'L_C', z0: 8.45, z1: 12.0, x: 3.5 },
@@ -59,10 +59,10 @@ const mirrorZ = (z:number) => sideZMin + sideZMax - z;
 
 export const windowsLeft = {
   meshes: buildSideWindows(sideWindowSpecs, {
-    profile: ARCH_LEFT_FACADE_SEGMENTS,
+    profile: RIGHT_WORLD_FACADE_SEGMENTS,
     outwardX: 1,
     zTransform: mirrorZ,
     alignToFacadePanels: true,
   }),
-  profile: ARCH_LEFT_FACADE_SEGMENTS,
+  profile: RIGHT_WORLD_FACADE_SEGMENTS,
 };

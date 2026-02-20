@@ -12,13 +12,12 @@ import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } fro
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
   getSideWindowZCenter,
-  makeMirrorZ,
   rightSideWindowSpecs,
   sideWindowSpecs,
 } from './builders/windowFactory';
 import { xFaceForProfileAtZ } from './builders/sideFacade';
 import { frontOpeningRectsGround } from './windowsFront';
-import { ARCH_LEFT_FACADE_SEGMENTS } from './windowsLeft';
+import { RIGHT_WORLD_FACADE_SEGMENTS } from './windowsLeft';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
   buildRightFacadeReturnPanels,
@@ -79,7 +78,7 @@ const envelopeBounds = (() => {
     maxZ: Math.max(...outer.map((point) => point.z)),
   };
 })();
-const mirrorZ = makeMirrorZ(envelopeBounds.minZ, envelopeBounds.maxZ);
+const mirrorZ = (z: number) => envelopeBounds.minZ + envelopeBounds.maxZ - z;
 
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
@@ -302,7 +301,7 @@ export const wallsGround = {
       let onLeftSegment = false;
       let inAnyLeftSeg = false;
       if (mesh.role === 'facade') {
-        onRightSegment = facesMostlyX && ARCH_LEFT_FACADE_SEGMENTS.some((segment) => {
+        onRightSegment = facesMostlyX && RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
           const innerX = segment.x - exteriorThickness;
           const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
@@ -675,10 +674,10 @@ function makeLeftFacadePanels({
 
       panelGeometry.computeVertexNormals();
 
-      const xFace = xFaceForProfileAtZ(ARCH_LEFT_FACADE_SEGMENTS, panelCenterZ);
+      const xFace = xFaceForProfileAtZ(RIGHT_WORLD_FACADE_SEGMENTS, panelCenterZ);
       const xPos = xFace - panelDepth / 2 - OUTSET;
       const sideId =
-        ARCH_LEFT_FACADE_SEGMENTS.find((segment) => panelCenterZ >= segment.z0 && panelCenterZ <= segment.z1)?.id ?? 'L_A';
+        RIGHT_WORLD_FACADE_SEGMENTS.find((segment) => panelCenterZ >= segment.z0 && panelCenterZ <= segment.z1)?.id ?? 'L_A';
 
       return {
         geometry: panelGeometry,

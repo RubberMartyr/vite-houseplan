@@ -23,6 +23,7 @@ import {
   makeRightFacadePanels,
   type RightPanelOpening,
 } from './builders/facadePanel';
+import { brickMaterial } from './materials/brickMaterial';
 
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.first;
@@ -531,6 +532,11 @@ function makeRightSideFirstFloorPanels(): FacadePanel[] {
   const OUTSET = 0.002;
 
   return ARCH_RIGHT_FACADE_SEGMENTS.map((segment) => {
+    const sideId = segment.id;
+    if (sideId.startsWith('R_')) {
+      return null;
+    }
+
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
     const panelBaseY = firstFloorLevel;
@@ -575,8 +581,10 @@ function makeRightSideFirstFloorPanels(): FacadePanel[] {
     return {
       geometry: panelGeometry,
       role: 'facade' as const,
+      facadeSide: sideId,
+      material: brickMaterial,
       position: [xPos, firstFloorLevel + wallHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
-  });
+  }).filter((panel): panel is NonNullable<typeof panel> => !!panel);
 }

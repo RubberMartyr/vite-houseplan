@@ -28,6 +28,7 @@ import {
   makeRightFacadePanels,
   type RightPanelOpening,
 } from './builders/facadePanel';
+import { brickMaterial } from './materials/brickMaterial';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -676,10 +677,14 @@ function makeLeftFacadePanels({
 
       const xFace = xFaceForProfileAtZ(ARCH_LEFT_FACADE_SEGMENTS, panelCenterZ);
       const xPos = xFace - panelDepth / 2 - OUTSET;
+      const sideId =
+        ARCH_LEFT_FACADE_SEGMENTS.find((segment) => panelCenterZ >= segment.z0 && panelCenterZ <= segment.z1)?.id ?? 'L_A';
 
       return {
         geometry: panelGeometry,
         role: 'facade' as const,
+        facadeSide: sideId,
+        material: brickMaterial,
         position: [xPos, wallHeight / 2, panelCenterZ] as [number, number, number],
         rotation: [0, 0, 0] as [number, number, number],
       };
@@ -695,6 +700,11 @@ export function makeLeftSegmentPanels(): FacadePanel[] {
   const OUTSET = 0.002;
 
   return ARCH_RIGHT_FACADE_SEGMENTS.map((segment) => {
+    const sideId = segment.id;
+    if (sideId.startsWith('R_')) {
+      return null;
+    }
+
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
 
@@ -735,8 +745,10 @@ export function makeLeftSegmentPanels(): FacadePanel[] {
     return {
       geometry: panelGeometry,
       role: 'facade' as const,
+      facadeSide: sideId,
+      material: brickMaterial,
       position: [xPos, wallHeight / 2, panelCenterZ] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     };
-  });
+  }).filter((panel): panel is NonNullable<typeof panel> => !!panel);
 }

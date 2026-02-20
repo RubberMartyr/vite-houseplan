@@ -30,7 +30,8 @@ import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsSide, windowsRightSide } from '../model/windowsSide';
+import { windowsLeft } from '../model/windowsLeft';
+import { windowsRight } from '../model/windowsRight';
 import { windowsFront } from '../model/windowsFront';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
@@ -1064,34 +1065,17 @@ function HouseScene({
           </group>
 
           <group name="sideWindows" visible={wallShellVisible}>
-            {windowsSide.meshes.map((mesh) => {
-              const isGlass = mesh.id.toLowerCase().includes('_glass');
-              const fallbackMaterial = isGlass ? glass : frame;
-              const material = mesh.material ?? fallbackMaterial;
-              return (
-                <mesh
-                  key={mesh.id}
-                  geometry={mesh.geometry}
-                  position={mesh.position}
-                  rotation={mesh.rotation}
-                  material={material}
-                  castShadow={!isGlass}
-                  receiveShadow={!isGlass}
-                  renderOrder={isGlass ? 10 : undefined}
+            {[
+              ...windowsLeft.meshes,
+              ...windowsRight.meshes
+            ].flatMap((windowGroup) =>
+              windowGroup.meshes.map((mesh, meshIndex) => (
+                <primitive
+                  key={`${windowGroup.id}-${meshIndex}`}
+                  object={mesh}
                 />
-              );
-            })}
-            {windowsRightSide.meshes.map((mesh) => (
-              <mesh
-                key={mesh.id}
-                geometry={mesh.geometry}
-                position={mesh.position}
-                rotation={mesh.rotation as [number, number, number]}
-                material={mesh.material ?? glass}
-                castShadow
-                receiveShadow
-              />
-            ))}
+              ))
+            )}
           </group>
           <group name="frontWindows" visible={wallShellVisible}>
             {windowsFront.meshes.map((mesh) => {

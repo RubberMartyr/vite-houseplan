@@ -9,3 +9,6 @@ export const SILL_WIDTH_OVERHANG = 0.04;
 export const CUTOUT_DEPTH = 0.6;
 export const CUTOUT_MARGIN = 0.01;
 export const EPS = 0.01;
+export const METAL_BAND_DEPTH = 0.02;
+export const METAL_BAND_HEIGHT = 0.12;
+export const METAL_BAND_OUTSET = 0.015;

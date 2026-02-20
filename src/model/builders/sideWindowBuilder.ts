@@ -9,7 +9,6 @@ import { TALL_Z_OFFSET_TO_FRONT } from './windowFactory';
 export type SideWindowSpec = {
   id: string;
   kind: 'small' | 'tall';
-  type?: 'small' | 'tall';
   zCenter: number;
   width: number;
   groundY0: number;
@@ -50,7 +49,7 @@ export function buildSideWindows(specs: readonly SideWindowSpec[], cfg: SideWind
   return specs.flatMap((spec) => {
     let zCenter = cfg.zTransform ? cfg.zTransform(spec.zCenter) : spec.zCenter;
 
-    const isTall = spec.kind === 'tall' || spec.type === 'tall';
+    const isTall = spec.kind === 'tall';
     if (isTall) {
       zCenter = zCenter - TALL_Z_OFFSET_TO_FRONT;
     }

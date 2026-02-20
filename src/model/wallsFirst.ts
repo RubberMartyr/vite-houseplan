@@ -3,15 +3,12 @@ import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelop
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
   getSideWindowZCenter,
-  ARCH_LEFT_FACADE_SEGMENTS,
-  makeMirrorZ,
+  RIGHT_WORLD_FACADE_SEGMENTS,
   ARCH_RIGHT_FACADE_SEGMENTS,
   rightSideWindowSpecs,
-  sideMirrorZ,
   sideWindowSpecs,
   sideZMax,
   sideZMin,
-  windowsSideConfig,
 } from './builders/windowFactory';
 import { frontOpeningRectsFirst } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
@@ -34,7 +31,7 @@ const FACADE_PANEL_THICKNESS = 0.025;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
-const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
+const mirrorZ = (z: number) => sideZMin + sideZMax - z;
 
 type WallMesh = {
   geometry: BufferGeometry;
@@ -138,7 +135,7 @@ export const wallsFirst = {
       if (mesh.role === 'facade') {
         onRightSegment =
           facesMostlyX &&
-          ARCH_LEFT_FACADE_SEGMENTS.some((segment) => {
+          RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
             const outerX = segment.x;
             const innerX = segment.x - exteriorThickness;
             const onOuterX =
@@ -351,7 +348,7 @@ export const wallsFirst = {
     shape.closePath();
 
     // IMPORTANT: mirrorZ must match windowsSide, not the first-floor minZ/maxZ
-    const mirrorZ = makeMirrorZ(sideZMin, sideZMax);
+    const mirrorZ = (z: number) => sideZMin + sideZMax - z;
 
     // Create holes from sideWindowSpecs
     sideWindowSpecs.forEach((spec) => {
@@ -396,7 +393,7 @@ export const wallsFirst = {
     const firstOpenings: RightPanelOpening[] = sideWindowSpecs
       .filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
       .map((spec) => {
-        const isTall = spec.kind === 'tall' || spec.type === 'tall';
+        const isTall = spec.kind === 'tall';
         return {
           id: spec.id,
           zCenter: getSideWindowZCenter(spec, mirrorZ),
@@ -464,17 +461,12 @@ function makeSideFacadePanel({
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach((spec) => {
-    const zMirror = (z: number) => {
-      const sideArch = side === 'left' ? 'RIGHT' : 'LEFT';
-      const isActiveSide = sideArch === windowsSideConfig.side;
-      if (isActiveSide) return sideMirrorZ(z, windowsSideConfig.zMin, windowsSideConfig.zMax, windowsSideConfig.mirrorZ);
-      return sideMirrorZ(z, minZ, maxZ, windowsSideConfig.mirrorZ);
-    };
+    const zMirror = (z: number) => minZ + maxZ - z;
 
     const zCenter = getSideWindowZCenter(spec, zMirror);
     const zMin = zCenter - spec.width / 2;
     const zMax = zCenter + spec.width / 2;
-    const isTall = spec.kind === 'tall' || spec.type === 'tall';
+    const isTall = spec.kind === 'tall';
 
     // Only ground-level “tall” openings should be allowed to run full height (if that’s your intent).
     // On first floor, ALWAYS use firstY0/firstY1 so brick remains above.

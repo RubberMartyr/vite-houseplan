@@ -4,7 +4,6 @@ import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } fro
 import {
   RIGHT_WORLD_FACADE_SEGMENTS,
   ARCH_RIGHT_FACADE_SEGMENTS,
-  rightSideWindowSpecs,
   sideWindowSpecs,
   sideZMax,
   sideZMin,
@@ -22,6 +21,7 @@ import {
   type RightPanelOpening,
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
+import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.first;
@@ -42,7 +42,14 @@ type WallMesh = {
   role?: 'shell' | 'facade';
 };
 
-export const wallsFirst = {
+export function buildWallsFirst({
+  rightPlacements,
+}: {
+  rightPlacements?: FacadeWindowPlacement[];
+} = {}) {
+  const facadePlacementsResolved = rightPlacements ?? facadePlacements;
+
+  return {
   shell: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
@@ -330,8 +337,8 @@ export const wallsFirst = {
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
-  rightSideFacades: (() => makeRightSideFirstFloorPanels())(),
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first', facadePlacements: facadePlacementsResolved }))(),
+  rightSideFacades: (() => makeRightSideFirstFloorPanels(facadePlacementsResolved))(),
   rightFacade: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const rightX = outer.reduce((max, p) => Math.max(max, p.x), -Infinity);
@@ -352,7 +359,7 @@ export const wallsFirst = {
     shape.closePath();
 
     // Create holes from shared facade placements
-    facadePlacements.forEach(({ spec, zCenter, width }) => {
+    facadePlacementsResolved.forEach(({ spec, zCenter, width }) => {
       const zMinHole = zCenter - width / 2;
       const zMaxHole = zCenter + width / 2;
 
@@ -382,7 +389,7 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const firstOpenings: RightPanelOpening[] = facadePlacements
+    const firstOpenings: RightPanelOpening[] = facadePlacementsResolved
       .filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
       .map(({ spec, zCenter, width }) => {
         const isTall = spec.kind === 'tall';
@@ -417,14 +424,17 @@ export const wallsFirst = {
     panels.push(...rightReturnPanels);
     return panels;
   })(),
-};
+  };
+}
 
 function makeSideFacadePanel({
   side,
   level,
+  facadePlacements,
 }: {
   side: 'left' | 'right';
   level: 'ground' | 'first';
+  facadePlacements: FacadeWindowPlacement[];
 }): FacadePanel | null {
   const outer = getEnvelopeFirstOuterPolygon();
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
@@ -508,7 +518,7 @@ function makeSideFacadePanel({
 }
 
 // First-floor panels for the architectural RIGHT facade (negative X world space)
-function makeRightSideFirstFloorPanels(): FacadePanel[] {
+function makeRightSideFirstFloorPanels(facadePlacements: FacadeWindowPlacement[]): FacadePanel[] {
   const panelDepth = FACADE_PANEL_THICKNESS;
   const OUTSET = 0.002;
 
@@ -530,13 +540,12 @@ function makeRightSideFirstFloorPanels(): FacadePanel[] {
     shape.closePath();
 
     // Punch holes for right-side first-floor windows
-    rightSideWindowSpecs.forEach((spec) => {
-      const zCenter = spec.zCenter;
+    facadePlacements.forEach(({ spec, zCenter, width }) => {
       if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
       if (spec.firstY1 - spec.firstY0 < MIN_HOLE_H) return;
 
-      const zMin = zCenter - spec.width / 2;
-      const zMax = zCenter + spec.width / 2;
+      const zMin = zCenter - width / 2;
+      const zMax = zCenter + width / 2;
       // y values from spec are absolute world Y; convert to panel-local space
       const yMin = spec.firstY0 - panelBaseY;
       const yMax = spec.firstY1 - panelBaseY;

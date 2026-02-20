@@ -73,7 +73,7 @@ const DORMER_GLASS_TOP_Y = 5.15; // lowered further to match elevation
 const FRONT_WIDTH_M = 9.6; // 960 cm
 const HALF_WIDTH = FRONT_WIDTH_M / 2; // 4.80 m (right edge in world space)
 
-export function frontXCenter(xFromLeft: number, openingWidth: number): number {
+function frontXCenter(xFromLeft: number, openingWidth: number): number {
   return HALF_WIDTH - (xFromLeft + openingWidth / 2);
 }
 

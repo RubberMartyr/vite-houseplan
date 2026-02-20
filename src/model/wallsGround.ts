@@ -16,7 +16,7 @@ import {
   makeMirrorZ,
   rightSideWindowSpecs,
   sideWindowSpecs,
-} from './windowsSide';
+} from './builders/windowFactory';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {

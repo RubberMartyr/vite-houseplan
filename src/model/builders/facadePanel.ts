@@ -1,7 +1,7 @@
 import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
 
 const EPSILON = 0.01;
-import { ARCH_LEFT_FACADE_SEGMENTS } from '../windowsSide';
+import { ARCH_LEFT_FACADE_SEGMENTS } from './windowFactory';
 
 export type FacadePanel = {
   geometry: BufferGeometry;

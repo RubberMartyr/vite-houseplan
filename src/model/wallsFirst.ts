@@ -11,8 +11,8 @@ import {
   sideWindowSpecs,
   sideZMax,
   sideZMin,
-  windowsSide,
-} from './windowsSide';
+  windowsSideConfig,
+} from './builders/windowFactory';
 import { frontOpeningRectsFirst } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
@@ -454,9 +454,9 @@ function makeSideFacadePanel({
   openings.forEach((spec) => {
     const zMirror = (z: number) => {
       const sideArch = side === 'left' ? 'RIGHT' : 'LEFT';
-      const isActiveSide = sideArch === windowsSide.side;
-      if (isActiveSide) return sideMirrorZ(z, windowsSide.zMin, windowsSide.zMax, windowsSide.mirrorZ);
-      return sideMirrorZ(z, minZ, maxZ, windowsSide.mirrorZ);
+      const isActiveSide = sideArch === windowsSideConfig.side;
+      if (isActiveSide) return sideMirrorZ(z, windowsSideConfig.zMin, windowsSideConfig.zMax, windowsSideConfig.mirrorZ);
+      return sideMirrorZ(z, minZ, maxZ, windowsSideConfig.mirrorZ);
     };
 
     const zCenter = getSideWindowZCenter(spec, zMirror);

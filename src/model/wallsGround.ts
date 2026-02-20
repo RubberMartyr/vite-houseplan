@@ -29,6 +29,7 @@ import {
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
 import type { OpeningCut } from './types/OpeningCut';
+import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 import { runtimeFlags } from './runtimeFlags';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
@@ -215,8 +216,10 @@ function isExtensionSideWallFace(v: Vector3) {
 }
 
 export function buildWallsGround({
+  rightPlacements,
   rightOpenings = [],
 }: {
+  rightPlacements?: FacadeWindowPlacement[];
   rightOpenings?: OpeningCut[];
 } = {}) {
   return {
@@ -513,13 +516,16 @@ export function buildWallsGround({
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightSideFacades: makeLeftSegmentPanels({ openings: rightOpenings }),
   rightFacades: (() => {
-    const groundOpenings: RightPanelOpening[] = facadePlacements.map(({ spec, zCenter, width }) => ({
-      id: spec.id,
-      zCenter,
-      widthZ: width,
-      y0: spec.groundY0,
-      y1: spec.groundY1,
-    }));
+    const placements = rightPlacements ?? facadePlacements;
+    const groundOpenings: RightPanelOpening[] = placements
+      .filter(({ spec }) => spec.groundY1 - spec.groundY0 > MIN_HOLE_H)
+      .map(({ spec, zCenter, width }) => ({
+        id: spec.id,
+        zCenter,
+        widthZ: width,
+        y0: spec.groundY0,
+        y1: spec.groundY1,
+      }));
 
     const panels: FacadePanel[] = makeRightFacadePanels({
       mirrorZ,

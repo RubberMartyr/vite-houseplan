@@ -73,7 +73,7 @@ function makeSimpleWindow({
 
   const frame = new THREE.Mesh(
     new THREE.BoxGeometry(FRAME_DEPTH,height,width),
-    new THREE.MeshStandardMaterial({color:0x222222})
+    new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
 
   frame.position.set(frameX,y0+height/2,zCenter);
@@ -81,7 +81,7 @@ function makeSimpleWindow({
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(0.02,height-0.05,width-0.05),
     new THREE.MeshPhysicalMaterial({
-      color:0xffffff,
+      color:0xff0000,
       transmission:0.9,
       transparent:true,
       opacity:1,

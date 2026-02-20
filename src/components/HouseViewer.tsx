@@ -1,11 +1,10 @@
-// @ts-nocheck
-// @ts-nocheck
 console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
 import { wallsFirst } from '../model/wallsFirst';
@@ -28,6 +27,7 @@ import {
 } from '../model/envelope'
 import { buildRoofMeshes } from '../model/roof'
 import { roomsGround } from '../model/roomsGround'
+import { RoomVolume } from '../model/roomsGround';
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsLeft } from '../model/windowsLeft';
@@ -69,7 +69,7 @@ const SPECS = {
 // --- GEOMETRY HELPERS ---
 
 // Create a 2D Shape for Extrusion
-function makeFootprintShape(points) {
+function makeFootprintShape(points: FootprintPoint[]): THREE.Shape {
   const shape = new THREE.Shape();
   const pathPoints =
     points.length > 1 &&
@@ -98,6 +98,9 @@ function useBuildingMaterials() {
     c.width = 512;
     c.height = 512;
     const ctx = c.getContext('2d');
+    if (!ctx) {
+      throw new Error('Unable to create 2D context for brick material texture.');
+    }
 
     // Base color (Rust/Clay)
     ctx.fillStyle = '#8B5A40';
@@ -165,6 +168,30 @@ function useBuildingMaterials() {
 }
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
+type FloorVisibility = { basement: boolean; ground: boolean; first: boolean; attic: boolean };
+type FloorKey = keyof FloorVisibility;
+type FootprintPoint = { x: number; z: number };
+type PositionedMesh = {
+  geometry: THREE.BufferGeometry;
+  position?: THREE.Vector3 | [number, number, number];
+  rotation?: THREE.Euler | [number, number, number];
+};
+type SlabProps = {
+  y: number;
+  thickness?: number;
+  color?: THREE.ColorRepresentation;
+  shape: THREE.Shape;
+};
+type WindowProps = {
+  w: number;
+  h: number;
+  x: number;
+  y: number;
+  z: number;
+  rot?: number;
+  type?: 'standard' | 'classic';
+};
+type HouseSceneCameraPreset = { position: [number, number, number]; target: [number, number, number] };
 
 const rightFacade = buildFacadeAssembly({
   facade: 'right',
@@ -174,6 +201,15 @@ const rightFacade = buildFacadeAssembly({
 const wallsGround = buildWallsGround({
   rightOpenings: rightFacade.openingCuts,
 });
+
+const wallsGroundWithOptionals: typeof wallsGround & {
+  extensionRightWall?: PositionedMesh;
+  frontFacade?: PositionedMesh;
+} = wallsGround;
+
+const wallsFirstWithOptionals: typeof wallsFirst & {
+  frontFacade?: PositionedMesh;
+} = wallsFirst;
 
 // --- HOUSE COMPONENTS ---
 
@@ -204,12 +240,12 @@ function Roof({ visible = true }: { visible?: boolean }) {
   );
 }
 
-function Window({ w, h, x, y, z, rot = 0, type = 'standard' }) {
+function Window({ w, h, x, y, z, rot = 0, type = 'standard' }: WindowProps) {
   const { glass, frame } = useBuildingMaterials();
   const depth = 0.2; // Frame depth
 
   return (
-    <group position={[x, y, z]} rotation={[0, Math.PI, 0]}>
+    <group position={[x, y, z]} rotation={[0, rot, 0]}>
       {/* Frame Box */}
       <mesh position={[0, h / 2, 0]} castShadow>
         <boxGeometry args={[w, h, depth]} />
@@ -289,7 +325,7 @@ function Openings() {
   );
 }
 
-function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: any) {
+function Slab({ y, thickness = SPECS.levels.slab, color = '#d9c6a2', shape }: SlabProps) {
   const geom = useMemo(
     () => {
       const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
@@ -326,7 +362,7 @@ function getBoxProps(bounds: { xMin: number; xMax: number; zMin: number; zMax: n
   };
 }
 
-function RoomHitbox({ room, highlighted, onSelect }: any) {
+function RoomHitbox({ room, highlighted, onSelect }: { room: RoomVolume; highlighted: boolean; onSelect: (roomId: string) => void }) {
   const { position, size } = useMemo(() => getBoxProps(room.bounds), [room.bounds]);
   const geometry = useMemo(() => new THREE.BoxGeometry(...size), [size]);
 
@@ -334,12 +370,12 @@ function RoomHitbox({ room, highlighted, onSelect }: any) {
     <group position={position}>
       <mesh
         geometry={geometry}
-        onPointerDown={(event) => {
+        onPointerDown={(event: ThreeEvent<PointerEvent>) => {
           event.stopPropagation();
           onSelect(room.id);
         }}
-        onPointerEnter={(event) => event.stopPropagation()}
-        onPointerOver={(event) => event.stopPropagation()}
+        onPointerEnter={(event: ThreeEvent<PointerEvent>) => event.stopPropagation()}
+        onPointerOver={(event: ThreeEvent<PointerEvent>) => event.stopPropagation()}
       >
         <meshStandardMaterial
           transparent
@@ -367,7 +403,7 @@ export default function HouseViewer() {
       }
     : null;
 
-  const [activeFloors, setActiveFloors] = useState({
+  const [activeFloors, setActiveFloors] = useState<FloorVisibility>({
     basement: true,
     ground: true,
     first: true,
@@ -376,7 +412,7 @@ export default function HouseViewer() {
   const [showTerrain, setShowTerrain] = useState(true);
   const [showRoof, setShowRoof] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
   const [facadeVisibility, setFacadeVisibility] = useState<Record<FacadeKey, boolean>>({
     front: true,
@@ -384,7 +420,7 @@ export default function HouseViewer() {
     left: true,
     right: true,
   });
-  const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const allFloorsActive = Object.values(activeFloors).every(Boolean);
 
@@ -394,7 +430,7 @@ export default function HouseViewer() {
     [allRooms, selectedRoomId]
   );
 
-  const handleToggleFloor = (key: keyof typeof activeFloors) => {
+  const handleToggleFloor = (key: FloorKey) => {
     setActiveFloors((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -491,16 +527,16 @@ function HouseScene({
 }: {
   debugOrientation: boolean;
   screenshotMode: boolean;
-  cameraPreset: { position: [number, number, number]; target: [number, number, number] } | null;
+  cameraPreset: HouseSceneCameraPreset | null;
   cameraRef: React.MutableRefObject<THREE.PerspectiveCamera | null>;
-  activeFloors: { basement: boolean; ground: boolean; first: boolean; attic: boolean };
+  activeFloors: FloorVisibility;
   showTerrain: boolean;
   showRoof: boolean;
   cutawayEnabled: boolean;
   facadeVisibility: Record<FacadeKey, boolean>;
   selectedRoomId: string | null;
   onSelectRoom: (roomId: string | null) => void;
-  controlsRef: React.MutableRefObject<any>;
+  controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
 }) {
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
@@ -627,7 +663,7 @@ function HouseScene({
     );
   }, [eavesBandMaterial, wallShellVisible]);
 
-  const getRearFacadeSpan = (points: { x: number; z: number }[]) => {
+  const getRearFacadeSpan = (points: FootprintPoint[]) => {
     if (!points || points.length === 0) {
       return null;
     }
@@ -673,7 +709,7 @@ function HouseScene({
   );
 
   const activeRooms = useMemo(() => {
-    const list: any[] = [];
+    const list: RoomVolume[] = [];
 
     if (showGround) {
       list.push(...roomsGround);
@@ -798,11 +834,11 @@ function HouseScene({
                 visible={wallShellVisible}
               />
             ))}
-          {showGround && (wallsGround as any).extensionRightWall && (
+          {showGround && wallsGroundWithOptionals.extensionRightWall && (
             <mesh
-              geometry={(wallsGround as any).extensionRightWall.geometry}
-              position={(wallsGround as any).extensionRightWall.position}
-              rotation={(wallsGround as any).extensionRightWall.rotation}
+              geometry={wallsGroundWithOptionals.extensionRightWall.geometry}
+              position={wallsGroundWithOptionals.extensionRightWall.position}
+              rotation={wallsGroundWithOptionals.extensionRightWall.rotation}
               material={facadeMaterial}
               castShadow
               receiveShadow
@@ -820,11 +856,11 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showGround && (wallsGround as any).frontFacade && (
+          {showGround && wallsGroundWithOptionals.frontFacade && (
             <mesh
-              geometry={(wallsGround as any).frontFacade.geometry}
-              position={(wallsGround as any).frontFacade.position}
-              rotation={(wallsGround as any).frontFacade.rotation}
+              geometry={wallsGroundWithOptionals.frontFacade.geometry}
+              position={wallsGroundWithOptionals.frontFacade.position}
+              rotation={wallsGroundWithOptionals.frontFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow
@@ -861,7 +897,7 @@ function HouseScene({
           */}
           {/* disabled rightSideFacades */}
           {/* {showFirst &&
-            (wallsFirst as any).rightSideFacades?.map((facade: any, index: number) => (
+            wallsFirst.rightSideFacades?.map((facade, index) => (
               <mesh
                 key={`first-rs-${index}`}
                 geometry={facade.geometry}
@@ -895,11 +931,11 @@ function HouseScene({
               visible={wallShellVisible}
             />
           )}
-          {showFirst && (wallsFirst as any).frontFacade && (
+          {showFirst && wallsFirstWithOptionals.frontFacade && (
             <mesh
-              geometry={(wallsFirst as any).frontFacade.geometry}
-              position={(wallsFirst as any).frontFacade.position}
-              rotation={(wallsFirst as any).frontFacade.rotation}
+              geometry={wallsFirstWithOptionals.frontFacade.geometry}
+              position={wallsFirstWithOptionals.frontFacade.position}
+              rotation={wallsFirstWithOptionals.frontFacade.rotation}
               material={wallMaterial}
               castShadow
               receiveShadow

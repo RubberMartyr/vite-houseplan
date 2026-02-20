@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { wallsBasement } from '../model/wallsBasement';
-import { wallsGround } from '../model/wallsGround';
+import { buildWallsGround } from '../model/wallsGround';
 import { wallsFirst } from '../model/wallsFirst';
 import { wallsEavesBand } from '../model/wallsEavesBand';
 import {
@@ -32,9 +32,7 @@ import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsLeft } from '../model/windowsLeft';
 import { windowsFront } from '../model/windowsFront';
-import { buildSideWindows } from '../model/builders/buildSideWindows';
-import { buildFacadeWindowPlacements } from '../model/builders/buildFacadeWindowPlacements';
-import { createFacadeContext } from '../model/builders/facadeContext';
+import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
 import { rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
@@ -167,16 +165,13 @@ function useBuildingMaterials() {
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
 
-const rightFacadeCtx = createFacadeContext('right');
+const rightFacade = buildFacadeAssembly({
+  facade: 'right',
+  windowSpecs: rightSideWindowSpecs,
+});
 
-const rightPlacements = buildFacadeWindowPlacements(
-  rightFacadeCtx,
-  rightSideWindowSpecs
-);
-
-const rightSideMeshes = buildSideWindows({
-  ctx: rightFacadeCtx,
-  placements: rightPlacements,
+const wallsGround = buildWallsGround({
+  rightOpenings: rightFacade.openingCuts,
 });
 
 // --- HOUSE COMPONENTS ---
@@ -1093,7 +1088,7 @@ function HouseScene({
             {windowsLeft.meshes.map((mesh, i) => (
               <primitive key={`wl_${i}`} object={mesh} />
             ))}
-            {rightSideMeshes.map((mesh, i) => (
+            {rightFacade.windowMeshes.map((mesh, i) => (
               <primitive key={`wr_${i}`} object={mesh} />
             ))}
           </group>

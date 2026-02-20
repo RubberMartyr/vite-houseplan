@@ -12,7 +12,6 @@ import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } fro
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
   RIGHT_WORLD_FACADE_SEGMENTS,
-  rightSideWindowSpecs,
   sideWindowSpecs,
 } from './builders/windowFactory';
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
@@ -29,6 +28,7 @@ import {
   type RightPanelOpening,
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
+import type { OpeningCut } from './types/OpeningCut';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -213,7 +213,12 @@ function isExtensionSideWallFace(v: Vector3) {
   return onX && inZ;
 }
 
-export const wallsGround = {
+export function buildWallsGround({
+  rightOpenings = [],
+}: {
+  rightOpenings?: OpeningCut[];
+} = {}) {
+  return {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
@@ -505,7 +510,7 @@ export const wallsGround = {
   })(),
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
-  rightSideFacades: makeLeftSegmentPanels(),
+  rightSideFacades: makeLeftSegmentPanels({ openings: rightOpenings }),
   rightFacades: (() => {
     const groundOpenings: RightPanelOpening[] = facadePlacements.map(({ spec, zCenter, width }) => ({
       id: spec.id,
@@ -537,7 +542,10 @@ export const wallsGround = {
     panels.push(...rightReturnPanels);
     return panels;
   })(),
-};
+  };
+}
+
+export const wallsGround = buildWallsGround();
 
 function makeSideFacadePanel({
   side,
@@ -696,7 +704,7 @@ function makeLeftFacadePanels({
 
 
 // Panels for the architectural RIGHT facade (negative X world space)
-export function makeLeftSegmentPanels(): FacadePanel[] {
+export function makeLeftSegmentPanels({ openings }: { openings: OpeningCut[] }): FacadePanel[] {
   const panelDepth = FACADE_PANEL_THICKNESS;
   const OUTSET = 0.002;
 
@@ -716,16 +724,16 @@ export function makeLeftSegmentPanels(): FacadePanel[] {
     shape.lineTo(-widthZ / 2, wallHeight / 2);
     shape.closePath();
 
-    // Punch holes for right-side ground-floor windows
-    rightSideWindowSpecs.forEach((spec) => {
-      const zCenter = spec.zCenter;
+    // Punch holes from precomputed facade openings
+    openings.forEach((opening) => {
+      const zCenter = opening.zCenter;
       if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
-      if (spec.groundY1 - spec.groundY0 < MIN_HOLE_H) return;
+      if (opening.height < MIN_HOLE_H) return;
 
-      const zMin = zCenter - spec.width / 2;
-      const zMax = zCenter + spec.width / 2;
-      const yMin = spec.groundY0;
-      const yMax = spec.groundY1;
+      const zMin = zCenter - opening.width / 2;
+      const zMax = zCenter + opening.width / 2;
+      const yMin = 0;
+      const yMax = opening.height;
 
       const path = new Path();
       path.moveTo(zMin - panelCenterZ, yMin - wallHeight / 2);

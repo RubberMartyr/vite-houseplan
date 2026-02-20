@@ -29,6 +29,7 @@ import {
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
 import type { OpeningCut } from './types/OpeningCut';
+import { runtimeFlags } from './runtimeFlags';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -570,13 +571,17 @@ function makeSideFacadePanel({
   const xFace = side === 'left' ? minX : maxX;
   const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EPSILON);
   if (edgePoints.length === 0) {
-    console.warn('⚠️ sideFacade edgePoints empty', side, level);
+    if (runtimeFlags.isDev) {
+      console.warn('⚠️ sideFacade edgePoints empty', side, level);
+    }
     return null;
   }
   const minZ = edgePoints.reduce((min, point) => Math.min(min, point.z), Infinity);
   const maxZ = edgePoints.reduce((max, point) => Math.max(max, point.z), -Infinity);
   if (!Number.isFinite(minZ) || !Number.isFinite(maxZ) || maxZ <= minZ) {
-    console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
+    if (runtimeFlags.isDev) {
+      console.warn('⚠️ sideFacade invalid z range', { side, level, minZ, maxZ });
+    }
     return null;
   }
   const panelWidth = maxZ - minZ;

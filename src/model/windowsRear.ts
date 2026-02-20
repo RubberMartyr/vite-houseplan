@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getEnvelopeFirstOuterPolygon, getEnvelopeOuterPolygon } from './envelope';
 import { levelHeights } from './houseSpec';
+import { runtimeFlags } from './runtimeFlags';
 import {
   EPS,
   FRAME_BORDER,
@@ -31,9 +32,11 @@ function getRearFacadeSpan(points: { x: number; z: number }[]): FacadeSpan {
   const width = maxX - minX;
 
   if (Math.abs(width - EXPECTED_REAR_WIDTH) > WIDTH_TOLERANCE) {
-    console.warn(
-      `[windowsRear] Rear facade width (${width.toFixed(3)}m) differs from expected ${EXPECTED_REAR_WIDTH}m`
-    );
+    if (runtimeFlags.isDev) {
+      console.warn(
+        `[windowsRear] Rear facade width (${width.toFixed(3)}m) differs from expected ${EXPECTED_REAR_WIDTH}m`
+      );
+    }
   }
 
   return { minX, maxX, maxZ, width };

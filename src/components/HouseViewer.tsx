@@ -1,5 +1,3 @@
-console.log("✅ ACTIVE VIEWER FILE: HouseViewer.tsx", Date.now());
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
@@ -38,6 +36,11 @@ import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
 import { ViewerControls } from './ViewerControls';
+import { runtimeFlags } from '../model/runtimeFlags';
+
+if (runtimeFlags.isDev) {
+  console.log('✅ ACTIVE VIEWER FILE: HouseViewer.tsx', Date.now());
+}
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -646,10 +649,12 @@ function HouseScene({
   const basementFloorLevel = -2.0;
   const basementCeilingLevel = -0.01;
   const eavesBandMesh = useMemo(() => {
-    console.log('✅ EAVES BAND ACTIVE', Date.now(), {
-      expectedYStart: 5.10,
-      expectedYEnd: 5.70,
-    });
+    if (runtimeFlags.isDev) {
+      console.log('✅ EAVES BAND ACTIVE', Date.now(), {
+        expectedYStart: 5.10,
+        expectedYEnd: 5.70,
+      });
+    }
     return (
       <mesh
         geometry={wallsEavesBand.shell.geometry}
@@ -726,20 +731,24 @@ function HouseScene({
   const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
 
   useEffect(() => {
-    console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
-    console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
-    console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
-    console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
-    const offsetPoints = groundEnvelopePolygon.slice(0, 2).map((point) => ({
-      x: point.x + originOffset.x,
-      z: point.z + originOffset.z,
-    }));
-    console.log('Origin offset applied:', originOffset);
-    console.log('First two envelope points after offset:', offsetPoints);
+    if (runtimeFlags.isDev) {
+      console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
+      console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
+      console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
+      console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
+      const offsetPoints = groundEnvelopePolygon.slice(0, 2).map((point) => ({
+        x: point.x + originOffset.x,
+        z: point.z + originOffset.z,
+      }));
+      console.log('Origin offset applied:', originOffset);
+      console.log('First two envelope points after offset:', offsetPoints);
+    }
   }, [firstEnvelopePolygon, groundEnvelopePolygon]);
 
   useEffect(() => {
-    console.log('✅ windowsSide parented under originOffset group');
+    if (runtimeFlags.isDev) {
+      console.log('✅ windowsSide parented under originOffset group');
+    }
   }, []);
 
   return (

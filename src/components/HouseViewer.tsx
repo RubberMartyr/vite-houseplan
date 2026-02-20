@@ -1064,6 +1064,16 @@ function HouseScene({
             })}
           </group>
 
+          {/* RIGHT SIDE WINDOWS */}
+          {windowsRight.meshes.flatMap(w =>
+            w.meshes.map((mesh, i) => (
+              <primitive
+                key={"wr_" + w.id + "_" + i}
+                object={mesh}
+              />
+            ))
+          )}
+
           <group name="sideWindows" visible={wallShellVisible}>
             {[
               ...windowsLeft.meshes,

@@ -202,6 +202,7 @@ const rightFacade = buildFacadeAssembly({
 });
 
 const wallsGround = buildWallsGround({
+  rightPlacements: rightFacade.placements,
   rightOpenings: rightFacade.openingCuts,
 });
 

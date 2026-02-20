@@ -465,25 +465,8 @@ function makeSideFacadePanel({
   openings.forEach(({ spec, zCenter, width }) => {
     const zMin = zCenter - width / 2;
     const zMax = zCenter + width / 2;
-    const isTall = spec.kind === 'tall';
-
-    // Only ground-level “tall” openings should be allowed to run full height (if that’s your intent).
-    // On first floor, ALWAYS use firstY0/firstY1 so brick remains above.
-    const isFullHeightTall = isTall;
-
-    const yMinLocal =
-      level === 'ground'
-        ? spec.groundY0
-        : isFullHeightTall
-          ? 0
-          : spec.firstY0 - panelBaseY;
-
-    const yMaxLocal =
-      level === 'ground'
-        ? spec.groundY1
-        : isFullHeightTall
-          ? panelHeight
-          : spec.firstY1 - panelBaseY;
+    const yMinLocal = level === 'ground' ? spec.groundY0 : spec.firstY0 - panelBaseY;
+    const yMaxLocal = level === 'ground' ? spec.groundY1 : spec.firstY1 - panelBaseY;
 
     if (
       zMax - zMin < MIN_HOLE_W ||

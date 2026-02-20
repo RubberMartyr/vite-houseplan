@@ -17,7 +17,7 @@ import {
 } from './builders/windowFactory';
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
 import { createFacadeContext } from './builders/facadeContext';
-import { xFaceForProfileAtZ } from './builders/sideFacade';
+import { resolveFacadeX } from './builders/facadeGeometry';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
@@ -706,8 +706,8 @@ function makeLeftFacadePanels({
 
       panelGeometry.computeVertexNormals();
 
-      const xFace = xFaceForProfileAtZ(RIGHT_WORLD_FACADE_SEGMENTS, panelCenterZ);
-      const xPos = xFace - panelDepth / 2 - OUTSET;
+      const xFace = resolveFacadeX(facadeCtx, panelCenterZ);
+      const xPos = xFace - facadeCtx.outward * (panelDepth / 2 + OUTSET);
       const sideId =
         RIGHT_WORLD_FACADE_SEGMENTS.find((segment) => panelCenterZ >= segment.z0 && panelCenterZ <= segment.z1)?.id ?? 'L_A';
 

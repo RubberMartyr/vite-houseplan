@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ARCH_SIDE_TO_WORLD_X, ceilingHeights, levelHeights, type ArchSide, wallThickness } from './houseSpec';
+import { ceilingHeights, levelHeights, type ArchSide, wallThickness } from './houseSpec';
 import { getEnvelopeOuterPolygon } from './envelope';
 import { EPS, FRAME_BORDER, FRAME_DEPTH, GLASS_INSET, GLASS_THICKNESS } from './constants/windowConstants';
 import { buildFrameGeometry } from './builders/buildFrameGeometry';
@@ -16,11 +16,24 @@ type SideWindowMesh = {
 
 type SideArchSide = Extract<ArchSide, 'LEFT' | 'RIGHT'>;
 
+function xFaceForArchSideAtZ(
+  side: ArchSide,
+  z: number,
+  leftProfile: any[],
+  rightProfile: any[],
+) {
+  const profile = side === 'LEFT' ? leftProfile : rightProfile;
+
+  const seg = profile.find((s) => z >= s.z0 && z <= s.z1) ?? profile[profile.length - 1];
+
+  return seg.x;
+}
+
 export type SideWindowSpec = {
   id: string;
+  archSide: ArchSide;
   kind: 'small' | 'tall';
   type?: 'small' | 'tall';
-  archSide: SideArchSide;
   zCenter: number;
   width: number;
   groundY0: number;
@@ -58,14 +71,6 @@ export const ARCH_RIGHT_FACADE_SEGMENTS = [
   { id: 'R_B', z0: 4.0, z1: 8.45, x: -4.1 },
   { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
 ] as const;
-
-export function xFaceForArchSideAtZ(side: SideArchSide, z: number) {
-  const profile = side === 'LEFT' ? ARCH_LEFT_FACADE_SEGMENTS : ARCH_RIGHT_FACADE_SEGMENTS;
-
-  const segment = profile.find((candidate) => z >= candidate.z0 && z <= candidate.z1) ?? profile[profile.length - 1];
-
-  return segment.x;
-}
 
 // Toggle whether side windows should mirror along Z
 const PRIMARY_ARCH_SIDE: SideArchSide = 'LEFT';
@@ -126,29 +131,26 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
 ],
   RIGHT: [
   {
-    // Ground-floor door (rendered as full-glass window)
-    id: 'SIDE_R_DOOR',
-    kind: 'small',
-    archSide: 'RIGHT',
-    zCenter: 5.5,
-    width: 1.0,
-    groundY0: 0.0,
-    groundY1: 2.15,
-    firstY0: 0.0,
-    firstY1: 0.0,
+    id:'SIDE_R_DOOR',
+    archSide:'RIGHT',
+    kind:'small',
+    zCenter:5.5,
+    width:1.0,
+    groundY0:0.0,
+    groundY1:2.15,
+    firstY0:0,
+    firstY1:0,
   },
   {
-    // First-floor window: absolute world Y 4.1 → 5.0 m
-    // kind:'tall' so windowVerticalExtents picks up firstY1 for height
-    id: 'SIDE_R_WIN',
-    kind: 'tall',
-    archSide: 'RIGHT',
-    zCenter: 5.5,
-    width: 0.9,
-    groundY0: 4.1,  // yBottom = groundY0 (bottom of window in world Y)
-    groundY1: 4.1,  // equal to groundY0 so no ground-floor glass renders
-    firstY0: 4.1,
-    firstY1: 5.0,
+    id:'SIDE_R_WIN',
+    archSide:'RIGHT',
+    kind:'small',
+    zCenter:5.5,
+    width:0.9,
+    groundY0:0,
+    groundY1:0,
+    firstY0:4.1,
+    firstY1:5.0,
   },
 ],
 };
@@ -374,7 +376,7 @@ export function sideWindowZ(spec: SideWindowSpec, mirrorZ: (z: number) => number
   return getSideWindowZCenter(spec, mirrorZ);
 }
 
-function sideToSillSide(archSide: SideArchSide): 'left' | 'right' {
+function sideToSillSide(archSide: ArchSide): 'left' | 'right' {
   return archSide === 'LEFT' ? 'right' : 'left';
 }
 
@@ -384,8 +386,17 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   const zCenter = getSideWindowZCenter(spec, mirrorZ);
 
 
-  const xFaceForWindow = xFaceForArchSideAtZ(spec.archSide, zCenter);
-  const outward = ARCH_SIDE_TO_WORLD_X[spec.archSide];
+  const xFaceForWindow = xFaceForArchSideAtZ(
+    spec.archSide,
+    spec.zCenter,
+    ARCH_LEFT_FACADE_SEGMENTS,
+    ARCH_RIGHT_FACADE_SEGMENTS,
+  );
+  const outwardNormal =
+    spec.archSide === 'LEFT'
+      ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3(-1, 0, 0);
+  const outward = outwardNormal.x;
   const interiorDir = -outward;
   const wallDepth = wallThickness.exterior ?? 0.3;
 
@@ -417,21 +428,21 @@ const meshes: SideWindowMesh[] = sideWindowSpecs.flatMap((spec) => {
   return [...windowMeshes, ...revealMeshes];
 });
 
-export const windowsSide = {
-  meshes,
-  side: PRIMARY_ARCH_SIDE,
-  zMin: sideZMin,
-  zMax: sideZMax,
-  mirrorZ: MIRROR_Z,
-  profile: ARCH_LEFT_FACADE_SEGMENTS,
-};
-
 // ── Architectural RIGHT facade meshes (negative X world space) ──────────────
 
 const rightSideMeshes: SideWindowMesh[] = rightSideWindowSpecs.flatMap((spec) => {
   const zCenter     = spec.zCenter; // direct world Z, no mirrorZ
-  const xFace = xFaceForArchSideAtZ(spec.archSide, zCenter);
-  const outward = ARCH_SIDE_TO_WORLD_X[spec.archSide];
+  const xFace = xFaceForArchSideAtZ(
+    spec.archSide,
+    spec.zCenter,
+    ARCH_LEFT_FACADE_SEGMENTS,
+    ARCH_RIGHT_FACADE_SEGMENTS,
+  );
+  const outwardNormal =
+    spec.archSide === 'LEFT'
+      ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3(-1, 0, 0);
+  const outward = outwardNormal.x;
   const interiorDir = -outward;
   const wallDepth   = wallThickness.exterior ?? 0.3;
 
@@ -459,6 +470,16 @@ const rightSideMeshes: SideWindowMesh[] = rightSideWindowSpecs.flatMap((spec) =>
 
   return [...makeSimpleWindow(commonProps), ...revealMeshes];
 });
+
+
+export const windowsSide = {
+  meshes: [...meshes, ...rightSideMeshes],
+  side: PRIMARY_ARCH_SIDE,
+  zMin: sideZMin,
+  zMax: sideZMax,
+  mirrorZ: MIRROR_Z,
+  profile: ARCH_LEFT_FACADE_SEGMENTS,
+};
 
 export const windowsRightSide = {
   meshes: rightSideMeshes,

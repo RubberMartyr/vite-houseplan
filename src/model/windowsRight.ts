@@ -71,24 +71,35 @@ function makeSimpleWindow({
 
   const height = y1-y0;
 
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x222222,
+    roughness: 0.6,
+    metalness: 0.1,
+  });
+
   const frame = new THREE.Mesh(
     new THREE.BoxGeometry(FRAME_DEPTH,height,width),
-    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    frameMat
   );
 
   frame.position.set(frameX,y0+height/2,zCenter);
 
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    transmission: 1,
+    transparent: true,
+    opacity: 1,
+    roughness: 0,
+    metalness: 0,
+    thickness: 0.02,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    toneMapped: false,
+  });
+
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(0.02,height-0.05,width-0.05),
-    new THREE.MeshPhysicalMaterial({
-      color:0xff0000,
-      transmission:0.9,
-      transparent:true,
-      opacity:1,
-      roughness:0.05,
-      metalness:0,
-      thickness:0.01
-    })
+    glassMat
   );
 
   glass.position.set(glassX,y0+height/2,zCenter);

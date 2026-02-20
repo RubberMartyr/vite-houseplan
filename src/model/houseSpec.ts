@@ -3,6 +3,13 @@ import { cmToMeters } from './utils/units';
 import type { HouseSpec } from './types/HouseSpec';
 
 export type EnvelopePoint = { x: number; z: number };
+export type ArchSide = 'FRONT' | 'REAR' | 'LEFT' | 'RIGHT';
+
+// Architectural orientation mapping
+export const ARCH_SIDE_TO_WORLD_X = {
+  LEFT: +1,
+  RIGHT: -1,
+} as const;
 
 export const depthCm = 1500;
 export const frontWidthCm = 960;

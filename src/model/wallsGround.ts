@@ -9,7 +9,14 @@ import {
 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
-import { RIGHT_FACADE_SEGMENTS, LEFT_FACADE_SEGMENTS, getSideWindowZCenter, makeMirrorZ, sideWindowSpecs, rightSideWindowSpecs } from './windowsSide';
+import {
+  ARCH_LEFT_FACADE_SEGMENTS,
+  ARCH_RIGHT_FACADE_SEGMENTS,
+  getSideWindowZCenter,
+  makeMirrorZ,
+  rightSideWindowSpecs,
+  sideWindowSpecs,
+} from './windowsSide';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
@@ -283,7 +290,7 @@ export const wallsGround = {
         Math.abs(x3 - innerLeftX) < EPSILON;
       const triZMin = Math.min(z1, z2, z3);
       const triZMax = Math.max(z1, z2, z3);
-      const onRightSegment = facesMostlyX && RIGHT_FACADE_SEGMENTS.some((segment) => {
+      const onRightSegment = facesMostlyX && ARCH_LEFT_FACADE_SEGMENTS.some((segment) => {
         const outerX = segment.x;
         const innerX = segment.x - exteriorThickness;
         const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
@@ -294,7 +301,7 @@ export const wallsGround = {
         return inSegmentZ;
       });
 
-      const onLeftSegment = facesMostlyX && LEFT_FACADE_SEGMENTS.some((segment) => {
+      const onLeftSegment = facesMostlyX && ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
         const outerX = segment.x;
         const innerX = segment.x + exteriorThickness; // inward = positive direction for negative-x facade
         const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
@@ -691,7 +698,7 @@ export function makeLeftSegmentPanels(): FacadePanel[] {
   const panelDepth = FACADE_PANEL_THICKNESS;
   const OUTSET = 0.002;
 
-  return LEFT_FACADE_SEGMENTS.map((segment) => {
+  return ARCH_RIGHT_FACADE_SEGMENTS.map((segment) => {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
 

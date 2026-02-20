@@ -1,6 +1,7 @@
 import { ceilingHeights } from './houseSpec';
 import { buildSideWindows, type SideWindowSpec } from './builders/sideWindowBuilder';
 import type { FacadeSegment } from './builders/sideFacade';
+import { getEnvelopeOuterPolygon } from './envelope';
 
 export const ARCH_LEFT_FACADE_SEGMENTS: readonly FacadeSegment[] = [
   { id: 'L_A', z0: 0.0, z1: 4.0, x: 4.8 },
@@ -51,7 +52,17 @@ const sideWindowSpecs: SideWindowSpec[] = [
   },
 ];
 
+const pts = getEnvelopeOuterPolygon();
+const sideZMin = Math.min(...pts.map(p => p.z));
+const sideZMax = Math.max(...pts.map(p => p.z));
+const mirrorZ = (z:number) => sideZMin + sideZMax - z;
+
 export const windowsLeft = {
-  meshes: buildSideWindows(sideWindowSpecs, { profile: ARCH_LEFT_FACADE_SEGMENTS, outwardX: 1, alignToFacadePanels: true }),
+  meshes: buildSideWindows(sideWindowSpecs, {
+    profile: ARCH_LEFT_FACADE_SEGMENTS,
+    outwardX: 1,
+    zTransform: mirrorZ,
+    alignToFacadePanels: true,
+  }),
   profile: ARCH_LEFT_FACADE_SEGMENTS,
 };

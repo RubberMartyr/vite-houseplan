@@ -4,10 +4,12 @@ import { EPS, FRAME_DEPTH, GLASS_INSET } from '../constants/windowConstants';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { xFaceForProfileAtZ, type FacadeSegment } from './sideFacade';
 import { createRevealMeshes, makeSimpleWindow, makeSplitTallWindow, type WindowFactoryMesh } from './windowFactory';
+import { TALL_Z_OFFSET_TO_FRONT } from './windowFactory';
 
 export type SideWindowSpec = {
   id: string;
   kind: 'small' | 'tall';
+  type?: 'small' | 'tall';
   zCenter: number;
   width: number;
   groundY0: number;
@@ -19,6 +21,7 @@ export type SideWindowSpec = {
 export type SideWindowBuildConfig = {
   profile: readonly FacadeSegment[];
   outwardX: 1 | -1;
+  zTransform?: (z:number)=>number;
   alignToFacadePanels?: boolean; // NEW
 };
 
@@ -45,7 +48,12 @@ export function buildSideWindows(specs: readonly SideWindowSpec[], cfg: SideWind
   const interiorDir = -outward;
 
   return specs.flatMap((spec) => {
-    const zCenter = spec.zCenter;
+    let zCenter = cfg.zTransform ? cfg.zTransform(spec.zCenter) : spec.zCenter;
+
+    const isTall = spec.kind === 'tall' || spec.type === 'tall';
+    if (isTall) {
+      zCenter = zCenter - TALL_Z_OFFSET_TO_FRONT;
+    }
     const xFace = xFaceForProfileAtZ(cfg.profile, zCenter);
 
     // If your holes are in facade panels, the "opening plane" is NOT xFace,

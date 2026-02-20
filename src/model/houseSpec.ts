@@ -159,17 +159,3 @@ export const houseSpec: HouseSpec = {
   groundFloorRooms,
 };
 
-export default {
-  frontWidth,
-  rearWidth,
-  depth,
-  leftFacadeProfile,
-  envelopeOutline,
-  footprint,
-  wallThickness,
-  ceilingHeights,
-  levelHeights,
-  groundFloorRooms,
-  rightFacadeProfile,
-  rightFacadeProfileCm,
-};

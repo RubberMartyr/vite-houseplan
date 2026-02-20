@@ -5,7 +5,7 @@ import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
-import { wallsFirst } from '../model/wallsFirst';
+import { buildWallsFirst } from '../model/wallsFirst';
 import { wallsEavesBand } from '../model/wallsEavesBand';
 import {
   frontZ,
@@ -204,6 +204,10 @@ const rightFacade = buildFacadeAssembly({
 const wallsGround = buildWallsGround({
   rightPlacements: rightFacade.placements,
   rightOpenings: rightFacade.openingCuts,
+});
+
+const wallsFirst = buildWallsFirst({
+  rightPlacements: rightFacade.placements,
 });
 
 const wallsGroundWithOptionals: typeof wallsGround & {

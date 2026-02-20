@@ -36,7 +36,8 @@ const MIN_HOLE_H = 0.05;
 const mirrorZ = (z: number) => sideZMin + sideZMax - z;
 
 const facadeCtx = createFacadeContext('left');
-const facadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
+const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
+const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
 
 type WallMesh = {
   geometry: BufferGeometry;
@@ -46,9 +47,9 @@ type WallMesh = {
 export function buildWallsFirst({
   rightPlacements,
 }: {
-  rightPlacements?: FacadeWindowPlacement[];
-} = {}) {
-  const placements = rightPlacements ?? facadePlacements;
+  rightPlacements: FacadeWindowPlacement[];
+}) {
+  const placements = rightPlacements;
 
   return {
     shell: (() => {
@@ -425,7 +426,8 @@ export function buildWallsFirst({
   };
 }
 
-export const wallsFirst = buildWallsFirst();
+// @deprecated legacy singleton; inject rightPlacements via buildWallsFirst() instead.
+export const wallsFirst = buildWallsFirst({ rightPlacements: legacyRightFacadePlacements });
 
 function makeSideFacadePanel({
   side,
@@ -456,8 +458,8 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? facadePlacements
-      : facadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? leftFacadePlacements
+      : leftFacadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach(({ spec, zCenter, width }) => {

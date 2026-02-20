@@ -12,6 +12,7 @@ import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } fro
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
   RIGHT_WORLD_FACADE_SEGMENTS,
+  rightSideWindowSpecs,
   sideWindowSpecs,
 } from './builders/windowFactory';
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
@@ -41,7 +42,8 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 
 const facadeCtx = createFacadeContext('left');
-const facadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
+const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
+const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
 
 type WallMesh = {
   geometry: BufferGeometry;
@@ -219,9 +221,9 @@ export function buildWallsGround({
   rightPlacements,
   rightOpenings = [],
 }: {
-  rightPlacements?: FacadeWindowPlacement[];
+  rightPlacements: FacadeWindowPlacement[];
   rightOpenings?: OpeningCut[];
-} = {}) {
+}) {
   return {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();
@@ -516,7 +518,7 @@ export function buildWallsGround({
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightSideFacades: makeLeftSegmentPanels({ openings: rightOpenings }),
   rightFacades: (() => {
-    const placements = rightPlacements ?? facadePlacements;
+    const placements = rightPlacements;
     const groundOpenings: RightPanelOpening[] = placements
       .filter(({ spec }) => spec.groundY1 - spec.groundY0 > MIN_HOLE_H)
       .map(({ spec, zCenter, width }) => ({
@@ -556,7 +558,8 @@ let _cached: ReturnType<typeof buildWallsGround> | null = null;
 
 export function getWallsGround() {
   if (!_cached) {
-    _cached = buildWallsGround();
+    // @deprecated legacy cache path; use buildWallsGround with injected rightPlacements.
+    _cached = buildWallsGround({ rightPlacements: legacyRightFacadePlacements });
   }
   return _cached;
 }
@@ -605,8 +608,8 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? facadePlacements
-      : facadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? leftFacadePlacements
+      : leftFacadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach(({ spec, zCenter, width }) => {
@@ -659,7 +662,7 @@ function makeLeftFacadePanels({
       const panelBaseY = 0;
 
       const openings: RightPanelOpening[] = [];
-      facadePlacements.forEach(({ spec, zCenter, width }) => {
+      leftFacadePlacements.forEach(({ spec, zCenter, width }) => {
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 
         openings.push({

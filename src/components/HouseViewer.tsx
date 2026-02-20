@@ -37,6 +37,7 @@ import { rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
+import { ViewerControls } from './ViewerControls';
 
 /**
  * ARCHITECTURAL SPECIFICATIONS
@@ -393,15 +394,6 @@ export default function HouseViewer() {
     [allRooms, selectedRoomId]
   );
 
-  const buttonStyle = {
-    padding: '6px 10px',
-    borderRadius: 6,
-    border: '1px solid #222',
-    background: 'rgba(255,255,255,0.9)',
-    cursor: 'pointer',
-    fontWeight: 700,
-  };
-
   const handleToggleFloor = (key: keyof typeof activeFloors) => {
     setActiveFloors((prev) => ({
       ...prev,
@@ -431,179 +423,30 @@ export default function HouseViewer() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          zIndex: 2,
-          background: 'rgba(240,240,240,0.9)',
-          padding: '10px 12px',
-          borderRadius: 10,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>Cutaway Mode</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              style={{
-                ...buttonStyle,
-                background: cutawayEnabled ? '#1d6f42' : buttonStyle.background,
-                color: cutawayEnabled ? '#fff' : '#111',
-              }}
-              onClick={() => setCutawayEnabled((prev) => !prev)}
-            >
-              {cutawayEnabled ? 'ON' : 'OFF'}
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
-            {(
-              [
-                { key: 'front', label: 'Front' },
-                { key: 'rear', label: 'Rear' },
-                { key: 'left', label: 'Left' },
-                { key: 'right', label: 'Right' },
-              ] as { key: FacadeKey; label: string }[]
-            ).map(({ key, label }) => {
-              const isActive = facadeVisibility[key];
-              return (
-                <button
-                  key={key}
-                  style={{
-                    ...buttonStyle,
-                    background: isActive ? '#8B5A40' : '#ddd',
-                    color: isActive ? '#fff' : '#444',
-                  }}
-                  onClick={() =>
-                    setFacadeVisibility((prev) => ({
-                      ...prev,
-                      [key]: !prev[key],
-                    }))
-                  }
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Floor Isolation</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-          {(
-            [
-              { key: 'basement', label: 'Basement' },
-              { key: 'ground', label: 'Ground' },
-              { key: 'first', label: 'First' },
-              { key: 'attic', label: 'Attic' },
-            ] as { key: keyof typeof activeFloors; label: string }[]
-          ).map(({ key, label }) => {
-            const isActive = activeFloors[key];
-            return (
-              <button
-                key={key}
-                style={{
-                  ...buttonStyle,
-                  background: isActive ? '#8B5A40' : buttonStyle.background,
-                  color: isActive ? '#fff' : '#111',
-                  width: '100%',
-                }}
-                onClick={() => handleToggleFloor(key)}
-              >
-                {label}
-              </button>
-            );
-          })}
-          <button
-            style={{
-              ...buttonStyle,
-              background: allFloorsActive ? '#1d6f42' : buttonStyle.background,
-              color: allFloorsActive ? '#fff' : '#111',
-              width: '100%',
-            }}
-            onClick={handleAllFloors}
-          >
-            All
-          </button>
-        </div>
-
-        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Site View</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-          <button
-            style={{
-              ...buttonStyle,
-              background: showTerrain ? '#8B5A40' : buttonStyle.background,
-              color: showTerrain ? '#fff' : '#111',
-              width: '100%',
-            }}
-            onClick={() => setShowTerrain((prev) => !prev)}
-          >
-            Ground
-          </button>
-          <button
-            style={{
-              ...buttonStyle,
-              background: showRoof ? '#1d6f42' : buttonStyle.background,
-              color: showRoof ? '#fff' : '#111',
-              width: '100%',
-            }}
-            onClick={() => setShowRoof((prev) => !prev)}
-          >
-            {showRoof ? 'Roof: ON' : 'Roof: OFF'}
-          </button>
-          <button style={{ ...buttonStyle, width: '100%' }} onClick={handleBasementView}>
-            Basement View
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-          <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>Room Focus</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              style={{
-                ...buttonStyle,
-                background: focusMode ? '#1d6f42' : buttonStyle.background,
-                color: focusMode ? '#fff' : '#111',
-              }}
-              onClick={() => setFocusMode((prev) => !prev)}
-            >
-              {focusMode ? 'Focus ON' : 'Focus OFF'}
-            </button>
-          </div>
-          <div
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: 8,
-              padding: '8px 10px',
-              background: 'rgba(255,255,255,0.8)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-            }}
-          >
-            <span style={{ fontWeight: 700 }}>Selected Room</span>
-            {selectedRoom ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span>{selectedRoom.label}</span>
-                <code style={{ fontSize: 12 }}>{selectedRoom.id}</code>
-              </div>
-            ) : (
-              <span style={{ color: '#555' }}>Tap a room to select it</span>
-            )}
-            <button
-              style={{ ...buttonStyle, alignSelf: 'flex-start' }}
-              onClick={() => setSelectedRoomId(null)}
-              disabled={!selectedRoom}
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
+      <ViewerControls
+        cutawayEnabled={cutawayEnabled}
+        onToggleCutaway={() => setCutawayEnabled((prev) => !prev)}
+        facadeVisibility={facadeVisibility}
+        onToggleFacade={(key) =>
+          setFacadeVisibility((prev) => ({
+            ...prev,
+            [key]: !prev[key],
+          }))
+        }
+        activeFloors={activeFloors}
+        allFloorsActive={allFloorsActive}
+        onToggleFloor={handleToggleFloor}
+        onSetAllFloors={handleAllFloors}
+        showTerrain={showTerrain}
+        onToggleTerrain={() => setShowTerrain((prev) => !prev)}
+        showRoof={showRoof}
+        onToggleRoof={() => setShowRoof((prev) => !prev)}
+        onBasementView={handleBasementView}
+        focusMode={focusMode}
+        onToggleFocusMode={() => setFocusMode((prev) => !prev)}
+        selectedRoom={selectedRoom}
+        onClearSelectedRoom={() => setSelectedRoomId(null)}
+      />
 
         <Canvas
           shadows

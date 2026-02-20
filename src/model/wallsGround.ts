@@ -12,10 +12,11 @@ import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } fro
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
   RIGHT_WORLD_FACADE_SEGMENTS,
-  getSideWindowZCenter,
   rightSideWindowSpecs,
   sideWindowSpecs,
 } from './builders/windowFactory';
+import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
+import { createFacadeContext } from './builders/facadeContext';
 import { xFaceForProfileAtZ } from './builders/sideFacade';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
@@ -36,6 +37,9 @@ const FACADE_PANEL_THICKNESS = 0.025;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
+
+const facadeCtx = createFacadeContext('left');
+const facadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
 
 type WallMesh = {
   geometry: BufferGeometry;
@@ -503,10 +507,10 @@ export const wallsGround = {
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightSideFacades: makeLeftSegmentPanels(),
   rightFacades: (() => {
-    const groundOpenings: RightPanelOpening[] = sideWindowSpecs.map((spec) => ({
+    const groundOpenings: RightPanelOpening[] = facadePlacements.map(({ spec, zCenter, width }) => ({
       id: spec.id,
-      zCenter: getSideWindowZCenter(spec, mirrorZ),
-      widthZ: spec.width,
+      zCenter,
+      widthZ: width,
       y0: spec.groundY0,
       y1: spec.groundY1,
     }));
@@ -574,14 +578,13 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? sideWindowSpecs
-      : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? facadePlacements
+      : facadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
-  openings.forEach((spec) => {
-    const zCenter = getSideWindowZCenter(spec, mirrorZ);
-    const zMin = zCenter - spec.width / 2;
-    const zMax = zCenter + spec.width / 2;
+  openings.forEach(({ spec, zCenter, width }) => {
+    const zMin = zCenter - width / 2;
+    const zMax = zCenter + width / 2;
     const yMin = level === 'ground' ? spec.groundY0 : spec.firstY0;
     const yMax = level === 'ground' ? spec.groundY1 : spec.firstY1;
 
@@ -629,14 +632,13 @@ function makeLeftFacadePanels({
       const panelBaseY = 0;
 
       const openings: RightPanelOpening[] = [];
-      sideWindowSpecs.forEach((spec) => {
-        const zCenter = getSideWindowZCenter(spec, mirrorZ);
+      facadePlacements.forEach(({ spec, zCenter, width }) => {
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 
         openings.push({
           id: spec.id,
           zCenter,
-          widthZ: spec.width,
+          widthZ: width,
           y0: spec.groundY0,
           y1: spec.groundY1,
         });

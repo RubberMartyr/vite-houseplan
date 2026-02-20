@@ -2,7 +2,6 @@ import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape, S
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
-  getSideWindowZCenter,
   RIGHT_WORLD_FACADE_SEGMENTS,
   ARCH_RIGHT_FACADE_SEGMENTS,
   rightSideWindowSpecs,
@@ -11,6 +10,8 @@ import {
   sideZMin,
 } from './builders/windowFactory';
 import { frontOpeningRectsFirst } from './windowsFront';
+import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
+import { createFacadeContext } from './builders/facadeContext';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
   buildRightFacadeReturnPanels,
@@ -32,6 +33,9 @@ const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = (z: number) => sideZMin + sideZMax - z;
+
+const facadeCtx = createFacadeContext('left');
+const facadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
 
 type WallMesh = {
   geometry: BufferGeometry;
@@ -347,26 +351,14 @@ export const wallsFirst = {
     shape.lineTo(-panelWidth / 2, panelHeight / 2);
     shape.closePath();
 
-    // IMPORTANT: mirrorZ must match windowsSide, not the first-floor minZ/maxZ
-    const mirrorZ = (z: number) => sideZMin + sideZMax - z;
+    // Create holes from shared facade placements
+    facadePlacements.forEach(({ spec, zCenter, width }) => {
+      const zMinHole = zCenter - width / 2;
+      const zMaxHole = zCenter + width / 2;
 
-    // Create holes from sideWindowSpecs
-    sideWindowSpecs.forEach((spec) => {
-      const zCenter = getSideWindowZCenter(spec, mirrorZ);
+      const yMinLocal = spec.firstY0 - firstFloorLevel - panelHeight / 2;
+      const yMaxLocal = spec.firstY1 - firstFloorLevel - panelHeight / 2;
 
-      const zMinHole = zCenter - spec.width / 2;
-      const zMaxHole = zCenter + spec.width / 2;
-
-      // Convert world Y to first-floor local panel Y:
-      // panel local Y is 0..wallHeight, but shape space is centered => subtract panelHeight/2.
-      const yMinWorld = spec.firstY0; // e.g. levelHeights.firstFloor
-      const yMaxWorld = spec.firstY1; // e.g. levelHeights.firstFloor + ceilingHeights.first
-
-      // Convert to local within this first-floor panel:
-      const yMinLocal = yMinWorld - firstFloorLevel - panelHeight / 2;
-      const yMaxLocal = yMaxWorld - firstFloorLevel - panelHeight / 2;
-
-      // guard
       if (zMaxHole - zMinHole < 0.05 || yMaxLocal - yMinLocal < 0.05) return;
 
       const path = new Path();
@@ -390,14 +382,14 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const firstOpenings: RightPanelOpening[] = sideWindowSpecs
-      .filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
-      .map((spec) => {
+    const firstOpenings: RightPanelOpening[] = facadePlacements
+      .filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
+      .map(({ spec, zCenter, width }) => {
         const isTall = spec.kind === 'tall';
         return {
           id: spec.id,
-          zCenter: getSideWindowZCenter(spec, mirrorZ),
-          widthZ: spec.width,
+          zCenter,
+          widthZ: width,
           y0: isTall ? firstFloorLevel : spec.firstY0,
           y1: isTall ? firstFloorLevel + wallHeight : spec.firstY1,
         };
@@ -456,16 +448,13 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? sideWindowSpecs
-      : sideWindowSpecs.filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? facadePlacements
+      : facadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
-  openings.forEach((spec) => {
-    const zMirror = (z: number) => minZ + maxZ - z;
-
-    const zCenter = getSideWindowZCenter(spec, zMirror);
-    const zMin = zCenter - spec.width / 2;
-    const zMax = zCenter + spec.width / 2;
+  openings.forEach(({ spec, zCenter, width }) => {
+    const zMin = zCenter - width / 2;
+    const zMax = zCenter + width / 2;
     const isTall = spec.kind === 'tall';
 
     // Only ground-level “tall” openings should be allowed to run full height (if that’s your intent).

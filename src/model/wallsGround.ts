@@ -33,7 +33,6 @@ const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
 const RIGHT_PANEL_OUT = 0.02;
 const FACADE_PANEL_THICKNESS = 0.025;
-const ENABLE_FACADE_FRAGMENTS = false;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
@@ -492,8 +491,6 @@ export const wallsGround = {
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
   rightSideFacades: makeLeftSegmentPanels(),
   rightFacades: (() => {
-    if (!ENABLE_FACADE_FRAGMENTS) return [];
-
     const groundOpenings: RightPanelOpening[] = sideWindowSpecs.map((spec) => ({
       id: spec.id,
       zCenter: getSideWindowZCenter(spec, mirrorZ),

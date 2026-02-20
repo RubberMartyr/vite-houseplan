@@ -13,7 +13,7 @@ export function buildFacadePlan({
 }): FacadePlan {
   const ctx = createFacadeContext(facade);
   const placements = buildFacadeWindowPlacements(ctx, windowSpecs);
-  const openingCuts = buildWallOpenings(ctx, placements);
+  const openingCuts = buildWallOpenings(placements);
 
   return { ctx, placements, openingCuts };
 }

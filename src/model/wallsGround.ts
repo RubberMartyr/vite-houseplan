@@ -218,10 +218,10 @@ function isExtensionSideWallFace(v: Vector3) {
 }
 
 export function buildWallsGround({
-  rightPlacements,
+  rightPlacements = [],
   rightOpenings = [],
 }: {
-  rightPlacements: FacadeWindowPlacement[];
+  rightPlacements?: FacadeWindowPlacement[];
   rightOpenings?: OpeningCut[];
 }) {
   return {

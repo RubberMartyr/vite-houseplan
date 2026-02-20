@@ -30,6 +30,7 @@ const exteriorThickness = wallThickness.exterior;
 const RIGHT_PANEL_OUT = 0.02;
 const firstFloorLevel = levelHeights.firstFloor;
 const FACADE_PANEL_THICKNESS = 0.025;
+const ENABLE_FACADE_FRAGMENTS = false;
 const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
@@ -381,6 +382,8 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
+    if (!ENABLE_FACADE_FRAGMENTS) return [];
+
     const firstOpenings: RightPanelOpening[] = sideWindowSpecs
       .filter((spec) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
       .map((spec) => {

@@ -690,7 +690,14 @@ function HouseScene({
 
     return material;
   }, [LOW_QUALITY, brickTex, fallbackWallMaterial, gl]);
-  const facadeMaterial = wallMaterial;
+  const facadeMaterial = useMemo(() => {
+    const material = wallMaterial.clone();
+    material.side = THREE.DoubleSide;
+    material.polygonOffset = true;
+    material.polygonOffsetFactor = -1;
+    material.polygonOffsetUnits = -1;
+    return material;
+  }, [wallMaterial]);
   const eavesBandMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

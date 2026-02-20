@@ -11,13 +11,13 @@ import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } 
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
+  RIGHT_WORLD_FACADE_SEGMENTS,
   getSideWindowZCenter,
   rightSideWindowSpecs,
   sideWindowSpecs,
 } from './builders/windowFactory';
 import { xFaceForProfileAtZ } from './builders/sideFacade';
 import { frontOpeningRectsGround } from './windowsFront';
-import { RIGHT_WORLD_FACADE_SEGMENTS } from './windowsLeft';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
   buildRightFacadeReturnPanels,

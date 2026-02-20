@@ -31,8 +31,9 @@ import { roomsGround } from '../model/roomsGround'
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsLeft } from '../model/windowsLeft';
-import { windowsRight } from '../model/windowsRight';
 import { windowsFront } from '../model/windowsFront';
+import { buildSideWindows } from '../model/builders/buildSideWindows';
+import { rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
@@ -163,6 +164,11 @@ function useBuildingMaterials() {
 }
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
+
+const rightSideMeshes = buildSideWindows({
+  facade: 'right',
+  specs: rightSideWindowSpecs,
+});
 
 // --- HOUSE COMPONENTS ---
 
@@ -1078,7 +1084,7 @@ function HouseScene({
             {windowsLeft.meshes.map((mesh, i) => (
               <primitive key={`wl_${i}`} object={mesh} />
             ))}
-            {windowsRight.meshes.map((mesh, i) => (
+            {rightSideMeshes.map((mesh, i) => (
               <primitive key={`wr_${i}`} object={mesh} />
             ))}
           </group>

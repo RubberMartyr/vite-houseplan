@@ -21,6 +21,7 @@ export const leftFacadeProfileCm: EnvelopePoint[] = [
   { z: 400, x: -410 },
   { z: 845, x: -410 },
   { z: 845, x: -350 },
+  { z: 1200, x: -350 },
   { z: depthCm, x: -350 },
 ];
 

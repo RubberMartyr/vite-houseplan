@@ -12,6 +12,7 @@ import {
 import { frameMaterial } from './materials/windowMaterials';
 import { buildFrameGeometry } from './builders/buildFrameGeometry';
 import { buildSill, type WindowMesh } from './builders/buildSill';
+import { runtimeFlags } from '../runtimeFlags';
 
 type FacadeSpan = {
   minX: number;
@@ -30,10 +31,12 @@ function getRearFacadeSpan(points: { x: number; z: number }[]): FacadeSpan {
   const maxX = rearPoints.reduce((max, point) => Math.max(max, point.x), -Infinity);
   const width = maxX - minX;
 
-  if (Math.abs(width - EXPECTED_REAR_WIDTH) > WIDTH_TOLERANCE) {
-    console.warn(
-      `[windowsRear] Rear facade width (${width.toFixed(3)}m) differs from expected ${EXPECTED_REAR_WIDTH}m`
-    );
+  if (runtimeFlags.isDev) {
+    if (Math.abs(width - EXPECTED_REAR_WIDTH) > WIDTH_TOLERANCE) {
+      console.warn(
+        `[windowsRear] Rear facade width (${width.toFixed(3)}m) differs from expected ${EXPECTED_REAR_WIDTH}m`
+      );
+    }
   }
 
   return { minX, maxX, maxZ, width };

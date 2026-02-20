@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FootprintPoint, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { EAVES_BAND_TOP_Y } from './wallsEavesBand';
+import { runtimeFlags } from '../runtimeFlags';
 
 const EAVES_Y = EAVES_BAND_TOP_Y;
 const MAIN_RIDGE_Y = 9.85;
@@ -68,7 +69,7 @@ function xAtZ(
     const key = z.toFixed(6);
     if (!loggedXAtZ.has(key)) {
       loggedXAtZ.add(key);
-      console.log('xAtZ fallback', { z, side, count: finiteXs.length });
+      runtimeFlags.isDev && console.log('xAtZ fallback', { z, side, count: finiteXs.length });
     }
     return { x: side === 'min' ? bounds.minX : bounds.maxX, usedFallback: true };
   }
@@ -108,7 +109,7 @@ function xAtZSafe(
     }
   }
 
-  console.warn('xAtZSafe failed; using hard fallback', { z, side });
+  runtimeFlags.isDev && console.warn('xAtZSafe failed; using hard fallback', { z, side });
   const fallback = side === 'min' ? Math.min(...points.map((p) => p.x)) : Math.max(...points.map((p) => p.x));
   return fallback;
 }
@@ -291,7 +292,7 @@ function findRightXAtZ(segments: RoofSegment[], z: number, fallbackX: number): n
   );
 
   if (matches.length === 0) {
-    console.warn('⚠️ findRightXAtZ FALLBACK', { z, fallbackX, segments });
+    runtimeFlags.isDev && console.warn('⚠️ findRightXAtZ FALLBACK', { z, fallbackX, segments });
     return fallbackX;
   }
 
@@ -320,7 +321,7 @@ function findRightXAtZClosestToRidge(
   );
 
   if (matches.length === 0) {
-    console.warn('⚠️ findRightXAtZClosestToRidge FALLBACK', { z, ridgeX, fallbackX, segments });
+    runtimeFlags.isDev && console.warn('⚠️ findRightXAtZClosestToRidge FALLBACK', { z, ridgeX, fallbackX, segments });
     return fallbackX;
   }
 
@@ -372,7 +373,7 @@ function findRightXAtZClosestToX(
   );
 
   if (matches.length === 0) {
-    console.warn('⚠️ findRightXAtZClosestToX FALLBACK', { z, targetX, fallbackX, segments });
+    runtimeFlags.isDev && console.warn('⚠️ findRightXAtZClosestToX FALLBACK', { z, targetX, fallbackX, segments });
     return fallbackX;
   }
 
@@ -468,7 +469,7 @@ function chamferPolygon(points: FootprintPoint[], chamfer: number): FootprintPoi
   const bounds = computeBounds(points);
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
   const rightSegments = extractRightRoofSegments(points, ridgeX);
-  console.log(
+  runtimeFlags.isDev && console.log(
     'RIGHT SEGMENTS X VALUES',
     Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)
   );
@@ -498,7 +499,7 @@ export function buildRoofMeshes(): {
   }
 
   if (!isValidFootprint(mainPts)) {
-    console.warn('❌ Invalid first-floor roof footprint, falling back to ground envelope', {
+    runtimeFlags.isDev && console.warn('❌ Invalid first-floor roof footprint, falling back to ground envelope', {
       envelopeFirstOuter: mainPts,
     });
     mainPts = envelopeOuter;
@@ -511,7 +512,7 @@ export function buildRoofMeshes(): {
 
   const mainFootprint = chamferPolygon(mainPts, CHAMFER);
   const mainBounds = computeBounds(mainFootprint);
-  console.log('✅ ROOF FOOTPRINT OK', {
+  runtimeFlags.isDev && console.log('✅ ROOF FOOTPRINT OK', {
     count: mainPts.length,
     first: mainPts[0],
     last: mainPts[mainPts.length - 1],
@@ -531,9 +532,9 @@ export function buildRoofMeshes(): {
   const pitchedBackZ = flatBounds.minZ;
   // Safety: clamp to [baseFrontZ, mainBackZ] so we never go outside the house.
   const pitchedBackZClamped = Math.min(Math.max(pitchedBackZ, baseFrontZ + 0.001), mainBackZ);
-  console.log('✅ MAIN ROOF FOOTPRINT = FIRST FLOOR', { mainBounds, groundBounds });
+  runtimeFlags.isDev && console.log('✅ MAIN ROOF FOOTPRINT = FIRST FLOOR', { mainBounds, groundBounds });
   const ridgeX = (bounds.minX + bounds.maxX) / 2;
-  console.log('✅ ROOF RESTORED (constants)', { frontZ: baseFrontZ, mainBackZ, ridgeX, width: STEP_BACK_WIDTH });
+  runtimeFlags.isDev && console.log('✅ ROOF RESTORED (constants)', { frontZ: baseFrontZ, mainBackZ, ridgeX, width: STEP_BACK_WIDTH });
   const indentationSteps = deriveIndentationSteps(mainFootprint);
   const zStep1 = indentationSteps[0];
   const zStep2 = indentationSteps[1];
@@ -543,7 +544,7 @@ export function buildRoofMeshes(): {
   const ridgeBackZRaw = eaveBackZ - frontApexOffset;
   const ridgeBackZ = Math.max(ridgeFrontZ + 0.01, Math.min(ridgeBackZRaw, eaveBackZ - 0.01));
   const rightSegments = extractRightRoofSegments(mainFootprint, ridgeX);
-  console.log(
+  runtimeFlags.isDev && console.log(
     'RIGHT SEGMENTS X VALUES',
     Array.from(new Set(rightSegments.map((segment) => segment.x))).sort((a, b) => a - b)
   );
@@ -553,23 +554,23 @@ export function buildRoofMeshes(): {
   const xLeftBackInset = xAtZSafe(mainFootprint, ridgeBackZ, 'min', bounds.minZ, bounds.maxZ);
   const xLeftBack = xAtZSafe(mainFootprint, eaveBackZ, 'min', bounds.minZ, bounds.maxZ);
 
-  console.log('ROOF +X segments', rightSegments);
-  console.log('ROOF ridgeX', ridgeX);
+  runtimeFlags.isDev && console.log('ROOF +X segments', rightSegments);
+  runtimeFlags.isDev && console.log('ROOF ridgeX', ridgeX);
 
-  console.log('🏠 Roof anchored to eaves band at Y =', EAVES_Y);
+  runtimeFlags.isDev && console.log('🏠 Roof anchored to eaves band at Y =', EAVES_Y);
 
-  console.log('ROOF bounds original', groundBounds);
-  console.log('ROOF bounds chamfered', mainBounds);
-  console.log('ROOF bounds', {
+  runtimeFlags.isDev && console.log('ROOF bounds original', groundBounds);
+  runtimeFlags.isDev && console.log('ROOF bounds chamfered', mainBounds);
+  runtimeFlags.isDev && console.log('ROOF bounds', {
     minX: bounds.minX,
     maxX: bounds.maxX,
     minZ: bounds.minZ,
     maxZ: bounds.maxZ,
     depthZ: bounds.maxZ - bounds.minZ,
   });
-  console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
-  console.log('Derived hip step lines', { zStep1, zStep2, ridgeFrontZ, ridgeBackZ });
-  console.log('FORCED ridgeFrontZ/ridgeBackZ', { ridgeFrontZ, ridgeBackZ });
+  runtimeFlags.isDev && console.log('ROOF ridge', { ridgeX, ridgeY: MAIN_RIDGE_Y, minZ: bounds.minZ, maxZ: bounds.maxZ });
+  runtimeFlags.isDev && console.log('Derived hip step lines', { zStep1, zStep2, ridgeFrontZ, ridgeBackZ });
+  runtimeFlags.isDev && console.log('FORCED ridgeFrontZ/ridgeBackZ', { ridgeFrontZ, ridgeBackZ });
 
   const ridgeYAtZ = (z: number) => {
     if (stepStartZ !== null && z >= stepStartZ) {
@@ -595,10 +596,10 @@ export function buildRoofMeshes(): {
     ? Math.max(ridgeBackZ, Math.min(innerSeg.zEnd, eaveBackZ))
     : ridgeBackZ;
 
-  console.log('INNER SEG DEBUG', { xRightBackInset, ridgeBackZ, eaveBackZ, innerSeg, zInnerEnd });
+  runtimeFlags.isDev && console.log('INNER SEG DEBUG', { xRightBackInset, ridgeBackZ, eaveBackZ, innerSeg, zInnerEnd });
   const zCuts = [baseFrontZ, ridgeFrontZ, ridgeBackZ];
 
-  console.log('xAtZ debug', {
+  runtimeFlags.isDev && console.log('xAtZ debug', {
     zFront: baseFrontZ,
     zBack: mainBackZ,
     ridgeFrontZ,
@@ -612,14 +613,14 @@ export function buildRoofMeshes(): {
     xRightBackInset,
     zInnerEnd,
   });
-  console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
-  console.log('LEFT roof uses variable eave X:', {
+  runtimeFlags.isDev && console.log('LEFT roof rebuilt using xAtZSafe over zCuts', zCuts);
+  runtimeFlags.isDev && console.log('LEFT roof uses variable eave X:', {
     xLeftFront,
     xLeftFrontInset,
     xLeftBackInset,
     xLeftBack,
   });
-  console.log('LEFT roof fixed: variable eave X', {
+  runtimeFlags.isDev && console.log('LEFT roof fixed: variable eave X', {
     xLeftFront,
     xLeftFrontInset,
     xLeftBackInset,
@@ -641,7 +642,7 @@ export function buildRoofMeshes(): {
     xRightBackInset,
     bounds.maxX
   );
-  console.log('RIGHT BACK BRANCH DEBUG', {
+  runtimeFlags.isDev && console.log('RIGHT BACK BRANCH DEBUG', {
     eaveBackZ,
     ridgeBackZ,
     xRightBackInset,
@@ -676,7 +677,7 @@ export function buildRoofMeshes(): {
     toMesh(createTriangleGeometry(backLeftEave, ridgeBackPoint, backRightEaveOuter)),
   ];
 
-  console.log('✅ BACK HIP END', {
+  runtimeFlags.isDev && console.log('✅ BACK HIP END', {
     eavesY,
     ridgeY,
     rearZ,
@@ -744,8 +745,8 @@ export function buildRoofMeshes(): {
     toMesh(createTriangleGeometry(frontLeftEaveInset, ridgeFrontPoint, frontRightEaveInset)),
   ];
 
-  console.log('HIP MESHES now FRONT only (back handled by backEndcap)');
-  console.log('HIP ROOF active', {
+  runtimeFlags.isDev && console.log('HIP MESHES now FRONT only (back handled by backEndcap)');
+  runtimeFlags.isDev && console.log('HIP ROOF active', {
     ridgeFrontZ,
     ridgeBackZ,
     xLeftFront,
@@ -753,8 +754,8 @@ export function buildRoofMeshes(): {
     xRightFront,
     xRightFrontInset,
   });
-  console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
-  console.log('✅ BACK ENDCAP ADDED ONCE', {
+  runtimeFlags.isDev && console.log('FRONT ENDCAP ACTIVE', { xLeftFront, xRightFront, ridgeFrontZ });
+  runtimeFlags.isDev && console.log('✅ BACK ENDCAP ADDED ONCE', {
     rearZ: ridgeBackZ,
     backLeftEave,
     backRightEaveOuter,
@@ -802,7 +803,7 @@ export function buildRoofMeshes(): {
     ...backEndcap,
   ];
 
-  console.log('✅ GABLES ADDED', {
+  runtimeFlags.isDev && console.log('✅ GABLES ADDED', {
     ridgeFrontPoint,
     ridgeBackPoint,
     frontLeftEaveInset,
@@ -814,6 +815,6 @@ export function buildRoofMeshes(): {
     rearZ: ridgeBackZ,
   });
 
-  console.log('✅ ROOF MESH COUNT', meshes.length);
+  runtimeFlags.isDev && console.log('✅ ROOF MESH COUNT', meshes.length);
   return { meshes };
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { frontZ, rearZ, leftX, rightX } from './houseSpec';
+import { runtimeFlags } from '../runtimeFlags';
 
 export type Facade = 'front' | 'rear' | 'left' | 'right';
 
@@ -41,10 +42,12 @@ export function logOrientationAssertions() {
     return { axis, value, outwardNormal: outwardNormal.toArray() };
   };
 
-  console.info('[orientation] facade planes', {
-    front: summary('front'),
-    rear: summary('rear'),
-    left: summary('left'),
-    right: summary('right'),
-  });
+  if (runtimeFlags.isDev) {
+    console.info('[orientation] facade planes', {
+      front: summary('front'),
+      rear: summary('rear'),
+      left: summary('left'),
+      right: summary('right'),
+    });
+  }
 }

@@ -1,139 +1,99 @@
 import * as THREE from 'three';
+import { ARCH_SIDE_TO_WORLD_X, wallThickness } from './houseSpec';
+import { EPS, FRAME_DEPTH, GLASS_INSET } from './constants/windowConstants';
+import { createRevealMeshes, makeSimpleWindow, makeSplitTallWindow, type WindowFactoryMesh, type WindowFactorySpec } from './builders/windowFactory';
 
 export type SideWindowMesh = {
-  id:string;
-  meshes:THREE.Object3D[];
+  id: string;
+  meshes: THREE.Object3D[];
 };
 
-type SideWindowSpec = {
-  id:string;
-  kind:'small';
-  zCenter:number;
-  width:number;
-  groundY0:number;
-  groundY1:number;
-  firstY0:number;
-  firstY1:number;
+type SideWindowSpec = WindowFactorySpec & {
+  zCenter: number;
+  archSide: 'RIGHT';
 };
 
-// RIGHT side is FLAT
-const RIGHT_FACADE_X = -4.8;
+export const ARCH_RIGHT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: -4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: -4.1 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
+] as const;
 
-const FRAME_DEPTH = 0.08;
-const GLASS_INSET = 0.01;
-const EPS = 0.001;
+function xFaceForArchSideAtZ(z: number) {
+  const segment = ARCH_RIGHT_FACADE_SEGMENTS.find((candidate) => z >= candidate.z0 && z <= candidate.z1)
+    ?? ARCH_RIGHT_FACADE_SEGMENTS[ARCH_RIGHT_FACADE_SEGMENTS.length - 1];
 
-const wallThickness = { exterior:0.3 };
+  return segment.x;
+}
 
-const glassMat = new THREE.MeshPhysicalMaterial({
-  color: 0xffffff,
-  transmission: 1,
-  transparent: true,
-  opacity: 1,
-  roughness: 0,
-  metalness: 0,
-  thickness: 0.02,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  toneMapped: false,   // 🔥 THIS is the real fix
-});
-
-// 🔥 YOUR RIGHT WINDOWS
-const rightSideWindowSpecs:SideWindowSpec[] = [
+const rightSideWindowSpecs: SideWindowSpec[] = [
   {
-    id:'SIDE_R_DOOR',
-    kind:'small',
-    zCenter:5.5,
-    width:1.0,
-    groundY0:0.0,
-    groundY1:2.15,
-    firstY0:0,
-    firstY1:0,
+    id: 'SIDE_R_DOOR',
+    kind: 'small',
+    archSide: 'RIGHT',
+    zCenter: 5.5,
+    width: 1.0,
+    groundY0: 0.0,
+    groundY1: 2.15,
+    firstY0: 0.0,
+    firstY1: 0.0,
   },
   {
-    id:'SIDE_R_WIN',
-    kind:'small',
-    zCenter:5.5,
-    width:0.9,
-    groundY0:0,
-    groundY1:0,
-    firstY0:4.1,
-    firstY1:5.0,
+    id: 'SIDE_R_WIN',
+    kind: 'tall',
+    archSide: 'RIGHT',
+    zCenter: 5.5,
+    width: 0.9,
+    groundY0: 4.1,
+    groundY1: 4.1,
+    firstY0: 4.1,
+    firstY1: 5.0,
   },
 ];
 
-function makeSimpleWindow({
-  id,width,y0,y1,zCenter
-}:{
-  id:string;
-  width:number;
-  y0:number;
-  y1:number;
-  zCenter:number;
-}):SideWindowMesh{
-
-  const outward = new THREE.Vector3(-1,0,0);
-  const interiorDir = 1;
-
-  const xOuterReveal = RIGHT_FACADE_X;
-  const xInnerReveal = xOuterReveal + interiorDir * wallThickness.exterior;
-  const xOuterPlane = xOuterReveal + outward.x * EPS;
-
-  const frameX = xOuterPlane - outward.x * (FRAME_DEPTH/2);
-  const glassX = frameX + interiorDir * GLASS_INSET;
-
-  const height = y1-y0;
-
-  const frameMat = new THREE.MeshStandardMaterial({
-    color: 0x222222,
-    roughness: 0.6,
-    metalness: 0.1,
-    toneMapped: false,   // 🔥 REQUIRED
-  });
-
-  const frame = new THREE.Mesh(
-    new THREE.BoxGeometry(FRAME_DEPTH,height,width),
-    frameMat
-  );
-
-  frame.position.set(frameX,y0+height/2,zCenter);
-
-  const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(0.02,height-0.05,width-0.05),
-    glassMat
-  );
-
-  glass.position.set(glassX,y0+height/2,zCenter);
-
-  return { id, meshes:[frame,glass] };
+function asMesh(meshSpec: WindowFactoryMesh) {
+  const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
+  mesh.name = meshSpec.id;
+  mesh.position.set(...meshSpec.position);
+  mesh.rotation.set(...meshSpec.rotation);
+  return mesh;
 }
 
-const meshes:SideWindowMesh[] =
-rightSideWindowSpecs.flatMap(spec=>{
+const meshes: SideWindowMesh[] = rightSideWindowSpecs.map((spec) => {
+  const zCenter = spec.zCenter;
+  const xFace = xFaceForArchSideAtZ(zCenter);
+  const outward = ARCH_SIDE_TO_WORLD_X[spec.archSide];
+  const interiorDir = -outward;
+  const wallDepth = wallThickness.exterior ?? 0.3;
 
-  const list:SideWindowMesh[]=[];
+  const xOuterReveal = xFace;
+  const xInnerReveal = xOuterReveal + interiorDir * wallDepth;
+  const xOuterPlane = xOuterReveal + outward * EPS;
+  const frameX = xOuterPlane - outward * (FRAME_DEPTH / 2);
+  const glassX = frameX + interiorDir * GLASS_INSET;
 
-  if(spec.groundY1>spec.groundY0){
-    list.push(makeSimpleWindow({
-      id:spec.id+'_GROUND',
-      width:spec.width,
-      y0:spec.groundY0,
-      y1:spec.groundY1,
-      zCenter:spec.zCenter
-    }));
-  }
+  const commonProps = {
+    spec,
+    frameX,
+    glassX,
+    xFace: xOuterPlane,
+    zCenter,
+    side: 'left' as const,
+  };
 
-  if(spec.firstY1>spec.firstY0){
-    list.push(makeSimpleWindow({
-      id:spec.id+'_FIRST',
-      width:spec.width,
-      y0:spec.firstY0,
-      y1:spec.firstY1,
-      zCenter:spec.zCenter
-    }));
-  }
+  const windowMeshes =
+    spec.kind === 'small'
+      ? makeSimpleWindow(commonProps)
+      : makeSplitTallWindow({ ...commonProps, levelHeights: { firstFloor: 4.1 } });
 
-  return list;
+  const revealMeshes = createRevealMeshes({
+    spec,
+    zCenter,
+    xOuter: xOuterReveal,
+    xInner: xInnerReveal,
+  });
+
+  return { id: spec.id, meshes: [...windowMeshes, ...revealMeshes].map(asMesh) };
 });
 
 export const windowsRight = { meshes };

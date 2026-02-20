@@ -209,10 +209,6 @@ const wallsFirst = buildWallsFirst({
   rightPlacements: rightFacade.placements,
 });
 
-const wallsFirst = buildWallsFirst({
-  rightPlacements: rightFacade.placements,
-});
-
 const wallsGroundWithOptionals: typeof wallsGround & {
   extensionRightWall?: PositionedMesh;
   frontFacade?: PositionedMesh;

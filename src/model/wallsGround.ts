@@ -10,14 +10,15 @@ import {
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
-  ARCH_LEFT_FACADE_SEGMENTS,
   ARCH_RIGHT_FACADE_SEGMENTS,
   getSideWindowZCenter,
   makeMirrorZ,
   rightSideWindowSpecs,
   sideWindowSpecs,
 } from './builders/windowFactory';
+import { xFaceForProfileAtZ } from './builders/sideFacade';
 import { frontOpeningRectsGround } from './windowsFront';
+import { ARCH_LEFT_FACADE_SEGMENTS } from './windowsLeft';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
   buildRightFacadeReturnPanels,
@@ -605,7 +606,6 @@ function makeLeftFacadePanels({
   segments: ZSeg[];
   mirrorZ: (z: number) => number;
 }) {
-  const outer = getEnvelopeOuterPolygon();
   const panelDepth = FACADE_PANEL_THICKNESS;
 
   return segments
@@ -656,31 +656,14 @@ function makeLeftFacadePanels({
 
       const panelGeometry = new ShapeGeometry(shape);
 
-      // Decide whether this segment is on the left or right side of the envelope
-      const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
-      const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
-
-      // segment.x is the OUTER facade plane for that segment (you pushed it in when you added the extension segment)
-      const dToLeft = Math.abs(segment.x - envMinX);
-      const dToRight = Math.abs(segment.x - envMaxX);
-      const isLeftSide = dToLeft <= dToRight;
-
       // Small offset to avoid z-fighting with shell
       const OUTSET = 0.002;
-
-      if (isLeftSide) {
-        // Left facade faces outward toward -X
-        panelGeometry.rotateY(Math.PI / 2);
-      } else {
-        // Right facade faces outward toward +X
-        panelGeometry.rotateY(-Math.PI / 2);
-      }
+      panelGeometry.rotateY(Math.PI / 2);
 
       panelGeometry.computeVertexNormals();
 
-      const xPos = isLeftSide
-        ? segment.x - panelDepth / 2 - OUTSET
-        : segment.x + panelDepth / 2 + OUTSET;
+      const xFace = xFaceForProfileAtZ(ARCH_LEFT_FACADE_SEGMENTS, panelCenterZ);
+      const xPos = xFace - panelDepth / 2 - OUTSET;
 
       return {
         geometry: panelGeometry,

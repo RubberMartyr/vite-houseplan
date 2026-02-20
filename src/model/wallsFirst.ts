@@ -137,7 +137,7 @@ export const wallsFirst = {
             Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
           if (!onOuterX && !onInnerX) return false;
 
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
+          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin + EPSILON < segment.z1;
           return inSegmentZ;
         });
 
@@ -152,7 +152,7 @@ export const wallsFirst = {
             Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
           if (!onOuterX && !onInnerX) return false;
 
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
+          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin + EPSILON < segment.z1;
           return inSegmentZ;
         });
 

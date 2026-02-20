@@ -33,6 +33,8 @@ import { windowsRear } from '../model/windowsRear';
 import { windowsLeft } from '../model/windowsLeft';
 import { windowsFront } from '../model/windowsFront';
 import { buildSideWindows } from '../model/builders/buildSideWindows';
+import { buildFacadeWindowPlacements } from '../model/builders/buildFacadeWindowPlacements';
+import { createFacadeContext } from '../model/builders/facadeContext';
 import { rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
@@ -165,9 +167,16 @@ function useBuildingMaterials() {
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
 
+const rightFacadeCtx = createFacadeContext('right');
+
+const rightPlacements = buildFacadeWindowPlacements(
+  rightFacadeCtx,
+  rightSideWindowSpecs
+);
+
 const rightSideMeshes = buildSideWindows({
-  facade: 'right',
-  specs: rightSideWindowSpecs,
+  ctx: rightFacadeCtx,
+  placements: rightPlacements,
 });
 
 // --- HOUSE COMPONENTS ---

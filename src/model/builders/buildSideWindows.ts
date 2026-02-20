@@ -34,6 +34,24 @@ function levelBandSpec(spec: SideWindowSpec, y0: number, y1: number): SideWindow
   };
 }
 
+function buildBandWindowMeshes(
+  spec: SideWindowSpec,
+  commonProps: {
+    frameX: number;
+    glassX: number;
+    xFace: number;
+    zCenter: number;
+    side: FacadeContext['sillSide'];
+  },
+): WindowFactoryMesh[] {
+  const height = spec.groundY1 - spec.groundY0;
+  const isFullHeightTall = spec.kind === 'tall' && height >= 4.8;
+
+  return isFullHeightTall
+    ? makeSplitTallWindow({ ...commonProps, spec, levelHeights })
+    : makeSimpleWindow({ ...commonProps, spec });
+}
+
 function buildSingleSideWindow(
   placement: FacadeWindowPlacement,
   ctx: FacadeContext,
@@ -56,21 +74,13 @@ function buildSingleSideWindow(
 
   if (spec.groundY1 > spec.groundY0) {
     const s = levelBandSpec(spec, spec.groundY0, spec.groundY1);
-    meshes.push(
-      ...(spec.kind === 'small'
-        ? makeSimpleWindow({ ...commonProps, spec: s })
-        : makeSplitTallWindow({ ...commonProps, spec: s, levelHeights })),
-    );
+    meshes.push(...buildBandWindowMeshes(s, commonProps));
     meshes.push(...createRevealMeshes({ spec: s, zCenter, xOuter: xOuterPlane, xInner: xInnerReveal }));
   }
 
   if (spec.firstY1 > spec.firstY0) {
     const s = levelBandSpec(spec, spec.firstY0, spec.firstY1);
-    meshes.push(
-      ...(spec.kind === 'small'
-        ? makeSimpleWindow({ ...commonProps, spec: s })
-        : makeSplitTallWindow({ ...commonProps, spec: s, levelHeights })),
-    );
+    meshes.push(...buildBandWindowMeshes(s, commonProps));
     meshes.push(...createRevealMeshes({ spec: s, zCenter, xOuter: xOuterPlane, xInner: xInnerReveal }));
   }
 

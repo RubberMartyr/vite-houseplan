@@ -914,7 +914,12 @@ function HouseScene({
                 visible={wallShellVisible}
               />
             ))}
-          {showGround &&
+          {/* Phase 4 cleanup:
+              rightSideFacades were facade fragments around openings.
+              windowFactory now builds reveals, so these must NOT render anymore.
+          */}
+          {/* disabled rightSideFacades */}
+          {/* {showGround &&
             wallsGround.rightSideFacades?.map((facade, index) => (
               <mesh
                 key={`ground-rs-${index}`}
@@ -926,7 +931,7 @@ function HouseScene({
                 receiveShadow
                 visible={wallShellVisible}
               />
-            ))}
+            ))} */}
           {showGround &&
             wallsGround.rightFacades.map((facade, index) => (
               <mesh
@@ -997,7 +1002,12 @@ function HouseScene({
                 visible={wallShellVisible}
               />
             ))}
-          {showFirst &&
+          {/* Phase 4 cleanup:
+              rightSideFacades were facade fragments around openings.
+              windowFactory now builds reveals, so these must NOT render anymore.
+          */}
+          {/* disabled rightSideFacades */}
+          {/* {showFirst &&
             (wallsFirst as any).rightSideFacades?.map((facade: any, index: number) => (
               <mesh
                 key={`first-rs-${index}`}
@@ -1009,7 +1019,7 @@ function HouseScene({
                 receiveShadow
                 visible={wallShellVisible}
               />
-            ))}
+            ))} */}
           {showFirst && wallsFirst.leftFacade && (
             <mesh
               geometry={wallsFirst.leftFacade.geometry}

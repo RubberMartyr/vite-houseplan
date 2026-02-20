@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { levelHeights, wallThickness } from '../houseSpec';
 import { EPS, FRAME_DEPTH, GLASS_INSET } from '../constants/windowConstants';
+import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { xFaceForProfileAtZ, type FacadeSegment } from './sideFacade';
 import { createRevealMeshes, makeSimpleWindow, makeSplitTallWindow, type WindowFactoryMesh } from './windowFactory';
 
@@ -18,6 +19,7 @@ export type SideWindowSpec = {
 export type SideWindowBuildConfig = {
   profile: readonly FacadeSegment[];
   outwardX: 1 | -1;
+  alignToFacadePanels?: boolean; // NEW
 };
 
 function asMesh(meshSpec: WindowFactoryMesh) {
@@ -44,7 +46,13 @@ export function buildSideWindows(specs: readonly SideWindowSpec[], cfg: SideWind
 
   return specs.flatMap((spec) => {
     const zCenter = spec.zCenter;
-    const xOuterReveal = xFaceForProfileAtZ(cfg.profile, zCenter);
+    const xFace = xFaceForProfileAtZ(cfg.profile, zCenter);
+
+    // If your holes are in facade panels, the "opening plane" is NOT xFace,
+    // it's the facade panel plane used by wallsGround/wallsFirst:
+    const xOuterReveal = cfg.alignToFacadePanels
+      ? (xFace - FACADE_PANEL_PLANE_OFFSET)
+      : xFace;
     const xInnerReveal = xOuterReveal + interiorDir * (wallThickness.exterior ?? 0.3);
     const xOuterPlane = xOuterReveal + outward * EPS;
 

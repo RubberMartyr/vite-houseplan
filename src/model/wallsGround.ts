@@ -545,7 +545,14 @@ export function buildWallsGround({
   };
 }
 
-export const wallsGround = buildWallsGround();
+let _cached: ReturnType<typeof buildWallsGround> | null = null;
+
+export function getWallsGround() {
+  if (!_cached) {
+    _cached = buildWallsGround();
+  }
+  return _cached;
+}
 
 function makeSideFacadePanel({
   side,

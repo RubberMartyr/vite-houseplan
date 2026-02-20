@@ -80,10 +80,14 @@ function makeSimpleWindow({
 
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(0.02,height-0.05,width-0.05),
-    new THREE.MeshStandardMaterial({
-      color:0x99aaff,
+    new THREE.MeshPhysicalMaterial({
+      color:0xffffff,
+      transmission:0.9,
       transparent:true,
-      opacity:0.4
+      opacity:1,
+      roughness:0.05,
+      metalness:0,
+      thickness:0.01
     })
   );
 

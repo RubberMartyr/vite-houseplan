@@ -22,6 +22,7 @@ import {
   type RightPanelOpening,
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
+import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.first;
@@ -42,8 +43,15 @@ type WallMesh = {
   role?: 'shell' | 'facade';
 };
 
-export const wallsFirst = {
-  shell: (() => {
+export function buildWallsFirst({
+  rightPlacements,
+}: {
+  rightPlacements?: FacadeWindowPlacement[];
+} = {}) {
+  const placements = rightPlacements ?? facadePlacements;
+
+  return {
+    shell: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
@@ -352,7 +360,7 @@ export const wallsFirst = {
     shape.closePath();
 
     // Create holes from shared facade placements
-    facadePlacements.forEach(({ spec, zCenter, width }) => {
+    placements.forEach(({ spec, zCenter, width }) => {
       const zMinHole = zCenter - width / 2;
       const zMaxHole = zCenter + width / 2;
 
@@ -382,18 +390,15 @@ export const wallsFirst = {
     };
   })(),
   rightFacades: (() => {
-    const firstOpenings: RightPanelOpening[] = facadePlacements
+    const firstOpenings: RightPanelOpening[] = placements
       .filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
-      .map(({ spec, zCenter, width }) => {
-        const isTall = spec.kind === 'tall';
-        return {
-          id: spec.id,
-          zCenter,
-          widthZ: width,
-          y0: isTall ? firstFloorLevel : spec.firstY0,
-          y1: isTall ? firstFloorLevel + wallHeight : spec.firstY1,
-        };
-      });
+      .map(({ spec, zCenter, width }) => ({
+        id: spec.id,
+        zCenter,
+        widthZ: width,
+        y0: spec.firstY0,
+        y1: spec.firstY1,
+      }));
 
     const panels: FacadePanel[] = makeRightFacadePanels({
       mirrorZ,
@@ -417,7 +422,10 @@ export const wallsFirst = {
     panels.push(...rightReturnPanels);
     return panels;
   })(),
-};
+  };
+}
+
+export const wallsFirst = buildWallsFirst();
 
 function makeSideFacadePanel({
   side,

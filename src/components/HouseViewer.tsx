@@ -623,6 +623,14 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
+  const leftFacade = useMemo(
+    () =>
+      buildFacadeAssembly({
+        facade: 'left',
+        windowSpecs: leftSideWindowSpecs,
+      }),
+    []
+  );
   const rightFacade = useMemo(
     () =>
       buildFacadeAssembly({
@@ -642,16 +650,18 @@ function HouseScene({
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
+        leftPlacements: leftFacade.placements,
         rightPlacements: rightFacade.placements,
       }),
-    [rightFacade]
+    [leftFacade.placements, rightFacade.placements]
   );
   const wallsFirst = useMemo(
     () =>
       buildWallsFirst({
+        leftPlacements: leftFacade.placements,
         rightPlacements: rightFacade.placements,
       }),
-    [rightFacade]
+    [leftFacade.placements, rightFacade.placements]
   );
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;

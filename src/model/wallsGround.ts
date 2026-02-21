@@ -42,7 +42,7 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 
 const facadeCtx = createFacadeContext('left');
-const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
+const legacyLeftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
 const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
 
 type WallMesh = {
@@ -218,12 +218,15 @@ function isExtensionSideWallFace(v: Vector3) {
 }
 
 export function buildWallsGround({
-  rightPlacements = [],
-  rightOpenings = [],
+  leftPlacements,
+  rightPlacements,
+  rightOpenings,
 }: {
-  rightPlacements?: FacadeWindowPlacement[];
+  leftPlacements: FacadeWindowPlacement[];
+  rightPlacements: FacadeWindowPlacement[];
   rightOpenings?: OpeningCut[];
 }) {
+  const sideOpenings = rightOpenings ?? [];
   return {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();
@@ -515,8 +518,8 @@ export function buildWallsGround({
     };
   })(),
 
-  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
-  rightSideFacades: makeLeftSegmentPanels({ openings: rightOpenings }),
+  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ, leftPlacements }))(),
+  rightSideFacades: makeLeftSegmentPanels({ openings: sideOpenings }),
   rightFacades: (() => {
     const placements = rightPlacements;
     const groundOpenings: RightPanelOpening[] = placements
@@ -558,8 +561,11 @@ let _cached: ReturnType<typeof buildWallsGround> | null = null;
 
 export function getWallsGround() {
   if (!_cached) {
-    // @deprecated legacy cache path; use buildWallsGround with injected rightPlacements.
-    _cached = buildWallsGround({ rightPlacements: legacyRightFacadePlacements });
+    // @deprecated legacy cache path; use buildWallsGround with injected side placements.
+    _cached = buildWallsGround({
+      leftPlacements: legacyLeftFacadePlacements,
+      rightPlacements: legacyRightFacadePlacements,
+    });
   }
   return _cached;
 }
@@ -569,10 +575,12 @@ function makeSideFacadePanel({
   side,
   mirrorZ,
   level,
+  leftPlacements,
 }: {
   side: 'left' | 'right';
   mirrorZ: (z: number) => number;
   level: 'ground' | 'first';
+  leftPlacements: FacadeWindowPlacement[];
 }): FacadePanel | null {
   const outer = getEnvelopeOuterPolygon();
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
@@ -608,8 +616,8 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? leftFacadePlacements
-      : leftFacadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? leftPlacements
+      : leftPlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : levelHeights.firstFloor;
 
   openings.forEach(({ spec, zCenter, width }) => {
@@ -647,9 +655,11 @@ function makeSideFacadePanel({
 function makeLeftFacadePanels({
   segments,
   mirrorZ,
+  leftPlacements,
 }: {
   segments: ZSeg[];
   mirrorZ: (z: number) => number;
+  leftPlacements: FacadeWindowPlacement[];
 }) {
   const panelDepth = FACADE_PANEL_THICKNESS;
 
@@ -662,7 +672,7 @@ function makeLeftFacadePanels({
       const panelBaseY = 0;
 
       const openings: RightPanelOpening[] = [];
-      leftFacadePlacements.forEach(({ spec, zCenter, width }) => {
+      leftPlacements.forEach(({ spec, zCenter, width }) => {
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 
         openings.push({

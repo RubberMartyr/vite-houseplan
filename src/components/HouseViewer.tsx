@@ -28,10 +28,9 @@ import { roomsGround } from '../model/roomsGround'
 import { RoomVolume } from '../model/roomsGround';
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsLeft } from '../model/windowsLeft';
 import { windowsFront } from '../model/windowsFront';
 import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
-import { rightSideWindowSpecs } from '../model/builders/windowFactory';
+import { rightSideWindowSpecs, type SideWindowSpec } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
@@ -196,16 +195,71 @@ type WindowProps = {
 };
 type HouseSceneCameraPreset = { position: [number, number, number]; target: [number, number, number] };
 
+
+const leftSideWindowSpecs: SideWindowSpec[] = [
+  {
+    id: 'SIDE_L_EXT',
+    kind: 'small',
+    archSide: 'LEFT',
+    zCenter: 1.2,
+    width: 1.0,
+    groundY0: 0.0,
+    groundY1: 2.15,
+    firstY0: 0.0,
+    firstY1: 0.0,
+  },
+  {
+    id: 'SIDE_L_TALL_1',
+    kind: 'tall',
+    archSide: 'LEFT',
+    zCenter: 4.6,
+    width: 1.1,
+    groundY0: 0.0,
+    groundY1: ceilingHeights.ground,
+    firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
+  {
+    id: 'SIDE_L_TALL_2',
+    kind: 'tall',
+    archSide: 'LEFT',
+    zCenter: 6.8,
+    width: 1.1,
+    groundY0: 0.0,
+    groundY1: ceilingHeights.ground,
+    firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
+  {
+    id: 'SIDE_L_TALL_3',
+    kind: 'tall',
+    archSide: 'LEFT',
+    zCenter: 9.35,
+    width: 1.1,
+    groundY0: 0.0,
+    groundY1: ceilingHeights.ground,
+    firstY0: ceilingHeights.ground,
+    firstY1: 5.0,
+  },
+];
+
+const leftFacade = buildFacadeAssembly({
+  facade: 'left',
+  windowSpecs: leftSideWindowSpecs,
+});
+
 const rightFacade = buildFacadeAssembly({
   facade: 'right',
   windowSpecs: rightSideWindowSpecs,
 });
 
 const wallsGround = buildWallsGround({
+  leftPlacements: leftFacade.placements,
   rightPlacements: rightFacade.placements,
 });
 
 const wallsFirst = buildWallsFirst({
+  leftPlacements: leftFacade.placements,
   rightPlacements: rightFacade.placements,
 });
 
@@ -977,8 +1031,8 @@ function HouseScene({
           </group>
 
           <group name="sideWindows" visible={wallShellVisible}>
-            {windowsLeft.meshes.map((mesh, i) => (
-              <primitive key={`wl_${i}`} object={mesh} />
+            {leftFacade.windowMeshes.map((mesh) => (
+              <primitive object={mesh} key={mesh.uuid} />
             ))}
             {rightFacade.windowMeshes.map((mesh, i) => (
               <primitive key={`wr_${i}`} object={mesh} />

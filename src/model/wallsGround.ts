@@ -218,9 +218,11 @@ function isExtensionSideWallFace(v: Vector3) {
 }
 
 export function buildWallsGround({
+  leftPlacements = [],
   rightPlacements = [],
   rightOpenings = [],
 }: {
+  leftPlacements?: FacadeWindowPlacement[];
   rightPlacements?: FacadeWindowPlacement[];
   rightOpenings?: OpeningCut[];
 }) {
@@ -515,7 +517,7 @@ export function buildWallsGround({
     };
   })(),
 
-  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ }))(),
+  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, placements: leftPlacements }))(),
   rightSideFacades: makeLeftSegmentPanels({ openings: rightOpenings }),
   rightFacades: (() => {
     const placements = rightPlacements;
@@ -559,7 +561,7 @@ let _cached: ReturnType<typeof buildWallsGround> | null = null;
 export function getWallsGround() {
   if (!_cached) {
     // @deprecated legacy cache path; use buildWallsGround with injected rightPlacements.
-    _cached = buildWallsGround({ rightPlacements: legacyRightFacadePlacements });
+    _cached = buildWallsGround({ leftPlacements: leftFacadePlacements, rightPlacements: legacyRightFacadePlacements });
   }
   return _cached;
 }
@@ -646,10 +648,10 @@ function makeSideFacadePanel({
 
 function makeLeftFacadePanels({
   segments,
-  mirrorZ,
+  placements,
 }: {
   segments: ZSeg[];
-  mirrorZ: (z: number) => number;
+  placements: FacadeWindowPlacement[];
 }) {
   const panelDepth = FACADE_PANEL_THICKNESS;
 
@@ -662,7 +664,7 @@ function makeLeftFacadePanels({
       const panelBaseY = 0;
 
       const openings: RightPanelOpening[] = [];
-      leftFacadePlacements.forEach(({ spec, zCenter, width }) => {
+      placements.forEach(({ spec, zCenter, width }) => {
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 
         openings.push({

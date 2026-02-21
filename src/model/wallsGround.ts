@@ -13,7 +13,7 @@ import {
   ARCH_RIGHT_FACADE_SEGMENTS,
   RIGHT_WORLD_FACADE_SEGMENTS,
   rightSideWindowSpecs,
-  sideWindowSpecs,
+  leftSideWindowSpecs,
 } from './builders/windowFactory';
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
 import { createFacadeContext } from './builders/facadeContext';
@@ -42,7 +42,7 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 
 const facadeCtx = createFacadeContext('left');
-const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
+const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
 const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
 
 type WallMesh = {

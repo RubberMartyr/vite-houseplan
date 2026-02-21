@@ -133,9 +133,8 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
   ],
 };
 
-// Temporarily disabled for review: keep builder pipeline intact but provide no side specs.
-export const sideWindowSpecs: SideWindowSpec[] = [];
-export const rightSideWindowSpecs: SideWindowSpec[] = [];
+export const leftSideWindowSpecs: SideWindowSpec[] = sideWindowSpecsByArchSide.LEFT;
+export const rightSideWindowSpecs: SideWindowSpec[] = sideWindowSpecsByArchSide.RIGHT;
 
 const envelope = getEnvelopeOuterPolygon();
 export const sideZMin = Math.min(...envelope.map((p) => p.z));

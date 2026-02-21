@@ -639,14 +639,6 @@ function HouseScene({
       }),
     []
   );
-  const leftFacade = useMemo(
-    () =>
-      buildFacadeAssembly({
-        facade: 'left',
-        windowSpecs: leftSideWindowSpecs,
-      }),
-    []
-  );
   const wallsGround = useMemo(
     () =>
       buildWallsGround({

@@ -45,13 +45,10 @@ type WallMesh = {
 };
 
 export function buildWallsFirst({
-  leftPlacements = [],
   rightPlacements = [],
 }: {
-  leftPlacements?: FacadeWindowPlacement[];
   rightPlacements?: FacadeWindowPlacement[];
 }) {
-  const left = leftPlacements ?? [];
   const placements = rightPlacements ?? [];
 
   return {
@@ -342,7 +339,7 @@ export function buildWallsFirst({
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first', placements: left }))(),
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
   rightSideFacades: (() => makeRightSideFirstFloorPanels())(),
   rightFacade: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
@@ -430,19 +427,14 @@ export function buildWallsFirst({
 }
 
 // @deprecated legacy singleton; inject rightPlacements via buildWallsFirst() instead.
-export const wallsFirst = buildWallsFirst({
-  leftPlacements: leftFacadePlacements,
-  rightPlacements: legacyRightFacadePlacements,
-});
+export const wallsFirst = buildWallsFirst({ rightPlacements: legacyRightFacadePlacements });
 
 function makeSideFacadePanel({
   side,
   level,
-  placements,
 }: {
   side: 'left' | 'right';
   level: 'ground' | 'first';
-  placements: FacadeWindowPlacement[];
 }): FacadePanel | null {
   const outer = getEnvelopeFirstOuterPolygon();
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
@@ -466,8 +458,8 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? placements
-      : placements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? leftFacadePlacements
+      : leftFacadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach(({ spec, zCenter, width }) => {

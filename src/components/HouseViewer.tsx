@@ -991,6 +991,7 @@ function HouseScene({
           </group>
 
           <group name="sideWindows" visible={wallShellVisible}>
+            {/* Single source of truth: facade assemblies own all side window meshes. */}
             {leftFacade.windowMeshes.map((mesh, i) => (
               <primitive key={`wl_${i}`} object={mesh} />
             ))}

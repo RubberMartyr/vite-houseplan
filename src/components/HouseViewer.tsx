@@ -196,28 +196,6 @@ type WindowProps = {
 };
 type HouseSceneCameraPreset = { position: [number, number, number]; target: [number, number, number] };
 
-const rightFacade = buildFacadeAssembly({
-  facade: 'right',
-  windowSpecs: rightSideWindowSpecs,
-});
-
-const wallsGround = buildWallsGround({
-  rightPlacements: rightFacade.placements,
-});
-
-const wallsFirst = buildWallsFirst({
-  rightPlacements: rightFacade.placements,
-});
-
-const wallsGroundWithOptionals: typeof wallsGround & {
-  extensionRightWall?: PositionedMesh;
-  frontFacade?: PositionedMesh;
-} = wallsGround;
-
-const wallsFirstWithOptionals: typeof wallsFirst & {
-  frontFacade?: PositionedMesh;
-} = wallsFirst;
-
 // --- HOUSE COMPONENTS ---
 
 function Walls() {
@@ -646,6 +624,35 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
+  const rightFacade = useMemo(
+    () =>
+      buildFacadeAssembly({
+        facade: 'right',
+        windowSpecs: rightSideWindowSpecs,
+      }),
+    []
+  );
+  const wallsGround = useMemo(
+    () =>
+      buildWallsGround({
+        rightPlacements: rightFacade.placements,
+      }),
+    [rightFacade]
+  );
+  const wallsFirst = useMemo(
+    () =>
+      buildWallsFirst({
+        rightPlacements: rightFacade.placements,
+      }),
+    [rightFacade]
+  );
+  const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
+    extensionRightWall?: PositionedMesh;
+    frontFacade?: PositionedMesh;
+  };
+  const wallsFirstWithOptionals = wallsFirst as typeof wallsFirst & {
+    frontFacade?: PositionedMesh;
+  };
   const firstFloorLevelY = levelHeights.firstFloor;
   const firstFloorCeilingHeight = ceilingHeights.first;
   const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10

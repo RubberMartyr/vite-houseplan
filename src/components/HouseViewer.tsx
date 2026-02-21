@@ -31,7 +31,7 @@ import { windowsRear } from '../model/windowsRear';
 import { windowsLeft } from '../model/windowsLeft';
 import { windowsFront } from '../model/windowsFront';
 import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
-import { rightSideWindowSpecs } from '../model/builders/windowFactory';
+import { leftSideWindowSpecs, rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
@@ -624,6 +624,14 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
+  const leftFacade = useMemo(
+    () =>
+      buildFacadeAssembly({
+        facade: 'left',
+        windowSpecs: leftSideWindowSpecs,
+      }),
+    []
+  );
   const rightFacade = useMemo(
     () =>
       buildFacadeAssembly({
@@ -635,16 +643,18 @@ function HouseScene({
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
+        leftPlacements: leftFacade.placements,
         rightPlacements: rightFacade.placements,
       }),
-    [rightFacade]
+    [leftFacade.placements, rightFacade.placements]
   );
   const wallsFirst = useMemo(
     () =>
       buildWallsFirst({
+        leftPlacements: leftFacade.placements,
         rightPlacements: rightFacade.placements,
       }),
-    [rightFacade]
+    [leftFacade.placements, rightFacade.placements]
   );
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;

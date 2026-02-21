@@ -36,7 +36,7 @@ const MIN_HOLE_H = 0.05;
 const mirrorZ = (z: number) => sideZMin + sideZMax - z;
 
 const facadeCtx = createFacadeContext('left');
-const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
+const legacyLeftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
 const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
 
 type WallMesh = {
@@ -45,11 +45,12 @@ type WallMesh = {
 };
 
 export function buildWallsFirst({
-  rightPlacements = [],
+  leftPlacements,
+  rightPlacements,
 }: {
-  rightPlacements?: FacadeWindowPlacement[];
+  leftPlacements: FacadeWindowPlacement[];
+  rightPlacements: FacadeWindowPlacement[];
 }) {
-  const placements = rightPlacements ?? [];
 
   return {
     shell: (() => {
@@ -339,7 +340,7 @@ export function buildWallsFirst({
     };
   })(),
 
-  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first' }))(),
+  leftFacade: (() => makeSideFacadePanel({ side: 'left', level: 'first', placements: leftPlacements }))(),
   rightSideFacades: (() => makeRightSideFirstFloorPanels())(),
   rightFacade: (() => {
     const outer = getEnvelopeFirstOuterPolygon();
@@ -361,7 +362,7 @@ export function buildWallsFirst({
     shape.closePath();
 
     // Create holes from shared facade placements
-    placements.forEach(({ spec, zCenter, width }) => {
+    rightPlacements.forEach(({ spec, zCenter, width }) => {
       const zMinHole = zCenter - width / 2;
       const zMaxHole = zCenter + width / 2;
 
@@ -391,7 +392,7 @@ export function buildWallsFirst({
     };
   })(),
   rightFacades: (() => {
-    const firstOpenings: RightPanelOpening[] = placements
+    const firstOpenings: RightPanelOpening[] = rightPlacements
       .filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H)
       .map(({ spec, zCenter, width }) => ({
         id: spec.id,
@@ -426,15 +427,20 @@ export function buildWallsFirst({
   };
 }
 
-// @deprecated legacy singleton; inject rightPlacements via buildWallsFirst() instead.
-export const wallsFirst = buildWallsFirst({ rightPlacements: legacyRightFacadePlacements });
+// @deprecated legacy singleton; inject side placements via buildWallsFirst() instead.
+export const wallsFirst = buildWallsFirst({
+  leftPlacements: legacyLeftFacadePlacements,
+  rightPlacements: legacyRightFacadePlacements,
+});
 
 function makeSideFacadePanel({
   side,
   level,
+  placements,
 }: {
   side: 'left' | 'right';
   level: 'ground' | 'first';
+  placements: FacadeWindowPlacement[];
 }): FacadePanel | null {
   const outer = getEnvelopeFirstOuterPolygon();
   const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
@@ -458,8 +464,8 @@ function makeSideFacadePanel({
 
   const openings =
     level === 'ground'
-      ? leftFacadePlacements
-      : leftFacadePlacements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
+      ? placements
+      : placements.filter(({ spec }) => spec.firstY1 - spec.firstY0 > MIN_HOLE_H);
   const panelBaseY = level === 'ground' ? 0 : firstFloorLevel;
 
   openings.forEach(({ spec, zCenter, width }) => {

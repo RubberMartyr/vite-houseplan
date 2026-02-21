@@ -5,7 +5,7 @@ import {
   RIGHT_WORLD_FACADE_SEGMENTS,
   ARCH_RIGHT_FACADE_SEGMENTS,
   rightSideWindowSpecs,
-  sideWindowSpecs,
+  leftSideWindowSpecs,
   sideZMax,
   sideZMin,
 } from './builders/windowFactory';
@@ -36,7 +36,7 @@ const MIN_HOLE_H = 0.05;
 const mirrorZ = (z: number) => sideZMin + sideZMax - z;
 
 const facadeCtx = createFacadeContext('left');
-const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, sideWindowSpecs);
+const leftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
 const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
 
 type WallMesh = {

@@ -28,10 +28,9 @@ import { roomsGround } from '../model/roomsGround'
 import { RoomVolume } from '../model/roomsGround';
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
-import { windowsLeft } from '../model/windowsLeft';
 import { windowsFront } from '../model/windowsFront';
 import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
-import { rightSideWindowSpecs } from '../model/builders/windowFactory';
+import { leftSideWindowSpecs, rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { loadingManager, markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
@@ -632,6 +631,14 @@ function HouseScene({
       }),
     []
   );
+  const leftFacade = useMemo(
+    () =>
+      buildFacadeAssembly({
+        facade: 'left',
+        windowSpecs: leftSideWindowSpecs,
+      }),
+    []
+  );
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
@@ -984,7 +991,7 @@ function HouseScene({
           </group>
 
           <group name="sideWindows" visible={wallShellVisible}>
-            {windowsLeft.meshes.map((mesh, i) => (
+            {leftFacade.windowMeshes.map((mesh, i) => (
               <primitive key={`wl_${i}`} object={mesh} />
             ))}
             {rightFacade.windowMeshes.map((mesh, i) => (

@@ -5,13 +5,11 @@ import {
   Path,
   Shape,
   ShapeGeometry,
-  Vector3,
 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from './envelope';
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
-  RIGHT_WORLD_FACADE_SEGMENTS,
   rightSideWindowSpecs,
   leftSideWindowSpecs,
 } from './builders/windowFactory';
@@ -33,6 +31,7 @@ import { brickMaterial } from './materials/brickMaterial';
 import type { OpeningCut } from './types/OpeningCut';
 import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 import { runtimeFlags } from './runtimeFlags';
+import type { OpeningDescriptor } from './builders/buildSideWindows';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -42,10 +41,6 @@ const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 
-type WallMesh = {
-  geometry: BufferGeometry;
-  role?: 'shell' | 'facade';
-};
 function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number) {
   const xs: number[] = [];
 
@@ -193,37 +188,24 @@ if (EXTENSION_SIDE_WALL) {
   });
 }
 
-function isExtensionSideWallFace(v: Vector3) {
-  if (!EXTENSION_SIDE_WALL) return false;
-
-  const onX = Math.abs(v.x - EXTENSION_SIDE_WALL.x) < EPSILON;
-  const inZ = v.z >= EXTENSION_SIDE_WALL.z0 - EPSILON && v.z <= EXTENSION_SIDE_WALL.z1 + EPSILON;
-
-  return onX && inZ;
-}
-
 export function buildWallsGround({
   leftPlacements,
   rightPlacements,
   rightOpenings,
+  sideOpenings,
 }: {
   leftPlacements: FacadeWindowPlacement[];
   rightPlacements: FacadeWindowPlacement[];
   rightOpenings?: OpeningCut[];
+  sideOpenings?: OpeningDescriptor[];
 }) {
-  const sideOpenings = rightOpenings ?? [];
+  const rightSideOpenings = rightOpenings ?? [];
+  const openings = sideOpenings ?? [];
 
   return {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
-    const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
-    const innerRearZ = rearZ - exteriorThickness;
-    const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-    const innerLeftX = leftX + exteriorThickness;
-    const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
-    const innerFrontZ = frontZ + exteriorThickness;
-    const leftZSegments = LEFT_Z_SEGMENTS;
 
     const raw = buildExtrudedShell({
       outerPoints: outer,
@@ -239,7 +221,6 @@ export function buildWallsGround({
 
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
-    const mesh: WallMesh = { geometry, role: 'facade' };
     const triangleCount = position.count / 3;
     for (let tri = 0; tri < triangleCount; tri += 1) {
       const baseIndex = tri * 3;
@@ -257,113 +238,16 @@ export function buildWallsGround({
       const y3 = position.getY(indices[2]);
       const z3 = position.getZ(indices[2]);
 
-      const v1 = new Vector3(x1, y1, z1);
-      const v2 = new Vector3(x2, y2, z2);
-      const v3 = new Vector3(x3, y3, z3);
+      const xMid = (x1 + x2 + x3) / 3;
+      const yMid = (y1 + y2 + y3) / 3;
+      const zMid = (z1 + z2 + z3) / 3;
 
-      const e1 = new Vector3().subVectors(v2, v1);
-      const e2 = new Vector3().subVectors(v3, v1);
-      const n = new Vector3().crossVectors(e1, e2).normalize();
-
-      // “Facing” helpers (tolerant)
-      const facesMostlyX = Math.abs(n.x) > 0.85;
-      const facesMostlyZ = Math.abs(n.z) > 0.85;
-
-      const onRearOuter =
-        facesMostlyZ &&
-        Math.abs(z1 - rearZ) < EPSILON &&
-        Math.abs(z2 - rearZ) < EPSILON &&
-        Math.abs(z3 - rearZ) < EPSILON;
-      const onFrontOuter =
-        facesMostlyZ &&
-        Math.abs(z1 - frontZ) < EPSILON &&
-        Math.abs(z2 - frontZ) < EPSILON &&
-        Math.abs(z3 - frontZ) < EPSILON;
-      const onRearInner =
-        facesMostlyZ &&
-        Math.abs(z1 - innerRearZ) < EPSILON &&
-        Math.abs(z2 - innerRearZ) < EPSILON &&
-        Math.abs(z3 - innerRearZ) < EPSILON;
-      const onFrontInner =
-        facesMostlyZ &&
-        Math.abs(z1 - innerFrontZ) < EPSILON &&
-        Math.abs(z2 - innerFrontZ) < EPSILON &&
-        Math.abs(z3 - innerFrontZ) < EPSILON;
-      const onLeftOuter =
-        facesMostlyX &&
-        Math.abs(x1 - leftX) < EPSILON &&
-        Math.abs(x2 - leftX) < EPSILON &&
-        Math.abs(x3 - leftX) < EPSILON;
-      const onLeftInner =
-        facesMostlyX &&
-        Math.abs(x1 - innerLeftX) < EPSILON &&
-        Math.abs(x2 - innerLeftX) < EPSILON &&
-        Math.abs(x3 - innerLeftX) < EPSILON;
-      const triZMin = Math.min(z1, z2, z3);
-      const triZMax = Math.max(z1, z2, z3);
-      let onRightSegment = false;
-      let onLeftSegment = false;
-      let inAnyLeftSeg = false;
-      if (mesh.role === 'facade') {
-        onRightSegment = facesMostlyX && RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = segment.x - exteriorThickness;
-          const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
-
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
-          return inSegmentZ;
-        });
-
-        onLeftSegment = facesMostlyX && ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = segment.x + exteriorThickness; // inward = positive direction for negative-x facade
-          const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
-
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
-          return inSegmentZ;
-        });
-        inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON);
-      }
-      const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
-
-      // --- EXTENSION WALL PROTECTION (robust) ---
-
-      const extensionSeg = EXTENSION_SIDE_WALL;
-
-      // triangle x/z bounds
-      const triXMin = Math.min(x1, x2, x3);
-      const triXMax = Math.max(x1, x2, x3);
-
-      // Z overlap with extension segment
-      const inExtensionZ =
-        !!extensionSeg &&
-        triZMax >= extensionSeg.z0 - EPSILON &&
-        triZMin <= extensionSeg.z1 + EPSILON;
-
-      // X overlap with the *thickness band* of the left wall
-      // extensionSeg.x is expected to be the OUTER left plane (e.g. -4.8)
-      // innerLeftX is the INNER left plane (outer + wallThickness)
-      const extensionOuterX = extensionSeg?.x ?? 0;
-      const extensionInnerX = innerLeftX;
-
-      // normalize ordering (important if coordinates ever flip)
-      const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
-      const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
-
-      const inExtensionXBand = !!extensionSeg && triXMax >= bandMinX && triXMin <= bandMaxX;
-
-      // FINAL: protect any triangle whose X-range intersects the wall thickness band
-      // and whose Z-range intersects the extension segment span
-      const isExtensionLeftWallTriangle = false;
-
-      // --- existing removal gate (keep everything else unchanged) ---
-      const shouldRemove =
-        !isExtensionLeftWallTriangle &&
-        (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onRightSegment || onLeftSegment || onLeftFacadeSegment);
+      const shouldRemove = openings.some((opening) => {
+        const inZ = Math.abs(zMid - opening.zCenter) <= opening.width / 2;
+        const inY = yMid >= opening.y0 && yMid <= opening.y1;
+        const nearWallPlane = Math.abs(xMid - opening.xWall) < EPSILON;
+        return inZ && inY && nearWallPlane;
+      });
 
       if (shouldRemove) {
         continue;
@@ -505,7 +389,7 @@ export function buildWallsGround({
   })(),
 
   leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, leftPlacements }))(),
-  rightSideFacades: makeLeftSegmentPanels({ openings: sideOpenings }),
+  rightSideFacades: makeLeftSegmentPanels({ openings: rightSideOpenings }),
   rightFacades: (() => {
     const placements = rightPlacements;
     const groundOpenings: RightPanelOpening[] = placements

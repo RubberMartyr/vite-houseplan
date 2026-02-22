@@ -648,8 +648,9 @@ function HouseScene({
       buildWallsGround({
         leftPlacements,
         rightPlacements,
+        sideOpenings: [...leftSideWindows.openings, ...rightSideWindows.openings],
       }),
-    [leftPlacements, rightPlacements]
+    [leftPlacements, rightPlacements, leftSideWindows.openings, rightSideWindows.openings]
   );
   const wallsFirst = useMemo(
     () =>
@@ -995,8 +996,8 @@ function HouseScene({
             })}
           </group>
 
-          {leftSideWindows.map((m) => <primitive object={m} key={m.uuid} />)}
-          {rightSideWindows.map((m) => <primitive object={m} key={m.uuid} />)}
+          {leftSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
+          {rightSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
 
           <group name="frontWindows" visible={wallShellVisible}>
             {windowsFront.meshes.map((mesh) => {

@@ -18,6 +18,15 @@ export type BuildSideWindowsConfig = {
   placements: FacadeWindowPlacement[];
 };
 
+export type OpeningDescriptor = {
+  xWall: number;
+  zCenter: number;
+  width: number;
+  y0: number;
+  y1: number;
+  outward: number;
+};
+
 function asMesh(meshSpec: WindowFactoryMesh) {
   const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
   mesh.name = meshSpec.id;
@@ -113,15 +122,30 @@ function buildSingleSideWindow(
   return meshes.map(asMesh);
 }
 
-export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): THREE.Object3D[] {
+export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {
+  meshes: THREE.Object3D[];
+  openings: OpeningDescriptor[];
+} {
   console.log('CTX', ctx.facade, 'placements=', placements.length);
 
   const meshes: THREE.Object3D[] = [];
+  const sideOpenings: OpeningDescriptor[] = [];
   console.log('BUILD SIDE WINDOWS CONTEXT', ctx.facade, 'outward=', ctx.outward);
 
   for (const placement of placements) {
+    const { spec, zCenter, width } = placement;
+    const xWall = getOuterWallXAtZ(ctx.outward, zCenter);
+    const opening = {
+      xWall,
+      zCenter,
+      width,
+      y0: spec.groundY0,
+      y1: spec.groundY1,
+      outward: ctx.outward,
+    };
+    sideOpenings.push(opening);
     meshes.push(...buildSingleSideWindow(placement, ctx));
   }
 
-  return meshes;
+  return { meshes, openings: sideOpenings };
 }

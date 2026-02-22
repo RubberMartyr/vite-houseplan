@@ -18,6 +18,7 @@ import {
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
 import { createFacadeContext } from './builders/facadeContext';
 import { resolveFacadeX } from './builders/facadeGeometry';
+import { getOuterWallXAtZ } from './builders/wallSurfaceResolver';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
@@ -557,9 +558,9 @@ function makeSideFacadePanel({
   leftPlacements: FacadeWindowPlacement[];
 }): FacadePanel | null {
   const outer = getEnvelopeOuterPolygon();
-  const minX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-  const maxX = outer.reduce((max, point) => Math.max(max, point.x), -Infinity);
-  const xFace = side === 'left' ? minX : maxX;
+  const outward: 1 | -1 = side === 'left' ? -1 : 1;
+  const zMid = outer.reduce((sum, point) => sum + point.z, 0) / outer.length;
+  const xFace = getOuterWallXAtZ(outward, zMid);
   const edgePoints = outer.filter((point) => Math.abs(point.x - xFace) < EPSILON);
   if (edgePoints.length === 0) {
     if (runtimeFlags.isDev) {

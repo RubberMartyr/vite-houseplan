@@ -58,25 +58,32 @@ function buildSingleSideWindow(
   ctx: FacadeContext,
 ): THREE.Object3D[] {
   const meshes: WindowFactoryMesh[] = [];
-  const { spec, zCenter, xOuterPlane } = placement;
+  const { spec, zCenter, xOuterPlane, height } = placement;
 
-  console.log('PLACEMENT X', placement.spec.id, placement.xOuterPlane);
-
+  // Interior direction is always opposite of outward
   const interiorDir = -ctx.outward;
-  const xInnerReveal = xOuterPlane + interiorDir * (wallThickness.exterior ?? 0.3);
 
-  const frameX = xOuterPlane - ctx.outward * (FRAME_DEPTH / 2);
-  const glassX = frameX + interiorDir * GLASS_INSET;
+  const xInnerReveal =
+    xOuterPlane + interiorDir * (wallThickness.exterior ?? 0.3);
+
+  const frameX =
+    xOuterPlane - ctx.outward * (FRAME_DEPTH / 2);
+
+  const glassX =
+    frameX + interiorDir * GLASS_INSET;
+
+  // Handedness for window factory is derived directly from facade
+  const side = ctx.facade; // 'left' or 'right'
 
   const commonProps = {
     frameX,
     glassX,
     xFace: xOuterPlane,
     zCenter,
-    side: ctx.facade,
+    side,
   } as const;
 
-  const fullHeight = Math.max(spec.groundY1, spec.firstY1) - spec.groundY0;
+  const fullHeight = Math.max(height, spec.firstY1 - spec.groundY0);
   const isFullHeightTall = spec.kind === 'tall' && fullHeight >= 4.8;
 
   if (isFullHeightTall) {

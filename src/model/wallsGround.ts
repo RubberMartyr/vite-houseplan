@@ -41,10 +41,6 @@ const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 
-const facadeCtx = createFacadeContext('left');
-const legacyLeftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
-const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
-
 type WallMesh = {
   geometry: BufferGeometry;
   role?: 'shell' | 'facade';
@@ -560,10 +556,13 @@ let _cached: ReturnType<typeof buildWallsGround> | null = null;
 
 export function getWallsGround() {
   if (!_cached) {
+    const leftPlacements = buildFacadeWindowPlacements(createFacadeContext('left'), leftSideWindowSpecs);
+    const rightPlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
+
     // @deprecated legacy cache path; use buildWallsGround with injected side placements.
     _cached = buildWallsGround({
-      leftPlacements: legacyLeftFacadePlacements,
-      rightPlacements: legacyRightFacadePlacements,
+      leftPlacements,
+      rightPlacements,
     });
   }
   return _cached;

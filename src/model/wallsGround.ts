@@ -17,7 +17,6 @@ import {
 } from './builders/windowFactory';
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
 import { createFacadeContext } from './builders/facadeContext';
-import { resolveFacadeX } from './builders/facadeGeometry';
 import { getOuterWallXAtZ } from './builders/wallSurfaceResolver';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
@@ -635,7 +634,6 @@ function makeLeftFacadePanels({
   leftPlacements: FacadeWindowPlacement[];
 }) {
   const facadeCtx = createFacadeContext('architecturalLeft');
-  console.log('LEFT PANEL outward', facadeCtx.outward);
   const panelDepth = FACADE_PANEL_THICKNESS;
 
   return segments
@@ -691,12 +689,8 @@ function makeLeftFacadePanels({
 
       panelGeometry.computeVertexNormals();
 
-      const xFace = resolveFacadeX(facadeCtx, panelCenterZ);
+      const xFace = getOuterWallXAtZ(facadeCtx.outward as 1 | -1, panelCenterZ);
       const xPos = xFace - facadeCtx.outward * (panelDepth / 2 + OUTSET);
-      console.log('PANEL PLANE', {
-        z: panelCenterZ,
-        xPos,
-      });
       const sideId = `LEFT_${index}`;
 
       return {

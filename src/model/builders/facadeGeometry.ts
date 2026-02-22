@@ -3,8 +3,10 @@ import type { FacadeContext } from './facadeContext';
 
 export function resolveFacadeX(ctx: FacadeContext, _z: number): number {
   const outer = getEnvelopeOuterPolygon();
-  const minX = Math.min(...outer.map((p) => p.x));
-  const maxX = Math.max(...outer.map((p) => p.x));
+  const xs = outer.map((p) => p.x);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
 
-  return ctx.facade === 'left' ? minX : maxX;
+  // outward +1 => +X wall, outward -1 => -X wall
+  return ctx.outward === 1 ? maxX : minX;
 }

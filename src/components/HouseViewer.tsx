@@ -30,7 +30,6 @@ import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsFront } from '../model/windowsFront';
 import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
-import { leftSideWindowSpecs, rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
@@ -626,7 +625,7 @@ function HouseScene({
     () =>
       buildFacadeAssembly({
         facade: 'left',
-        windowSpecs: leftSideWindowSpecs,
+        windowSpecs: [],
       }),
     []
   );
@@ -634,17 +633,17 @@ function HouseScene({
     () =>
       buildFacadeAssembly({
         facade: 'right',
-        windowSpecs: rightSideWindowSpecs,
+        windowSpecs: [],
       }),
     []
   );
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
-        leftPlacements: leftFacade.placements,
-        rightPlacements: rightFacade.placements,
+        leftPlacements: [],
+        rightPlacements: [],
       }),
-    [leftFacade.placements, rightFacade.placements]
+    []
   );
   const wallsFirst = useMemo(
     () =>

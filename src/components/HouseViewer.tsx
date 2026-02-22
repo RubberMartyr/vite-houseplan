@@ -35,6 +35,7 @@ import { markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
+import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
 
 if (runtimeFlags.isDev) {
   console.log('✅ ACTIVE VIEWER FILE: HouseViewer.tsx', Date.now());
@@ -629,31 +630,29 @@ function HouseScene({
       }),
     []
   );
-  console.log('LEFT MESH COUNT', leftFacade.windowMeshes.length);
-  console.log('LEFT PLACEMENTS', leftFacade.placements.length);
-  const rightFacade = useMemo(
-    () =>
-      buildFacadeAssembly({
-        facade: 'right',
-        windowSpecs: [],
-      }),
-    []
-  );
+  const rightPlacements = useMemo<FacadeWindowPlacement[]>(() => [], []);
+  if (import.meta.env.DEV) {
+    console.assert(
+      rightPlacements.length === 0,
+      'Right placements should be disabled right now'
+    );
+  }
+
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
         leftPlacements: leftFacade.placements,
-        rightPlacements: rightFacade.placements,
+        rightPlacements,
       }),
-    [leftFacade.placements, rightFacade.placements]
+    [leftFacade.placements, rightPlacements]
   );
   const wallsFirst = useMemo(
     () =>
       buildWallsFirst({
         leftPlacements: [],
-        rightPlacements: rightFacade.placements,
+        rightPlacements,
       }),
-    [rightFacade.placements]
+    [rightPlacements]
   );
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;

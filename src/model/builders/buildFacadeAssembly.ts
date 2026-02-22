@@ -19,10 +19,13 @@ export function buildFacadeAssembly({
   const plan = buildFacadePlan({ facade, windowSpecs });
   const windowCtx = createFacadeContext(facade);
 
-  const windowMeshes = buildSideWindows({
-    ctx: windowCtx,
-    placements: plan.placements,
-  });
+  const windowMeshes =
+    facade === 'right'
+      ? []
+      : buildSideWindows({
+          ctx: windowCtx,
+          placements: plan.placements,
+        });
 
   return {
     ...plan,

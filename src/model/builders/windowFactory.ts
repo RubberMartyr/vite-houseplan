@@ -263,7 +263,7 @@ export function makeSimpleWindow({
     {
       id: `${id}_FRAME`,
       geometry: frameGeometry,
-      position: [frameX, yCenter, zCenter],
+      position: [frameX - 1.0, yCenter, zCenter], // shift further negative
       rotation: [0, 0, 0],
       material: frameMaterial,
     },
@@ -317,7 +317,7 @@ export function makeSplitTallWindow({
     {
       id: `${id}_FRAME`,
       geometry: frameGeometry,
-      position: [frameX, yCenter, zCenter],
+      position: [frameX - 1.0, yCenter, zCenter], // shift further negative
       rotation: [0, 0, 0],
       material: frameMaterial,
     },

@@ -146,16 +146,14 @@ const EXTENSION_SIDE_WALL = (() => {
 
   const raw = candidates[0];
 
-  // --- Convert to render space (same as windows/roof logic) ---
-  let z0 = mirrorZ(raw.z0);
-  let z1 = mirrorZ(raw.z1);
-  if (z0 > z1) [z0, z1] = [z1, z0];
+  // Segment sources are already normalized into render-space Z.
+  const z0 = raw.z0;
+  const z1 = raw.z1;
 
   const outer = getEnvelopeOuterPolygon();
   const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
   const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
 
-  // We already mirrored z0/z1 into render space above
   const zMid = (z0 + z1) / 2;
 
   // Find the facade X extremes *at the extension Z band*

@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { loadingManager } from '../../loadingManager';
 
-const brickTexture = new THREE.TextureLoader(loadingManager).load('/textures/brick2.jpg');
+const loader: THREE.TextureLoader = new THREE.TextureLoader();
+loader.manager = loadingManager;
+
+const brickTexture = loader.load('/textures/brick2.jpg');
 brickTexture.wrapS = brickTexture.wrapT = THREE.RepeatWrapping;
 brickTexture.colorSpace = THREE.SRGBColorSpace;
 

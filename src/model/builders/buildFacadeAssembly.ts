@@ -1,6 +1,7 @@
 import type { SideWindowSpec } from './windowFactory';
 import { buildFacadePlan } from './buildFacadePlan';
 import { buildSideWindows } from './buildSideWindows';
+import { createFacadeContext } from './facadeContext';
 import type { FacadePlan } from '../types/FacadePlan';
 import type { FacadeSide } from './facadeContext';
 
@@ -16,9 +17,10 @@ export function buildFacadeAssembly({
   windowSpecs: SideWindowSpec[];
 }): FacadeAssembly {
   const plan = buildFacadePlan({ facade, windowSpecs });
+  const windowCtx = createFacadeContext(facade);
 
   const windowMeshes = buildSideWindows({
-    ctx: plan.ctx,
+    ctx: windowCtx,
     placements: plan.placements,
   });
 

@@ -31,7 +31,7 @@ import { windowsRear } from '../model/windowsRear';
 import { windowsFront } from '../model/windowsFront';
 import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
 import { leftSideWindowSpecs, rightSideWindowSpecs } from '../model/builders/windowFactory';
-import { loadingManager, markFirstFrameRendered } from '../loadingManager';
+import { markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
 import { OrientationHelpers } from './debug/OrientationHelpers';
 import { ViewerControls } from './ViewerControls';
@@ -529,9 +529,7 @@ function HouseScene({
 
   const { gl, scene, camera } = useThree();
   const firstFrameRef = useRef(false);
-  const brickTex = useTexture('/textures/brick2.jpg', (loader) => {
-    loader.manager = loadingManager;
-  });
+  const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({

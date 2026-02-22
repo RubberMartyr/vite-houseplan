@@ -20,12 +20,10 @@ export function buildFacadeAssembly({
   const windowCtx = createFacadeContext(facade);
 
   const windowMeshes =
-    facade === 'right'
-      ? []
-      : buildSideWindows({
-          ctx: windowCtx,
-          placements: plan.placements,
-        });
+    buildSideWindows({
+      ctx: windowCtx,
+      placements: plan.placements,
+    });
 
   return {
     ...plan,

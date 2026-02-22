@@ -24,6 +24,15 @@ export function createFacadeContext(facade: FacadeSide): FacadeContext {
   const outward: 1 | -1 =
     normalized === 'architecturalLeft' ? 1 : -1;
 
+  if (import.meta.env.DEV) {
+    if (normalized === 'architecturalLeft' && outward !== 1) {
+      throw new Error('architecturalLeft must map to outward=+1');
+    }
+    if (normalized === 'architecturalRight' && outward !== -1) {
+      throw new Error('architecturalRight must map to outward=-1');
+    }
+  }
+
   return { facade: normalized, outward };
 }
 

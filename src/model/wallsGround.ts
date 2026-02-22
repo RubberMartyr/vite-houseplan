@@ -221,6 +221,16 @@ export function buildWallsGround({
   rightOpenings?: OpeningCut[];
 }) {
   const sideOpenings = rightOpenings ?? [];
+
+  if (import.meta.env.DEV) {
+    const p = leftPlacements[0];
+    if (p) {
+      const z = p.zCenter;
+      const zm = mirrorZ(z);
+      console.log('Z sanity', { z, zm, minZ: envelopeBounds.minZ, maxZ: envelopeBounds.maxZ });
+    }
+  }
+
   return {
   shell: (() => {
     const outer = getEnvelopeOuterPolygon();

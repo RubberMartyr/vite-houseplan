@@ -41,7 +41,7 @@ function buildBandWindowMeshes(
     glassX: number;
     xFace: number;
     zCenter: number;
-    side: FacadeContext['sillSide'];
+    side: 'left' | 'right';
   },
 ): WindowFactoryMesh[] {
   const height = spec.groundY1 - spec.groundY0;
@@ -59,17 +59,18 @@ function buildSingleSideWindow(
   const meshes: WindowFactoryMesh[] = [];
   const { spec, zCenter, xOuterPlane } = placement;
 
-  const xInnerReveal = xOuterPlane + ctx.interiorDir * (wallThickness.exterior ?? 0.3);
+  const interiorDir = -ctx.outward;
+  const xInnerReveal = xOuterPlane + interiorDir * (wallThickness.exterior ?? 0.3);
 
   const frameX = xOuterPlane - ctx.outward * (FRAME_DEPTH / 2);
-  const glassX = frameX + ctx.interiorDir * GLASS_INSET;
+  const glassX = frameX + interiorDir * GLASS_INSET;
 
   const commonProps = {
     frameX,
     glassX,
     xFace: xOuterPlane,
     zCenter,
-    side: ctx.sillSide,
+    side: ctx.facade,
   } as const;
 
   const fullHeight = Math.max(spec.groundY1, spec.firstY1) - spec.groundY0;

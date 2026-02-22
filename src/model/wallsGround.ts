@@ -667,6 +667,7 @@ function makeLeftFacadePanels({
   mirrorZ: (z: number) => number;
   leftPlacements: FacadeWindowPlacement[];
 }) {
+  const facadeCtx = createFacadeContext('left');
   const panelDepth = FACADE_PANEL_THICKNESS;
 
   return segments

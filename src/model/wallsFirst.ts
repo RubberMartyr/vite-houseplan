@@ -35,9 +35,9 @@ const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = (z: number) => sideZMin + sideZMax - z;
 
-const facadeCtx = createFacadeContext('left');
+const facadeCtx = createFacadeContext('architecturalLeft');
 const legacyLeftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
-const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
+const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('architecturalRight'), rightSideWindowSpecs);
 
 type WallMesh = {
   geometry: BufferGeometry;

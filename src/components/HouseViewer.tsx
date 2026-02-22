@@ -641,9 +641,9 @@ function HouseScene({
     () =>
       buildWallsGround({
         leftPlacements: leftFacade.placements,
-        rightPlacements: [],
+        rightPlacements: rightFacade.placements,
       }),
-    [leftFacade.placements]
+    [leftFacade.placements, rightFacade.placements]
   );
   const wallsFirst = useMemo(
     () =>

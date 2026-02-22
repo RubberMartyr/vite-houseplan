@@ -468,28 +468,29 @@ export default function HouseViewer() {
         onClearSelectedRoom={() => setSelectedRoomId(null)}
       />
 
-        <Canvas
-          shadows
-          camera={{ position: cameraPreset?.position ?? [0, 5, -18], fov: 50 }}
-          gl={{ antialias: true, dpr: deterministicDpr }}
+      <Canvas
+        shadows
+        camera={{ position: cameraPreset?.position ?? [0, 5, -18], fov: 50 }}
+        dpr={deterministicDpr}
+        gl={{ antialias: true }}
         onCreated={({ camera }) => {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
-        >
-          <HouseScene
-            debugOrientation={debugOrientation}
-            screenshotMode={screenshotMode}
-            cameraPreset={cameraPreset}
-            cameraRef={cameraRef}
-            activeFloors={activeFloors}
-            showTerrain={showTerrain}
-            showRoof={showRoof}
-            cutawayEnabled={cutawayEnabled}
-            facadeVisibility={facadeVisibility}
-            selectedRoomId={selectedRoomId}
-            onSelectRoom={setSelectedRoomId}
-            controlsRef={controlsRef}
-          />
+      >
+        <HouseScene
+          debugOrientation={debugOrientation}
+          screenshotMode={screenshotMode}
+          cameraPreset={cameraPreset}
+          cameraRef={cameraRef}
+          activeFloors={activeFloors}
+          showTerrain={showTerrain}
+          showRoof={showRoof}
+          cutawayEnabled={cutawayEnabled}
+          facadeVisibility={facadeVisibility}
+          selectedRoomId={selectedRoomId}
+          onSelectRoom={setSelectedRoomId}
+          controlsRef={controlsRef}
+        />
       </Canvas>
     </div>
   );

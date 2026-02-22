@@ -21,6 +21,7 @@ function asMesh(meshSpec: WindowFactoryMesh) {
   mesh.name = meshSpec.id;
   mesh.position.set(...meshSpec.position);
   mesh.rotation.set(...meshSpec.rotation);
+  console.log('WINDOW MESH X', meshSpec.id, mesh.position.x);
   return mesh;
 }
 
@@ -58,6 +59,8 @@ function buildSingleSideWindow(
 ): THREE.Object3D[] {
   const meshes: WindowFactoryMesh[] = [];
   const { spec, zCenter, xOuterPlane } = placement;
+
+  console.log('PLACEMENT X', placement.spec.id, placement.xOuterPlane);
 
   const interiorDir = -ctx.outward;
   const xInnerReveal = xOuterPlane + interiorDir * (wallThickness.exterior ?? 0.3);

@@ -629,6 +629,8 @@ function HouseScene({
       }),
     []
   );
+  console.log('LEFT MESH COUNT', leftFacade.windowMeshes.length);
+  console.log('LEFT PLACEMENTS', leftFacade.placements.length);
   const rightFacade = useMemo(
     () =>
       buildFacadeAssembly({

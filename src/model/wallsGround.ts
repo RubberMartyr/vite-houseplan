@@ -634,6 +634,7 @@ function makeLeftFacadePanels({
   leftPlacements: FacadeWindowPlacement[];
 }) {
   const facadeCtx = createFacadeContext('left');
+  console.log('LEFT PANEL outward', facadeCtx.outward);
   const panelDepth = FACADE_PANEL_THICKNESS;
 
   return segments

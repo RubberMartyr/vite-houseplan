@@ -61,6 +61,12 @@ function buildSingleSideWindow(
   const { spec, zCenter, xOuterPlane } = placement;
 
   console.log('PLACEMENT X', placement.spec.id, placement.xOuterPlane);
+  console.log('CTX FOR WINDOW', {
+    facade: ctx.facade,
+    outward: ctx.outward,
+    interiorDir: ctx.interiorDir,
+    sillSide: ctx.sillSide,
+  });
 
   const interiorDir = -ctx.outward;
   const xInnerReveal = xOuterPlane + interiorDir * (wallThickness.exterior ?? 0.3);

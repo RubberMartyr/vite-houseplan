@@ -648,9 +648,8 @@ function HouseScene({
       buildWallsGround({
         leftPlacements,
         rightPlacements,
-        sideOpenings: [...leftSideWindows.openings, ...rightSideWindows.openings],
       }),
-    [leftPlacements, rightPlacements, leftSideWindows.openings, rightSideWindows.openings]
+    [leftPlacements, rightPlacements]
   );
   const wallsFirst = useMemo(
     () =>

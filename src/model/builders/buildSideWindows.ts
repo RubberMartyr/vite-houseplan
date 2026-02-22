@@ -74,6 +74,15 @@ function buildSingleSideWindow(
   const { spec, zCenter, height } = placement;
   const xFace = getOuterWallXAtZ(ctx.outward, zCenter);
   const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
+  if (import.meta.env.DEV) {
+    console.log('SIDEWIN XPLANE', {
+      id: placement.spec.id,
+      z: zCenter,
+      xFace,
+      xOuterPlane,
+      outward: ctx.outward,
+    });
+  }
 
   // Interior direction is always opposite of outward
   const interiorDir = -ctx.outward;

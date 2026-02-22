@@ -72,6 +72,16 @@ function buildSingleSideWindow(
     side: ctx.sillSide,
   } as const;
 
+  const fullHeight = Math.max(spec.groundY1, spec.firstY1) - spec.groundY0;
+  const isFullHeightTall = spec.kind === 'tall' && fullHeight >= 4.8;
+
+  if (isFullHeightTall) {
+    const fullHeightSpec = levelBandSpec(spec, spec.groundY0, Math.max(spec.groundY1, spec.firstY1));
+    meshes.push(...buildBandWindowMeshes(fullHeightSpec, commonProps));
+    meshes.push(...createRevealMeshes({ spec: fullHeightSpec, zCenter, xOuter: xOuterPlane, xInner: xInnerReveal }));
+    return meshes.map(asMesh);
+  }
+
   if (spec.groundY1 > spec.groundY0) {
     const s = levelBandSpec(spec, spec.groundY0, spec.groundY1);
     meshes.push(...buildBandWindowMeshes(s, commonProps));

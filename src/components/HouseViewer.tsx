@@ -29,10 +29,8 @@ import { RoomVolume } from '../model/roomsGround';
 import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsFront } from '../model/windowsFront';
-import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
 import { markFirstFrameRendered } from '../loadingManager';
 import { logOrientationAssertions } from '../model/orientation';
-import { OrientationHelpers } from './debug/OrientationHelpers';
 import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 
@@ -621,22 +619,6 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const leftFacade = useMemo(
-    () =>
-      buildFacadeAssembly({
-        facade: 'left',
-        windowSpecs: [],
-      }),
-    []
-  );
-  const rightFacade = useMemo(
-    () =>
-      buildFacadeAssembly({
-        facade: 'right',
-        windowSpecs: [],
-      }),
-    []
-  );
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
@@ -648,10 +630,10 @@ function HouseScene({
   const wallsFirst = useMemo(
     () =>
       buildWallsFirst({
-        leftPlacements: leftFacade.placements,
-        rightPlacements: rightFacade.placements,
+        leftPlacements: [],
+        rightPlacements: [],
       }),
-    [leftFacade.placements, rightFacade.placements]
+    []
   );
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;
@@ -779,21 +761,8 @@ function HouseScene({
         <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
       </directionalLight>
 
-      <OrientationHelpers visible={debugOrientation || screenshotMode} />
- 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]}>
-        {/* ORIENTATION DEBUG — WORLD SPACE */}
-        <mesh position={[-10, 1, 0]}>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="blue" />
-        </mesh>
-
-        <mesh position={[10, 1, 0]}>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="red" />
-        </mesh>
-
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh
@@ -990,15 +959,7 @@ function HouseScene({
             })}
           </group>
 
-          <group name="sideWindows" visible={wallShellVisible}>
-            {/* Single source of truth: facade assemblies own all side window meshes. */}
-            {leftFacade.windowMeshes.map((mesh, i) => (
-              <primitive key={`wl_${i}`} object={mesh} />
-            ))}
-            {rightFacade.windowMeshes.map((mesh, i) => (
-              <primitive key={`wr_${i}`} object={mesh} />
-            ))}
-          </group>
+          {/* Side windows intentionally hard-disabled at render source. */}
           <group name="frontWindows" visible={wallShellVisible}>
             {windowsFront.meshes.map((mesh) => {
               const isGlass = mesh.id.toLowerCase().includes('_glass');

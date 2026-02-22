@@ -493,7 +493,7 @@ function makeSideFacadePanel({
 
   const rawPanelGeometry = new ExtrudeGeometry(shape, { depth: panelDepth, bevelEnabled: false });
   rawPanelGeometry.translate(0, 0, -panelDepth / 2);
-  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsFirst sideFacade ${side} ${level}`, 'front', ENABLE_BRICK_RETURNS);
+  const panelGeometryA = filterExtrudedSideFaces(rawPanelGeometry, panelDepth, `wallsFirst sideFacade ${side} ${level}`, side, ENABLE_BRICK_RETURNS);
   const panelGeometry = keepOnlyOuterFacePlane(panelGeometryA, `wallsFirst sideFacade ${side} ${level}`);
   const rotationY = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
   panelGeometry.rotateY(rotationY);

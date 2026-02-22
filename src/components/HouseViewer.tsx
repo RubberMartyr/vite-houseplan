@@ -622,37 +622,38 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const leftFacade = useMemo(
+  const sideFacade = useMemo(
     () =>
       buildFacadeAssembly({
-        facade: 'left',
+        facade: 'right',
         windowSpecs: leftSideWindowSpecs,
       }),
     []
   );
-  const rightPlacements = useMemo<FacadeWindowPlacement[]>(() => [], []);
+  const rightPlacements = sideFacade.placements;
+  const leftPlacements = useMemo<FacadeWindowPlacement[]>(() => [], []);
   if (import.meta.env.DEV) {
     console.assert(
-      rightPlacements.length === 0,
-      'Right placements should be disabled right now'
+      rightPlacements.length > 0,
+      'Right facade placements should be populated for side windows.'
     );
   }
 
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
-        leftPlacements: leftFacade.placements,
+        leftPlacements,
         rightPlacements,
       }),
-    [leftFacade.placements, rightPlacements]
+    [leftPlacements, rightPlacements]
   );
   const wallsFirst = useMemo(
     () =>
       buildWallsFirst({
-        leftPlacements: [],
+        leftPlacements,
         rightPlacements,
       }),
-    [rightPlacements]
+    [leftPlacements, rightPlacements]
   );
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;
@@ -993,7 +994,7 @@ function HouseScene({
           */}
 
           {/* TEMP: render only tagged left side windows */}
-          {leftFacade.windowMeshes
+          {sideFacade.windowMeshes
             .filter((m) => m.name.startsWith('SIDEWIN:'))
             .map((m) => <primitive object={m} key={m.uuid} />)}
 

@@ -9,7 +9,7 @@ import {
   type WindowFactoryMesh,
 } from './windowFactory';
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
-import type { FacadeContext } from './facadeContext';
+import { worldSideFromOutward, type FacadeContext } from './facadeContext';
 
 export type BuildSideWindowsConfig = {
   ctx: FacadeContext;
@@ -74,15 +74,14 @@ function buildSingleSideWindow(
   const glassX =
     frameX + interiorDir * GLASS_INSET;
 
-  // Handedness for window factory is derived directly from facade
-  const side = ctx.facade; // 'left' or 'right'
+  const worldSide = worldSideFromOutward(ctx.outward);
 
   const commonProps = {
     frameX,
     glassX,
     xFace: xOuterPlane,
     zCenter,
-    side,
+    side: worldSide,
   } as const;
 
   const fullHeight = Math.max(height, spec.firstY1 - spec.groundY0);

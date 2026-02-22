@@ -6,8 +6,10 @@ import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
 import { buildWallsFirst } from '../model/wallsFirst';
-import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
-import { leftSideWindowSpecs } from '../model/builders/windowFactory';
+import { buildFacadeWindowPlacements } from '../model/builders/buildFacadeWindowPlacements';
+import { buildSideWindows } from '../model/builders/buildSideWindows';
+import { createFacadeContext } from '../model/builders/facadeContext';
+import { leftSideWindowSpecs, rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { wallsEavesBand } from '../model/wallsEavesBand';
 import {
   frontZ,
@@ -622,16 +624,18 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const sideFacade = useMemo(
-    () =>
-      buildFacadeAssembly({
-        facade: 'right',
-        windowSpecs: leftSideWindowSpecs,
-      }),
-    []
+  const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
+  const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
+  const leftPlacements = useMemo<FacadeWindowPlacement[]>(
+    () => buildFacadeWindowPlacements(leftCtx, leftSideWindowSpecs),
+    [leftCtx]
   );
-  const rightPlacements = sideFacade.placements;
-  const leftPlacements = useMemo<FacadeWindowPlacement[]>(() => [], []);
+  const rightPlacements = useMemo<FacadeWindowPlacement[]>(
+    () => buildFacadeWindowPlacements(rightCtx, rightSideWindowSpecs),
+    [rightCtx]
+  );
+  const leftSideWindows = useMemo(() => buildSideWindows({ ctx: leftCtx, placements: leftPlacements }), [leftCtx, leftPlacements]);
+  const rightSideWindows = useMemo(() => buildSideWindows({ ctx: rightCtx, placements: rightPlacements }), [rightCtx, rightPlacements]);
   if (import.meta.env.DEV) {
     console.assert(
       rightPlacements.length > 0,
@@ -991,7 +995,8 @@ function HouseScene({
             })}
           </group>
 
-          {sideFacade.windowMeshes.map((m) => <primitive object={m} key={m.uuid} />)}
+          {leftSideWindows.map((m) => <primitive object={m} key={m.uuid} />)}
+          {rightSideWindows.map((m) => <primitive object={m} key={m.uuid} />)}
 
           <group name="frontWindows" visible={wallShellVisible}>
             {windowsFront.meshes.map((mesh) => {

@@ -4,14 +4,10 @@ import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } fro
 import {
   RIGHT_WORLD_FACADE_SEGMENTS,
   ARCH_RIGHT_FACADE_SEGMENTS,
-  rightSideWindowSpecs,
-  leftSideWindowSpecs,
   sideZMax,
   sideZMin,
 } from './builders/windowFactory';
 import { frontOpeningRectsFirst } from './windowsFront';
-import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
-import { createFacadeContext } from './builders/facadeContext';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
   buildRightFacadeReturnPanels,
@@ -34,10 +30,6 @@ const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 const mirrorZ = (z: number) => sideZMin + sideZMax - z;
-
-const facadeCtx = createFacadeContext('architecturalLeft');
-const legacyLeftFacadePlacements = buildFacadeWindowPlacements(facadeCtx, leftSideWindowSpecs);
-const legacyRightFacadePlacements = buildFacadeWindowPlacements(createFacadeContext('architecturalRight'), rightSideWindowSpecs);
 
 type WallMesh = {
   geometry: BufferGeometry;
@@ -426,12 +418,6 @@ export function buildWallsFirst({
   })(),
   };
 }
-
-// @deprecated legacy singleton; inject side placements via buildWallsFirst() instead.
-export const wallsFirst = buildWallsFirst({
-  leftPlacements: legacyLeftFacadePlacements,
-  rightPlacements: legacyRightFacadePlacements,
-});
 
 function makeSideFacadePanel({
   side,

@@ -1,0 +1,29 @@
+import { getEnvelopeOuterPolygon } from '../envelope';
+
+export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
+  const poly = getEnvelopeOuterPolygon();
+
+  const xs: number[] = [];
+
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+
+    const zMin = Math.min(a.z, b.z);
+    const zMax = Math.max(a.z, b.z);
+
+    if (zQuery < zMin || zQuery > zMax) continue;
+
+    if (Math.abs(a.z - b.z) < 1e-6) continue;
+
+    const t = (zQuery - a.z) / (b.z - a.z);
+    const x = a.x + t * (b.x - a.x);
+    xs.push(x);
+  }
+
+  if (!xs.length) {
+    throw new Error(`No wall intersection at z=${zQuery}`);
+  }
+
+  return outward === 1 ? Math.max(...xs) : Math.min(...xs);
+}

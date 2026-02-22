@@ -111,9 +111,9 @@ function buildSingleSideWindow(
 }
 
 export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): THREE.Object3D[] {
-  const meshes: THREE.Object3D[] = [];
-
   console.log('CTX', ctx.facade, 'placements=', placements.length);
+
+  const meshes: THREE.Object3D[] = [];
   console.log('BUILD SIDE WINDOWS CONTEXT', ctx.facade, 'outward=', ctx.outward);
 
   for (const placement of placements) {

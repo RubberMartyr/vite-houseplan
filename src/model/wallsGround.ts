@@ -691,6 +691,10 @@ function makeLeftFacadePanels({
 
       const xFace = resolveFacadeX(facadeCtx, panelCenterZ);
       const xPos = xFace - facadeCtx.outward * (panelDepth / 2 + OUTSET);
+      console.log('PANEL PLANE', {
+        z: panelCenterZ,
+        xPos,
+      });
       const sideId = `LEFT_${index}`;
 
       return {

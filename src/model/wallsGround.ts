@@ -702,8 +702,7 @@ function makeLeftFacadePanels({
 
       const xFace = resolveFacadeX(facadeCtx, panelCenterZ);
       const xPos = xFace - facadeCtx.outward * (panelDepth / 2 + OUTSET);
-      const sideId =
-        RIGHT_WORLD_FACADE_SEGMENTS.find((segment) => panelCenterZ >= segment.z0 && panelCenterZ <= segment.z1)?.id ?? 'L_A';
+      const sideId = `LEFT_${index}`;
 
       return {
         geometry: panelGeometry,

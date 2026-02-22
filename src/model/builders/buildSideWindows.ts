@@ -18,7 +18,7 @@ export type BuildSideWindowsConfig = {
 
 function asMesh(meshSpec: WindowFactoryMesh) {
   const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
-  mesh.name = meshSpec.id;
+  mesh.name = `SIDEWIN:${meshSpec.id}`;
   mesh.position.set(...meshSpec.position);
   mesh.rotation.set(...meshSpec.rotation);
   console.log('WINDOW MESH X', meshSpec.id, mesh.position.x);

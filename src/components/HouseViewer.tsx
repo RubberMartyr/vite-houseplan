@@ -993,10 +993,10 @@ function HouseScene({
           </group>
           */}
 
-          {/* TEMP: render only left side windows */}
-          {leftFacade.windowMeshes.map((m) => (
-            <primitive object={m} key={m.uuid} />
-          ))}
+          {/* TEMP: render only tagged left side windows */}
+          {leftFacade.windowMeshes
+            .filter((m) => m.name.startsWith('SIDEWIN:'))
+            .map((m) => <primitive object={m} key={m.uuid} />)}
 
           {/* Side windows intentionally hard-disabled at render source. */}
           {/*

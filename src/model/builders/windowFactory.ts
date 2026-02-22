@@ -253,7 +253,10 @@ export function makeSimpleWindow({
   const innerWidth = width - 2 * FRAME_BORDER;
   const innerHeight = height - 2 * FRAME_BORDER;
 
-  const frameGeometry = buildFrameGeometry(width, height, { rotateForSide: true });
+  const frameGeometry = buildFrameGeometry(width, height, {
+    rotateForSide: true,
+    side,
+  });
   const glassGeometry = createGlassGeometry(innerWidth, innerHeight);
 
   return [
@@ -294,7 +297,10 @@ export function makeSplitTallWindow({
 }): WindowFactoryMesh[] {
   const { id, width } = spec;
   const { height, yBottom } = windowVerticalExtents(spec);
-  const frameGeometry = buildFrameGeometry(width, height, { rotateForSide: true });
+  const frameGeometry = buildFrameGeometry(width, height, {
+    rotateForSide: true,
+    side,
+  });
   const yCenter = yBottom + height / 2;
   const windowBottomLocal = -height / 2;
 

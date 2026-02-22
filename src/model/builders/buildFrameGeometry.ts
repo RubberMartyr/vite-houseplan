@@ -4,7 +4,7 @@ import { FRAME_BORDER, FRAME_DEPTH } from '../constants/windowConstants';
 export function buildFrameGeometry(
   width: number,
   height: number,
-  options?: { rotateForSide?: boolean; frameBorder?: number }
+  options?: { rotateForSide?: boolean; frameBorder?: number; side?: 'left' | 'right' }
 ): ExtrudeGeometry {
   const border = options?.frameBorder ?? FRAME_BORDER;
   const halfWidth = width / 2;
@@ -31,7 +31,11 @@ export function buildFrameGeometry(
   geometry.translate(0, 0, -FRAME_DEPTH / 2);
 
   if (options?.rotateForSide) {
-    geometry.rotateY(-Math.PI / 2);
+    if (options.side === 'left') {
+      geometry.rotateY(-Math.PI / 2);
+    } else {
+      geometry.rotateY(Math.PI / 2);
+    }
     geometry.computeVertexNormals();
   }
 

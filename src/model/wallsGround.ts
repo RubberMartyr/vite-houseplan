@@ -218,8 +218,9 @@ export function buildWallsGround({
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
-    const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-    const innerLeftX = leftX + exteriorThickness;
+    // DO NOT use global minX anymore
+    const innerLeftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity) + exteriorThickness;
+    const facadeCtx = createFacadeContext('architecturalLeft');
     const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
     const innerFrontZ = frontZ + exteriorThickness;
     const leftZSegments = LEFT_Z_SEGMENTS;
@@ -288,11 +289,14 @@ export function buildWallsGround({
         Math.abs(z1 - innerFrontZ) < EPSILON &&
         Math.abs(z2 - innerFrontZ) < EPSILON &&
         Math.abs(z3 - innerFrontZ) < EPSILON;
+      const zMid = (z1 + z2 + z3) / 3;
+      const xWallAtZ = getOuterWallXAtZ(facadeCtx.outward as 1 | -1, zMid);
+
       const onLeftOuter =
         facesMostlyX &&
-        Math.abs(x1 - leftX) < EPSILON &&
-        Math.abs(x2 - leftX) < EPSILON &&
-        Math.abs(x3 - leftX) < EPSILON;
+        Math.abs(x1 - xWallAtZ) < EPSILON &&
+        Math.abs(x2 - xWallAtZ) < EPSILON &&
+        Math.abs(x3 - xWallAtZ) < EPSILON;
       const onLeftInner =
         facesMostlyX &&
         Math.abs(x1 - innerLeftX) < EPSILON &&

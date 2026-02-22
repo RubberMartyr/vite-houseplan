@@ -9,7 +9,9 @@ import {
   type WindowFactoryMesh,
 } from './windowFactory';
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
+import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { worldSideFromOutward, type FacadeContext } from './facadeContext';
+import { getOuterWallXAtZ } from './wallSurfaceResolver';
 
 export type BuildSideWindowsConfig = {
   ctx: FacadeContext;
@@ -60,7 +62,9 @@ function buildSingleSideWindow(
   ctx: FacadeContext,
 ): THREE.Object3D[] {
   const meshes: WindowFactoryMesh[] = [];
-  const { spec, zCenter, xOuterPlane, height } = placement;
+  const { spec, zCenter, height } = placement;
+  const xFace = getOuterWallXAtZ(ctx.outward, zCenter);
+  const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
 
   // Interior direction is always opposite of outward
   const interiorDir = -ctx.outward;

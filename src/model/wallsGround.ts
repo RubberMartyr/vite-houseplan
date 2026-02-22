@@ -690,6 +690,7 @@ function makeLeftFacadePanels({
       panelGeometry.computeVertexNormals();
 
       const xFace = getOuterWallXAtZ(facadeCtx.outward as 1 | -1, panelCenterZ);
+      console.log('LEFT PANEL XFACE', { z: panelCenterZ, xFace });
       const xPos = xFace - facadeCtx.outward * (panelDepth / 2 + OUTSET);
       const sideId = `LEFT_${index}`;
 

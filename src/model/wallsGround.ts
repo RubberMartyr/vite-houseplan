@@ -75,15 +75,6 @@ function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number)
   if (!xs.length) return null;
   return { minX: Math.min(...xs), maxX: Math.max(...xs), xs };
 }
-const envelopeBounds = (() => {
-  const outer = getEnvelopeOuterPolygon();
-  return {
-    minZ: Math.min(...outer.map((point) => point.z)),
-    maxZ: Math.max(...outer.map((point) => point.z)),
-  };
-})();
-const mirrorZ = (z: number) => envelopeBounds.minZ + envelopeBounds.maxZ - z;
-
 type ZSeg = { z0: number; z1: number; x: number };
 type FacadeSegment = { x: number; z0: number; z1: number };
 function computeLeftFacadeSegments(): ZSeg[] {
@@ -142,9 +133,8 @@ const EXTENSION_SIDE_WALL = (() => {
 
   const raw = candidates[0];
 
-  // Segment sources are already normalized into render-space Z.
-  const z0 = raw.z0;
-  const z1 = raw.z1;
+  let z0 = raw.z0;
+  let z1 = raw.z1;
 
   const outer = getEnvelopeOuterPolygon();
   const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
@@ -221,15 +211,6 @@ export function buildWallsGround({
   rightOpenings?: OpeningCut[];
 }) {
   const sideOpenings = rightOpenings ?? [];
-
-  if (import.meta.env.DEV) {
-    const p = leftPlacements[0];
-    if (p) {
-      const z = p.zCenter;
-      const zm = mirrorZ(z);
-      console.log('Z sanity', { z, zm, minZ: envelopeBounds.minZ, maxZ: envelopeBounds.maxZ });
-    }
-  }
 
   return {
   shell: (() => {
@@ -522,7 +503,7 @@ export function buildWallsGround({
     };
   })(),
 
-  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, mirrorZ, leftPlacements }))(),
+  leftFacades: (() => makeLeftFacadePanels({ segments: LEFT_Z_SEGMENTS, leftPlacements }))(),
   rightSideFacades: makeLeftSegmentPanels({ openings: sideOpenings }),
   rightFacades: (() => {
     const placements = rightPlacements;
@@ -579,12 +560,10 @@ export function getWallsGround() {
 
 function makeSideFacadePanel({
   side,
-  mirrorZ,
   level,
   leftPlacements,
 }: {
   side: 'left' | 'right';
-  mirrorZ: (z: number) => number;
   level: 'ground' | 'first';
   leftPlacements: FacadeWindowPlacement[];
 }): FacadePanel | null {
@@ -660,11 +639,9 @@ function makeSideFacadePanel({
 
 function makeLeftFacadePanels({
   segments,
-  mirrorZ,
   leftPlacements,
 }: {
   segments: ZSeg[];
-  mirrorZ: (z: number) => number;
   leftPlacements: FacadeWindowPlacement[];
 }) {
   const facadeCtx = createFacadeContext('left');

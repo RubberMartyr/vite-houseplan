@@ -6,6 +6,8 @@ import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
 import { buildWallsFirst } from '../model/wallsFirst';
+import { buildFacadeAssembly } from '../model/builders/buildFacadeAssembly';
+import { leftSideWindowSpecs } from '../model/builders/windowFactory';
 import { wallsEavesBand } from '../model/wallsEavesBand';
 import {
   frontZ,
@@ -619,21 +621,37 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
+  const leftFacade = useMemo(
+    () =>
+      buildFacadeAssembly({
+        facade: 'left',
+        windowSpecs: leftSideWindowSpecs,
+      }),
+    []
+  );
+  const rightFacade = useMemo(
+    () =>
+      buildFacadeAssembly({
+        facade: 'right',
+        windowSpecs: [],
+      }),
+    []
+  );
   const wallsGround = useMemo(
     () =>
       buildWallsGround({
-        leftPlacements: [],
+        leftPlacements: leftFacade.placements,
         rightPlacements: [],
       }),
-    []
+    [leftFacade.placements]
   );
   const wallsFirst = useMemo(
     () =>
       buildWallsFirst({
         leftPlacements: [],
-        rightPlacements: [],
+        rightPlacements: rightFacade.placements,
       }),
-    []
+    [rightFacade.placements]
   );
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;
@@ -958,6 +976,10 @@ function HouseScene({
               );
             })}
           </group>
+
+          {leftFacade.windowMeshes.map((mesh) => (
+            <primitive object={mesh} key={mesh.uuid} />
+          ))}
 
           {/* Side windows intentionally hard-disabled at render source. */}
           <group name="frontWindows" visible={wallShellVisible}>

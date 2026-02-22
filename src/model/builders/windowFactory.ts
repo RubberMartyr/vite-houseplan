@@ -12,7 +12,7 @@ import {
 import { buildFrameGeometry } from './buildFrameGeometry';
 import { buildSill } from './buildSill';
 import { frameMaterial, glassMaterial, metalBandMaterial, revealMaterial } from '../materials/windowMaterials';
-import { ceilingHeights, type ArchSide } from '../houseSpec';
+import { type ArchSide } from '../houseSpec';
 import { getEnvelopeOuterPolygon } from '../envelope';
 
 const REVEAL_FACE = 0.05;
@@ -25,7 +25,7 @@ const metalSlateMaterial = new THREE.MeshStandardMaterial({
 
 export type WindowFactorySpec = {
   id: string;
-  kind: 'small' | 'tall';
+  kind: 'normal' | 'tall';
   width: number;
   groundY0: number;
   groundY1: number;
@@ -66,57 +66,59 @@ export function xFaceForArchSideAtZ(side: SideArchSide, z: number) {
 
 const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
   LEFT: [
+    // Extension window
     {
-      id: 'SIDE_L_EXT',
-      kind: 'small',
+      id: 'L_EXT_1',
+      kind: 'normal',
       archSide: 'LEFT',
-      zCenter: toRenderZ('small', 1.2),
+      zCenter: 2.0,
       width: 1.0,
       groundY0: 0.0,
       groundY1: 2.15,
-      firstY0: 0.0,
+      firstY0: 0,
       firstY1: 0.0,
     },
+    // Tall windows
     {
-      id: 'SIDE_L_TALL_1',
+      id: 'L_TALL_1',
       kind: 'tall',
       archSide: 'LEFT',
-      zCenter: toRenderZ('tall', 4.6),
+      zCenter: 5.5,
       width: 1.1,
       groundY0: 0.0,
-      groundY1: ceilingHeights.ground,
-      firstY0: ceilingHeights.ground,
+      groundY1: 2.45,
+      firstY0: 2.45,
       firstY1: 5.0,
     },
     {
-      id: 'SIDE_L_TALL_2',
+      id: 'L_TALL_2',
       kind: 'tall',
       archSide: 'LEFT',
-      zCenter: toRenderZ('tall', 6.8),
+      zCenter: 8.5,
       width: 1.1,
       groundY0: 0.0,
-      groundY1: ceilingHeights.ground,
-      firstY0: ceilingHeights.ground,
+      groundY1: 2.45,
+      firstY0: 2.45,
       firstY1: 5.0,
     },
     {
-      id: 'SIDE_L_TALL_3',
+      id: 'L_TALL_3',
       kind: 'tall',
       archSide: 'LEFT',
-      zCenter: toRenderZ('tall', 9.35),
+      zCenter: 11.5,
       width: 1.1,
       groundY0: 0.0,
-      groundY1: ceilingHeights.ground,
-      firstY0: ceilingHeights.ground,
+      groundY1: 2.45,
+      firstY0: 2.45,
       firstY1: 5.0,
     },
   ],
   RIGHT: [
     {
       id: 'SIDE_R_DOOR',
-      kind: 'small',
+      kind: 'normal',
       archSide: 'RIGHT',
-      zCenter: toRenderZ('small', 5.5),
+      zCenter: toRenderZ('normal', 5.5),
       width: 1.0,
       groundY0: 0.0,
       groundY1: 2.15,

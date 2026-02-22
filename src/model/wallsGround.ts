@@ -533,7 +533,6 @@ export function buildWallsGround({
       }));
 
     const panels: FacadePanel[] = makeRightFacadePanels({
-      mirrorZ,
       wallHeight,
       baseY: 0,
       panelOutset: RIGHT_PANEL_OUT,

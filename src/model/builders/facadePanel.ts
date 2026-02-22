@@ -195,7 +195,6 @@ export function buildRightFacadeReturnPanels(params: {
 }
 
 export function makeRightFacadePanels(params: {
-  mirrorZ: (z: number) => number;
   wallHeight: number;
   baseY: number;
   panelOutset: number;

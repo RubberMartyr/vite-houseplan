@@ -14,6 +14,13 @@ export function buildFacadeWindowPlacements(ctx: FacadeContext, specs: SideWindo
     const xFace = resolveFacadeX(ctx, zCenter);
     const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
 
+    if (import.meta.env.DEV) {
+      console.log('WINDOW PLANE', ctx.facade, {
+        z: zCenter,
+        xOuterPlane,
+      });
+    }
+
     return {
       spec,
       xOuterPlane,

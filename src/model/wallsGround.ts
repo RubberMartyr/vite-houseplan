@@ -541,22 +541,11 @@ export function buildWallsGround({
   };
 }
 
-let _cached: ReturnType<typeof buildWallsGround> | null = null;
-
-export function getWallsGround() {
-  if (!_cached) {
-    const leftPlacements = buildFacadeWindowPlacements(createFacadeContext('left'), leftSideWindowSpecs);
-    const rightPlacements = buildFacadeWindowPlacements(createFacadeContext('right'), rightSideWindowSpecs);
-
-    // @deprecated legacy cache path; use buildWallsGround with injected side placements.
-    _cached = buildWallsGround({
-      leftPlacements,
-      rightPlacements,
-    });
-  }
-  return _cached;
+export function getWallsGround(): never {
+  throw new Error(
+    'getWallsGround() is deprecated. Use buildWallsGround({ leftPlacements, rightPlacements }).'
+  );
 }
-
 
 function makeSideFacadePanel({
   side,

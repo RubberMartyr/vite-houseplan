@@ -725,6 +725,18 @@ function HouseScene({
   const firstRearSpan = useMemo(() => getRearFacadeSpan(firstOuterEnvelope), [firstOuterEnvelope]);
   const firstEnvelopeShape = useMemo(() => makeFootprintShape(firstEnvelopePolygon), [firstEnvelopePolygon]);
 
+  useEffect(() => {
+    const outer = getEnvelopeOuterPolygon();
+
+    const minX = Math.min(...outer.map((p) => p.x));
+    const maxX = Math.max(...outer.map((p) => p.x));
+    const minZ = Math.min(...outer.map((p) => p.z));
+    const maxZ = Math.max(...outer.map((p) => p.z));
+
+    console.log('ENVELOPE BOUNDS', { minX, maxX, minZ, maxZ });
+    console.log('FIRST 4 ENVELOPE POINTS', outer.slice(0, 4));
+  }, []);
+
   const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
   const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
   const greenRoofPolygon = useMemo(() => getEnvelopeInnerPolygon(0.4, flatRoofPolygon), [flatRoofPolygon]);

@@ -18,7 +18,7 @@ export type BuildSideWindowsConfig = {
 
 function asMesh(meshSpec: WindowFactoryMesh) {
   const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
-  mesh.name = `SIDEWIN:${meshSpec.id}`;
+  mesh.name = meshSpec.id;
   mesh.position.set(...meshSpec.position);
   if (import.meta.env.DEV) {
     console.log('SIDEWIN MESH POS', mesh.name, { x: mesh.position.x, z: mesh.position.z });

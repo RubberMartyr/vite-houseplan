@@ -971,7 +971,6 @@ function HouseScene({
             />
           )}
           {eavesBandMesh}
-          {/*
           <group name="rearWindows" visible={wallShellVisible}>
             {windowsRear.meshes.map((mesh) => {
               const isGlass = mesh.id.toLowerCase().includes('_glass');
@@ -991,15 +990,9 @@ function HouseScene({
               );
             })}
           </group>
-          */}
 
-          {/* TEMP: render only tagged left side windows */}
-          {sideFacade.windowMeshes
-            .filter((m) => m.name.startsWith('SIDEWIN:'))
-            .map((m) => <primitive object={m} key={m.uuid} />)}
+          {sideFacade.windowMeshes.map((m) => <primitive object={m} key={m.uuid} />)}
 
-          {/* Side windows intentionally hard-disabled at render source. */}
-          {/*
           <group name="frontWindows" visible={wallShellVisible}>
             {windowsFront.meshes.map((mesh) => {
               const isGlass = mesh.id.toLowerCase().includes('_glass');
@@ -1019,7 +1012,6 @@ function HouseScene({
               );
             })}
           </group>
-          */}
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">

@@ -27,6 +27,7 @@ import {
   filterExtrudedSideFaces,
   keepOnlyOuterFacePlane,
   makeRightFacadePanels,
+  type RightPanelOpening,
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
 import type { OpeningCut } from './types/OpeningCut';
@@ -45,15 +46,6 @@ type WallMesh = {
   geometry: BufferGeometry;
   role?: 'shell' | 'facade';
 };
-
-type LeftPanelOpening = {
-  id: string;
-  zCenter: number;
-  widthZ: number;
-  y0: number;
-  y1: number;
-};
-
 function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number) {
   const xs: number[] = [];
 
@@ -654,7 +646,7 @@ function makeLeftFacadePanels({
       const panelCenterZ = (segment.z0 + segment.z1) / 2;
       const panelBaseY = 0;
 
-      const openings: LeftPanelOpening[] = [];
+      const openings: RightPanelOpening[] = [];
       leftPlacements.forEach(({ spec, zCenter, width }) => {
         if (zCenter < segment.z0 - EPSILON || zCenter > segment.z1 + EPSILON) return;
 

@@ -42,6 +42,10 @@ export type SideWindowSpec = WindowFactorySpec & {
 
 export const TALL_Z_OFFSET_TO_FRONT = 0.70; // meters
 
+function toRenderZ(kind: WindowFactorySpec['kind'], zCenter: number): number {
+  return kind === 'tall' ? zCenter - TALL_Z_OFFSET_TO_FRONT : zCenter;
+}
+
 export const RIGHT_WORLD_FACADE_SEGMENTS = [
   { id: 'L_A', z0: 0.0, z1: 4.0, x: +4.8 },
   { id: 'L_B', z0: 4.0, z1: 8.45, x: +4.1 },
@@ -66,7 +70,7 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
       id: 'SIDE_L_EXT',
       kind: 'small',
       archSide: 'LEFT',
-      zCenter: 1.2,
+      zCenter: toRenderZ('small', 1.2),
       width: 1.0,
       groundY0: 0.0,
       groundY1: 2.15,
@@ -77,7 +81,7 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
       id: 'SIDE_L_TALL_1',
       kind: 'tall',
       archSide: 'LEFT',
-      zCenter: 4.6,
+      zCenter: toRenderZ('tall', 4.6),
       width: 1.1,
       groundY0: 0.0,
       groundY1: ceilingHeights.ground,
@@ -88,7 +92,7 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
       id: 'SIDE_L_TALL_2',
       kind: 'tall',
       archSide: 'LEFT',
-      zCenter: 6.8,
+      zCenter: toRenderZ('tall', 6.8),
       width: 1.1,
       groundY0: 0.0,
       groundY1: ceilingHeights.ground,
@@ -99,7 +103,7 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
       id: 'SIDE_L_TALL_3',
       kind: 'tall',
       archSide: 'LEFT',
-      zCenter: 9.35,
+      zCenter: toRenderZ('tall', 9.35),
       width: 1.1,
       groundY0: 0.0,
       groundY1: ceilingHeights.ground,
@@ -112,7 +116,7 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
       id: 'SIDE_R_DOOR',
       kind: 'small',
       archSide: 'RIGHT',
-      zCenter: 5.5,
+      zCenter: toRenderZ('small', 5.5),
       width: 1.0,
       groundY0: 0.0,
       groundY1: 2.15,
@@ -123,7 +127,7 @@ const sideWindowSpecsByArchSide: Record<'LEFT' | 'RIGHT', SideWindowSpec[]> = {
       id: 'SIDE_R_WIN',
       kind: 'tall',
       archSide: 'RIGHT',
-      zCenter: 5.5,
+      zCenter: toRenderZ('tall', 5.5),
       width: 0.9,
       groundY0: 4.1,
       groundY1: 4.1,
@@ -141,8 +145,7 @@ export const sideZMin = Math.min(...envelope.map((p) => p.z));
 export const sideZMax = Math.max(...envelope.map((p) => p.z));
 
 export function getSideWindowZCenter(spec: SideWindowSpec, mirrorZ: (z: number) => number) {
-  const baseZ = mirrorZ(spec.zCenter);
-  return spec.kind === 'tall' ? baseZ - TALL_Z_OFFSET_TO_FRONT : baseZ;
+  return mirrorZ(spec.zCenter);
 }
 
 export type WindowFactoryMesh = {

@@ -1134,11 +1134,15 @@ function HouseScene({
 
       {/* CONTROLS */}
       <OrbitControls
-       ref={controlsRef}
-       target={[0, 10, 0]}     // <-- move pivot up
-       minDistance={20}         // <-- prevent getting "inside"
-       maxDistance={80}
-       maxPolarAngle={Math.PI / 2 - 0.05}
+        ref={controlsRef}
+        makeDefault
+        enableDamping
+        dampingFactor={0.08}
+        target={[0, 1.2, 0]}
+        minDistance={0.8}
+        maxDistance={80}
+        minPolarAngle={0.05}
+        maxPolarAngle={Math.PI - 0.05}
       />
     </>
   );

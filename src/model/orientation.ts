@@ -51,3 +51,57 @@ export function logOrientationAssertions() {
     });
   }
 }
+
+export function assertWorldOrientation() {
+  if (!runtimeFlags.isDev) return;
+
+  logOrientationAssertions();
+
+  const leftPlane = getFacadePlane('left');
+  const rightPlane = getFacadePlane('right');
+  const frontPlane = getFacadePlane('front');
+  const rearPlane = getFacadePlane('rear');
+
+  const leftNormal = leftPlane.outwardNormal.toArray();
+  const rightNormal = rightPlane.outwardNormal.toArray();
+  const frontNormal = frontPlane.outwardNormal.toArray();
+  const rearNormal = rearPlane.outwardNormal.toArray();
+
+  const checks = {
+    leftLessThanRight: leftX < rightX,
+    frontLessThanRear: frontZ < rearZ,
+    leftNormal: leftNormal[0] === -1 && leftNormal[1] === 0 && leftNormal[2] === 0,
+    rightNormal: rightNormal[0] === 1 && rightNormal[1] === 0 && rightNormal[2] === 0,
+    frontNormal: frontNormal[0] === 0 && frontNormal[1] === 0 && frontNormal[2] === -1,
+    rearNormal: rearNormal[0] === 0 && rearNormal[1] === 0 && rearNormal[2] === 1,
+  };
+
+  console.info(
+    '[orientation] contract: leftX < rightX, frontZ < rearZ, normals left(-1,0,0), right(1,0,0), front(0,0,-1), rear(0,0,1)',
+    {
+      leftX,
+      rightX,
+      frontZ,
+      rearZ,
+      leftNormal,
+      rightNormal,
+      frontNormal,
+      rearNormal,
+      checks,
+    }
+  );
+
+  if (Object.values(checks).some((result) => !result)) {
+    console.error('[orientation] WORLD ORIENTATION ASSERTION FAILED', {
+      leftX,
+      rightX,
+      frontZ,
+      rearZ,
+      leftNormal,
+      rightNormal,
+      frontNormal,
+      rearNormal,
+      checks,
+    });
+  }
+}

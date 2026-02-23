@@ -238,6 +238,9 @@ export function buildWallsGround({
     const keptUvs: number[] = [];
     const mesh: WallMesh = { geometry, role: 'shell' };
     const triangleCount = position.count / 3;
+    const rightFacadeCtx = createFacadeContext('architecturalLeft');
+    const leftFacadeCtx = createFacadeContext('architecturalRight');
+    const extensionFacadeCtx = createFacadeContext('architecturalRight');
     for (let tri = 0; tri < triangleCount; tri += 1) {
       const baseIndex = tri * 3;
       const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
@@ -306,7 +309,7 @@ export function buildWallsGround({
       if (mesh.role === 'facade') {
         onRightSegment = facesMostlyX && RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
-          const innerX = outerX - exteriorThickness;
+          const innerX = outerX - rightFacadeCtx.outward * exteriorThickness;
           const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
           const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
           if (!onOuterX && !onInnerX) return false;
@@ -317,7 +320,7 @@ export function buildWallsGround({
 
         onLeftSegment = facesMostlyX && ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
-          const innerX = outerX + exteriorThickness; // inward = positive direction for negative-x facade
+          const innerX = outerX - leftFacadeCtx.outward * exteriorThickness;
           const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
           const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
           if (!onOuterX && !onInnerX) return false;
@@ -349,7 +352,7 @@ export function buildWallsGround({
       // extensionSeg.x is expected to be the OUTER left plane (e.g. -4.8)
       // extensionInnerX is the INNER left plane derived from the OUTER plane at this Z
       const extensionOuterX = extensionSeg?.x ?? 0;
-      const extensionInnerX = extensionSeg ? extensionOuterX + exteriorThickness : 0;
+      const extensionInnerX = extensionSeg ? extensionOuterX - extensionFacadeCtx.outward * exteriorThickness : 0;
 
       // normalize ordering (important if coordinates ever flip)
       const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
@@ -716,6 +719,7 @@ function makeLeftFacadePanels({
 export function makeLeftSegmentPanels({ openings }: { openings: OpeningCut[] }): FacadePanel[] {
   const panelDepth = FACADE_PANEL_THICKNESS;
   const OUTSET = 0.002;
+  const facadeCtx = createFacadeContext('architecturalRight');
 
   return ARCH_RIGHT_FACADE_SEGMENTS.map((segment) => {
     const sideId = segment.id;
@@ -758,7 +762,8 @@ export function makeLeftSegmentPanels({ openings }: { openings: OpeningCut[] }):
     panelGeometry.rotateY(Math.PI / 2);
     panelGeometry.computeVertexNormals();
 
-    const xPos = segment.x - panelDepth / 2 - OUTSET;
+    const outwardOffset = -(panelDepth / 2 + OUTSET);
+    const xPos = segment.x - facadeCtx.outward * outwardOffset;
 
     return {
       geometry: panelGeometry,

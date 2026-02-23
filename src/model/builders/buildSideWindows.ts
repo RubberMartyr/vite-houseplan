@@ -11,7 +11,7 @@ import {
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { worldSideFromOutward, type FacadeContext } from './facadeContext';
-import { getOuterWallXAtZ } from './wallSurfaceResolver';
+import { getWallPlanesAtZ } from './wallSurfaceResolver';
 
 export type BuildSideWindowsConfig = {
   ctx: FacadeContext;
@@ -72,7 +72,7 @@ function buildSingleSideWindow(
 ): THREE.Object3D[] {
   const meshes: WindowFactoryMesh[] = [];
   const { spec, zCenter, height } = placement;
-  const xFace = getOuterWallXAtZ(ctx.outward, zCenter);
+  const { xOuter: xFace, xInner: xInnerWall } = getWallPlanesAtZ(ctx.outward, zCenter, wallThickness.exterior ?? 0.3);
   const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
   if (import.meta.env.DEV) {
     console.log('SIDEWIN XPLANE', {
@@ -87,8 +87,7 @@ function buildSingleSideWindow(
   // Interior direction is always opposite of outward
   const interiorDir = -ctx.outward;
 
-  const xInnerReveal =
-    xOuterPlane + interiorDir * (wallThickness.exterior ?? 0.3);
+  const xInnerReveal = xInnerWall - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
 
   const frameX =
     xOuterPlane - ctx.outward * (FRAME_DEPTH / 2);
@@ -143,7 +142,7 @@ export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {
 
   for (const placement of placements) {
     const { spec, zCenter, width } = placement;
-    const xWall = getOuterWallXAtZ(ctx.outward, zCenter);
+    const { xOuter: xWall } = getWallPlanesAtZ(ctx.outward, zCenter, wallThickness.exterior ?? 0.3);
     const opening = {
       xWall,
       zCenter,

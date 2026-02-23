@@ -18,6 +18,7 @@ import {
   type RightPanelOpening,
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
+import { getWallPlanesAtZ } from './builders/wallSurfaceResolver';
 import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 
 const ENABLE_BRICK_RETURNS = false;
@@ -51,7 +52,6 @@ export function buildWallsFirst({
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
     const leftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity);
-    const innerLeftX = leftX + exteriorThickness;
     const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
     const innerFrontZ = frontZ + exteriorThickness;
 
@@ -129,6 +129,8 @@ export function buildWallsFirst({
         Math.abs(x1 - leftX) < EPSILON &&
         Math.abs(x2 - leftX) < EPSILON &&
         Math.abs(x3 - leftX) < EPSILON;
+      const leftZMid = (z1 + z2 + z3) / 3;
+      const { xInner: innerLeftX } = getWallPlanesAtZ(-1, leftZMid, exteriorThickness);
       const onLeftInner =
         facesMostlyX &&
         Math.abs(x1 - innerLeftX) < EPSILON &&
@@ -143,7 +145,7 @@ export function buildWallsFirst({
           facesMostlyX &&
           RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
             const outerX = segment.x;
-            const innerX = segment.x - exteriorThickness;
+            const innerX = outerX - exteriorThickness;
             const onOuterX =
               Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
             const onInnerX =
@@ -158,7 +160,7 @@ export function buildWallsFirst({
           facesMostlyX &&
           ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
             const outerX = segment.x;
-            const innerX = segment.x + exteriorThickness; // inward = positive for negative-x facade
+            const innerX = outerX + exteriorThickness; // inward = positive for negative-x facade
             const onOuterX =
               Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
             const onInnerX =

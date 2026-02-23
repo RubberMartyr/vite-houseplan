@@ -17,7 +17,7 @@ import {
 } from './builders/windowFactory';
 import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
 import { createFacadeContext } from './builders/facadeContext';
-import { getOuterWallXAtZ } from './builders/wallSurfaceResolver';
+import { getOuterWallXAtZ, getWallPlanesAtZ } from './builders/wallSurfaceResolver';
 import { frontOpeningRectsGround } from './windowsFront';
 import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
@@ -218,8 +218,6 @@ export function buildWallsGround({
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
-    // Inner X for stepped walls is computed per-triangle using xWallAtZ (see below).
-    const innerLeftX = 0; // unused (keep for now if referenced elsewhere)
     const facadeCtx = createFacadeContext('architecturalLeft');
     const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
     const innerFrontZ = frontZ + exteriorThickness;
@@ -289,8 +287,7 @@ export function buildWallsGround({
         Math.abs(z2 - innerFrontZ) < EPSILON &&
         Math.abs(z3 - innerFrontZ) < EPSILON;
       const zMid = (z1 + z2 + z3) / 3;
-      const xWallAtZ = getOuterWallXAtZ(facadeCtx.outward as 1 | -1, zMid);
-      const xInnerWallAtZ = xWallAtZ - (facadeCtx.outward as 1 | -1) * exteriorThickness;
+      const { xOuter: xWallAtZ, xInner: xInnerWallAtZ } = getWallPlanesAtZ(facadeCtx.outward as 1 | -1, zMid, exteriorThickness);
 
       const onLeftOuter =
         facesMostlyX &&
@@ -309,7 +306,7 @@ export function buildWallsGround({
       if (mesh.role === 'facade') {
         onRightSegment = facesMostlyX && RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
-          const innerX = segment.x - exteriorThickness;
+          const innerX = outerX - exteriorThickness;
           const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
           const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
           if (!onOuterX && !onInnerX) return false;
@@ -320,7 +317,7 @@ export function buildWallsGround({
 
         onLeftSegment = facesMostlyX && ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
-          const innerX = segment.x + exteriorThickness; // inward = positive direction for negative-x facade
+          const innerX = outerX + exteriorThickness; // inward = positive direction for negative-x facade
           const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
           const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
           if (!onOuterX && !onInnerX) return false;
@@ -347,9 +344,9 @@ export function buildWallsGround({
 
       // X overlap with the *thickness band* of the left wall
       // extensionSeg.x is expected to be the OUTER left plane (e.g. -4.8)
-      // innerLeftX is the INNER left plane (outer + wallThickness)
+      // extensionInnerX is the INNER left plane derived from the OUTER plane at this Z
       const extensionOuterX = extensionSeg?.x ?? 0;
-      const extensionInnerX = innerLeftX;
+      const extensionInnerX = extensionSeg ? extensionOuterX + exteriorThickness : 0;
 
       // normalize ordering (important if coordinates ever flip)
       const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;

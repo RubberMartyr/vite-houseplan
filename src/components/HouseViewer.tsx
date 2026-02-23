@@ -386,7 +386,7 @@ export default function HouseViewer() {
   const deterministicDpr = screenshotMode ? 1 : undefined;
   const cameraPreset = screenshotMode
     ? {
-        position: [-8, 5, -16] as [number, number, number],
+        position: [8, 5, 16] as [number, number, number],
         target: [0, 1.2, 0] as [number, number, number],
       }
     : null;
@@ -474,7 +474,7 @@ export default function HouseViewer() {
 
       <Canvas
         shadows
-        camera={{ position: cameraPreset?.position ?? [0, 5, 18], fov: 50 }}
+        camera={{ position: cameraPreset?.position ?? [0, 7, 12], fov: 50 }}
         dpr={deterministicDpr}
         gl={{ antialias: true }}
         onCreated={({ camera }) => {
@@ -616,16 +616,6 @@ function HouseScene({
     controlsRef.current.target.set(...cameraPreset.target);
     controlsRef.current.update();
   }, [cameraPreset]);
-
-  useEffect(() => {
-    if (cameraPreset || !controlsRef.current) {
-      return;
-    }
-
-    camera.position.set(0, 5, 18);
-    controlsRef.current.target.set(0, 2.2, 2);
-    controlsRef.current.update();
-  }, [camera, cameraPreset, controlsRef]);
 
   useFrame(() => {
     if (firstFrameRef.current) return;
@@ -1144,11 +1134,11 @@ function HouseScene({
 
       {/* CONTROLS */}
       <OrbitControls
-        ref={controlsRef}
-        target={[0, 2.2, 7.5]}
-        minDistance={5}
-        maxDistance={40}
-        maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground
+       ref={controlsRef}
+       target={[0, 10, 0]}     // <-- move pivot up
+       minDistance={20}         // <-- prevent getting "inside"
+       maxDistance={80}
+       maxPolarAngle={Math.PI / 2 - 0.05}
       />
     </>
   );

@@ -5,10 +5,11 @@ import type { HouseSpec } from './types/HouseSpec';
 export type EnvelopePoint = { x: number; z: number };
 export type ArchSide = 'FRONT' | 'REAR' | 'LEFT' | 'RIGHT';
 
-// Architectural orientation mapping
+// Architectural orientation mapping. This must always match world coordinates
+// (LEFT = -X, RIGHT = +X) and must never be inverted.
 export const ARCH_SIDE_TO_WORLD_X = {
-  LEFT: +1,
-  RIGHT: -1,
+  LEFT: -1,
+  RIGHT: +1,
 } as const;
 
 export const depthCm = 1500;
@@ -158,4 +159,3 @@ export const houseSpec: HouseSpec = {
   originOffset,
   groundFloorRooms,
 };
-

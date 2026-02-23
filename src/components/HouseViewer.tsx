@@ -36,7 +36,7 @@ import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsFront } from '../model/windowsFront';
 import { markFirstFrameRendered } from '../loadingManager';
-import { logOrientationAssertions } from '../model/orientation';
+import { assertWorldOrientation, logOrientationAssertions } from '../model/orientation';
 import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
@@ -93,6 +93,50 @@ function makeFootprintShape(points: FootprintPoint[]): THREE.Shape {
   });
   shape.closePath();
   return shape;
+}
+
+
+type TextLabelProps = {
+  text: string;
+  position: [number, number, number];
+  color?: string;
+};
+
+function TextLabel({ text, position, color = '#111' }: TextLabelProps) {
+  const sprite = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      return null;
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 30px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const instance = new THREE.Sprite(material);
+    instance.scale.set(1.8, 0.9, 1);
+    return instance;
+  }, [color, text]);
+
+  if (!sprite) {
+    return null;
+  }
+
+  return <primitive object={sprite} position={position} />;
 }
 
 // --- PROCEDURAL MATERIALS ---
@@ -605,6 +649,12 @@ function HouseScene({
   }, [camera, gl, scene]);
 
   useEffect(() => {
+    if (runtimeFlags.isDev) {
+      assertWorldOrientation();
+    }
+  }, []);
+
+  useEffect(() => {
     if (debugOrientation) {
       logOrientationAssertions();
     }
@@ -854,10 +904,28 @@ function HouseScene({
       <directionalLight position={[10, 15, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]}>
         <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
       </directionalLight>
-      {/* Keep world axes unrotated by rendering them outside the rotated house group. */}
+      {/* Keep world axes unrotated by rendering them outside the house assembly group. */}
       {debugOrientation && (
         <group position={[originOffset.x, 0, originOffset.z]}>
           <axesHelper args={[10]} />
+          <mesh position={[leftX, 0.1, frontZ]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshStandardMaterial color="#ff4d4f" />
+          </mesh>
+          <mesh position={[rightX, 0.1, frontZ]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshStandardMaterial color="#52c41a" />
+          </mesh>
+          <Line
+            points={[
+              [leftX, 0.1, frontZ],
+              [rightX, 0.1, frontZ],
+            ]}
+            color="#1677ff"
+            lineWidth={2}
+          />
+          <TextLabel text="LEFT(-X)" position={[leftX, 0.3, frontZ]} color="#ff4d4f" />
+          <TextLabel text="RIGHT(+X)" position={[rightX, 0.3, frontZ]} color="#52c41a" />
         </group>
       )}
 

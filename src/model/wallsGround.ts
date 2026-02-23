@@ -238,7 +238,7 @@ export function buildWallsGround({
 
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
-    const mesh: WallMesh = { geometry, role: 'facade' };
+    const mesh: WallMesh = { geometry, role: 'shell' };
     const triangleCount = position.count / 3;
     for (let tri = 0; tri < triangleCount; tri += 1) {
       const baseIndex = tri * 3;
@@ -581,7 +581,7 @@ function makeSideFacadePanel({
   const panelCenterZ = (minZ + maxZ) / 2;
   const panelHeight = wallHeight;
   const panelDepth = FACADE_PANEL_THICKNESS;
-  const panelCenterX = side === 'left' ? xFace + panelDepth / 2 : xFace - panelDepth / 2;
+  const panelCenterX = xFace + outward * (panelDepth / 2);
 
   const shape = new Shape();
   shape.moveTo(-panelWidth / 2, -panelHeight / 2);
@@ -692,8 +692,10 @@ function makeLeftFacadePanels({
       panelGeometry.computeVertexNormals();
 
       const xFace = getOuterWallXAtZ(facadeCtx.outward as 1 | -1, panelCenterZ);
-      console.log('LEFT PANEL XFACE', { z: panelCenterZ, xFace });
-      const xPos = xFace - facadeCtx.outward * (panelDepth / 2 + OUTSET);
+      const xPos = xFace + facadeCtx.outward * (panelDepth / 2 + OUTSET);
+      if (runtimeFlags.isDev) {
+        console.log('LEFT PANEL POS CHECK', { xFace, outward: facadeCtx.outward, xPos });
+      }
       const sideId = `LEFT_${index}`;
 
       return {

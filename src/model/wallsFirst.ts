@@ -69,7 +69,7 @@ export function buildWallsFirst({
 
     const keptPositions: number[] = [];
     const keptUvs: number[] = [];
-    const mesh: WallMesh = { geometry, role: 'facade' };
+    const mesh: WallMesh = { geometry, role: 'shell' };
     const triangleCount = position.count / 3;
     let removedOuter = 0;
     let removedFront = 0;
@@ -439,7 +439,8 @@ function makeSideFacadePanel({
   const panelCenterZ = (minZ + maxZ) / 2;
   const panelHeight = wallHeight;
   const panelDepth = FACADE_PANEL_THICKNESS;
-  const panelCenterX = side === 'left' ? xFace + panelDepth / 2 : xFace - panelDepth / 2;
+  const outward: 1 | -1 = side === 'left' ? -1 : 1;
+  const panelCenterX = xFace + outward * (panelDepth / 2);
 
   const shape = new Shape();
   shape.moveTo(-panelWidth / 2, -panelHeight / 2);

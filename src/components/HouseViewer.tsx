@@ -439,7 +439,6 @@ export default function HouseViewer() {
       return;
     }
     cameraRef.current.position.set(6, -0.5, 6);
-    controlsRef.current.target.set(0, -1, 0);
     controlsRef.current.minPolarAngle = 0.2;
     controlsRef.current.maxPolarAngle = Math.PI / 2 - 0.1;
     controlsRef.current.update();
@@ -596,6 +595,7 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
+  const houseRootRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
     // Pre-warm shaders once the scene graph exists to reduce first-frame stutter.
@@ -790,6 +790,61 @@ function HouseScene({
     }
   }, []);
 
+  useEffect(() => {
+    const controls = controlsRef.current;
+    const cam = cameraRef.current;
+    const root = houseRootRef.current;
+
+    if (!controls || !cam || !root) return;
+
+    const id = requestAnimationFrame(() => {
+      const box = new THREE.Box3().setFromObject(root);
+      if (!isFinite(box.min.x) || !isFinite(box.max.x)) return;
+
+      const center = new THREE.Vector3();
+      const size = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+
+      const oldTarget = controls.target.clone();
+      const offset = cam.position.clone().sub(oldTarget);
+
+      controls.target.copy(center);
+      cam.position.copy(center.clone().add(offset));
+
+      const diag = size.length();
+      const minDist = Math.max(1.5, diag * 0.35);
+      const maxDist = Math.max(80, diag * 4.0);
+
+      controls.minDistance = minDist;
+      controls.maxDistance = maxDist;
+
+      const dist = cam.position.distanceTo(center);
+      if (dist < minDist) {
+        const dir = cam.position.clone().sub(center).normalize();
+        cam.position.copy(center.clone().add(dir.multiplyScalar(minDist)));
+      }
+
+      cam.lookAt(center);
+      cam.updateProjectionMatrix();
+      controls.update();
+    });
+
+    return () => cancelAnimationFrame(id);
+  }, [
+    activeFloors.basement,
+    activeFloors.ground,
+    activeFloors.first,
+    activeFloors.attic,
+    showRoof,
+    showTerrain,
+    cutawayEnabled,
+    facadeVisibility.front,
+    facadeVisibility.rear,
+    facadeVisibility.left,
+    facadeVisibility.right,
+  ]);
+
   return (
     <>
       {/* Environment - Fixed CORS issue by using Sky instead of external HDRI */}
@@ -807,7 +862,7 @@ function HouseScene({
       )}
 
       {/* HOUSE ASSEMBLY */}
-      <group position={[originOffset.x, 0, originOffset.z]} rotation={[0, Math.PI, 0]}>
+      <group ref={houseRootRef} position={[originOffset.x, 0, originOffset.z]} rotation={[0, Math.PI, 0]}>
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh
@@ -1138,9 +1193,6 @@ function HouseScene({
         makeDefault
         enableDamping
         dampingFactor={0.08}
-        target={[0, 1.2, 0]}
-        minDistance={0.8}
-        maxDistance={80}
         minPolarAngle={0.05}
         maxPolarAngle={Math.PI - 0.05}
       />

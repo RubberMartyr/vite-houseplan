@@ -1,5 +1,6 @@
 import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
 import { RIGHT_WORLD_FACADE_SEGMENTS } from './windowFactory';
+import { createFacadeContext } from './facadeContext';
 
 const EPSILON = 0.01;
 
@@ -203,6 +204,7 @@ export function makeRightFacadePanels(params: {
   minHoleH: number;
 }): FacadePanel[] {
   const { wallHeight, baseY, panelOutset, openings, minHoleW, minHoleH } = params;
+  const facadeCtx = createFacadeContext('architecturalLeft');
 
   const openingsBySegmentId: Record<(typeof RIGHT_WORLD_FACADE_SEGMENTS)[number]['id'], RightPanelOpening[]> = {
     L_A: [],
@@ -248,9 +250,10 @@ export function makeRightFacadePanels(params: {
     panelGeometry.rotateY(-Math.PI / 2);
     panelGeometry.computeVertexNormals();
 
+    const inwardOffset = -panelOutset;
     return {
       geometry: panelGeometry,
-      position: [segment.x + panelOutset, baseY + wallHeight / 2, panelCenterZ],
+      position: [segment.x - facadeCtx.outward * inwardOffset, baseY + wallHeight / 2, panelCenterZ],
       rotation: [0, 0, 0],
     };
   });

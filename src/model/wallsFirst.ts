@@ -19,6 +19,7 @@ import {
 } from './builders/facadePanel';
 import { brickMaterial } from './materials/brickMaterial';
 import { getWallPlanesAtZ } from './builders/wallSurfaceResolver';
+import { createFacadeContext } from './builders/facadeContext';
 import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 
 const ENABLE_BRICK_RETURNS = false;
@@ -76,6 +77,8 @@ export function buildWallsFirst({
     let removedInner = 0;
     let removedSide = 0;
     let keptTotal = 0;
+    const rightFacadeCtx = createFacadeContext('architecturalLeft');
+    const leftFacadeCtx = createFacadeContext('architecturalRight');
 
     for (let tri = 0; tri < triangleCount; tri += 1) {
       const baseIndex = tri * 3;
@@ -145,7 +148,7 @@ export function buildWallsFirst({
           facesMostlyX &&
           RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
             const outerX = segment.x;
-            const innerX = outerX - exteriorThickness;
+            const innerX = outerX - rightFacadeCtx.outward * exteriorThickness;
             const onOuterX =
               Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
             const onInnerX =
@@ -160,7 +163,7 @@ export function buildWallsFirst({
           facesMostlyX &&
           ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
             const outerX = segment.x;
-            const innerX = outerX + exteriorThickness; // inward = positive for negative-x facade
+            const innerX = outerX - leftFacadeCtx.outward * exteriorThickness;
             const onOuterX =
               Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
             const onInnerX =
@@ -499,6 +502,7 @@ function makeSideFacadePanel({
 function makeRightSideFirstFloorPanels(): FacadePanel[] {
   const panelDepth = FACADE_PANEL_THICKNESS;
   const OUTSET = 0.002;
+  const facadeCtx = createFacadeContext('architecturalRight');
 
   return ARCH_RIGHT_FACADE_SEGMENTS.map((segment) => {
     const sideId = segment.id;
@@ -545,7 +549,8 @@ function makeRightSideFirstFloorPanels(): FacadePanel[] {
     panelGeometry.rotateY(Math.PI / 2);
     panelGeometry.computeVertexNormals();
 
-    const xPos = segment.x - panelDepth / 2 - OUTSET;
+    const outwardOffset = -(panelDepth / 2 + OUTSET);
+    const xPos = segment.x - facadeCtx.outward * outwardOffset;
 
     return {
       geometry: panelGeometry,

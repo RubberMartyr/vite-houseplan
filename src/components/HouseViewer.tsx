@@ -801,7 +801,7 @@ function HouseScene({
       </directionalLight>
 
       {/* HOUSE ASSEMBLY */}
-      <group position={[originOffset.x, 0, originOffset.z]}>
+      <group position={[originOffset.x, 0, originOffset.z]} rotation={[0, Math.PI, 0]}>
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh

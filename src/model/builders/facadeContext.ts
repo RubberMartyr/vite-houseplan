@@ -17,6 +17,12 @@ export function createFacadeContext(
       ? -1
       : 1;
 
+  if (import.meta.env.DEV) {
+    if (facade === 'architecturalLeft' && outward !== -1) {
+      throw new Error('architecturalLeft outward changed — do not flip without audit');
+    }
+  }
+
   return { facade, outward };
 }
 

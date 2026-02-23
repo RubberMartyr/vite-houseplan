@@ -617,6 +617,16 @@ function HouseScene({
     controlsRef.current.update();
   }, [cameraPreset]);
 
+  useEffect(() => {
+    if (cameraPreset || !controlsRef.current) {
+      return;
+    }
+
+    camera.position.set(0, 4.5, -18);
+    controlsRef.current.target.set(0, 2.2, 7.5);
+    controlsRef.current.update();
+  }, [camera, cameraPreset, controlsRef]);
+
   useFrame(() => {
     if (firstFrameRef.current) return;
     firstFrameRef.current = true;
@@ -1135,7 +1145,7 @@ function HouseScene({
       {/* CONTROLS */}
       <OrbitControls
         ref={controlsRef}
-        target={[0, 1.5, 0]}
+        target={[0, 2.2, 7.5]}
         minDistance={5}
         maxDistance={40}
         maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going under ground

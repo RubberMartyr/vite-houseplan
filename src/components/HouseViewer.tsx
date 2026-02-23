@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { Line, OrbitControls, Sky, useTexture } from '@react-three/drei';
+import { Line } from '@react-three/drei';
+import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sky, useTexture } from '@react-three/drei';
+import { Line, OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
@@ -9,6 +9,7 @@ import { buildWallsFirst } from '../model/wallsFirst';
 import { buildFacadeWindowPlacements } from '../model/builders/buildFacadeWindowPlacements';
 import { buildSideWindows } from '../model/builders/buildSideWindows';
 import { createFacadeContext } from '../model/builders/facadeContext';
+import { getOuterWallXAtZ } from '../model/builders/wallSurfaceResolver';
 import { leftSideWindowSpecs, rightSideWindowSpecs } from '../model/builders/windowFactory';
 import { wallsEavesBand } from '../model/wallsEavesBand';
 import {
@@ -528,6 +529,7 @@ function HouseScene({
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
   const LOW_QUALITY = false;
+  const DEBUG_WALL_PLANES = true;
   const { glass, frame } = useBuildingMaterials();
 
   const { gl, scene, camera } = useThree();
@@ -1050,6 +1052,68 @@ function HouseScene({
         </group>
 
         <Roof visible={showRoof} />
+
+        {DEBUG_WALL_PLANES && (() => {
+          const zSamples = [2, 5.5, 8.5, 11.5]; // same z as your side windows
+          const height = 3;
+
+          const lines = [];
+
+          zSamples.forEach((z) => {
+            const outwardLeft = createFacadeContext('architecturalLeft').outward as 1 | -1;
+            const outwardRight = createFacadeContext('architecturalRight').outward as 1 | -1;
+
+            const xLeftOuter = getOuterWallXAtZ(outwardLeft, z);
+            const xRightOuter = getOuterWallXAtZ(outwardRight, z);
+
+            const thickness = 0.3; // your exteriorThickness
+
+            const xLeftInner = xLeftOuter - outwardLeft * thickness;
+            const xRightInner = xRightOuter - outwardRight * thickness;
+
+            // LEFT outer (red)
+            lines.push(
+              <Line
+                key={`L_outer_${z}`}
+                points={[new THREE.Vector3(xLeftOuter, 0, z), new THREE.Vector3(xLeftOuter, height, z)]}
+                color="red"
+                lineWidth={2}
+              />
+            );
+
+            // LEFT inner (orange)
+            lines.push(
+              <Line
+                key={`L_inner_${z}`}
+                points={[new THREE.Vector3(xLeftInner, 0, z), new THREE.Vector3(xLeftInner, height, z)]}
+                color="orange"
+                lineWidth={2}
+              />
+            );
+
+            // RIGHT outer (blue)
+            lines.push(
+              <Line
+                key={`R_outer_${z}`}
+                points={[new THREE.Vector3(xRightOuter, 0, z), new THREE.Vector3(xRightOuter, height, z)]}
+                color="blue"
+                lineWidth={2}
+              />
+            );
+
+            // RIGHT inner (cyan)
+            lines.push(
+              <Line
+                key={`R_inner_${z}`}
+                points={[new THREE.Vector3(xRightInner, 0, z), new THREE.Vector3(xRightInner, height, z)]}
+                color="cyan"
+                lineWidth={2}
+              />
+            );
+          });
+
+          return lines;
+        })()}
       </group>
 
       {/* GROUNDS */}

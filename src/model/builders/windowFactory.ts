@@ -46,20 +46,25 @@ function toRenderZ(kind: WindowFactorySpec['kind'], zCenter: number): number {
   return kind === 'tall' ? zCenter - TALL_Z_OFFSET_TO_FRONT : zCenter;
 }
 
-export const RIGHT_WORLD_FACADE_SEGMENTS = [
-  { id: 'L_A', z0: 0.0, z1: 4.0, x: +4.8 },
-  { id: 'L_B', z0: 4.0, z1: 8.45, x: +4.1 },
-  { id: 'L_C', z0: 8.45, z1: 12.0, x: +3.5 },
+export const RIGHT_FACADE_SEGMENTS = [
+  { id: 'R_A', z0: 0.0, z1: 4.0, x: +4.8 },
+  { id: 'R_B', z0: 4.0, z1: 8.45, x: +4.1 },
+  { id: 'R_C', z0: 8.45, z1: 12.0, x: +3.5 },
 ] as const;
 
-export const ARCH_RIGHT_FACADE_SEGMENTS = [
-  { id: 'R_A', z0: 0.0, z1: 4.0, x: -4.8 },
-  { id: 'R_B', z0: 4.0, z1: 8.45, x: -4.1 },
-  { id: 'R_C', z0: 8.45, z1: 12.0, x: -3.5 },
+export const LEFT_FACADE_SEGMENTS = [
+  { id: 'L_A', z0: 0.0, z1: 4.0, x: -4.8 },
+  { id: 'L_B', z0: 4.0, z1: 8.45, x: -4.1 },
+  { id: 'L_C', z0: 8.45, z1: 12.0, x: -3.5 },
 ] as const;
+
+/** @deprecated Use RIGHT_FACADE_SEGMENTS. */
+export const RIGHT_WORLD_FACADE_SEGMENTS = RIGHT_FACADE_SEGMENTS;
+/** @deprecated Use RIGHT_FACADE_SEGMENTS for architectural-right (+X) segments. */
+export const ARCH_RIGHT_FACADE_SEGMENTS = RIGHT_FACADE_SEGMENTS;
 
 export function xFaceForArchSideAtZ(side: SideArchSide, z: number) {
-  const profile = side === 'LEFT' ? RIGHT_WORLD_FACADE_SEGMENTS : ARCH_RIGHT_FACADE_SEGMENTS;
+  const profile = side === 'LEFT' ? LEFT_FACADE_SEGMENTS : RIGHT_FACADE_SEGMENTS;
   const segment = profile.find((candidate) => z >= candidate.z0 && z <= candidate.z1) ?? profile[profile.length - 1];
   return segment.x;
 }

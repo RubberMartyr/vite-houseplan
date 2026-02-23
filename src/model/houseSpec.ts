@@ -5,8 +5,7 @@ import type { HouseSpec } from './types/HouseSpec';
 export type EnvelopePoint = { x: number; z: number };
 export type ArchSide = 'FRONT' | 'REAR' | 'LEFT' | 'RIGHT';
 
-// Architectural orientation mapping. This must always match world coordinates
-// (LEFT = -X, RIGHT = +X) and must never be inverted.
+// Contract: +X is right, -X is left. Keep correct to avoid regressions even if unused.
 export const ARCH_SIDE_TO_WORLD_X = {
   LEFT: -1,
   RIGHT: +1,

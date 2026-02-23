@@ -27,3 +27,9 @@ export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
 
   return outward === 1 ? Math.max(...xs) : Math.min(...xs);
 }
+
+export function getWallPlanesAtZ(outward: 1 | -1, z: number, thickness: number) {
+  const xOuter = getOuterWallXAtZ(outward, z);
+  const xInner = xOuter - outward * thickness;
+  return { xOuter, xInner };
+}

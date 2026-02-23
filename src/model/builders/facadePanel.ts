@@ -1,4 +1,4 @@
-import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
+import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry, Vector3 } from 'three';
 import { RIGHT_WORLD_FACADE_SEGMENTS } from './windowFactory';
 
 const EPSILON = 0.01;
@@ -23,11 +23,73 @@ export interface RightPanelOpening {
  */
 export function filterExtrudedSideFaces(
   geometry: BufferGeometry,
+  shouldRemoveFace: (faceNormal: Vector3) => boolean
+): BufferGeometry;
+export function filterExtrudedSideFaces(
+  geometry: BufferGeometry,
   depth: number,
   context: string,
   keepPlane: 'front' | 'back' | 'both',
   enableBrickReturns: boolean
+): BufferGeometry;
+export function filterExtrudedSideFaces(
+  geometry: BufferGeometry,
+  depthOrFaceFilter: number | ((faceNormal: Vector3) => boolean),
+  context?: string,
+  keepPlane?: 'front' | 'back' | 'both',
+  enableBrickReturns?: boolean
 ): BufferGeometry {
+  if (typeof depthOrFaceFilter === 'function') {
+    const source = geometry.index ? geometry.toNonIndexed() : geometry;
+    const position = source.getAttribute('position');
+    const uv = source.getAttribute('uv');
+
+    const keptPositions: number[] = [];
+    const keptUvs: number[] = [];
+
+    const triangleCount = position.count / 3;
+    for (let tri = 0; tri < triangleCount; tri += 1) {
+      const baseIndex = tri * 3;
+      const i0 = baseIndex;
+      const i1 = baseIndex + 1;
+      const i2 = baseIndex + 2;
+
+      const v0 = new Vector3(position.getX(i0), position.getY(i0), position.getZ(i0));
+      const v1 = new Vector3(position.getX(i1), position.getY(i1), position.getZ(i1));
+      const v2 = new Vector3(position.getX(i2), position.getY(i2), position.getZ(i2));
+
+      const e1 = new Vector3().subVectors(v1, v0);
+      const e2 = new Vector3().subVectors(v2, v0);
+      const normal = new Vector3().crossVectors(e1, e2).normalize();
+      const shouldRemove = depthOrFaceFilter(normal);
+
+      if (shouldRemove) {
+        continue;
+      }
+
+      [i0, i1, i2].forEach((index) => {
+        keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
+        if (uv) {
+          keptUvs.push(uv.getX(index), uv.getY(index));
+        }
+      });
+    }
+
+    const filtered = new BufferGeometry();
+    filtered.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
+    if (uv && keptUvs.length > 0) {
+      filtered.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
+    }
+    filtered.computeVertexNormals();
+
+    return filtered;
+  }
+
+  const depth = depthOrFaceFilter;
+  if (!keepPlane || enableBrickReturns === undefined) {
+    return geometry;
+  }
+
   if (enableBrickReturns) return geometry;
 
   const halfDepth = depth / 2;

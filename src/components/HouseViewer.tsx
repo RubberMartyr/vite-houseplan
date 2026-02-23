@@ -474,7 +474,7 @@ export default function HouseViewer() {
 
       <Canvas
         shadows
-        camera={{ position: cameraPreset?.position ?? [0, 5, -18], fov: 50 }}
+        camera={{ position: cameraPreset?.position ?? [0, 5, 18], fov: 50 }}
         dpr={deterministicDpr}
         gl={{ antialias: true }}
         onCreated={({ camera }) => {
@@ -622,8 +622,8 @@ function HouseScene({
       return;
     }
 
-    camera.position.set(0, 4.5, -18);
-    controlsRef.current.target.set(0, 2.2, 7.5);
+    camera.position.set(0, 5, 18);
+    controlsRef.current.target.set(0, 2.2, 2);
     controlsRef.current.update();
   }, [camera, cameraPreset, controlsRef]);
 

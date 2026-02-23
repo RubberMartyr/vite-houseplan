@@ -36,7 +36,7 @@ import { roomsFirst } from '../model/roomsFirst'
 import { windowsRear } from '../model/windowsRear';
 import { windowsFront } from '../model/windowsFront';
 import { markFirstFrameRendered } from '../loadingManager';
-import { assertWorldOrientation, logOrientationAssertions } from '../model/orientation';
+import { assertOrientationWorld, assertWorldOrientation, logOrientationAssertions } from '../model/orientation';
 import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
@@ -639,7 +639,7 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
-  const houseRootRef = useRef<THREE.Group>(null);
+  const houseGroupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
     // Pre-warm shaders once the scene graph exists to reduce first-frame stutter.
@@ -657,8 +657,13 @@ function HouseScene({
   useEffect(() => {
     if (debugOrientation) {
       logOrientationAssertions();
+
+      const group = houseGroupRef.current;
+      if (runtimeFlags.isDev && group) {
+        assertOrientationWorld(group, camera, gl.domElement);
+      }
     }
-  }, [debugOrientation]);
+  }, [camera, debugOrientation, gl.domElement]);
 
   useEffect(() => {
     if (!cameraPreset || !cameraRef.current || !controlsRef.current) return;
@@ -670,6 +675,36 @@ function HouseScene({
   useFrame(() => {
     if (firstFrameRef.current) return;
     firstFrameRef.current = true;
+
+    if (runtimeFlags.isDev) {
+      const group = houseGroupRef.current;
+      if (group) {
+        const orientation = assertOrientationWorld(group, camera, gl.domElement);
+        (window as any).__HOUSE_ORIENTATION__ = orientation;
+
+        const leftScreenX = orientation.facades.left.screen.x;
+        const rightScreenX = orientation.facades.right.screen.x;
+        const frontScreenX = orientation.facades.front.screen.x;
+        const rearScreenX = orientation.facades.rear.screen.x;
+
+        console.assert(
+          leftScreenX < rightScreenX,
+          '[orientation] Expected left facade marker to render left of right marker on screen.',
+          orientation
+        );
+
+        if (!(leftScreenX < rightScreenX)) {
+          console.error('[orientation] Screen-space facade assertion failed', {
+            leftScreenX,
+            rightScreenX,
+            frontScreenX,
+            rearScreenX,
+            orientation,
+          });
+        }
+      }
+    }
+
     markFirstFrameRendered();
   });
 
@@ -843,7 +878,7 @@ function HouseScene({
   useEffect(() => {
     const controls = controlsRef.current;
     const cam = cameraRef.current;
-    const root = houseRootRef.current;
+    const root = houseGroupRef.current;
 
     if (!controls || !cam || !root) return;
 
@@ -930,7 +965,11 @@ function HouseScene({
       )}
 
       {/* HOUSE ASSEMBLY */}
-      <group ref={houseRootRef} position={[originOffset.x, 0, originOffset.z]} >
+      <group
+        ref={houseGroupRef}
+        position={[originOffset.x, 0, originOffset.z]}
+        rotation={[0, Math.PI, 0]}
+      >
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh

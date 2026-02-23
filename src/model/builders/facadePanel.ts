@@ -1,5 +1,5 @@
 import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
-import { RIGHT_WORLD_FACADE_SEGMENTS } from './windowFactory';
+import { RIGHT_FACADE_SEGMENTS } from './windowFactory';
 import { createFacadeContext } from './facadeContext';
 
 const EPSILON = 0.01;
@@ -150,10 +150,10 @@ export function keepOnlyOuterFacePlane(geometry: BufferGeometry, context: string
 /**
  * Returns the RIGHT_FACADE_SEGMENT that contains the given Z coordinate.
  */
-export function segmentForZ(zCenter: number): (typeof RIGHT_WORLD_FACADE_SEGMENTS)[number] {
-  if (zCenter < 4.0) return RIGHT_WORLD_FACADE_SEGMENTS[0];
-  if (zCenter < 8.45) return RIGHT_WORLD_FACADE_SEGMENTS[1];
-  return RIGHT_WORLD_FACADE_SEGMENTS[2];
+export function segmentForZ(zCenter: number): (typeof RIGHT_FACADE_SEGMENTS)[number] {
+  if (zCenter < 4.0) return RIGHT_FACADE_SEGMENTS[0];
+  if (zCenter < 8.45) return RIGHT_FACADE_SEGMENTS[1];
+  return RIGHT_FACADE_SEGMENTS[2];
 }
 
 /**
@@ -204,12 +204,12 @@ export function makeRightFacadePanels(params: {
   minHoleH: number;
 }): FacadePanel[] {
   const { wallHeight, baseY, panelOutset, openings, minHoleW, minHoleH } = params;
-  const facadeCtx = createFacadeContext('architecturalLeft');
+  const facadeCtx = createFacadeContext('architecturalRight');
 
-  const openingsBySegmentId: Record<(typeof RIGHT_WORLD_FACADE_SEGMENTS)[number]['id'], RightPanelOpening[]> = {
-    L_A: [],
-    L_B: [],
-    L_C: [],
+  const openingsBySegmentId: Record<(typeof RIGHT_FACADE_SEGMENTS)[number]['id'], RightPanelOpening[]> = {
+    R_A: [],
+    R_B: [],
+    R_C: [],
   };
 
   openings.forEach((opening) => {
@@ -217,7 +217,7 @@ export function makeRightFacadePanels(params: {
     openingsBySegmentId[segment.id].push(opening);
   });
 
-  return RIGHT_WORLD_FACADE_SEGMENTS.map((segment) => {
+  return RIGHT_FACADE_SEGMENTS.map((segment) => {
     const widthZ = segment.z1 - segment.z0;
     const panelCenterZ = (segment.z0 + segment.z1) / 2;
     const holes = openingsBySegmentId[segment.id];

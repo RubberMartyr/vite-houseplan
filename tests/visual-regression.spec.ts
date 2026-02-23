@@ -13,6 +13,12 @@ async function waitForStableRender(page: any) {
   await page.waitForTimeout(1000);
 }
 
+async function expectOrientationMetric(page: any) {
+  const orientation = await page.waitForFunction(() => (window as any).__HOUSE_ORIENTATION__ ?? null);
+  const value = await orientation.jsonValue();
+  expect(value.facades.left.screen.x).toBeLessThan(value.facades.right.screen.x);
+}
+
 test.use({
   viewport: VIEWPORT,
   deviceScaleFactor: 1,
@@ -21,6 +27,7 @@ test.use({
 test('default facade view', async ({ page }) => {
   await page.goto(`${BASE_URL}/${QUERY}`);
   await waitForStableRender(page);
+  await expectOrientationMetric(page);
   const screenshot = await page.screenshot({ path: 'artifacts/default.png', fullPage: false });
   expect(screenshot).toBeTruthy();
 });

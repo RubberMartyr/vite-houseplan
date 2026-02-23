@@ -105,3 +105,50 @@ export function assertWorldOrientation() {
     });
   }
 }
+
+export function assertOrientationWorld(
+  houseGroup: THREE.Object3D,
+  camera: THREE.Camera,
+  glDom: HTMLCanvasElement
+) {
+  const midX = (leftX + rightX) / 2;
+  const midZ = (frontZ + rearZ) / 2;
+
+  const worldPointFor = (point: THREE.Vector3) => houseGroup.localToWorld(point.clone());
+  const screenPointFor = (point: THREE.Vector3) => {
+    const projected = point.clone().project(camera);
+    return {
+      x: ((projected.x + 1) / 2) * glDom.clientWidth,
+      y: ((1 - projected.y) / 2) * glDom.clientHeight,
+    };
+  };
+
+  const leftWorld = worldPointFor(new THREE.Vector3(leftX, 0, midZ));
+  const rightWorld = worldPointFor(new THREE.Vector3(rightX, 0, midZ));
+  const frontWorld = worldPointFor(new THREE.Vector3(midX, 0, frontZ));
+  const rearWorld = worldPointFor(new THREE.Vector3(midX, 0, rearZ));
+
+  const orientation = {
+    facades: {
+      left: { world: leftWorld.toArray(), screen: screenPointFor(leftWorld) },
+      right: { world: rightWorld.toArray(), screen: screenPointFor(rightWorld) },
+      front: { world: frontWorld.toArray(), screen: screenPointFor(frontWorld) },
+      rear: { world: rearWorld.toArray(), screen: screenPointFor(rearWorld) },
+    },
+  };
+
+  console.info('[orientation] world-space orientation markers', orientation);
+
+  const isLeftOnScreenLeft = orientation.facades.left.screen.x < orientation.facades.right.screen.x;
+  console.assert(
+    isLeftOnScreenLeft,
+    '[orientation] Expected screen LEFT.x < RIGHT.x in world-space projection.',
+    orientation
+  );
+
+  if (!isLeftOnScreenLeft) {
+    console.error('[orientation] WORLD ORIENTATION SCREEN ASSERTION FAILED', orientation);
+  }
+
+  return orientation;
+}

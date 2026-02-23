@@ -473,7 +473,7 @@ export default function HouseViewer() {
 
       <Canvas
         shadows
-        camera={{ position: cameraPreset?.position ?? [0, 7, 12], fov: 50 }}
+        camera={{ position: cameraPreset?.position ?? [0, 7, -12], fov: 50 }}
         dpr={deterministicDpr}
         gl={{ antialias: true }}
         onCreated={({ camera }) => {
@@ -862,7 +862,7 @@ function HouseScene({
       )}
 
       {/* HOUSE ASSEMBLY */}
-      <group ref={houseRootRef} position={[originOffset.x, 0, originOffset.z]} rotation={[0, Math.PI, 0]}>
+      <group ref={houseRootRef} position={[originOffset.x, 0, originOffset.z]} >
         <group ref={wallGroupRef} name="wallGroup">
           {showBasement && (
             <mesh

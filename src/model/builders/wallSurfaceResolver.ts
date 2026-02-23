@@ -1,6 +1,9 @@
 import { getEnvelopeOuterPolygon } from '../envelope';
 
 export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
+  const z = zQuery;
+  console.log("getOuterWallXAtZ", { outward, z });
+
   const poly = getEnvelopeOuterPolygon();
 
   const xs: number[] = [];

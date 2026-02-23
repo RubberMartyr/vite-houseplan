@@ -4,7 +4,6 @@ import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import { OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { AxesHelper } from 'three';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
 import { buildWallsFirst } from '../model/wallsFirst';
@@ -536,7 +535,6 @@ function HouseScene({
 
   const { gl, scene, camera } = useThree();
   const firstFrameRef = useRef(false);
-  const axes = useMemo(() => new AxesHelper(5), []);
   const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
     () =>
@@ -804,7 +802,7 @@ function HouseScene({
       {/* Keep world axes unrotated by rendering them outside the rotated house group. */}
       {debugOrientation && (
         <group position={[originOffset.x, 0, originOffset.z]}>
-          <primitive object={axes} />
+          <axesHelper args={[10]} />
         </group>
       )}
 

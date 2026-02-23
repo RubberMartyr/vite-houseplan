@@ -536,7 +536,7 @@ function HouseScene({
 
   const { gl, scene, camera } = useThree();
   const firstFrameRef = useRef(false);
-  const axesHelper = useMemo(() => new AxesHelper(5), []);
+  const axes = useMemo(() => new AxesHelper(5), []);
   const brickTex = useTexture('/textures/brick2.jpg');
   const fallbackWallMaterial = useMemo(
     () =>
@@ -801,7 +801,12 @@ function HouseScene({
       <directionalLight position={[10, 15, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]}>
         <orthographicCamera attach="shadow-camera" args={[-15, 15, 15, -15]} />
       </directionalLight>
-      {debugOrientation && <primitive object={axesHelper} />}
+      {/* Keep world axes unrotated by rendering them outside the rotated house group. */}
+      {debugOrientation && (
+        <group position={[originOffset.x, 0, originOffset.z]}>
+          <primitive object={axes} />
+        </group>
+      )}
 
       {/* HOUSE ASSEMBLY */}
       <group position={[originOffset.x, 0, originOffset.z]} rotation={[0, Math.PI, 0]}>

@@ -1,8 +1,6 @@
 export type FacadeSide =
   | 'architecturalLeft'
-  | 'architecturalRight'
-  | 'left'
-  | 'right';
+  | 'architecturalRight';
 
 export type FacadeContext = {
   facade: FacadeSide;

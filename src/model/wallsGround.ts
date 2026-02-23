@@ -224,25 +224,13 @@ export function buildWallsGround({
     const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
     const innerFrontZ = frontZ + exteriorThickness;
 
-    const shell = buildExtrudedShell({
+    const raw = buildExtrudedShell({
       outerPoints: outer,
       innerPoints: inner,
       height: wallHeight,
       baseY: 0,
     });
-    // Remove −X side faces from shell because façade panels replace them
-    const shellGeometry = shell.geometry;
-
-    const cleanedGeometry = filterExtrudedSideFaces(
-      shellGeometry,
-      (faceNormal) => {
-        // Remove faces pointing toward -X
-        return faceNormal.x < -0.9;
-      }
-    );
-
-    shell.geometry = cleanedGeometry;
-    const geometry = shell.geometry;
+    const geometry = raw.geometry;
 
     const g = geometry.index ? geometry.toNonIndexed() : geometry;
     const position = g.getAttribute('position');
@@ -400,8 +388,8 @@ export function buildWallsGround({
     return {
       geometry: filteredGeometry,
       role: 'shell' as const,
-      position: shell.position,
-      rotation: shell.rotation,
+      position: raw.position,
+      rotation: raw.rotation,
     };
   })(),
 

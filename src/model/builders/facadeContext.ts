@@ -14,8 +14,8 @@ export function createFacadeContext(
 ): FacadeContext {
   const outward =
     facade === 'architecturalLeft'
-      ? -1
-      : 1;
+      ? -1 // world -X
+      : 1; // world +X
 
   if (import.meta.env.DEV) {
     if (facade === 'architecturalLeft' && outward !== -1) {

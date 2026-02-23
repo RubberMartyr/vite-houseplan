@@ -218,12 +218,11 @@ export function buildWallsGround({
     const inner = getEnvelopeInnerPolygon(exteriorThickness);
     const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
     const innerRearZ = rearZ - exteriorThickness;
-    // DO NOT use global minX anymore
-    const innerLeftX = outer.reduce((min, point) => Math.min(min, point.x), Infinity) + exteriorThickness;
+    // Inner X for stepped walls is computed per-triangle using xWallAtZ (see below).
+    const innerLeftX = 0; // unused (keep for now if referenced elsewhere)
     const facadeCtx = createFacadeContext('architecturalLeft');
     const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
     const innerFrontZ = frontZ + exteriorThickness;
-    const leftZSegments = LEFT_Z_SEGMENTS;
 
     const raw = buildExtrudedShell({
       outerPoints: outer,
@@ -291,6 +290,7 @@ export function buildWallsGround({
         Math.abs(z3 - innerFrontZ) < EPSILON;
       const zMid = (z1 + z2 + z3) / 3;
       const xWallAtZ = getOuterWallXAtZ(facadeCtx.outward as 1 | -1, zMid);
+      const xInnerWallAtZ = xWallAtZ - (facadeCtx.outward as 1 | -1) * exteriorThickness;
 
       const onLeftOuter =
         facesMostlyX &&
@@ -299,14 +299,13 @@ export function buildWallsGround({
         Math.abs(x3 - xWallAtZ) < EPSILON;
       const onLeftInner =
         facesMostlyX &&
-        Math.abs(x1 - innerLeftX) < EPSILON &&
-        Math.abs(x2 - innerLeftX) < EPSILON &&
-        Math.abs(x3 - innerLeftX) < EPSILON;
+        Math.abs(x1 - xInnerWallAtZ) < EPSILON &&
+        Math.abs(x2 - xInnerWallAtZ) < EPSILON &&
+        Math.abs(x3 - xInnerWallAtZ) < EPSILON;
       const triZMin = Math.min(z1, z2, z3);
       const triZMax = Math.max(z1, z2, z3);
       let onRightSegment = false;
       let onLeftSegment = false;
-      let inAnyLeftSeg = false;
       if (mesh.role === 'facade') {
         onRightSegment = facesMostlyX && RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
           const outerX = segment.x;
@@ -329,9 +328,8 @@ export function buildWallsGround({
           const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
           return inSegmentZ;
         });
-        inAnyLeftSeg = leftZSegments.some((segment) => triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON);
       }
-      const onLeftFacadeSegment = (onLeftOuter || onLeftInner) && inAnyLeftSeg;
+      const onLeftFacadeSegment = onLeftOuter || onLeftInner;
 
       // --- EXTENSION WALL PROTECTION (robust) ---
 

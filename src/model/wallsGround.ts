@@ -326,6 +326,9 @@ export function buildWallsGround({
           return inSegmentZ;
         });
       }
+      // Intentionally *not* gated by LEFT_Z_SEGMENTS/inAnyLeftSeg:
+      // left facade shell removal must follow the actual wall planes,
+      // including the indented architecturalLeft band.
       const onLeftFacadeSegment = onLeftOuter || onLeftInner;
 
       // --- EXTENSION WALL PROTECTION (robust) ---

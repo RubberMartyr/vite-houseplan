@@ -41,7 +41,7 @@ import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
 import { architecturalHouse } from '../engine/architecturalHouse';
-import { deriveWallSegmentsFromFootprint } from '../engine/deriveWalls';
+import { deriveWallSegmentsFromLevels } from '../engine/deriveWalls';
 import { EngineWallsDebug } from '../view/EngineWallsDebug';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
@@ -718,7 +718,7 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const derivedSegments = useMemo(() => deriveWallSegmentsFromFootprint(architecturalHouse), []);
+  const derivedSegments = useMemo(() => deriveWallSegmentsFromLevels(architecturalHouse), []);
   const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
   const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
   const leftPlacements = useMemo<FacadeWindowPlacement[]>(

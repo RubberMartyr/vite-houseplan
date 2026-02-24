@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
-import { offsetPolygonInward } from "./geom2d/offsetPolygon";
+import { offsetPolygonInward, signedAreaXZ } from "./geom2d/offsetPolygon";
 
 export type DerivedSlab = {
   id: string;
@@ -20,12 +20,14 @@ export function deriveSlabsFromLevels(
     console.log(
       "SLAB INSET CHECK",
       level.id,
-      "offset",
-      offset,
+      "wallHalf",
+      arch.wallThickness / 2,
+      "area",
+      signedAreaXZ(level.footprint.outer),
       "p0",
-      level.footprint.outer[0],
+      JSON.stringify(level.footprint.outer[0]),
       "inset0",
-      inset[0]
+      JSON.stringify(inset[0])
     );
 
     inset.forEach((pt, i) => {

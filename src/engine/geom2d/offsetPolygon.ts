@@ -2,14 +2,15 @@ export type Vec2XZ = { x: number; z: number };
 
 const EPSILON = 1e-6;
 
-function signedArea(points: Vec2XZ[]): number {
-  let area = 0;
-  for (let i = 0; i < points.length; i += 1) {
-    const p1 = points[i];
-    const p2 = points[(i + 1) % points.length];
-    area += p1.x * p2.z - p2.x * p1.z;
+
+export function signedAreaXZ(pts: Vec2XZ[]): number {
+  let a = 0;
+  for (let i = 0; i < pts.length; i += 1) {
+    const p = pts[i];
+    const q = pts[(i + 1) % pts.length];
+    a += p.x * q.z - q.x * p.z;
   }
-  return area / 2;
+  return a / 2;
 }
 
 function normalize(v: Vec2XZ): Vec2XZ {
@@ -70,16 +71,35 @@ export function offsetPolygonInward(points: Vec2XZ[], offset: number): Vec2XZ[] 
     return [...points];
   }
 
-  const area = signedArea(points);
-  const isCcw = area > 0;
+  const cleanedPoints = [...points];
+  if (cleanedPoints.length >= 2) {
+    const first = cleanedPoints[0];
+    const last = cleanedPoints[cleanedPoints.length - 1];
+    if (first.x === last.x && first.z === last.z) {
+      cleanedPoints.pop();
+    }
+  }
+
+  if (cleanedPoints.length < 3) {
+    return cleanedPoints;
+  }
+
+  const area = signedAreaXZ(cleanedPoints);
+  const isCCW = area > 0;
   const miterLimit = 6 * offset;
+
+  function inwardNormal(dx: number, dz: number): Vec2XZ {
+    const left = { x: -dz, z: dx };
+    const right = { x: dz, z: -dx };
+    return isCCW ? left : right;
+  }
 
   const result: Vec2XZ[] = [];
 
-  for (let i = 0; i < points.length; i += 1) {
-    const pPrev = points[(i - 1 + points.length) % points.length];
-    const p = points[i];
-    const pNext = points[(i + 1) % points.length];
+  for (let i = 0; i < cleanedPoints.length; i += 1) {
+    const pPrev = cleanedPoints[(i - 1 + cleanedPoints.length) % cleanedPoints.length];
+    const p = cleanedPoints[i];
+    const pNext = cleanedPoints[(i + 1) % cleanedPoints.length];
 
     const e1 = normalize({ x: p.x - pPrev.x, z: p.z - pPrev.z });
     const e2 = normalize({ x: pNext.x - p.x, z: pNext.z - p.z });
@@ -88,14 +108,8 @@ export function offsetPolygonInward(points: Vec2XZ[], offset: number): Vec2XZ[] 
       continue;
     }
 
-    const outwardNormal = (edge: Vec2XZ): Vec2XZ =>
-      isCcw ? { x: edge.z, z: -edge.x } : { x: -edge.z, z: edge.x };
-
-    const n1Out = outwardNormal(e1);
-    const n2Out = outwardNormal(e2);
-
-    const n1 = { x: -n1Out.x, z: -n1Out.z };
-    const n2 = { x: -n2Out.x, z: -n2Out.z };
+    const n1 = normalize(inwardNormal(e1.x, e1.z));
+    const n2 = normalize(inwardNormal(e2.x, e2.z));
 
     const l1Point = { x: p.x + n1.x * offset, z: p.z + n1.z * offset };
     const l2Point = { x: p.x + n2.x * offset, z: p.z + n2.z * offset };

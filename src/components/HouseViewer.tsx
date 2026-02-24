@@ -721,7 +721,7 @@ function HouseScene({
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
   const derivedSegments = useMemo(() => deriveWallSegmentsFromLevels(architecturalHouse), []);
-  const derivedSlabs = useMemo(() => deriveSlabsFromLevels(architecturalHouse), []);
+  const derivedSlabs = deriveSlabsFromLevels(architecturalHouse);
   console.log("Derived segments:", derivedSegments.length);
   const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
   const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);

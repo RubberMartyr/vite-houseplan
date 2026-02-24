@@ -14,9 +14,18 @@ export function deriveSlabsFromLevels(
 
   for (const level of arch.levels) {
     const shape = new THREE.Shape();
-    const inset = offsetPolygonInward(
-      level.footprint.outer,
-      arch.wallThickness / 2
+    const offset = arch.wallThickness / 2;
+    const inset = offsetPolygonInward(level.footprint.outer, offset);
+
+    console.log(
+      "SLAB INSET CHECK",
+      level.id,
+      "offset",
+      offset,
+      "p0",
+      level.footprint.outer[0],
+      "inset0",
+      inset[0]
     );
 
     inset.forEach((pt, i) => {

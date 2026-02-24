@@ -32,7 +32,9 @@ export const architecturalHouse: ArchitecturalHouse = {
     },
     {
       id: "first",
-      elevation: 2.8,
+      // TOP_OF_SLAB convention: this is slab top, so it must include slab thickness
+      // to keep slab bottom aligned with the level below wall top (2.8m).
+      elevation: 3.05,
       height: 2.8,
       slab: {
         thickness: 0.25,

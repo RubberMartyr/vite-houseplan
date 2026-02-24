@@ -42,10 +42,8 @@ import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
 import { architecturalHouse } from '../engine/architecturalHouse';
 import { deriveSlabsFromLevels } from '../engine/deriveSlabs';
-import { EngineSlabsDebug } from '../view/EngineSlabsDebug';
-import { EngineWallShellsDebug } from '../view/EngineWallShellsDebug';
-import { EngineFlatRoofsDebug } from '../view/EngineFlatRoofsDebug';
-import { EngineGableRoofsDebug } from '../view/EngineGableRoofsDebug';
+import { LegacyHouse } from '../legacy/LegacyHouse';
+import { EngineHouse } from '../engine/EngineHouse';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -994,234 +992,33 @@ function HouseScene({
       >
         <group ref={wallGroupRef} name="wallGroup">
           {showLegacy && (
-            <>
-              <EngineWallShellsDebug visible={DEBUG_ENGINE_WALLS} arch={architecturalHouse} />
-              <EngineSlabsDebug visible={DEBUG_ENGINE_WALLS} slabs={derivedSlabs} />
-              <EngineFlatRoofsDebug arch={architecturalHouse} />
-              <EngineGableRoofsDebug arch={architecturalHouse} />
-              {showBasement && (
-                <mesh
-                  geometry={wallsBasement.shell.geometry}
-                  position={wallsBasement.shell.position}
-                  rotation={wallsBasement.shell.rotation}
-                  material={wallMaterial}
-                  castShadow
-                  receiveShadow
-                  visible={wallShellVisible}
-                />
-              )}
-          {showGround && (
-            <mesh
-              geometry={wallsGround.shell.geometry}
-              position={wallsGround.shell.position}
-              rotation={wallsGround.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
+            <LegacyHouse
+              showBasement={showBasement}
+              showGround={showGround}
+              showFirst={showFirst}
+              showWindows={showWindows}
+              wallShellVisible={wallShellVisible}
+              wallsBasement={wallsBasement}
+              wallsGround={wallsGround}
+              wallsGroundWithOptionals={wallsGroundWithOptionals}
+              wallsFirst={wallsFirst}
+              wallsFirstWithOptionals={wallsFirstWithOptionals}
+              wallMaterial={wallMaterial}
+              facadeMaterial={facadeMaterial}
+              eavesBandMesh={eavesBandMesh}
+              windowsRear={windowsRear}
+              windowsFront={windowsFront}
+              glass={glass}
+              frame={frame}
+              leftSideWindows={leftSideWindows}
+              rightSideWindows={rightSideWindows}
             />
           )}
-          {showGround &&
-            wallsGround.leftFacades?.map((facade, index) => (
-              <mesh
-                key={`ground-left-facade-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {/* Phase 4 cleanup:
-              rightSideFacades were facade fragments around openings.
-              windowFactory now builds reveals, so these must NOT render anymore.
-          */}
-          {/* disabled rightSideFacades */}
-          {/* {showGround &&
-            wallsGround.rightSideFacades?.map((facade, index) => (
-              <mesh
-                key={`ground-rs-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))} */}
-          {showGround &&
-            wallsGround.rightFacades.map((facade, index) => (
-              <mesh
-                key={`ground-right-facade-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {showGround && wallsGroundWithOptionals.extensionRightWall && (
-            <mesh
-              geometry={wallsGroundWithOptionals.extensionRightWall.geometry}
-              position={wallsGroundWithOptionals.extensionRightWall.position}
-              rotation={wallsGroundWithOptionals.extensionRightWall.rotation}
-              material={facadeMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showGround && (
-            <mesh
-              geometry={wallsGround.rearFacade.geometry}
-              position={wallsGround.rearFacade.position}
-              rotation={wallsGround.rearFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showGround && wallsGroundWithOptionals.frontFacade && (
-            <mesh
-              geometry={wallsGroundWithOptionals.frontFacade.geometry}
-              position={wallsGroundWithOptionals.frontFacade.position}
-              rotation={wallsGroundWithOptionals.frontFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.shell.geometry}
-              position={wallsFirst.shell.position}
-              rotation={wallsFirst.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst &&
-            wallsFirst.rightFacades.map((facade, index) => (
-              <mesh
-                key={`first-right-facade-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))}
-          {/* Phase 4 cleanup:
-              rightSideFacades were facade fragments around openings.
-              windowFactory now builds reveals, so these must NOT render anymore.
-          */}
-          {/* disabled rightSideFacades */}
-          {/* {showFirst &&
-            wallsFirst.rightSideFacades?.map((facade, index) => (
-              <mesh
-                key={`first-rs-${index}`}
-                geometry={facade.geometry}
-                position={facade.position}
-                rotation={facade.rotation}
-                material={facadeMaterial}
-                castShadow
-                receiveShadow
-                visible={wallShellVisible}
-              />
-            ))} */}
-          {showFirst && wallsFirst.leftFacade && (
-            <mesh
-              geometry={wallsFirst.leftFacade.geometry}
-              position={wallsFirst.leftFacade.position}
-              rotation={wallsFirst.leftFacade.rotation}
-              material={facadeMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst && (
-            <mesh
-              geometry={wallsFirst.rearFacade.geometry}
-              position={wallsFirst.rearFacade.position}
-              rotation={wallsFirst.rearFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {showFirst && wallsFirstWithOptionals.frontFacade && (
-            <mesh
-              geometry={wallsFirstWithOptionals.frontFacade.geometry}
-              position={wallsFirstWithOptionals.frontFacade.position}
-              rotation={wallsFirstWithOptionals.frontFacade.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
-          {eavesBandMesh}
-              {showWindows && (
-                <>
-                  <group name="rearWindows" visible={wallShellVisible}>
-                    {windowsRear.meshes.map((mesh) => {
-                      const isGlass = mesh.id.toLowerCase().includes('_glass');
-                      const fallbackMaterial = isGlass ? glass : frame;
-                      const material = mesh.material ?? fallbackMaterial;
-                      return (
-                        <mesh
-                          key={mesh.id}
-                          geometry={mesh.geometry}
-                          position={mesh.position}
-                          rotation={mesh.rotation}
-                          material={material}
-                          castShadow={!isGlass}
-                          receiveShadow={!isGlass}
-                          renderOrder={isGlass ? 10 : undefined}
-                        />
-                      );
-                    })}
-                  </group>
-
-                  {leftSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
-                  {rightSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
-
-                  <group name="frontWindows" visible={wallShellVisible}>
-                    {windowsFront.meshes.map((mesh) => {
-                      const isGlass = mesh.id.toLowerCase().includes('_glass');
-                      const fallbackMaterial = isGlass ? glass : frame;
-                      const material = mesh.material ?? fallbackMaterial;
-                      return (
-                        <mesh
-                          key={mesh.id}
-                          geometry={mesh.geometry}
-                          position={mesh.position}
-                          rotation={mesh.rotation}
-                          material={material}
-                          castShadow={!isGlass}
-                          receiveShadow={!isGlass}
-                          renderOrder={isGlass ? 10 : undefined}
-                        />
-                      );
-                    })}
-                  </group>
-                </>
-              )}
-            </>
-          )}
+          <EngineHouse
+            debugEngineWalls={DEBUG_ENGINE_WALLS}
+            architecturalHouse={architecturalHouse}
+            derivedSlabs={derivedSlabs}
+          />
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">

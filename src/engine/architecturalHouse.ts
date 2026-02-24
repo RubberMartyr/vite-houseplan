@@ -5,6 +5,8 @@ import { ArchitecturalHouse } from "./architecturalTypes";
  * as architectural intent instead of derived geometry.
  */
 export const architecturalHouse: ArchitecturalHouse = {
+  wallThickness: 0.3, // match current
+
   levels: [
     {
       id: "ground",
@@ -45,14 +47,23 @@ export const architecturalHouse: ArchitecturalHouse = {
     },
   ],
 
-  wallThickness: 0.3, // match current
-
-  roof: {
-    type: "gable",
-    slopeDeg: 35, // match current
-    ridgeDirection: "x", // match current
-    overhang: 0.3,
-  },
+  roofs: [
+    {
+      id: "ground-flat",
+      type: "flat",
+      baseLevelId: "ground",
+      subtractAboveLevelId: "first",
+      thickness: 0.2,
+    },
+    {
+      id: "main-gable",
+      type: "gable",
+      baseLevelId: "first",
+      slopeDeg: 35,
+      ridgeDirection: "x",
+      overhang: 0.3,
+    },
+  ],
 
   openings: [
     // Leave empty for now.

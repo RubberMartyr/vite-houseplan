@@ -10,8 +10,8 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
     return new THREE.BufferGeometry();
   }
 
-  const px = -dz / length;
-  const pz = dx / length;
+  const px = (-dz / length) * seg.outwardSign;
+  const pz = (dx / length) * seg.outwardSign;
   const halfThickness = seg.thickness / 2;
   const yBottom = seg.start.y;
   const yTop = seg.start.y + seg.height;

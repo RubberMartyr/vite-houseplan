@@ -452,6 +452,8 @@ export default function HouseViewer() {
   });
   const [showTerrain, setShowTerrain] = useState(true);
   const [showRoof, setShowRoof] = useState(true);
+  const [showLegacy, setShowLegacy] = useState(true);
+  const [showWindows, setShowWindows] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
@@ -518,6 +520,10 @@ export default function HouseViewer() {
         showRoof={showRoof}
         onToggleRoof={() => setShowRoof((prev) => !prev)}
         onBasementView={handleBasementView}
+        showLegacy={showLegacy}
+        onToggleLegacy={() => setShowLegacy((v) => !v)}
+        showWindows={showWindows}
+        onToggleWindows={() => setShowWindows((v) => !v)}
         focusMode={focusMode}
         onToggleFocusMode={() => setFocusMode((prev) => !prev)}
         selectedRoom={selectedRoom}
@@ -541,6 +547,8 @@ export default function HouseViewer() {
           activeFloors={activeFloors}
           showTerrain={showTerrain}
           showRoof={showRoof}
+          showLegacy={showLegacy}
+          showWindows={showWindows}
           cutawayEnabled={cutawayEnabled}
           facadeVisibility={facadeVisibility}
           selectedRoomId={selectedRoomId}
@@ -560,6 +568,8 @@ function HouseScene({
   activeFloors,
   showTerrain,
   showRoof,
+  showLegacy,
+  showWindows,
   cutawayEnabled,
   facadeVisibility,
   selectedRoomId,
@@ -573,6 +583,8 @@ function HouseScene({
   activeFloors: FloorVisibility;
   showTerrain: boolean;
   showRoof: boolean;
+  showLegacy: boolean;
+  showWindows: boolean;
   cutawayEnabled: boolean;
   facadeVisibility: Record<FacadeKey, boolean>;
   selectedRoomId: string | null;
@@ -981,21 +993,23 @@ function HouseScene({
         rotation={[0, Math.PI, 0]}
       >
         <group ref={wallGroupRef} name="wallGroup">
-          <EngineWallShellsDebug visible={DEBUG_ENGINE_WALLS} arch={architecturalHouse} />
-          <EngineSlabsDebug visible={DEBUG_ENGINE_WALLS} slabs={derivedSlabs} />
-          <EngineFlatRoofsDebug arch={architecturalHouse} />
-          <EngineGableRoofsDebug arch={architecturalHouse} />
-          {showBasement && (
-            <mesh
-              geometry={wallsBasement.shell.geometry}
-              position={wallsBasement.shell.position}
-              rotation={wallsBasement.shell.rotation}
-              material={wallMaterial}
-              castShadow
-              receiveShadow
-              visible={wallShellVisible}
-            />
-          )}
+          {showLegacy && (
+            <>
+              <EngineWallShellsDebug visible={DEBUG_ENGINE_WALLS} arch={architecturalHouse} />
+              <EngineSlabsDebug visible={DEBUG_ENGINE_WALLS} slabs={derivedSlabs} />
+              <EngineFlatRoofsDebug arch={architecturalHouse} />
+              <EngineGableRoofsDebug arch={architecturalHouse} />
+              {showBasement && (
+                <mesh
+                  geometry={wallsBasement.shell.geometry}
+                  position={wallsBasement.shell.position}
+                  rotation={wallsBasement.shell.rotation}
+                  material={wallMaterial}
+                  castShadow
+                  receiveShadow
+                  visible={wallShellVisible}
+                />
+              )}
           {showGround && (
             <mesh
               geometry={wallsGround.shell.geometry}
@@ -1160,48 +1174,54 @@ function HouseScene({
             />
           )}
           {eavesBandMesh}
-          <group name="rearWindows" visible={wallShellVisible}>
-            {windowsRear.meshes.map((mesh) => {
-              const isGlass = mesh.id.toLowerCase().includes('_glass');
-              const fallbackMaterial = isGlass ? glass : frame;
-              const material = mesh.material ?? fallbackMaterial;
-              return (
-                <mesh
-                  key={mesh.id}
-                  geometry={mesh.geometry}
-                  position={mesh.position}
-                  rotation={mesh.rotation}
-                  material={material}
-                  castShadow={!isGlass}
-                  receiveShadow={!isGlass}
-                  renderOrder={isGlass ? 10 : undefined}
-                />
-              );
-            })}
-          </group>
+              {showWindows && (
+                <>
+                  <group name="rearWindows" visible={wallShellVisible}>
+                    {windowsRear.meshes.map((mesh) => {
+                      const isGlass = mesh.id.toLowerCase().includes('_glass');
+                      const fallbackMaterial = isGlass ? glass : frame;
+                      const material = mesh.material ?? fallbackMaterial;
+                      return (
+                        <mesh
+                          key={mesh.id}
+                          geometry={mesh.geometry}
+                          position={mesh.position}
+                          rotation={mesh.rotation}
+                          material={material}
+                          castShadow={!isGlass}
+                          receiveShadow={!isGlass}
+                          renderOrder={isGlass ? 10 : undefined}
+                        />
+                      );
+                    })}
+                  </group>
 
-          {leftSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
-          {rightSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
+                  {leftSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
+                  {rightSideWindows.meshes.map((m) => <primitive object={m} key={m.uuid} />)}
 
-          <group name="frontWindows" visible={wallShellVisible}>
-            {windowsFront.meshes.map((mesh) => {
-              const isGlass = mesh.id.toLowerCase().includes('_glass');
-              const fallbackMaterial = isGlass ? glass : frame;
-              const material = mesh.material ?? fallbackMaterial;
-              return (
-                <mesh
-                  key={mesh.id}
-                  geometry={mesh.geometry}
-                  position={mesh.position}
-                  rotation={mesh.rotation}
-                  material={material}
-                  castShadow={!isGlass}
-                  receiveShadow={!isGlass}
-                  renderOrder={isGlass ? 10 : undefined}
-                />
-              );
-            })}
-          </group>
+                  <group name="frontWindows" visible={wallShellVisible}>
+                    {windowsFront.meshes.map((mesh) => {
+                      const isGlass = mesh.id.toLowerCase().includes('_glass');
+                      const fallbackMaterial = isGlass ? glass : frame;
+                      const material = mesh.material ?? fallbackMaterial;
+                      return (
+                        <mesh
+                          key={mesh.id}
+                          geometry={mesh.geometry}
+                          position={mesh.position}
+                          rotation={mesh.rotation}
+                          material={material}
+                          castShadow={!isGlass}
+                          receiveShadow={!isGlass}
+                          renderOrder={isGlass ? 10 : undefined}
+                        />
+                      );
+                    })}
+                  </group>
+                </>
+              )}
+            </>
+          )}
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">

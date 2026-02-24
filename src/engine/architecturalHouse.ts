@@ -12,10 +12,15 @@ export const architecturalHouse: ArchitecturalHouse = {
       height: 2.8, // match current
       footprint: {
         outer: [
-          { x: -4.8, z: 0 },
+          { x: -4.1, z: 15 },
+          { x: 3.5, z: 15 },
+          { x: 3.5, z: 12 },
+          { x: 3.5, z: 8.45 },
+          { x: 4.1, z: 8.45 },
+          { x: 4.1, z: 4 },
+          { x: 4.8, z: 4 },
           { x: 4.8, z: 0 },
-          { x: 3.8, z: 15 },
-          { x: -3.8, z: 15 },
+          { x: -4.8, z: 0 },
         ],
       },
     },
@@ -25,10 +30,14 @@ export const architecturalHouse: ArchitecturalHouse = {
       height: 2.8,
       footprint: {
         outer: [
-          { x: -4.2, z: 0.6 },
-          { x: 4.2, z: 0.6 },
-          { x: 3.3, z: 14.4 },
-          { x: -3.3, z: 14.4 },
+          { x: 3.5, z: 12 },
+          { x: 3.5, z: 8.45 },
+          { x: 4.1, z: 8.45 },
+          { x: 4.1, z: 4 },
+          { x: 4.8, z: 4 },
+          { x: 4.8, z: 0 },
+          { x: -4.8, z: 0 },
+          { x: -4.1, z: 12 },
         ],
       },
     },

@@ -993,6 +993,7 @@ function HouseScene({
         <group ref={wallGroupRef} name="wallGroup">
           {showLegacy && (
             <LegacyHouse
+              showLegacy={showLegacy}
               showBasement={showBasement}
               showGround={showGround}
               showFirst={showFirst}
@@ -1022,7 +1023,7 @@ function HouseScene({
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">
-          {showBasement && (
+          {showLegacy && showBasement && (
             <>
               <Slab y={basementFloorLevel} shape={groundEnvelopeShape} />
               <mesh position={[0, basementCeilingLevel, 0]} receiveShadow>
@@ -1031,11 +1032,11 @@ function HouseScene({
               </mesh>
             </>
           )}
-          {showGround && <Slab y={0} shape={groundEnvelopeShape} />}
-          {showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
-          {showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
-          {showFirst && <Slab y={flatRoofY} shape={flatRoofShape} color="#383E42" />}
-          {showFirst && greenRoofShape && (
+          {showLegacy && showGround && <Slab y={0} shape={groundEnvelopeShape} />}
+          {showLegacy && showFirst && <Slab y={firstFloorLevelY} shape={firstEnvelopeShape} />}
+          {showLegacy && showAttic && <Slab y={atticLevelY} shape={firstEnvelopeShape} />}
+          {showLegacy && showFirst && <Slab y={flatRoofY} shape={flatRoofShape} color="#383E42" />}
+          {showLegacy && showFirst && greenRoofShape && (
             <Slab y={greenRoofY} shape={greenRoofShape} color="#4F7D3A" thickness={0.06} />
           )}
         </group>

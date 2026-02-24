@@ -1,6 +1,7 @@
 import React from 'react';
 
 type Props = {
+  showLegacy: boolean;
   showBasement: boolean;
   showGround: boolean;
   showFirst: boolean;
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export function LegacyHouse({
+  showLegacy,
   showBasement,
   showGround,
   showFirst,
@@ -45,7 +47,7 @@ export function LegacyHouse({
 }: Props) {
   return (
     <>
-      {showBasement && (
+      {showLegacy && showBasement && (
         <mesh
           geometry={wallsBasement.shell.geometry}
           position={wallsBasement.shell.position}
@@ -56,7 +58,7 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showGround && (
+      {showLegacy && showGround && (
         <mesh
           geometry={wallsGround.shell.geometry}
           position={wallsGround.shell.position}
@@ -67,7 +69,8 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showGround &&
+      {showLegacy &&
+        showGround &&
         wallsGround.leftFacades?.map((facade: any, index: number) => (
           <mesh
             key={`ground-left-facade-${index}`}
@@ -80,7 +83,8 @@ export function LegacyHouse({
             visible={wallShellVisible}
           />
         ))}
-      {showGround &&
+      {showLegacy &&
+        showGround &&
         wallsGround.rightFacades.map((facade: any, index: number) => (
           <mesh
             key={`ground-right-facade-${index}`}
@@ -93,7 +97,7 @@ export function LegacyHouse({
             visible={wallShellVisible}
           />
         ))}
-      {showGround && wallsGroundWithOptionals.extensionRightWall && (
+      {showLegacy && showGround && wallsGroundWithOptionals.extensionRightWall && (
         <mesh
           geometry={wallsGroundWithOptionals.extensionRightWall.geometry}
           position={wallsGroundWithOptionals.extensionRightWall.position}
@@ -104,7 +108,7 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showGround && (
+      {showLegacy && showGround && (
         <mesh
           geometry={wallsGround.rearFacade.geometry}
           position={wallsGround.rearFacade.position}
@@ -115,7 +119,7 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showGround && wallsGroundWithOptionals.frontFacade && (
+      {showLegacy && showGround && wallsGroundWithOptionals.frontFacade && (
         <mesh
           geometry={wallsGroundWithOptionals.frontFacade.geometry}
           position={wallsGroundWithOptionals.frontFacade.position}
@@ -126,7 +130,7 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showFirst && (
+      {showLegacy && showFirst && (
         <mesh
           geometry={wallsFirst.shell.geometry}
           position={wallsFirst.shell.position}
@@ -137,7 +141,8 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showFirst &&
+      {showLegacy &&
+        showFirst &&
         wallsFirst.rightFacades.map((facade: any, index: number) => (
           <mesh
             key={`first-right-facade-${index}`}
@@ -150,7 +155,7 @@ export function LegacyHouse({
             visible={wallShellVisible}
           />
         ))}
-      {showFirst && wallsFirst.leftFacade && (
+      {showLegacy && showFirst && wallsFirst.leftFacade && (
         <mesh
           geometry={wallsFirst.leftFacade.geometry}
           position={wallsFirst.leftFacade.position}
@@ -161,7 +166,7 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showFirst && (
+      {showLegacy && showFirst && (
         <mesh
           geometry={wallsFirst.rearFacade.geometry}
           position={wallsFirst.rearFacade.position}
@@ -172,7 +177,7 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {showFirst && wallsFirstWithOptionals.frontFacade && (
+      {showLegacy && showFirst && wallsFirstWithOptionals.frontFacade && (
         <mesh
           geometry={wallsFirstWithOptionals.frontFacade.geometry}
           position={wallsFirstWithOptionals.frontFacade.position}
@@ -183,8 +188,8 @@ export function LegacyHouse({
           visible={wallShellVisible}
         />
       )}
-      {eavesBandMesh}
-      {showWindows && (
+      {showLegacy && eavesBandMesh}
+      {showLegacy && showWindows && (
         <>
           <group name="rearWindows" visible={wallShellVisible}>
             {windowsRear.meshes.map((mesh: any) => {

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
+import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 
 export type DerivedSlab = {
   id: string;
@@ -13,9 +14,12 @@ export function deriveSlabsFromLevels(
 
   for (const level of arch.levels) {
     const shape = new THREE.Shape();
-    const outer = level.footprint.outer;
+    const inset = offsetPolygonInward(
+      level.footprint.outer,
+      arch.wallThickness / 2
+    );
 
-    outer.forEach((pt, i) => {
+    inset.forEach((pt, i) => {
       if (i === 0) {
         shape.moveTo(pt.x, pt.z);
       } else {

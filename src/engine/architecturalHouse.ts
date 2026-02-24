@@ -5,27 +5,32 @@ import { ArchitecturalHouse } from "./architecturalTypes";
  * as architectural intent instead of derived geometry.
  */
 export const architecturalHouse: ArchitecturalHouse = {
-  footprint: {
-    outer: [
-      // TODO: replace with current footprint points
-      // For now insert placeholder values matching your current building footprint.
-      { x: -4.8, z: 0 },
-      { x: 4.8, z: 0 },
-      { x: 3.8, z: 15 },
-      { x: -3.8, z: 15 },
-    ],
-  },
-
   levels: [
     {
       id: "ground",
       elevation: 0,
       height: 2.8, // match current
+      footprint: {
+        outer: [
+          { x: -4.8, z: 0 },
+          { x: 4.8, z: 0 },
+          { x: 3.8, z: 15 },
+          { x: -3.8, z: 15 },
+        ],
+      },
     },
     {
       id: "first",
       elevation: 2.8,
       height: 2.8,
+      footprint: {
+        outer: [
+          { x: -4.2, z: 0.6 },
+          { x: 4.2, z: 0.6 },
+          { x: 3.3, z: 14.4 },
+          { x: -3.3, z: 14.4 },
+        ],
+      },
     },
   ],
 

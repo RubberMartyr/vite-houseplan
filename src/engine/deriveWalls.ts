@@ -10,18 +10,18 @@ export type DerivedWallSegment = {
   thickness: number;
 };
 
-export function deriveWallSegmentsFromFootprint(
+export function deriveWallSegmentsFromLevels(
   arch: ArchitecturalHouse
 ): DerivedWallSegment[] {
   const segments: DerivedWallSegment[] = [];
 
-  const outer = arch.footprint.outer;
+  for (const level of arch.levels) {
+    const outer = level.footprint.outer;
 
-  for (let i = 0; i < outer.length; i++) {
-    const current = outer[i];
-    const next = outer[(i + 1) % outer.length];
+    for (let i = 0; i < outer.length; i++) {
+      const current = outer[i];
+      const next = outer[(i + 1) % outer.length];
 
-    for (const level of arch.levels) {
       segments.push({
         id: `wall-${level.id}-${i}`,
         levelId: level.id,

@@ -12,6 +12,10 @@ export type LevelSpec = {
   id: string;
   elevation: number;
   height: number;
+  footprint: {
+    outer: Vec2[];
+    holes?: Vec2[][];
+  };
 };
 
 export type RoofSpecArch = {
@@ -40,7 +44,6 @@ export type OpeningSpecArch = {
 };
 
 export type ArchitecturalHouse = {
-  footprint: Footprint;
   levels: LevelSpec[];
   wallThickness: number;
   roof: RoofSpecArch;

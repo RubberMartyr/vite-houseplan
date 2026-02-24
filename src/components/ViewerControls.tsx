@@ -17,6 +17,10 @@ type ViewerControlsProps = {
   showRoof: boolean;
   onToggleRoof: () => void;
   onBasementView: () => void;
+  showLegacy: boolean;
+  onToggleLegacy: () => void;
+  showWindows: boolean;
+  onToggleWindows: () => void;
   focusMode: boolean;
   onToggleFocusMode: () => void;
   selectedRoom: { id: string; label: string } | null;
@@ -37,6 +41,10 @@ export function ViewerControls({
   showRoof,
   onToggleRoof,
   onBasementView,
+  showLegacy,
+  onToggleLegacy,
+  showWindows,
+  onToggleWindows,
   focusMode,
   onToggleFocusMode,
   selectedRoom,
@@ -174,6 +182,35 @@ export function ViewerControls({
         <button style={{ ...buttonStyle, width: '100%' }} onClick={onBasementView}>
           Basement View
         </button>
+
+        <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>
+          Rendering
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <button
+            style={{
+              ...buttonStyle,
+              background: showLegacy ? '#1d6f42' : buttonStyle.background,
+              color: showLegacy ? '#fff' : '#111',
+              width: '100%',
+            }}
+            onClick={onToggleLegacy}
+          >
+            {showLegacy ? 'Legacy: ON' : 'Legacy: OFF'}
+          </button>
+
+          <button
+            style={{
+              ...buttonStyle,
+              background: showWindows ? '#8B5A40' : buttonStyle.background,
+              color: showWindows ? '#fff' : '#111',
+              width: '100%',
+            }}
+            onClick={onToggleWindows}
+          >
+            {showWindows ? 'Windows: ON' : 'Windows: OFF'}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
@@ -218,4 +255,3 @@ export function ViewerControls({
     </div>
   );
 }
-

@@ -337,7 +337,7 @@ function Openings() {
         x={0}
         y={1.2}
         z={backZ}
-        rot={Math.PI}
+        rot={0}
         type="standard"
       />
 
@@ -348,7 +348,7 @@ function Openings() {
         x={-2.0}
         y={4.0}
         z={backZ}
-        rot={Math.PI}
+        rot={0}
         type="standard"
       />
       <Window
@@ -357,7 +357,7 @@ function Openings() {
         x={2.0}
         y={4.0}
         z={backZ}
-        rot={Math.PI}
+        rot={0}
         type="standard"
       />
     </group>
@@ -988,7 +988,6 @@ function HouseScene({
       <group
         ref={houseGroupRef}
         position={[originOffset.x, 0, originOffset.z]}
-        rotation={[0, Math.PI, 0]}
       >
         <group ref={wallGroupRef} name="wallGroup">
           {showLegacy && (

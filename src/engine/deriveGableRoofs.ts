@@ -26,7 +26,7 @@ export function deriveGableRoofGeometries(
 ): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
 
-  for (const roof of arch.roofs) {
+  for (const roof of arch.roofs ?? []) {
     if (roof.type !== "gable") continue;
 
     const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);

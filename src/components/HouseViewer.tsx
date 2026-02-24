@@ -41,7 +41,7 @@ import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
 import { architecturalHouse } from '../engine/architecturalHouse';
-import { deriveSlabsFromLevels } from '../engine/deriveSlabs';
+import { deriveHouse } from '../engine/derive/deriveHouse';
 import { LegacyHouse } from '../legacy/LegacyHouse';
 import { EngineHouse } from '../engine/EngineHouse';
 
@@ -731,7 +731,7 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const derivedSlabs = deriveSlabsFromLevels(architecturalHouse);
+  const derivedSlabs = useMemo(() => deriveHouse(architecturalHouse).slabs, []);
   const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
   const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
   const leftPlacements = useMemo<FacadeWindowPlacement[]>(

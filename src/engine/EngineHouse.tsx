@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ArchitecturalHouse } from './architecturalTypes';
-import type { DerivedSlab } from './deriveSlabs';
+import type { DerivedSlab } from './derive/deriveSlabs';
 import { EngineFlatRoofsDebug } from '../view/EngineFlatRoofsDebug';
 import { EngineGableRoofsDebug } from '../view/EngineGableRoofsDebug';
 import { EngineSlabsDebug } from '../view/EngineSlabsDebug';

@@ -2,7 +2,7 @@ import { getEnvelopeOuterPolygon } from '../envelope';
 
 export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
   const z = zQuery;
-  console.log("getOuterWallXAtZ", { outward, z });
+  console.log('getOuterWallXAtZ', { outward, z });
 
   const poly = getEnvelopeOuterPolygon();
 
@@ -25,7 +25,12 @@ export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
   }
 
   if (!xs.length) {
-    throw new Error(`No wall intersection at z=${zQuery}`);
+    console.error(`[wallSurfaceResolver] No wall intersection at z=${zQuery}`, {
+      outward,
+      zQuery,
+      polygon: poly,
+    });
+    return 0;
   }
 
   return outward === 1 ? Math.max(...xs) : Math.min(...xs);

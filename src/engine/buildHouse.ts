@@ -12,7 +12,7 @@ export function buildHouse() {
     getLevels: (house) => house.levels,
     getLevelElevation: (level) => (level as LevelSpec).elevation,
     getLevelHeight: (level) => (level as LevelSpec).height,
-    getSlabThickness: (level) => (level as LevelSpec).slabThickness,
+    getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
     elevationConvention: 'TOP_OF_SLAB',
     allowGroundSupport: true,
   });

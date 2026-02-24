@@ -12,7 +12,10 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: "ground",
       elevation: 0,
       height: 2.8, // match current
-      slabThickness: 0.3,
+      slab: {
+        thickness: 0.3,
+        inset: 0,
+      },
       footprint: {
         outer: [
           { x: -4.1, z: 15 },
@@ -31,7 +34,10 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: "first",
       elevation: 2.8,
       height: 2.8,
-      slabThickness: 0.25,
+      slab: {
+        thickness: 0.25,
+        inset: 0,
+      },
       footprint: {
         outer: [
           { x: 3.5, z: 12 },

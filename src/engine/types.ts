@@ -4,6 +4,72 @@ export type Vec3 = {
   z: number;
 };
 
+export type Vec2 = {
+  x: number;
+  z: number;
+};
+
+export type Footprint = {
+  outer: Vec2[];
+  holes?: Vec2[][];
+};
+
+export interface SlabSpec {
+  thickness: number;
+  inset: number;
+}
+
+export interface LevelSpec {
+  id: string;
+  elevation: number;
+  height: number;
+  footprint: Footprint;
+  slab: SlabSpec;
+}
+
+export type RoofSpec =
+  | {
+      id: string;
+      type: 'flat';
+      baseLevelId: string;
+      subtractAboveLevelId?: string;
+      thickness: number;
+    }
+  | {
+      id: string;
+      type: 'gable';
+      baseLevelId: string;
+      slopeDeg: number;
+      ridgeDirection: 'x' | 'z';
+      overhang?: number;
+      thickness: number;
+    };
+
+export type OpeningSpecArch = {
+  id: string;
+  type: 'window' | 'door';
+  levelId: string;
+  host: {
+    kind: 'outerWall';
+    edgeIndex: number;
+  };
+  placement: {
+    offset: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+  sillHeight: number;
+};
+
+export interface ArchitecturalHouse {
+  wallThickness: number;
+  levels: LevelSpec[];
+  roofs?: RoofSpec[];
+  openings?: OpeningSpecArch[];
+}
+
 export type WallSpec = {
   id: string;
   baseLine: Vec3[];
@@ -18,7 +84,7 @@ export type OpeningSpec = {
   height: number;
 };
 
-export type RoofSpec = {
+export type RoofFrameSpec = {
   ridgeHeight: number;
   slope: number;
 };
@@ -26,5 +92,5 @@ export type RoofSpec = {
 export type HouseSpec = {
   walls: WallSpec[];
   openings: OpeningSpec[];
-  roof?: RoofSpec;
+  roof?: RoofFrameSpec;
 };

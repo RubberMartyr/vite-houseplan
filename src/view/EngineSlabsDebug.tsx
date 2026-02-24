@@ -1,4 +1,6 @@
-import type { DerivedSlab } from '../engine/deriveSlabs';
+import { useMemo } from 'react';
+import type { DerivedSlab } from '../engine/derive/deriveSlabs';
+import { buildSlabMesh } from './buildSlabMeshes';
 
 type EngineSlabsDebugProps = {
   slabs: DerivedSlab[];
@@ -6,16 +8,16 @@ type EngineSlabsDebugProps = {
 };
 
 export function EngineSlabsDebug({ slabs, visible = true }: EngineSlabsDebugProps) {
+  const slabMeshes = useMemo(() => slabs.map((slab) => buildSlabMesh(slab)), [slabs]);
+
   if (!visible) {
     return null;
   }
 
   return (
     <>
-      {slabs.map(({ id, geometry }) => (
-        <mesh key={id} geometry={geometry}>
-          <meshStandardMaterial color="cyan" transparent opacity={0.5} />
-        </mesh>
+      {slabMeshes.map((mesh, index) => (
+        <primitive key={`slab-${index}`} object={mesh} />
       ))}
     </>
   );

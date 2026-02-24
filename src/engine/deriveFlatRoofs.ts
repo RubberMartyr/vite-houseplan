@@ -11,7 +11,7 @@ export function deriveFlatRoofGeometries(
 ): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
 
-  for (const roof of arch.roofs) {
+  for (const roof of arch.roofs ?? []) {
     if (roof.type !== "flat") continue;
 
     const baseLevel = arch.levels.find(

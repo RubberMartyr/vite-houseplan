@@ -1072,45 +1072,6 @@ function HouseScene({
             const xLeftInner = xLeftOuter - outwardLeft * thickness;
             const xRightInner = xRightOuter - outwardRight * thickness;
 
-            // LEFT outer (red)
-            lines.push(
-              <Line
-                key={`L_outer_${z}`}
-                points={[new THREE.Vector3(xLeftOuter, 0, z), new THREE.Vector3(xLeftOuter, height, z)]}
-                color="red"
-                lineWidth={2}
-              />
-            );
-
-            // LEFT inner (orange)
-            lines.push(
-              <Line
-                key={`L_inner_${z}`}
-                points={[new THREE.Vector3(xLeftInner, 0, z), new THREE.Vector3(xLeftInner, height, z)]}
-                color="orange"
-                lineWidth={2}
-              />
-            );
-
-            // RIGHT outer (blue)
-            lines.push(
-              <Line
-                key={`R_outer_${z}`}
-                points={[new THREE.Vector3(xRightOuter, 0, z), new THREE.Vector3(xRightOuter, height, z)]}
-                color="blue"
-                lineWidth={2}
-              />
-            );
-
-            // RIGHT inner (cyan)
-            lines.push(
-              <Line
-                key={`R_inner_${z}`}
-                points={[new THREE.Vector3(xRightInner, 0, z), new THREE.Vector3(xRightInner, height, z)]}
-                color="cyan"
-                lineWidth={2}
-              />
-            );
           });
 
           return lines;

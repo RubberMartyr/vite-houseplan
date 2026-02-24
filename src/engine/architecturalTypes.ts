@@ -19,12 +19,22 @@ export type LevelSpec = {
   };
 };
 
-export type RoofSpecArch = {
-  type: "gable";
-  slopeDeg: number;
-  ridgeDirection: "x" | "z";
-  overhang?: number;
-};
+export type RoofSpec =
+  | {
+      id: string;
+      type: "flat";
+      baseLevelId: string;
+      subtractAboveLevelId?: string;
+      thickness: number;
+    }
+  | {
+      id: string;
+      type: "gable";
+      baseLevelId: string;
+      slopeDeg: number;
+      ridgeDirection: "x" | "z";
+      overhang?: number;
+    };
 
 export type OpeningSpecArch = {
   id: string;
@@ -45,8 +55,8 @@ export type OpeningSpecArch = {
 };
 
 export type ArchitecturalHouse = {
-  levels: LevelSpec[];
   wallThickness: number;
-  roof: RoofSpecArch;
+  levels: LevelSpec[];
+  roofs: RoofSpec[];
   openings: OpeningSpecArch[];
 };

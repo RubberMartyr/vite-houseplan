@@ -44,6 +44,7 @@ import { architecturalHouse } from '../engine/architecturalHouse';
 import { deriveSlabsFromLevels } from '../engine/deriveSlabs';
 import { EngineSlabsDebug } from '../view/EngineSlabsDebug';
 import { EngineWallShellsDebug } from '../view/EngineWallShellsDebug';
+import { EngineFlatRoofsDebug } from '../view/EngineFlatRoofsDebug';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -981,6 +982,7 @@ function HouseScene({
         <group ref={wallGroupRef} name="wallGroup">
           <EngineWallShellsDebug visible={DEBUG_ENGINE_WALLS} arch={architecturalHouse} />
           <EngineSlabsDebug visible={DEBUG_ENGINE_WALLS} slabs={derivedSlabs} />
+          <EngineFlatRoofsDebug arch={architecturalHouse} />
           {showBasement && (
             <mesh
               geometry={wallsBasement.shell.geometry}

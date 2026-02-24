@@ -744,7 +744,7 @@ function HouseScene({
   );
   const leftSideWindows = useMemo(() => buildSideWindows({ ctx: leftCtx, placements: leftPlacements }), [leftCtx, leftPlacements]);
   const rightSideWindows = useMemo(() => buildSideWindows({ ctx: rightCtx, placements: rightPlacements }), [rightCtx, rightPlacements]);
-  if (import.meta.env.DEV) {
+  if (runtimeFlags.debugWindows) {
     console.assert(
       rightPlacements.length > 0,
       'Right facade placements should be populated for side windows.'
@@ -890,7 +890,7 @@ function HouseScene({
   }, [firstEnvelopePolygon, groundEnvelopePolygon]);
 
   useEffect(() => {
-    if (runtimeFlags.isDev) {
+    if (runtimeFlags.debugWindows) {
       console.log('✅ windowsSide parented under originOffset group');
     }
   }, []);

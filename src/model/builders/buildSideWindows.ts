@@ -12,6 +12,7 @@ import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { worldSideFromOutward, type FacadeContext } from './facadeContext';
 import { getWallPlanesAtZ } from './wallSurfaceResolver';
+import { runtimeFlags } from '../runtimeFlags';
 
 export type BuildSideWindowsConfig = {
   ctx: FacadeContext;
@@ -31,7 +32,7 @@ function asMesh(meshSpec: WindowFactoryMesh) {
   const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
   mesh.name = meshSpec.id;
   mesh.position.set(...meshSpec.position);
-  if (import.meta.env.DEV) {
+  if (runtimeFlags.debugWindows) {
     console.log('SIDEWIN MESH POS', mesh.name, { x: mesh.position.x, z: mesh.position.z });
   }
   mesh.rotation.set(...meshSpec.rotation);
@@ -74,7 +75,7 @@ function buildSingleSideWindow(
   const { spec, zCenter, height } = placement;
   const { xOuter: xFace, xInner: xInnerWall } = getWallPlanesAtZ(ctx.outward, zCenter, wallThickness.exterior ?? 0.3);
   const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
-  if (import.meta.env.DEV) {
+  if (runtimeFlags.debugWindows) {
     console.log('SIDEWIN XPLANE', {
       id: placement.spec.id,
       z: zCenter,
@@ -134,11 +135,15 @@ export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {
   meshes: THREE.Object3D[];
   openings: OpeningDescriptor[];
 } {
-  console.log('CTX', ctx.facade, 'placements=', placements.length);
+  if (runtimeFlags.debugWindows) {
+    console.log('CTX', ctx.facade, 'placements=', placements.length);
+  }
 
   const meshes: THREE.Object3D[] = [];
   const sideOpenings: OpeningDescriptor[] = [];
-  console.log('BUILD SIDE WINDOWS CONTEXT', ctx.facade, 'outward=', ctx.outward);
+  if (runtimeFlags.debugWindows) {
+    console.log('BUILD SIDE WINDOWS CONTEXT', ctx.facade, 'outward=', ctx.outward);
+  }
 
   for (const placement of placements) {
     const { spec, zCenter, width } = placement;

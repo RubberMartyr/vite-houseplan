@@ -1231,12 +1231,11 @@ function HouseScene({
 
         <Roof visible={showRoof} />
 
-        {console.log('DEBUG WALL PLANES MOUNTING')}
         {DEBUG_WALL_PLANES && (() => {
           const zSamples = [2, 5.5, 8.5, 11.5]; // same z as your side windows
           const height = 3;
 
-          const lines = [];
+          const lines: React.ReactNode[] = [];
 
           zSamples.forEach((z) => {
             const outwardLeft = createFacadeContext('architecturalLeft').outward as 1 | -1;

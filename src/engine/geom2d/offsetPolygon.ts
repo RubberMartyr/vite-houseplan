@@ -67,7 +67,7 @@ function removeDuplicateConsecutive(points: Vec2XZ[]): Vec2XZ[] {
 }
 
 export function offsetPolygonInward(points: Vec2XZ[], offset: number): Vec2XZ[] {
-  if (points.length < 3 || offset <= 0) {
+  if (points.length < 3 || offset === 0) {
     return [...points];
   }
 
@@ -86,7 +86,7 @@ export function offsetPolygonInward(points: Vec2XZ[], offset: number): Vec2XZ[] 
 
   const area = signedAreaXZ(cleanedPoints);
   const isCCW = area > 0;
-  const miterLimit = 6 * offset;
+  const miterLimit = 6 * Math.abs(offset);
 
   function inwardNormal(dx: number, dz: number): Vec2XZ {
     const left = { x: -dz, z: dx };

@@ -41,10 +41,9 @@ import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
 import { architecturalHouse } from '../engine/architecturalHouse';
-import { deriveWallSegmentsFromLevels } from '../engine/deriveWalls';
 import { deriveSlabsFromLevels } from '../engine/deriveSlabs';
-import { EngineWallsDebug } from '../view/EngineWallsDebug';
 import { EngineSlabsDebug } from '../view/EngineSlabsDebug';
+import { EngineWallShellsDebug } from '../view/EngineWallShellsDebug';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -720,9 +719,7 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const derivedSegments = useMemo(() => deriveWallSegmentsFromLevels(architecturalHouse), []);
   const derivedSlabs = deriveSlabsFromLevels(architecturalHouse);
-  console.log("Derived segments:", derivedSegments.length);
   const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
   const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
   const leftPlacements = useMemo<FacadeWindowPlacement[]>(
@@ -982,7 +979,7 @@ function HouseScene({
         rotation={[0, Math.PI, 0]}
       >
         <group ref={wallGroupRef} name="wallGroup">
-          <EngineWallsDebug visible={DEBUG_ENGINE_WALLS} segments={derivedSegments} />
+          <EngineWallShellsDebug visible={DEBUG_ENGINE_WALLS} arch={architecturalHouse} />
           <EngineSlabsDebug visible={DEBUG_ENGINE_WALLS} slabs={derivedSlabs} />
           {showBasement && (
             <mesh

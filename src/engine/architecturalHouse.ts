@@ -62,6 +62,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       slopeDeg: 35,
       ridgeDirection: "x",
       overhang: 0.3,
+      thickness: 0.2,
     },
   ],
 

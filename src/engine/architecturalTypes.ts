@@ -34,6 +34,7 @@ export type RoofSpec =
       slopeDeg: number;
       ridgeDirection: "x" | "z";
       overhang?: number;
+      thickness: number;
     };
 
 export type OpeningSpecArch = {

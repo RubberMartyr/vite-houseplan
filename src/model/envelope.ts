@@ -55,6 +55,11 @@ export function getEnvelopeOuterPolygon(): FootprintPoint[] {
   return envelopeOuterPolygon;
 }
 
+console.log(
+  'GROUND FOOTPRINT',
+  JSON.stringify(getEnvelopeOuterPolygon(), null, 2)
+);
+
 function clipPolygonAtMaxZ(points: FootprintPoint[], maxZ: number): FootprintPoint[] {
   const result: FootprintPoint[] = [];
 
@@ -142,6 +147,11 @@ export function getEnvelopeFirstOuterPolygon(maxDepth = 12): FootprintPoint[] {
   const { minX, maxX } = getRearWidthBounds(getEnvelopeOuterPolygon());
   return adjustRearWidth(clipped, minX, maxX, maxDepth);
 }
+
+console.log(
+  'FIRST FOOTPRINT',
+  JSON.stringify(getEnvelopeFirstOuterPolygon(), null, 2)
+);
 
 export function getFlatRoofPolygon(): FootprintPoint[] {
   const envelope = getEnvelopeOuterPolygon();

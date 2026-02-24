@@ -11,15 +11,10 @@ import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } 
 import { ceilingHeights, levelHeights, rightFacadeProfileCm, wallThickness } from './houseSpec';
 import {
   ARCH_RIGHT_FACADE_SEGMENTS,
-  RIGHT_WORLD_FACADE_SEGMENTS,
-  rightSideWindowSpecs,
-  leftSideWindowSpecs,
 } from './builders/windowFactory';
-import { buildFacadeWindowPlacements } from './builders/buildFacadeWindowPlacements';
 import { createFacadeContext } from './builders/facadeContext';
-import { getOuterWallXAtZ, getWallPlanesAtZ } from './builders/wallSurfaceResolver';
+import { getOuterWallXAtZ } from './builders/wallSurfaceResolver';
 import { frontOpeningRectsGround } from './windowsFront';
-import { buildExtrudedShell } from './builders/buildExtrudedShell';
 import {
   buildRightFacadeReturnPanels,
   FacadePanel,
@@ -32,6 +27,7 @@ import { brickMaterial } from './materials/brickMaterial';
 import type { OpeningCut } from './types/OpeningCut';
 import type { FacadeWindowPlacement } from './types/FacadeWindowPlacement';
 import { runtimeFlags } from './runtimeFlags';
+import { buildWallsFromCurrentSystem } from '../engine/buildWalls';
 const ENABLE_BRICK_RETURNS = false;
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;
@@ -41,10 +37,6 @@ const EPSILON = 0.01;
 const MIN_HOLE_W = 0.05;
 const MIN_HOLE_H = 0.05;
 
-type WallMesh = {
-  geometry: BufferGeometry;
-  role?: 'shell' | 'facade';
-};
 function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number) {
   const xs: number[] = [];
 
@@ -214,187 +206,26 @@ export function buildWallsGround({
 
   return {
   shell: (() => {
-    const outer = getEnvelopeOuterPolygon();
-    const inner = getEnvelopeInnerPolygon(exteriorThickness);
-    const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
-    const innerRearZ = rearZ - exteriorThickness;
-    const facadeCtx = createFacadeContext('architecturalLeft');
-    const frontZ = outer.reduce((min, point) => Math.min(min, point.z), Infinity);
-    const innerFrontZ = frontZ + exteriorThickness;
-
-    const raw = buildExtrudedShell({
-      outerPoints: outer,
-      innerPoints: inner,
-      height: wallHeight,
-      baseY: 0,
-    });
-    const geometry = raw.geometry;
-
-    const g = geometry.index ? geometry.toNonIndexed() : geometry;
-    const position = g.getAttribute('position');
-    const uv = g.getAttribute('uv');
-
-    const keptPositions: number[] = [];
-    const keptUvs: number[] = [];
-    const mesh: WallMesh = { geometry, role: 'shell' };
-    const triangleCount = position.count / 3;
-    const rightFacadeCtx = createFacadeContext('architecturalLeft');
-    const leftFacadeCtx = createFacadeContext('architecturalRight');
-    const extensionFacadeCtx = createFacadeContext('architecturalRight');
-    for (let tri = 0; tri < triangleCount; tri += 1) {
-      const baseIndex = tri * 3;
-      const indices = [baseIndex, baseIndex + 1, baseIndex + 2];
-
-      const x1 = position.getX(indices[0]);
-      const y1 = position.getY(indices[0]);
-      const z1 = position.getZ(indices[0]);
-
-      const x2 = position.getX(indices[1]);
-      const y2 = position.getY(indices[1]);
-      const z2 = position.getZ(indices[1]);
-
-      const x3 = position.getX(indices[2]);
-      const y3 = position.getY(indices[2]);
-      const z3 = position.getZ(indices[2]);
-
-      const v1 = new Vector3(x1, y1, z1);
-      const v2 = new Vector3(x2, y2, z2);
-      const v3 = new Vector3(x3, y3, z3);
-
-      const e1 = new Vector3().subVectors(v2, v1);
-      const e2 = new Vector3().subVectors(v3, v1);
-      const n = new Vector3().crossVectors(e1, e2).normalize();
-
-      // “Facing” helpers (tolerant)
-      const facesMostlyX = Math.abs(n.x) > 0.85;
-      const facesMostlyZ = Math.abs(n.z) > 0.85;
-
-      const onRearOuter =
-        facesMostlyZ &&
-        Math.abs(z1 - rearZ) < EPSILON &&
-        Math.abs(z2 - rearZ) < EPSILON &&
-        Math.abs(z3 - rearZ) < EPSILON;
-      const onFrontOuter =
-        facesMostlyZ &&
-        Math.abs(z1 - frontZ) < EPSILON &&
-        Math.abs(z2 - frontZ) < EPSILON &&
-        Math.abs(z3 - frontZ) < EPSILON;
-      const onRearInner =
-        facesMostlyZ &&
-        Math.abs(z1 - innerRearZ) < EPSILON &&
-        Math.abs(z2 - innerRearZ) < EPSILON &&
-        Math.abs(z3 - innerRearZ) < EPSILON;
-      const onFrontInner =
-        facesMostlyZ &&
-        Math.abs(z1 - innerFrontZ) < EPSILON &&
-        Math.abs(z2 - innerFrontZ) < EPSILON &&
-        Math.abs(z3 - innerFrontZ) < EPSILON;
-      const zMid = (z1 + z2 + z3) / 3;
-      const { xOuter: xWallAtZ, xInner: xInnerWallAtZ } = getWallPlanesAtZ(facadeCtx.outward as 1 | -1, zMid, exteriorThickness);
-
-      const onLeftOuter =
-        facesMostlyX &&
-        Math.abs(x1 - xWallAtZ) < EPSILON &&
-        Math.abs(x2 - xWallAtZ) < EPSILON &&
-        Math.abs(x3 - xWallAtZ) < EPSILON;
-      const onLeftInner =
-        facesMostlyX &&
-        Math.abs(x1 - xInnerWallAtZ) < EPSILON &&
-        Math.abs(x2 - xInnerWallAtZ) < EPSILON &&
-        Math.abs(x3 - xInnerWallAtZ) < EPSILON;
-      const triZMin = Math.min(z1, z2, z3);
-      const triZMax = Math.max(z1, z2, z3);
-      let onRightSegment = false;
-      let onLeftSegment = false;
-      if (mesh.role === 'facade') {
-        onRightSegment = facesMostlyX && RIGHT_WORLD_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = outerX - rightFacadeCtx.outward * exteriorThickness;
-          const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
-
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
-          return inSegmentZ;
-        });
-
-        onLeftSegment = facesMostlyX && ARCH_RIGHT_FACADE_SEGMENTS.some((segment) => {
-          const outerX = segment.x;
-          const innerX = outerX - leftFacadeCtx.outward * exteriorThickness;
-          const onOuterX = Math.abs(x1 - outerX) < EPSILON && Math.abs(x2 - outerX) < EPSILON && Math.abs(x3 - outerX) < EPSILON;
-          const onInnerX = Math.abs(x1 - innerX) < EPSILON && Math.abs(x2 - innerX) < EPSILON && Math.abs(x3 - innerX) < EPSILON;
-          if (!onOuterX && !onInnerX) return false;
-
-          const inSegmentZ = triZMax >= segment.z0 - EPSILON && triZMin < segment.z1 - EPSILON;
-          return inSegmentZ;
-        });
-      }
-      // Intentionally *not* gated by LEFT_Z_SEGMENTS/inAnyLeftSeg:
-      // left facade shell removal must follow the actual wall planes,
-      // including the indented architecturalLeft band.
-      const onLeftFacadeSegment = onLeftOuter || onLeftInner;
-
-      // --- EXTENSION WALL PROTECTION (robust) ---
-
-      const extensionSeg = EXTENSION_SIDE_WALL;
-
-      // triangle x/z bounds
-      const triXMin = Math.min(x1, x2, x3);
-      const triXMax = Math.max(x1, x2, x3);
-
-      // Z overlap with extension segment
-      const inExtensionZ =
-        !!extensionSeg &&
-        triZMax >= extensionSeg.z0 - EPSILON &&
-        triZMin <= extensionSeg.z1 + EPSILON;
-
-      // X overlap with the *thickness band* of the left wall
-      // extensionSeg.x is expected to be the OUTER left plane (e.g. -4.8)
-      // extensionInnerX is the INNER left plane derived from the OUTER plane at this Z
-      const extensionOuterX = extensionSeg?.x ?? 0;
-      const extensionInnerX = extensionSeg ? extensionOuterX - extensionFacadeCtx.outward * exteriorThickness : 0;
-
-      // normalize ordering (important if coordinates ever flip)
-      const bandMinX = Math.min(extensionOuterX, extensionInnerX) - EPSILON;
-      const bandMaxX = Math.max(extensionOuterX, extensionInnerX) + EPSILON;
-
-      const inExtensionXBand = !!extensionSeg && triXMax >= bandMinX && triXMin <= bandMaxX;
-
-      // FINAL: protect any triangle whose X-range intersects the wall thickness band
-      // and whose Z-range intersects the extension segment span
-      const isExtensionLeftWallTriangle = false;
-
-      // --- existing removal gate (keep everything else unchanged) ---
-      const shouldRemove =
-        !isExtensionLeftWallTriangle &&
-        (onRearOuter || onRearInner || onFrontOuter || onFrontInner || onRightSegment || onLeftSegment || onLeftFacadeSegment);
-
-      if (shouldRemove) {
-        continue;
-      }
-
-      indices.forEach((index) => {
-        keptPositions.push(position.getX(index), position.getY(index), position.getZ(index));
-        if (uv) {
-          keptUvs.push(uv.getX(index), uv.getY(index));
-        }
-      });
-    }
-
+    const shellData = buildWallsFromCurrentSystem();
     const filteredGeometry = new BufferGeometry();
-    filteredGeometry.setAttribute('position', new Float32BufferAttribute(keptPositions, 3));
-    if (uv && keptUvs.length > 0) {
-      filteredGeometry.setAttribute('uv', new Float32BufferAttribute(keptUvs, 2));
+    filteredGeometry.setAttribute('position', new Float32BufferAttribute(shellData.shell.geometry.positions, 3));
+    if (shellData.shell.geometry.uvs.length > 0) {
+      filteredGeometry.setAttribute('uv', new Float32BufferAttribute(shellData.shell.geometry.uvs, 2));
     }
-    filteredGeometry.computeVertexNormals();
+    if (shellData.shell.geometry.normals.length > 0) {
+      filteredGeometry.setAttribute('normal', new Float32BufferAttribute(shellData.shell.geometry.normals, 3));
+    } else {
+      filteredGeometry.computeVertexNormals();
+    }
 
     return {
       geometry: filteredGeometry,
       role: 'shell' as const,
-      position: raw.position,
-      rotation: raw.rotation,
+      position: shellData.shell.position,
+      rotation: shellData.shell.rotation,
     };
   })(),
+
 
   rearFacade: (() => {
     const outer = getEnvelopeOuterPolygon();

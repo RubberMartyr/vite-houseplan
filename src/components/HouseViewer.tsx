@@ -29,7 +29,7 @@ import {
   getFlatRoofPolygon,
   originOffset,
 } from '../model/envelope'
-import { buildRoofMeshes } from '../model/roof'
+import { buildHouse } from '../engine/buildHouse';
 import { roomsGround } from '../model/roomsGround'
 import { RoomVolume } from '../model/roomsGround';
 import { roomsFirst } from '../model/roomsFirst'
@@ -252,7 +252,8 @@ function Walls() {
 
 function Roof({ visible = true }: { visible?: boolean }) {
   const { roof } = useBuildingMaterials();
-  const { meshes } = useMemo(() => buildRoofMeshes(), []);
+  const house = useMemo(() => buildHouse(), []);
+  const { meshes } = house.roof;
 
   return (
     <group visible={visible}>

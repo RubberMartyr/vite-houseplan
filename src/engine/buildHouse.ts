@@ -1,10 +1,12 @@
-import { HouseSpec } from "./types";
+import { buildRoofFromCurrentSystem } from './buildRoof';
+import { buildWallsFromCurrentSystem } from './buildWalls';
+import { houseData } from './houseData';
 
-export function buildHouse(spec: HouseSpec) {
-  // Phase 1 stub
+export function buildHouse() {
+  void houseData;
+
   return {
-    walls: [],
-    openings: [],
-    roof: null,
+    walls: buildWallsFromCurrentSystem(),
+    roof: buildRoofFromCurrentSystem(),
   };
 }

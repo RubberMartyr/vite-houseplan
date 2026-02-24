@@ -12,6 +12,7 @@ export type LevelSpec = {
   id: string;
   elevation: number;
   height: number;
+  slabThickness: number;
   footprint: {
     outer: Vec2[];
     holes?: Vec2[][];

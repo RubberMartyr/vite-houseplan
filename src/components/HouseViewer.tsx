@@ -40,6 +40,11 @@ import { assertOrientationWorld, assertWorldOrientation, logOrientationAssertion
 import { ViewerControls } from './ViewerControls';
 import { runtimeFlags } from '../model/runtimeFlags';
 import type { FacadeWindowPlacement } from '../model/types/FacadeWindowPlacement';
+import { architecturalHouse } from '../engine/architecturalHouse';
+import { deriveWallSegmentsFromFootprint } from '../engine/deriveWalls';
+import { EngineWallsDebug } from '../view/EngineWallsDebug';
+
+const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
 if (runtimeFlags.isDev) {
   console.log('✅ ACTIVE VIEWER FILE: HouseViewer.tsx', Date.now());
@@ -713,6 +718,7 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
+  const derivedSegments = useMemo(() => deriveWallSegmentsFromFootprint(architecturalHouse), []);
   const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
   const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
   const leftPlacements = useMemo<FacadeWindowPlacement[]>(
@@ -972,6 +978,7 @@ function HouseScene({
         rotation={[0, Math.PI, 0]}
       >
         <group ref={wallGroupRef} name="wallGroup">
+          <EngineWallsDebug visible={DEBUG_ENGINE_WALLS} segments={derivedSegments} />
           {showBasement && (
             <mesh
               geometry={wallsBasement.shell.geometry}

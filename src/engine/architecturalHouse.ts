@@ -76,6 +76,7 @@ export const architecturalHouse: ArchitecturalHouse = {
           start: { x: 0.6, z: 12 },
           end: { x: 0.6, z: 8.45 },
           height: 6.45,
+          pitchDeg: 35,
         },
       ],
     },

@@ -27,6 +27,14 @@ export interface LevelSpec {
   slab: SlabSpec;
 }
 
+export type RidgeSegmentSpec = {
+  id: string;
+  start: { x: number; z: number };
+  end: { x: number; z: number };
+  height: number; // OUTER height above level.elevation
+  pitchDeg: number; // constant pitch
+};
+
 export type RoofSpec =
   | {
       id: string;
@@ -55,12 +63,7 @@ export type RoofSpec =
       eaveHeight: number;
       thickness?: number;
       overhang?: number;
-      ridgeSegments: {
-        id: string;
-        start: Vec2;
-        end: Vec2;
-        height: number;
-      }[];
+      ridgeSegments: RidgeSegmentSpec[];
     };
 
 export type OpeningSpecArch = {

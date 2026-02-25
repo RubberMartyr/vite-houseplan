@@ -12,6 +12,10 @@ export function deriveFlatRoofGeometries(
   const geometries: THREE.BufferGeometry[] = [];
 
   for (const roof of arch.roofs ?? []) {
+    if (roof.type === "multi-ridge") {
+      console.log("multi-ridge roof detected");
+    }
+
     if (roof.type !== "flat") continue;
 
     const baseLevel = arch.levels.find(

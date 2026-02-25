@@ -64,17 +64,20 @@ export const architecturalHouse: ArchitecturalHouse = {
       thickness: 0.2,
     },
     {
-      id: "main-gable",
-      type: "gable",
+      id: "main-roof",
+      type: "multi-ridge",
       baseLevelId: "first",
-      eaveHeight: 2.7,
-      ridgeHeight: 6.45,
-      ridge: {
-        start: { x: -4.8, z: 5 },
-        end: { x: 4.8, z: 5 },
-      },
-      overhang: 0.3,
+      eaveHeight: 2.8,
       thickness: 0.2,
+      overhang: 0.3,
+      ridgeSegments: [
+        {
+          id: "main",
+          start: { x: 0.6, z: 12 },
+          end: { x: 0.6, z: 8.45 },
+          height: 6.45,
+        },
+      ],
     },
   ],
 

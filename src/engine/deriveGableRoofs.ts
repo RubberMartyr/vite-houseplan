@@ -17,6 +17,10 @@ export function deriveGableRoofGeometries(
   const geometries: THREE.BufferGeometry[] = [];
 
   for (const roof of arch.roofs ?? []) {
+    if (roof.type === "multi-ridge") {
+      console.log("multi-ridge roof detected");
+    }
+
     if (roof.type !== "gable") continue;
 
     const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);

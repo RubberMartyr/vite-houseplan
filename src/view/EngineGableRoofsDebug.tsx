@@ -19,7 +19,7 @@ export function EngineGableRoofsDebug({
     <>
       {geometries.map((geom, i) => (
         <mesh key={i} geometry={geom}>
-          <meshStandardMaterial color="black" />
+          <meshStandardMaterial color="black" wireframe />
         </mesh>
       ))}
     </>

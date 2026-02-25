@@ -39,7 +39,8 @@ export type RoofSpec =
       id: string;
       type: 'gable';
       baseLevelId: string;
-      slopeDeg: number;
+      eaveHeight: number;
+      ridgeHeight: number;
       ridgeDirection: 'x' | 'z';
       overhang?: number;
       thickness: number;

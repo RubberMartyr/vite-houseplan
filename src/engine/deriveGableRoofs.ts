@@ -35,9 +35,10 @@ export function deriveGableRoofGeometries(
     const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
     if (!baseLevel) continue;
 
-    const slopeRad = (roof.slopeDeg * Math.PI) / 180;
     const thickness = roof.thickness ?? 0.2;
-    const baseY = baseLevel.elevation + baseLevel.height;
+    const eaveHeight = roof.eaveHeight;
+    const ridgeHeight = roof.ridgeHeight;
+    const baseY = baseLevel.elevation;
 
     // Footprint with optional overhang (negative = outward)
     let fp = baseLevel.footprint.outer;
@@ -64,8 +65,9 @@ export function deriveGableRoofGeometries(
         ridgeDir === "x"
           ? Math.abs(zMapped - ridgeCenterZ)
           : Math.abs(x - ridgeCenterX);
-      const h = Math.tan(slopeRad) * (halfSpan - d);
-      return Math.max(0, h);
+      const t = 1 - d / halfSpan;
+      const clamped = Math.max(0, Math.min(1, t));
+      return eaveHeight + clamped * (ridgeHeight - eaveHeight);
     }
 
     // Build vertex arrays for top and bottom
@@ -74,8 +76,7 @@ export function deriveGableRoofGeometries(
 
     for (const p of fp) {
       const wp = archToWorldXZ(p);
-      const h = roofHeightAt(wp.x, wp.z);
-      const yTop = baseY + h;
+      const yTop = baseY + roofHeightAt(wp.x, wp.z);
       const yBot = yTop - thickness;
 
       topVerts.push(wp.x, yTop, wp.z);

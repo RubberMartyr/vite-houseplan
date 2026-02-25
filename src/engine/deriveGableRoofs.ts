@@ -1,7 +1,10 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
+import type { LevelSpec, RoofSpec } from "./types";
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
+
+type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 
 // Helper: convert Vec2[] -> arrays for triangulation
 function toTHREEVec2(points: { x: number; z: number }[]) {
@@ -35,89 +38,99 @@ export function deriveGableRoofGeometries(
     const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
     if (!baseLevel) continue;
 
-    const thickness = roof.thickness ?? 0.2;
-    const eaveHeight = roof.eaveHeight;
-    const ridgeHeight = roof.ridgeHeight;
-    const baseY = baseLevel.elevation;
-
-    // Footprint with optional overhang (negative = outward)
-    let fp = baseLevel.footprint.outer;
-    if (roof.overhang && roof.overhang !== 0) {
-      fp = offsetPolygonInward(fp, -roof.overhang);
-    }
-
-    // Triangulate footprint (top surface in XZ)
-    const contour = toTHREEVec2(archArrayToWorld(fp));
-    const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
-
-    // Compute ridge center and half-span along slope axis (in mapped Z space)
-    const { minX, maxX, minZ, maxZ } = bbox(fp);
-
-    const ridgeDir = roof.ridgeDirection; // "x" or "z"
-    const ridgeCenterX = (minX + maxX) / 2;
-    const ridgeCenterZ = (minZ + maxZ) / 2;
-
-    const span = ridgeDir === "x" ? maxZ - minZ : maxX - minX;
-    const halfSpan = span / 2;
-
-    function roofHeightAt(x: number, zMapped: number) {
-      const d =
-        ridgeDir === "x"
-          ? Math.abs(zMapped - ridgeCenterZ)
-          : Math.abs(x - ridgeCenterX);
-      const t = 1 - d / halfSpan;
-      const clamped = Math.max(0, Math.min(1, t));
-      return eaveHeight + clamped * (ridgeHeight - eaveHeight);
-    }
-
-    // Build vertex arrays for top and bottom
-    const topVerts: number[] = [];
-    const botVerts: number[] = [];
-
-    for (const p of fp) {
-      const wp = archToWorldXZ(p);
-      const yTop = baseY + roofHeightAt(wp.x, wp.z);
-      const yBot = yTop - thickness;
-
-      topVerts.push(wp.x, yTop, wp.z);
-      botVerts.push(wp.x, yBot, wp.z);
-    }
-
-    // Indices for top and bottom surfaces
-    const indices: number[] = [];
-
-    for (const tri of triangles) {
-      indices.push(tri[0], tri[1], tri[2]);
-    }
-
-    const bottomOffset = fp.length;
-    for (const tri of triangles) {
-      indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
-    }
-
-    // Side faces
-    const n = fp.length;
-    for (let i = 0; i < n; i++) {
-      const j = (i + 1) % n;
-
-      const ti = i;
-      const tj = j;
-      const bi = bottomOffset + i;
-      const bj = bottomOffset + j;
-
-      indices.push(ti, tj, bj);
-      indices.push(ti, bj, bi);
-    }
-
-    const positions = new Float32Array([...topVerts, ...botVerts]);
-
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geom.setIndex(indices);
-    geom.computeVertexNormals();
-
+    const geom = buildStructuralGableGeometry(baseLevel, roof);
     geometries.push(geom);
   }
 
   return geometries;
+}
+
+function buildStructuralGableGeometry(
+  baseLevel: LevelSpec,
+  roof: GableRoofSpec
+): THREE.BufferGeometry {
+  const thickness = roof.thickness ?? 0.2;
+  const eaveAbs = baseLevel.elevation + roof.eaveHeight;
+  const ridgeAbs = baseLevel.elevation + roof.ridgeHeight;
+
+  const originalFp = baseLevel.footprint.outer;
+
+  // Footprint with optional overhang (negative = outward)
+  let fp = originalFp;
+  if (roof.overhang && roof.overhang !== 0) {
+    fp = offsetPolygonInward(fp, -roof.overhang);
+  }
+
+  // Triangulate footprint (top surface in XZ)
+  const contour = toTHREEVec2(archArrayToWorld(fp));
+  const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
+
+  // Compute ridge center and half-span from the structural span
+  const { minX, maxX, minZ, maxZ } = bbox(originalFp);
+
+  const ridgeCenterX = (minX + maxX) / 2;
+  const ridgeCenterZ = (minZ + maxZ) / 2;
+  const halfSpan =
+    roof.ridgeDirection === "x" ? (maxZ - minZ) / 2 : (maxX - minX) / 2;
+
+  function heightAt(x: number, z: number) {
+    if (halfSpan <= 0) return eaveAbs;
+
+    const d =
+      roof.ridgeDirection === "x"
+        ? Math.abs(z - ridgeCenterZ)
+        : Math.abs(x - ridgeCenterX);
+    const t = 1 - d / halfSpan;
+    const clamped = Math.max(0, Math.min(1, t));
+
+    return eaveAbs + clamped * (ridgeAbs - eaveAbs);
+  }
+
+  // Build vertex arrays for top and bottom
+  const topVerts: number[] = [];
+  const botVerts: number[] = [];
+
+  for (const p of fp) {
+    const wp = archToWorldXZ(p);
+    const yTop = heightAt(wp.x, wp.z);
+    const yBot = yTop - thickness;
+
+    topVerts.push(wp.x, yTop, wp.z);
+    botVerts.push(wp.x, yBot, wp.z);
+  }
+
+  // Indices for top and bottom surfaces
+  const indices: number[] = [];
+
+  for (const tri of triangles) {
+    indices.push(tri[0], tri[1], tri[2]);
+  }
+
+  const bottomOffset = fp.length;
+  for (const tri of triangles) {
+    indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
+  }
+
+  // Side faces
+  const n = fp.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+
+    const ti = i;
+    const tj = j;
+    const bi = bottomOffset + i;
+    const bj = bottomOffset + j;
+
+    indices.push(ti, tj, bj);
+    indices.push(ti, bj, bi);
+  }
+
+  const positions = new Float32Array([...topVerts, ...botVerts]);
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  return geom;
 }

@@ -48,6 +48,7 @@ export function deriveGableRoofGeometries(
       const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
       if (!baseLevel) continue;
 
+      console.log("USING MULTI-RIDGE BUILDER (derived k)");
       const geoms = buildMultiRidgeRoof(baseLevel, roof);
       geometries.push(...geoms);
     }
@@ -134,6 +135,28 @@ function buildMultiRidgeRoof(
     fp = offsetPolygonInward(fp, -roof.overhang);
   }
 
+  let maxRun = 0;
+  for (const p of ensureClosed(fp)) {
+    const sd = signedPerpDistanceToInfiniteLineXZ(
+      p.x,
+      p.z,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+    maxRun = Math.max(maxRun, Math.abs(sd));
+  }
+  const deltaH = ridgeTopAbs - eaveTopAbs;
+  const k = maxRun === 0 ? 0 : deltaH / maxRun;
+
+  console.log("---- ROOF SLOPE DEBUG ----");
+  console.log("ridgeTopAbs:", ridgeTopAbs);
+  console.log("eaveTopAbs:", eaveTopAbs);
+  console.log("deltaH:", deltaH);
+  console.log("maxRun:", maxRun);
+  console.log("k:", k);
+
   const { roofOuterAt } = getRoofHeightFunctions(
     fp,
     ridge,
@@ -147,6 +170,25 @@ function buildMultiRidgeRoof(
 
   const topVerts: number[] = [];
   const botVerts: number[] = [];
+
+  const samples = [
+    { name: "fp[0]", p: fp[0] },
+    { name: "fp[mid]", p: fp[Math.floor(fp.length / 2)] },
+    { name: "fp[last]", p: fp[fp.length - 1] },
+  ].filter((s) => s.p);
+
+  for (const s of samples) {
+    const sd = signedPerpDistanceToInfiniteLineXZ(
+      s.p.x,
+      s.p.z,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+    const yTop = roofOuterAt(s.p.x, s.p.z);
+    console.log(`${s.name}: x=${s.p.x}, z=${s.p.z}, sd=${sd}, yTop=${yTop}`);
+  }
 
   for (const p of fp) {
     const wp = archToWorldXZ(p);

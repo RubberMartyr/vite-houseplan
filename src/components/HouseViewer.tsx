@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { Line } from '@react-three/drei';
-import { OrbitControls, Sky, useTexture } from '@react-three/drei';
+import { Html, Line, OrbitControls, Sky, useTexture } from '@react-three/drei';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { wallsBasement } from '../model/wallsBasement';
 import { buildWallsGround } from '../model/wallsGround';
@@ -248,6 +247,57 @@ type WindowProps = {
   type?: 'standard' | 'classic';
 };
 type HouseSceneCameraPreset = { position: [number, number, number]; target: [number, number, number] };
+
+function DebugTruthOverlay({
+  groundOuter,
+  controlsRef,
+}: {
+  groundOuter: FootprintPoint[];
+  controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
+}) {
+  const { camera } = useThree();
+  const [text, setText] = useState('');
+
+  const minMaxZ = useMemo(() => {
+    const zs = groundOuter.map((point) => point.z);
+    return { minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+  }, [groundOuter]);
+
+  useFrame(() => {
+    const cameraZ = camera.position.z;
+    const targetZ = controlsRef.current?.target.z ?? 0;
+
+    setText(
+      [
+        `camera.z: ${cameraZ.toFixed(3)}`,
+        `target.z: ${targetZ.toFixed(3)}`,
+        `footprint minZ: ${minMaxZ.minZ.toFixed(3)}`,
+        `footprint maxZ: ${minMaxZ.maxZ.toFixed(3)}`,
+        cameraZ < minMaxZ.minZ
+          ? 'YOU ARE IN FRONT (z < minZ)'
+          : cameraZ > minMaxZ.maxZ
+            ? 'YOU ARE BEHIND (z > maxZ)'
+            : 'YOU ARE WITHIN Z RANGE',
+      ].join('\n')
+    );
+  });
+
+  return (
+    <Html
+      position={[0, 8, 0]}
+      style={{
+        whiteSpace: 'pre',
+        fontFamily: 'monospace',
+        background: 'rgba(0,0,0,0.6)',
+        padding: 8,
+        borderRadius: 6,
+        color: 'white',
+      }}
+    >
+      {text}
+    </Html>
+  );
+}
 
 // --- HOUSE COMPONENTS ---
 
@@ -1113,6 +1163,10 @@ function HouseScene({
         dampingFactor={0.08}
         minPolarAngle={0.05}
         maxPolarAngle={Math.PI - 0.05}
+      />
+      <DebugTruthOverlay
+        controlsRef={controlsRef}
+        groundOuter={architecturalHouse.levels.find((level) => level.id === 'ground')!.footprint.outer}
       />
     </>
   );

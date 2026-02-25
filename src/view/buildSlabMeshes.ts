@@ -1,8 +1,9 @@
 import { Mesh, MeshStandardMaterial, Shape, ShapeGeometry } from 'three';
 import { offsetPolygonInward } from '../engine/geom2d/offsetPolygon';
 import type { DerivedSlab } from '../engine/derive/deriveSlabs';
+import type { RenderStyleConfig } from './renderStyleConfig';
 
-export function buildSlabMesh(slab: DerivedSlab): Mesh {
+export function buildSlabMesh(slab: DerivedSlab, renderConfig: RenderStyleConfig): Mesh {
   const shape = new Shape();
   const points = offsetPolygonInward(slab.footprint.outer, slab.inset);
 
@@ -19,7 +20,7 @@ export function buildSlabMesh(slab: DerivedSlab): Mesh {
   const geometry = new ShapeGeometry(shape);
   geometry.rotateX(-Math.PI / 2);
 
-  const material = new MeshStandardMaterial({ color: 0xdedede });
+  const material = new MeshStandardMaterial({ color: renderConfig.slabColor });
   const mesh = new Mesh(geometry, material);
   mesh.position.y = slab.elevationTop;
 

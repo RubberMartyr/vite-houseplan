@@ -5,10 +5,40 @@ import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
+type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
 
 // Helper: convert Vec2[] -> arrays for triangulation
 function toTHREEVec2(points: { x: number; z: number }[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
+}
+
+function distanceToSegment(
+  px: number,
+  pz: number,
+  x1: number,
+  z1: number,
+  x2: number,
+  z2: number
+) {
+  const A = px - x1;
+  const B = pz - z1;
+  const C = x2 - x1;
+  const D = z2 - z1;
+
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+
+  const param = lenSq !== 0 ? dot / lenSq : 0;
+
+  const t = Math.max(0, Math.min(1, param));
+
+  const closestX = x1 + t * C;
+  const closestZ = z1 + t * D;
+
+  const dx = px - closestX;
+  const dz = pz - closestZ;
+
+  return Math.sqrt(dx * dx + dz * dz);
 }
 
 export function deriveGableRoofGeometries(
@@ -18,19 +48,114 @@ export function deriveGableRoofGeometries(
 
   for (const roof of arch.roofs ?? []) {
     if (roof.type === "multi-ridge") {
-      console.log("multi-ridge roof detected");
+      const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
+      if (!baseLevel) continue;
+
+      const geom = buildMultiRidgeRoof(baseLevel, roof);
+      geometries.push(geom);
     }
 
-    if (roof.type !== "gable") continue;
+    if (roof.type === "gable") {
+      const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
+      if (!baseLevel) continue;
 
-    const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
-    if (!baseLevel) continue;
-
-    const geom = buildStructuralGableGeometry(baseLevel, roof);
-    geometries.push(geom);
+      const geom = buildStructuralGableGeometry(baseLevel, roof);
+      geometries.push(geom);
+    }
   }
 
   return geometries;
+}
+
+function buildMultiRidgeRoof(
+  baseLevel: LevelSpec,
+  roof: MultiRidgeRoofSpec
+): THREE.BufferGeometry {
+  const ridge = roof.ridgeSegments[0];
+
+  const originalFp = baseLevel.footprint.outer;
+
+  const eaveAbs = baseLevel.elevation + roof.eaveHeight;
+  const ridgeAbs = baseLevel.elevation + ridge.height;
+
+  const span = Math.max(
+    ...originalFp.map((p) =>
+      distanceToSegment(
+        p.x,
+        p.z,
+        ridge.start.x,
+        ridge.start.z,
+        ridge.end.x,
+        ridge.end.z
+      )
+    )
+  );
+
+  let fp = originalFp;
+  if (roof.overhang && roof.overhang !== 0) {
+    fp = offsetPolygonInward(fp, -roof.overhang);
+  }
+
+  const contour = toTHREEVec2(archArrayToWorld(fp));
+  const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
+
+  const topVerts: number[] = [];
+  const botVerts: number[] = [];
+
+  for (const p of fp) {
+    const wp = archToWorldXZ(p);
+
+    const d = distanceToSegment(
+      p.x,
+      p.z,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+
+    const t = 1 - d / span;
+    const clamped = Math.max(0, Math.min(1, t));
+
+    const yTop = eaveAbs + clamped * (ridgeAbs - eaveAbs);
+    const yBot = yTop - (roof.thickness ?? 0.2);
+
+    topVerts.push(wp.x, yTop, wp.z);
+    botVerts.push(wp.x, yBot, wp.z);
+  }
+
+  const indices: number[] = [];
+
+  for (const tri of triangles) {
+    indices.push(tri[0], tri[1], tri[2]);
+  }
+
+  const bottomOffset = fp.length;
+  for (const tri of triangles) {
+    indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
+  }
+
+  const n = fp.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+
+    const ti = i;
+    const tj = j;
+    const bi = bottomOffset + i;
+    const bj = bottomOffset + j;
+
+    indices.push(ti, tj, bj);
+    indices.push(ti, bj, bi);
+  }
+
+  const positions = new Float32Array([...topVerts, ...botVerts]);
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  return geom;
 }
 
 export function buildStructuralGableGeometry(

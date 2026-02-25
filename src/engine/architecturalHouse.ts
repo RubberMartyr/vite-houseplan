@@ -77,6 +77,8 @@ export const architecturalHouse: ArchitecturalHouse = {
           p3: { x: -4.8, z: 12.0, h: 2.8 },
           region: [
             { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
+            { a: { x: -100, z: 12.0 }, b: { x: 100, z: 12.0 }, keep: "right" },
+            { a: { x: -100, z: 8.45 }, b: { x: 100, z: 8.45 }, keep: "left" },
           ],
         },
         {
@@ -86,6 +88,8 @@ export const architecturalHouse: ArchitecturalHouse = {
           p3: { x: 4.1, z: 12.0, h: 2.8 },
           region: [
             { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
+            { a: { x: -100, z: 12.0 }, b: { x: 100, z: 12.0 }, keep: "right" },
+            { a: { x: -100, z: 8.45 }, b: { x: 100, z: 8.45 }, keep: "left" },
           ],
         },
         {
@@ -93,14 +97,14 @@ export const architecturalHouse: ArchitecturalHouse = {
           p1: { x: 0.6, z: 12.0, h: 6.45 },
           p2: { x: -4.8, z: 12.0, h: 2.8 },
           p3: { x: 4.1, z: 12.0, h: 2.8 },
-          region: [],
+          region: [{ a: { x: -100, z: 12.0 }, b: { x: 100, z: 12.0 }, keep: "left" }],
         },
         {
           id: "hip-end",
           p1: { x: 0.6, z: 8.45, h: 6.45 },
           p2: { x: -3.5, z: 8.45, h: 2.8 },
           p3: { x: 4.1, z: 8.45, h: 2.8 },
-          region: [],
+          region: [{ a: { x: -100, z: 8.45 }, b: { x: 100, z: 8.45 }, keep: "right" }],
         },
       ],
     },

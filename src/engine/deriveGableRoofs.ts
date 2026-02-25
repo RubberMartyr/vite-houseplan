@@ -42,6 +42,17 @@ function distanceToSegment(
   return Math.sqrt(dx * dx + dz * dz);
 }
 
+function signedSide(
+  px: number,
+  pz: number,
+  x1: number,
+  z1: number,
+  x2: number,
+  z2: number
+) {
+  return (pz - z1) * (x2 - x1) - (px - x1) * (z2 - z1);
+}
+
 export function deriveGableRoofGeometries(
   arch: ArchitecturalHouse
 ): THREE.BufferGeometry[] {
@@ -79,23 +90,80 @@ function buildMultiRidgeRoof(
   console.log("footprint points:", baseLevel.footprint.outer.length);
   const ridge = roof.ridgeSegments[0];
 
-  const originalFp = baseLevel.footprint.outer;
+  let originalFp = baseLevel.footprint.outer;
+
+  // Ensure explicitly closed polygon
+  if (
+    originalFp.length > 0 &&
+    (originalFp[0].x !== originalFp[originalFp.length - 1].x ||
+      originalFp[0].z !== originalFp[originalFp.length - 1].z)
+  ) {
+    originalFp = [...originalFp, { ...originalFp[0] }];
+  }
 
   const eaveAbs = baseLevel.elevation + roof.eaveHeight;
   const ridgeAbs = baseLevel.elevation + ridge.height;
 
-  const span = Math.max(
-    ...originalFp.map((p) =>
-      distanceToSegment(
-        p.x,
-        p.z,
-        ridge.start.x,
-        ridge.start.z,
-        ridge.end.x,
-        ridge.end.z
-      )
-    )
-  );
+  const leftDistances: number[] = [];
+  const rightDistances: number[] = [];
+
+  for (const p of originalFp) {
+    const side = signedSide(
+      p.x,
+      p.z,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+
+    const d = distanceToSegment(
+      p.x,
+      p.z,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+
+    if (side >= 0) {
+      leftDistances.push(d);
+    } else {
+      rightDistances.push(d);
+    }
+  }
+
+  const leftSpan = leftDistances.length > 0 ? Math.max(...leftDistances) : 0;
+  const rightSpan = rightDistances.length > 0 ? Math.max(...rightDistances) : 0;
+
+  function roofHeightAt(px: number, pz: number) {
+    const side = signedSide(
+      px,
+      pz,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+
+    const d = distanceToSegment(
+      px,
+      pz,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
+
+    const span = side >= 0 ? leftSpan : rightSpan;
+
+    if (span === 0) return eaveAbs;
+
+    const t = 1 - d / span;
+    const clamped = Math.max(0, Math.min(1, t));
+
+    return eaveAbs + clamped * (ridgeAbs - eaveAbs);
+  }
 
   let fp = originalFp;
   if (roof.overhang && roof.overhang !== 0) {
@@ -111,20 +179,8 @@ function buildMultiRidgeRoof(
   for (const p of fp) {
     const wp = archToWorldXZ(p);
 
-    const d = distanceToSegment(
-      p.x,
-      p.z,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-
-    const t = 1 - d / span;
-    const clamped = Math.max(0, Math.min(1, t));
-
-    const yTop = eaveAbs + clamped * (ridgeAbs - eaveAbs);
-    const yBot = yTop - (roof.thickness ?? 0.2);
+    const yBot = roofHeightAt(p.x, p.z);
+    const yTop = yBot + (roof.thickness ?? 0.2);
 
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);

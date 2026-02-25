@@ -308,8 +308,18 @@ function Walls() {
   return null;
 }
 
-function Roof({ visible = true }: { visible?: boolean }) {
-  const { roof } = useBuildingMaterials();
+function Roof({ visible = true, wireframe = false }: { visible?: boolean; wireframe?: boolean }) {
+  const roofMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#000000',
+        roughness: 0.7,
+        metalness: 0.1,
+        side: THREE.DoubleSide,
+        wireframe,
+      }),
+    [wireframe]
+  );
   const house = useMemo(() => buildHouse(), []);
   const { meshes } = house.roof;
 
@@ -319,7 +329,7 @@ function Roof({ visible = true }: { visible?: boolean }) {
         <mesh
           key={`roof-plane-${index}`}
           geometry={mesh.geometry}
-          material={roof}
+          material={roofMaterial}
           position={mesh.position}
           rotation={mesh.rotation}
           castShadow
@@ -502,6 +512,7 @@ export default function HouseViewer() {
   });
   const [showTerrain, setShowTerrain] = useState(true);
   const [showRoof, setShowRoof] = useState(true);
+  const [roofWireframe, setRoofWireframe] = useState(false);
   const [showLegacy, setShowLegacy] = useState(false);
   const [showWindows, setShowWindows] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -569,6 +580,8 @@ export default function HouseViewer() {
         onToggleTerrain={() => setShowTerrain((prev) => !prev)}
         showRoof={showRoof}
         onToggleRoof={() => setShowRoof((prev) => !prev)}
+        roofWireframe={roofWireframe}
+        onToggleRoofWireframe={() => setRoofWireframe((prev) => !prev)}
         onBasementView={handleBasementView}
         showLegacy={showLegacy}
         onToggleLegacy={() => setShowLegacy((v) => !v)}
@@ -597,6 +610,7 @@ export default function HouseViewer() {
           activeFloors={activeFloors}
           showTerrain={showTerrain}
           showRoof={showRoof}
+          roofWireframe={roofWireframe}
           showLegacy={showLegacy}
           showWindows={showWindows}
           cutawayEnabled={cutawayEnabled}
@@ -618,6 +632,7 @@ function HouseScene({
   activeFloors,
   showTerrain,
   showRoof,
+  roofWireframe,
   showLegacy,
   showWindows,
   cutawayEnabled,
@@ -633,6 +648,7 @@ function HouseScene({
   activeFloors: FloorVisibility;
   showTerrain: boolean;
   showRoof: boolean;
+  roofWireframe: boolean;
   showLegacy: boolean;
   showWindows: boolean;
   cutawayEnabled: boolean;
@@ -1123,7 +1139,7 @@ function HouseScene({
           ))}
         </group>
 
-        <Roof visible={showLegacy && showRoof} />
+        <Roof visible={showLegacy && showRoof} wireframe={roofWireframe} />
 
         {DEBUG_WALL_PLANES && (() => {
           const zSamples = [2, 5.5, 8.5, 11.5]; // same z as your side windows

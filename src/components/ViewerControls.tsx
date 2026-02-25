@@ -16,6 +16,8 @@ type ViewerControlsProps = {
   onToggleTerrain: () => void;
   showRoof: boolean;
   onToggleRoof: () => void;
+  roofWireframe: boolean;
+  onToggleRoofWireframe: () => void;
   onBasementView: () => void;
   showLegacy: boolean;
   onToggleLegacy: () => void;
@@ -40,6 +42,8 @@ export function ViewerControls({
   onToggleTerrain,
   showRoof,
   onToggleRoof,
+  roofWireframe,
+  onToggleRoofWireframe,
   onBasementView,
   showLegacy,
   onToggleLegacy,
@@ -178,6 +182,17 @@ export function ViewerControls({
           onClick={onToggleRoof}
         >
           {showRoof ? 'Roof: ON' : 'Roof: OFF'}
+        </button>
+        <button
+          style={{
+            ...buttonStyle,
+            background: roofWireframe ? '#8B5A40' : buttonStyle.background,
+            color: roofWireframe ? '#fff' : '#111',
+            width: '100%',
+          }}
+          onClick={onToggleRoofWireframe}
+        >
+          Roof Style: {roofWireframe ? 'Wireframe' : 'Black'}
         </button>
         <button style={{ ...buttonStyle, width: '100%' }} onClick={onBasementView}>
           Basement View

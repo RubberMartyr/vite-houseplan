@@ -7,6 +7,7 @@ import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
 type StructuralRoofSpec = GableRoofSpec | MultiRidgeRoofSpec;
+type XZ = { x: number; z: number };
 type RidgeLine = {
   start: Vec2;
   end: Vec2;
@@ -14,11 +15,11 @@ type RidgeLine = {
 };
 
 // Helper: convert Vec2[] -> arrays for triangulation
-function toTHREEVec2(points: { x: number; z: number }[]) {
+function toTHREEVec2(points: XZ[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
 }
 
-function ensureClosed(points: Vec2[]): Vec2[] {
+function ensureClosed(points: XZ[]): XZ[] {
   if (points.length === 0) return points;
 
   const first = points[0];
@@ -26,6 +27,133 @@ function ensureClosed(points: Vec2[]): Vec2[] {
   if (first.x === last.x && first.z === last.z) return points;
 
   return [...points, first];
+}
+
+function signedSideOfLine(p: XZ, a: XZ, b: XZ): number {
+  const abx = b.x - a.x;
+  const abz = b.z - a.z;
+  const apx = p.x - a.x;
+  const apz = p.z - a.z;
+  return apx * abz - apz * abx;
+}
+
+function intersectSegmentWithLine(p: XZ, q: XZ, a: XZ, b: XZ): XZ | null {
+  const r = { x: q.x - p.x, z: q.z - p.z };
+  const s = { x: b.x - a.x, z: b.z - a.z };
+
+  const denom = r.x * s.z - r.z * s.x;
+  if (Math.abs(denom) < 1e-9) return null;
+
+  const ap = { x: a.x - p.x, z: a.z - p.z };
+  const t = (ap.x * s.z - ap.z * s.x) / denom;
+  if (t < -1e-9 || t > 1 + 1e-9) return null;
+
+  return { x: p.x + t * r.x, z: p.z + t * r.z };
+}
+
+function clipPolyByLine(poly: XZ[], a: XZ, b: XZ, keep: "pos" | "neg"): XZ[] {
+  const closed = ensureClosed(poly);
+
+  const inside = (p: XZ) => {
+    const s = signedSideOfLine(p, a, b);
+    return keep === "pos" ? s >= -1e-9 : s <= 1e-9;
+  };
+
+  const out: XZ[] = [];
+
+  for (let i = 0; i < closed.length - 1; i++) {
+    const P = closed[i];
+    const Q = closed[i + 1];
+
+    const Pin = inside(P);
+    const Qin = inside(Q);
+
+    if (Pin && Qin) {
+      out.push(Q);
+    } else if (Pin && !Qin) {
+      const I = intersectSegmentWithLine(P, Q, a, b);
+      if (I) out.push(I);
+    } else if (!Pin && Qin) {
+      const I = intersectSegmentWithLine(P, Q, a, b);
+      if (I) out.push(I);
+      out.push(Q);
+    }
+  }
+
+  const cleaned: XZ[] = [];
+  for (const p of out) {
+    const last = cleaned[cleaned.length - 1];
+    if (!last || Math.abs(last.x - p.x) > 1e-9 || Math.abs(last.z - p.z) > 1e-9) {
+      cleaned.push(p);
+    }
+  }
+
+  if (cleaned.length >= 3) {
+    const first = cleaned[0];
+    const last = cleaned[cleaned.length - 1];
+    if (first.x !== last.x || first.z !== last.z) cleaned.push({ ...first });
+  }
+
+  return cleaned;
+}
+
+function splitPolygonByRidgeLine(poly: XZ[], a: XZ, b: XZ) {
+  const pos = clipPolyByLine(poly, a, b, "pos");
+  const neg = clipPolyByLine(poly, a, b, "neg");
+  return { pos, neg };
+}
+
+function triangulateXZ(polyClosed: XZ[]): number[][] {
+  const contour = polyClosed.slice(0, -1).map((p) => new THREE.Vector2(p.x, p.z));
+  return THREE.ShapeUtils.triangulateShape(contour, []);
+}
+
+function buildGeomFromPoly(
+  polyClosed: XZ[],
+  triangles: number[][],
+  thickness: number,
+  roofOuterAt: (x: number, z: number) => number
+): THREE.BufferGeometry {
+  const poly = polyClosed.slice(0, -1);
+
+  const topVerts: number[] = [];
+  const botVerts: number[] = [];
+
+  for (const p of poly) {
+    const wp = archToWorldXZ(p);
+
+    const yTop = roofOuterAt(p.x, p.z);
+    const yBot = yTop - thickness;
+
+    topVerts.push(wp.x, yTop, wp.z);
+    botVerts.push(wp.x, yBot, wp.z);
+  }
+
+  const indices: number[] = [];
+  for (const tri of triangles) indices.push(tri[0], tri[1], tri[2]);
+
+  const bottomOffset = poly.length;
+  for (const tri of triangles) {
+    indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
+  }
+
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const ti = i;
+    const tj = j;
+    const bi = bottomOffset + i;
+    const bj = bottomOffset + j;
+    indices.push(ti, tj, bj);
+    indices.push(ti, bj, bi);
+  }
+
+  const positions = new Float32Array([...topVerts, ...botVerts]);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+  return geom;
 }
 
 export function deriveGableRoofGeometries(
@@ -134,28 +262,7 @@ function buildMultiRidgeRoof(
   if (roof.overhang && roof.overhang !== 0) {
     fp = offsetPolygonInward(fp, -roof.overhang);
   }
-
-  let maxRun = 0;
-  for (const p of ensureClosed(fp)) {
-    const sd = signedPerpDistanceToInfiniteLineXZ(
-      p.x,
-      p.z,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-    maxRun = Math.max(maxRun, Math.abs(sd));
-  }
-  const deltaH = ridgeTopAbs - eaveTopAbs;
-  const k = maxRun === 0 ? 0 : deltaH / maxRun;
-
-  console.log("---- ROOF SLOPE DEBUG ----");
-  console.log("ridgeTopAbs:", ridgeTopAbs);
-  console.log("eaveTopAbs:", eaveTopAbs);
-  console.log("deltaH:", deltaH);
-  console.log("maxRun:", maxRun);
-  console.log("k:", k);
+  fp = ensureClosed(fp);
 
   const { roofOuterAt } = getRoofHeightFunctions(
     fp,
@@ -165,73 +272,17 @@ function buildMultiRidgeRoof(
     thickness
   );
 
-  const contour = toTHREEVec2(archArrayToWorld(fp));
-  const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
+  const { pos, neg } = splitPolygonByRidgeLine(fp, ridge.start, ridge.end);
+  const out: THREE.BufferGeometry[] = [];
 
-  const topVerts: number[] = [];
-  const botVerts: number[] = [];
-
-  const samples = [
-    { name: "fp[0]", p: fp[0] },
-    { name: "fp[mid]", p: fp[Math.floor(fp.length / 2)] },
-    { name: "fp[last]", p: fp[fp.length - 1] },
-  ].filter((s) => s.p);
-
-  for (const s of samples) {
-    const sd = signedPerpDistanceToInfiniteLineXZ(
-      s.p.x,
-      s.p.z,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-    const yTop = roofOuterAt(s.p.x, s.p.z);
-    console.log(`${s.name}: x=${s.p.x}, z=${s.p.z}, sd=${sd}, yTop=${yTop}`);
+  if (pos.length >= 4) {
+    out.push(buildGeomFromPoly(pos, triangulateXZ(pos), thickness, roofOuterAt));
+  }
+  if (neg.length >= 4) {
+    out.push(buildGeomFromPoly(neg, triangulateXZ(neg), thickness, roofOuterAt));
   }
 
-  for (const p of fp) {
-    const wp = archToWorldXZ(p);
-
-    const yTop = roofOuterAt(p.x, p.z);
-    const yBot = yTop - thickness;
-
-    topVerts.push(wp.x, yTop, wp.z);
-    botVerts.push(wp.x, yBot, wp.z);
-  }
-
-  const indices: number[] = [];
-
-  for (const tri of triangles) {
-    indices.push(tri[0], tri[1], tri[2]);
-  }
-
-  const bottomOffset = fp.length;
-  for (const tri of triangles) {
-    indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
-  }
-
-  const n = fp.length;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-
-    const ti = i;
-    const tj = j;
-    const bi = bottomOffset + i;
-    const bj = bottomOffset + j;
-
-    indices.push(ti, tj, bj);
-    indices.push(ti, bj, bi);
-  }
-
-  const positions = new Float32Array([...topVerts, ...botVerts]);
-
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geom.setIndex(indices);
-  geom.computeVertexNormals();
-
-  return [geom];
+  return out;
 }
 
 export function buildStructuralGableGeometry(

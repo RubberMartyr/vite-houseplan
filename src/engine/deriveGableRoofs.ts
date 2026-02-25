@@ -1,13 +1,19 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
-import type { LevelSpec, RoofSpec, Vec2 } from "./types";
+import type {
+  HalfPlane,
+  LevelSpec,
+  MultiPlaneRoofSpec,
+  RoofSpec,
+  Vec2,
+  XZ,
+} from "./types";
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
 type StructuralRoofSpec = GableRoofSpec | MultiRidgeRoofSpec;
-type XZ = { x: number; z: number };
 type RidgeLine = {
   start: Vec2;
   end: Vec2;
@@ -31,7 +37,7 @@ function ensureClosed(points: XZ[]): XZ[] {
   return [...points, first];
 }
 
-function signedSideOfLine(p: XZ, a: XZ, b: XZ): number {
+function signedSide(p: XZ, a: XZ, b: XZ): number {
   const abx = b.x - a.x;
   const abz = b.z - a.z;
   const apx = p.x - a.x;
@@ -53,11 +59,67 @@ function intersectSegmentWithLine(p: XZ, q: XZ, a: XZ, b: XZ): XZ | null {
   return { x: p.x + t * r.x, z: p.z + t * r.z };
 }
 
+function clipPolyByHalfPlane(poly: XZ[], hp: HalfPlane): XZ[] {
+  const a = hp.a;
+  const b = hp.b;
+
+  const inside = (p: XZ) => {
+    const s = signedSide(p, a, b);
+    return hp.keep === "left" ? s >= -1e-9 : s <= 1e-9;
+  };
+
+  const closed = ensureClosed(poly);
+  const out: XZ[] = [];
+
+  for (let i = 0; i < closed.length - 1; i++) {
+    const P = closed[i];
+    const Q = closed[i + 1];
+    const Pin = inside(P);
+    const Qin = inside(Q);
+
+    if (Pin && Qin) {
+      out.push(Q);
+    } else if (Pin && !Qin) {
+      const I = intersectSegmentWithLine(P, Q, a, b);
+      if (I) out.push(I);
+    } else if (!Pin && Qin) {
+      const I = intersectSegmentWithLine(P, Q, a, b);
+      if (I) out.push(I);
+      out.push(Q);
+    }
+  }
+
+  const cleaned: XZ[] = [];
+  for (const p of out) {
+    const last = cleaned[cleaned.length - 1];
+    if (!last || Math.abs(last.x - p.x) > 1e-9 || Math.abs(last.z - p.z) > 1e-9) {
+      cleaned.push(p);
+    }
+  }
+
+  if (cleaned.length >= 3) {
+    const f = cleaned[0];
+    const l = cleaned[cleaned.length - 1];
+    if (f.x !== l.x || f.z !== l.z) cleaned.push({ ...f });
+  }
+
+  return cleaned;
+}
+
+function clipPolyByRegion(poly: XZ[], region: HalfPlane[]): XZ[] {
+  let out = poly;
+  for (const hp of region) {
+    out = clipPolyByHalfPlane(out, hp);
+    if (out.length < 4) return out;
+  }
+  return out;
+}
+
 function clipPolyByLine(poly: XZ[], a: XZ, b: XZ, keep: "pos" | "neg"): XZ[] {
   const closed = ensureClosed(poly);
 
   const inside = (p: XZ) => {
-    const s = signedSideOfLine(p, a, b);
+    const s = signedSide(p, a, b);
     return keep === "pos" ? s >= -1e-9 : s <= 1e-9;
   };
 
@@ -110,12 +172,13 @@ function triangulateXZ(polyClosed: XZ[]): number[][] {
   return THREE.ShapeUtils.triangulateShape(contour, []);
 }
 
-function buildGeomFromPoly(
-  polyClosed: XZ[],
-  triangles: number[][],
-  thickness: number,
-  roofOuterAt: (x: number, z: number) => number
-): THREE.BufferGeometry {
+function buildRoofFaceGeometry(params: {
+  polyClosed: XZ[];
+  triangles: number[][];
+  thickness: number;
+  heightAtOuter: (x: number, z: number) => number;
+}): THREE.BufferGeometry {
+  const { polyClosed, triangles, thickness, heightAtOuter } = params;
   const poly = polyClosed.slice(0, -1);
 
   const topVerts: number[] = [];
@@ -124,7 +187,7 @@ function buildGeomFromPoly(
   for (const p of poly) {
     const wp = archToWorldXZ(p);
 
-    const yTop = roofOuterAt(p.x, p.z);
+    const yTop = heightAtOuter(p.x, p.z);
     const yBot = yTop - thickness;
 
     topVerts.push(wp.x, yTop, wp.z);
@@ -164,7 +227,7 @@ export function deriveGableRoofGeometries(
   const geometries: THREE.BufferGeometry[] = [];
 
   for (const roof of arch.roofs ?? []) {
-    if (roof.type !== "gable" && roof.type !== "multi-ridge") continue;
+    if (roof.type !== "gable" && roof.type !== "multi-ridge" && roof.type !== "multi-plane") continue;
 
     if (roof.type === "gable") {
       const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
@@ -182,6 +245,52 @@ export function deriveGableRoofGeometries(
       const geoms = buildMultiRidgeRoof(baseLevel, roof);
       geometries.push(...geoms);
     }
+
+    if (roof.type === "multi-plane") {
+      const geoms = deriveMultiPlaneRoofGeometries(arch, roof);
+      geometries.push(...geoms);
+    }
+  }
+
+  return geometries;
+}
+
+function deriveMultiPlaneRoofGeometries(
+  arch: ArchitecturalHouse,
+  roof: MultiPlaneRoofSpec
+): THREE.BufferGeometry[] {
+  const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
+  if (!baseLevel) return [];
+
+  const thickness = roof.thickness ?? 0.2;
+
+  let fp: XZ[] = baseLevel.footprint.outer;
+  if (roof.overhang && roof.overhang !== 0) {
+    fp = offsetPolygonInward(fp, -roof.overhang);
+  }
+  fp = ensureClosed(fp);
+
+  const geometries: THREE.BufferGeometry[] = [];
+
+  for (const face of roof.faces) {
+    const regionPoly = clipPolyByRegion(fp, face.region);
+    if (regionPoly.length < 4) continue;
+
+    const plane = planeFrom3Points(
+      { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
+      { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
+      { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
+    );
+
+    const triangles = triangulateXZ(regionPoly);
+    geometries.push(
+      buildRoofFaceGeometry({
+        polyClosed: regionPoly,
+        triangles,
+        thickness,
+        heightAtOuter: (x, z) => plane.heightAt(x, z),
+      })
+    );
   }
 
   return geometries;
@@ -381,10 +490,24 @@ function buildMultiRidgeRoof(
   const out: THREE.BufferGeometry[] = [];
 
   if (pos.length >= 4) {
-    out.push(buildGeomFromPoly(pos, triangulateXZ(pos), thickness, roofOuterAt));
+    out.push(
+      buildRoofFaceGeometry({
+        polyClosed: pos,
+        triangles: triangulateXZ(pos),
+        thickness,
+        heightAtOuter: roofOuterAt,
+      })
+    );
   }
   if (neg.length >= 4) {
-    out.push(buildGeomFromPoly(neg, triangulateXZ(neg), thickness, roofOuterAt));
+    out.push(
+      buildRoofFaceGeometry({
+        polyClosed: neg,
+        triangles: triangulateXZ(neg),
+        thickness,
+        heightAtOuter: roofOuterAt,
+      })
+    );
   }
 
   return out;

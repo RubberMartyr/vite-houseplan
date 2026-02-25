@@ -1,16 +1,31 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
-import type { LevelSpec, RoofSpec } from "./types";
+import type { LevelSpec, RoofSpec, Vec2 } from "./types";
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
 type StructuralRoofSpec = GableRoofSpec | MultiRidgeRoofSpec;
+type RidgeLine = {
+  start: Vec2;
+  end: Vec2;
+  height: number;
+};
 
 // Helper: convert Vec2[] -> arrays for triangulation
 function toTHREEVec2(points: { x: number; z: number }[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
+}
+
+function ensureClosed(points: Vec2[]): Vec2[] {
+  if (points.length === 0) return points;
+
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (first.x === last.x && first.z === last.z) return points;
+
+  return [...points, first];
 }
 
 export function deriveGableRoofGeometries(
@@ -55,34 +70,32 @@ function signedPerpDistanceToInfiniteLineXZ(
   return ((px - x1) * dz - (pz - z1) * dx) / len;
 }
 
-function buildMultiRidgeRoof(
-  baseLevel: LevelSpec,
-  roof: MultiRidgeRoofSpec
-): THREE.BufferGeometry[] {
-  const ridge = roof.ridgeSegments[0];
-  if (!ridge) return [];
+function getRoofHeightFunctions(
+  fp: Vec2[],
+  ridge: RidgeLine,
+  ridgeTopAbs: number,
+  eaveTopAbs: number,
+  thickness: number
+) {
+  const fpClosed = ensureClosed(fp);
 
-  const thickness = roof.thickness ?? 0.2;
+  let maxRun = 0;
 
-  // OUTER surface absolute heights
-  const ridgeTopAbs = baseLevel.elevation + ridge.height;
-  const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+  for (const p of fpClosed) {
+    const sd = signedPerpDistanceToInfiniteLineXZ(
+      p.x,
+      p.z,
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
+    );
 
-  console.log("---- ROOF DEBUG START ----");
-  console.log("ridge:", ridge);
-  console.log("ridge.pitchDeg:", ridge.pitchDeg);
-  console.log("ridgeTopAbs:", ridgeTopAbs);
-  console.log("eaveTopAbs:", eaveTopAbs);
-  console.log("thickness:", thickness);
+    maxRun = Math.max(maxRun, Math.abs(sd));
+  }
 
-  // Underside is derived (not authored)
-  const eaveBottomAbs = eaveTopAbs - thickness;
-
-  const pitchRad = (ridge.pitchDeg * Math.PI) / 180;
-  const k = Math.tan(pitchRad); // height drop per meter perpendicular to ridge
-
-  console.log("pitchRad:", pitchRad);
-  console.log("k (tan):", k);
+  const deltaH = ridgeTopAbs - eaveTopAbs;
+  const k = maxRun === 0 ? 0 : deltaH / maxRun;
 
   function roofOuterAt(px: number, pz: number) {
     const sd = signedPerpDistanceToInfiniteLineXZ(
@@ -94,19 +107,40 @@ function buildMultiRidgeRoof(
       ridge.end.z
     );
 
-    const h = ridgeTopAbs - k * Math.abs(sd);
-
-    return Math.max(eaveTopAbs, h);
+    return ridgeTopAbs - k * Math.abs(sd);
   }
 
   function roofBottomAt(px: number, pz: number) {
-    return Math.max(eaveBottomAbs, roofOuterAt(px, pz) - thickness);
+    return roofOuterAt(px, pz) - thickness;
   }
+
+  return { roofOuterAt, roofBottomAt };
+}
+
+function buildMultiRidgeRoof(
+  baseLevel: LevelSpec,
+  roof: MultiRidgeRoofSpec
+): THREE.BufferGeometry[] {
+  const ridge = roof.ridgeSegments[0];
+  if (!ridge) return [];
+
+  const thickness = roof.thickness ?? 0.2;
+
+  const ridgeTopAbs = baseLevel.elevation + ridge.height;
+  const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
 
   let fp = baseLevel.footprint.outer;
   if (roof.overhang && roof.overhang !== 0) {
     fp = offsetPolygonInward(fp, -roof.overhang);
   }
+
+  const { roofOuterAt } = getRoofHeightFunctions(
+    fp,
+    ridge,
+    ridgeTopAbs,
+    eaveTopAbs,
+    thickness
+  );
 
   const contour = toTHREEVec2(archArrayToWorld(fp));
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
@@ -114,27 +148,11 @@ function buildMultiRidgeRoof(
   const topVerts: number[] = [];
   const botVerts: number[] = [];
 
-  const testPoint = baseLevel.footprint.outer[0];
-  if (testPoint) {
-    const testHeight = roofOuterAt(testPoint.x, testPoint.z);
-    console.log("Sample roofOuterAt:", testHeight);
-  }
-
   for (const p of fp) {
-    const outer = roofOuterAt(p.x, p.z);
-
-    if (isNaN(outer)) {
-      console.error("NaN detected at point:", p);
-    }
-
     const wp = archToWorldXZ(p);
 
-    const yTop = outer;
-    const yBot = roofBottomAt(p.x, p.z);
-
-    if (isNaN(yTop) || isNaN(yBot)) {
-      console.error("NaN detected at computed heights:", { p, yTop, yBot });
-    }
+    const yTop = roofOuterAt(p.x, p.z);
+    const yBot = yTop - thickness;
 
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);
@@ -171,9 +189,6 @@ function buildMultiRidgeRoof(
   geom.setIndex(indices);
   geom.computeVertexNormals();
 
-  console.log("topVerts length:", topVerts.length);
-  console.log("---- ROOF DEBUG END ----");
-
   return [geom];
 }
 
@@ -182,9 +197,9 @@ export function buildStructuralGableGeometry(
   roof: StructuralRoofSpec
 ): THREE.BufferGeometry {
   const thickness = roof.thickness ?? 0.2;
-  const eaveAbs = baseLevel.elevation + roof.eaveHeight;
+  const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
 
-  const ridge =
+  const ridge: RidgeLine =
     roof.type === "multi-ridge"
       ? roof.ridgeSegments[0]
       : {
@@ -192,55 +207,36 @@ export function buildStructuralGableGeometry(
           end: roof.ridge.end,
           height: roof.ridgeHeight,
         };
-  const ridgeAbs = baseLevel.elevation + ridge.height;
+  const ridgeTopAbs = baseLevel.elevation + ridge.height;
 
-  const originalFp = baseLevel.footprint.outer;
-
-  // Footprint with optional overhang (negative = outward)
-  let fp = originalFp;
+  let fp = baseLevel.footprint.outer;
   if (roof.overhang && roof.overhang !== 0) {
     fp = offsetPolygonInward(fp, -roof.overhang);
   }
 
-  // Triangulate footprint (top surface in XZ)
+  const { roofOuterAt, roofBottomAt } = getRoofHeightFunctions(
+    fp,
+    ridge,
+    ridgeTopAbs,
+    eaveTopAbs,
+    thickness
+  );
+
   const contour = toTHREEVec2(archArrayToWorld(fp));
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
 
-  function distanceToRidge(px: number, pz: number) {
-    const A = ridge.end.z - ridge.start.z;
-    const B = ridge.start.x - ridge.end.x;
-    const C = ridge.end.x * ridge.start.z - ridge.start.x * ridge.end.z;
-
-    return Math.abs(A * px + B * pz + C) / Math.sqrt(A * A + B * B);
-  }
-
-  const span = Math.max(...originalFp.map((p) => distanceToRidge(p.x, p.z)));
-
-  function roofHeightAt(px: number, pz: number) {
-    if (span <= 0) return eaveAbs;
-
-    const d = distanceToRidge(px, pz);
-
-    const t = 1 - d / span;
-    const clamped = Math.max(0, Math.min(1, t));
-
-    return eaveAbs + clamped * (ridgeAbs - eaveAbs);
-  }
-
-  // Build vertex arrays for top and bottom
   const topVerts: number[] = [];
   const botVerts: number[] = [];
 
   for (const p of fp) {
     const wp = archToWorldXZ(p);
-    const yTop = roofHeightAt(p.x, p.z);
-    const yBot = yTop - thickness;
+    const yTop = roofOuterAt(p.x, p.z);
+    const yBot = roofBottomAt(p.x, p.z);
 
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);
   }
 
-  // Indices for top and bottom surfaces
   const indices: number[] = [];
 
   for (const tri of triangles) {
@@ -252,7 +248,6 @@ export function buildStructuralGableGeometry(
     indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
   }
 
-  // Side faces
   const n = fp.length;
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;

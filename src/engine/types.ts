@@ -47,6 +47,20 @@ export type RoofSpec =
       };
       overhang?: number;
       thickness: number;
+    }
+  | {
+      id: string;
+      type: 'multi-ridge';
+      baseLevelId: string;
+      eaveHeight: number;
+      thickness?: number;
+      overhang?: number;
+      ridgeSegments: {
+        id: string;
+        start: Vec2;
+        end: Vec2;
+        height: number;
+      }[];
     };
 
 export type OpeningSpecArch = {

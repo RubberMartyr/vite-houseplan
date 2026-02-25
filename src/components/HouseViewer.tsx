@@ -273,10 +273,10 @@ function DebugTruthOverlay({
         `target.z: ${targetZ.toFixed(3)}`,
         `footprint minZ: ${minMaxZ.minZ.toFixed(3)}`,
         `footprint maxZ: ${minMaxZ.maxZ.toFixed(3)}`,
-        cameraZ < minMaxZ.minZ
-          ? 'YOU ARE IN FRONT (z < minZ)'
-          : cameraZ > minMaxZ.maxZ
-            ? 'YOU ARE BEHIND (z > maxZ)'
+        cameraZ > minMaxZ.maxZ
+          ? 'YOU ARE IN FRONT (z > maxZ)'
+          : cameraZ < minMaxZ.minZ
+            ? 'YOU ARE BEHIND (z < minZ)'
             : 'YOU ARE WITHIN Z RANGE',
       ].join('\n')
     );

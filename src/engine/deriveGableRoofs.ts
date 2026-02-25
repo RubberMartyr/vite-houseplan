@@ -13,32 +13,6 @@ function toTHREEVec2(points: { x: number; z: number }[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
 }
 
-function distanceToInfiniteLine(
-  px: number,
-  pz: number,
-  x1: number,
-  z1: number,
-  x2: number,
-  z2: number
-) {
-  const A = z2 - z1;
-  const B = x1 - x2;
-  const C = x2 * z1 - x1 * z2;
-
-  return Math.abs(A * px + B * pz + C) / Math.sqrt(A * A + B * B);
-}
-
-function signedSide(
-  px: number,
-  pz: number,
-  x1: number,
-  z1: number,
-  x2: number,
-  z2: number
-) {
-  return (pz - z1) * (x2 - x1) - (px - x1) * (z2 - z1);
-}
-
 export function deriveGableRoofGeometries(
   arch: ArchitecturalHouse
 ): THREE.BufferGeometry[] {
@@ -72,83 +46,31 @@ function buildMultiRidgeRoof(
   baseLevel: LevelSpec,
   roof: MultiRidgeRoofSpec
 ): THREE.BufferGeometry {
-  console.log("ridge:", roof.ridgeSegments[0]);
-  console.log("footprint points:", baseLevel.footprint.outer.length);
   const ridge = roof.ridgeSegments[0];
+  const ridgeX = ridge.start.x;
+  const originalFp = baseLevel.footprint.outer;
+  const minX = Math.min(...originalFp.map((p) => p.x));
+  const maxX = Math.max(...originalFp.map((p) => p.x));
 
-  let originalFp = baseLevel.footprint.outer;
+  const thickness = roof.thickness ?? 0.2;
+  const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+  const ridgeTopAbs = baseLevel.elevation + ridge.height;
+  const eaveBottomAbs = eaveTopAbs - thickness;
+  const ridgeBottomAbs = ridgeTopAbs - thickness;
 
-  // Ensure explicitly closed polygon
-  if (
-    originalFp.length > 0 &&
-    (originalFp[0].x !== originalFp[originalFp.length - 1].x ||
-      originalFp[0].z !== originalFp[originalFp.length - 1].z)
-  ) {
-    originalFp = [...originalFp, { ...originalFp[0] }];
-  }
+  const leftSpan = ridgeX - minX;
+  const rightSpan = maxX - ridgeX;
+  const slopeLeft =
+    leftSpan === 0 ? 0 : (ridgeBottomAbs - eaveBottomAbs) / leftSpan;
+  const slopeRight =
+    rightSpan === 0 ? 0 : (ridgeBottomAbs - eaveBottomAbs) / rightSpan;
 
-  const eaveAbs = baseLevel.elevation + roof.eaveHeight;
-  const ridgeAbs = baseLevel.elevation + ridge.height;
-
-  const leftDistances: number[] = [];
-  const rightDistances: number[] = [];
-
-  for (const p of originalFp) {
-    const side = signedSide(
-      p.x,
-      p.z,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-
-    const d = distanceToInfiniteLine(
-      p.x,
-      p.z,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-
-    if (side >= 0) {
-      leftDistances.push(d);
-    } else {
-      rightDistances.push(d);
+  function roofBottomAt(px: number) {
+    if (px <= ridgeX) {
+      return ridgeBottomAbs - slopeLeft * (ridgeX - px);
     }
-  }
 
-  const leftSpan = leftDistances.length > 0 ? Math.max(...leftDistances) : 0;
-  const rightSpan = rightDistances.length > 0 ? Math.max(...rightDistances) : 0;
-
-  function roofHeightAt(px: number, pz: number) {
-    const side = signedSide(
-      px,
-      pz,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-
-    const d = distanceToInfiniteLine(
-      px,
-      pz,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
-
-    const span = side >= 0 ? leftSpan : rightSpan;
-
-    if (span === 0) return eaveAbs;
-
-    const t = 1 - d / span;
-    const clamped = Math.max(0, Math.min(1, t));
-
-    return eaveAbs + clamped * (ridgeAbs - eaveAbs);
+    return ridgeBottomAbs - slopeRight * (px - ridgeX);
   }
 
   let fp = originalFp;
@@ -165,8 +87,8 @@ function buildMultiRidgeRoof(
   for (const p of fp) {
     const wp = archToWorldXZ(p);
 
-    const yBot = roofHeightAt(p.x, p.z);
-    const yTop = yBot + (roof.thickness ?? 0.2);
+    const yBot = roofBottomAt(p.x);
+    const yTop = yBot + thickness;
 
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);
@@ -202,9 +124,6 @@ function buildMultiRidgeRoof(
   geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geom.setIndex(indices);
   geom.computeVertexNormals();
-
-  console.log("geom vertex count:", topVerts.length);
-
   return geom;
 }
 
@@ -237,30 +156,20 @@ export function buildStructuralGableGeometry(
   const contour = toTHREEVec2(archArrayToWorld(fp));
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
 
-  const span = Math.max(
-    ...originalFp.map((p) =>
-      distanceToInfiniteLine(
-        p.x,
-        p.z,
-        ridge.start.x,
-        ridge.start.z,
-        ridge.end.x,
-        ridge.end.z
-      )
-    )
-  );
+  function distanceToRidge(px: number, pz: number) {
+    const A = ridge.end.z - ridge.start.z;
+    const B = ridge.start.x - ridge.end.x;
+    const C = ridge.end.x * ridge.start.z - ridge.start.x * ridge.end.z;
+
+    return Math.abs(A * px + B * pz + C) / Math.sqrt(A * A + B * B);
+  }
+
+  const span = Math.max(...originalFp.map((p) => distanceToRidge(p.x, p.z)));
 
   function roofHeightAt(px: number, pz: number) {
     if (span <= 0) return eaveAbs;
 
-    const d = distanceToInfiniteLine(
-      px,
-      pz,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
-    );
+    const d = distanceToRidge(px, pz);
 
     const t = 1 - d / span;
     const clamped = Math.max(0, Math.min(1, t));

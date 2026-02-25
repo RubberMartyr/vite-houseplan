@@ -36,6 +36,37 @@ export type RidgeSegmentSpec = {
   hipEnd?: boolean;
 };
 
+export type XZ = { x: number; z: number };
+
+export type PlanePoint = {
+  x: number;
+  z: number;
+  h: number;
+};
+
+export type HalfPlane = {
+  a: XZ;
+  b: XZ;
+  keep: 'left' | 'right';
+};
+
+export type RoofFaceSpec = {
+  id: string;
+  p1: PlanePoint;
+  p2: PlanePoint;
+  p3: PlanePoint;
+  region: HalfPlane[];
+};
+
+export type MultiPlaneRoofSpec = {
+  id: string;
+  type: 'multi-plane';
+  baseLevelId: string;
+  thickness?: number;
+  overhang?: number;
+  faces: RoofFaceSpec[];
+};
+
 export type RoofSpec =
   | {
       id: string;
@@ -65,7 +96,8 @@ export type RoofSpec =
       thickness?: number;
       overhang?: number;
       ridgeSegments: RidgeSegmentSpec[];
-    };
+    }
+  | MultiPlaneRoofSpec;
 
 export type OpeningSpecArch = {
   id: string;

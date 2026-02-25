@@ -1,5 +1,6 @@
 import { ExtrudeGeometry, Path, Shape } from 'three';
 import { FootprintPoint } from '../envelope';
+import { archToWorldXZ } from '../../engine/spaceMapping';
 
 export interface ShellResult {
   geometry: ExtrudeGeometry;
@@ -23,21 +24,23 @@ export function buildExtrudedShell(params: {
 
   const outerShape = new Shape();
   toShapePoints(outerPoints).forEach((point, index) => {
+    const wp = archToWorldXZ(point);
     if (index === 0) {
-      outerShape.moveTo(point.x, -point.z);
+      outerShape.moveTo(wp.x, wp.z);
       return;
     }
-    outerShape.lineTo(point.x, -point.z);
+    outerShape.lineTo(wp.x, wp.z);
   });
   outerShape.closePath();
 
   const holePath = new Path();
   toShapePoints(innerPoints).forEach((point, index) => {
+    const wp = archToWorldXZ(point);
     if (index === 0) {
-      holePath.moveTo(point.x, -point.z);
+      holePath.moveTo(wp.x, wp.z);
       return;
     }
-    holePath.lineTo(point.x, -point.z);
+    holePath.lineTo(wp.x, wp.z);
   });
   holePath.closePath();
   outerShape.holes.push(holePath);

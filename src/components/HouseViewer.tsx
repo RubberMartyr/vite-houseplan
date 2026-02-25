@@ -43,6 +43,7 @@ import { architecturalHouse } from '../engine/architecturalHouse';
 import { deriveHouse } from '../engine/derive/deriveHouse';
 import { LegacyHouse } from '../legacy/LegacyHouse';
 import { EngineHouse } from '../engine/EngineHouse';
+import { archToWorldXZ } from '../engine/spaceMapping';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -90,10 +91,11 @@ function makeFootprintShape(points: FootprintPoint[]): THREE.Shape {
       : points;
 
   pathPoints.forEach((point, index) => {
+    const wp = archToWorldXZ(point);
     if (index === 0) {
-      shape.moveTo(point.x, -point.z);
+      shape.moveTo(wp.x, wp.z);
     } else {
-      shape.lineTo(point.x, -point.z);
+      shape.lineTo(wp.x, wp.z);
     }
   });
   shape.closePath();

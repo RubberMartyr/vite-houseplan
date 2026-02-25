@@ -1,13 +1,11 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
-
-// ✅ match legacy world mapping (same as makeFootprintShape: y uses -z)
-const mapZ = (z: number) => -z;
+import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 // Helper: convert Vec2[] -> arrays for triangulation
 function toTHREEVec2(points: { x: number; z: number }[]) {
-  return points.map((p) => new THREE.Vector2(p.x, mapZ(p.z)));
+  return points.map((p) => new THREE.Vector2(p.x, p.z));
 }
 
 function bbox(points: { x: number; z: number }[]) {
@@ -17,11 +15,11 @@ function bbox(points: { x: number; z: number }[]) {
     maxZ = -Infinity;
 
   for (const p of points) {
-    const z = mapZ(p.z);
-    minX = Math.min(minX, p.x);
-    maxX = Math.max(maxX, p.x);
-    minZ = Math.min(minZ, z);
-    maxZ = Math.max(maxZ, z);
+    const wp = archToWorldXZ(p);
+    minX = Math.min(minX, wp.x);
+    maxX = Math.max(maxX, wp.x);
+    minZ = Math.min(minZ, wp.z);
+    maxZ = Math.max(maxZ, wp.z);
   }
   return { minX, maxX, minZ, maxZ };
 }
@@ -48,7 +46,7 @@ export function deriveGableRoofGeometries(
     }
 
     // Triangulate footprint (top surface in XZ)
-    const contour = toTHREEVec2(fp);
+    const contour = toTHREEVec2(archArrayToWorld(fp));
     const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
 
     // Compute ridge center and half-span along slope axis (in mapped Z space)
@@ -75,13 +73,13 @@ export function deriveGableRoofGeometries(
     const botVerts: number[] = [];
 
     for (const p of fp) {
-      const z = mapZ(p.z);
-      const h = roofHeightAt(p.x, z);
+      const wp = archToWorldXZ(p);
+      const h = roofHeightAt(wp.x, wp.z);
       const yTop = baseY + h;
       const yBot = yTop - thickness;
 
-      topVerts.push(p.x, yTop, z);
-      botVerts.push(p.x, yBot, z);
+      topVerts.push(wp.x, yTop, wp.z);
+      botVerts.push(wp.x, yBot, wp.z);
     }
 
     // Indices for top and bottom surfaces

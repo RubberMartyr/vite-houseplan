@@ -232,6 +232,33 @@ function planeFrom3Points(
   };
 }
 
+function intersectPolygonWithHorizontalLine(
+  poly: { x: number; z: number }[],
+  zLine: number
+) {
+  const intersections: { x: number; z: number }[] = [];
+
+  for (let i = 0; i < poly.length - 1; i++) {
+    const a = poly[i];
+    const b = poly[i + 1];
+
+    if (
+      (a.z <= zLine && b.z >= zLine) ||
+      (a.z >= zLine && b.z <= zLine)
+    ) {
+      const dz = b.z - a.z;
+      if (Math.abs(dz) < 1e-9) continue;
+
+      const t = (zLine - a.z) / dz;
+      const x = a.x + t * (b.x - a.x);
+
+      intersections.push({ x, z: zLine });
+    }
+  }
+
+  return intersections;
+}
+
 function getRoofHeightFunctions(
   fp: Vec2[],
   ridge: RidgeLine,
@@ -243,19 +270,16 @@ function getRoofHeightFunctions(
   const hipPlanes: ((x: number, z: number) => number)[] = [];
 
   if (ridge.hipStart) {
-    const z = ridge.start.z;
-    const leftCorner = fpClosed.find(
-      (p) => Math.abs(p.z - z) < 1e-6 && p.x < ridge.start.x
-    );
-    const rightCorner = fpClosed.find(
-      (p) => Math.abs(p.z - z) < 1e-6 && p.x > ridge.start.x
-    );
+    const hits = intersectPolygonWithHorizontalLine(fpClosed, ridge.start.z);
 
-    if (leftCorner && rightCorner) {
+    if (hits.length === 2) {
+      const left = hits[0].x < hits[1].x ? hits[0] : hits[1];
+      const right = hits[0].x < hits[1].x ? hits[1] : hits[0];
+
       const plane = planeFrom3Points(
         { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
-        { x: leftCorner.x, z: leftCorner.z, y: eaveTopAbs },
-        { x: rightCorner.x, z: rightCorner.z, y: eaveTopAbs }
+        { x: left.x, z: left.z, y: eaveTopAbs },
+        { x: right.x, z: right.z, y: eaveTopAbs }
       );
 
       hipPlanes.push((x, z) => plane.heightAt(x, z));
@@ -263,17 +287,16 @@ function getRoofHeightFunctions(
   }
 
   if (ridge.hipEnd) {
-    const z = ridge.end.z;
-    const leftCorner = fpClosed.find((p) => Math.abs(p.z - z) < 1e-6 && p.x < ridge.end.x);
-    const rightCorner = fpClosed.find(
-      (p) => Math.abs(p.z - z) < 1e-6 && p.x > ridge.end.x
-    );
+    const hits = intersectPolygonWithHorizontalLine(fpClosed, ridge.end.z);
 
-    if (leftCorner && rightCorner) {
+    if (hits.length === 2) {
+      const left = hits[0].x < hits[1].x ? hits[0] : hits[1];
+      const right = hits[0].x < hits[1].x ? hits[1] : hits[0];
+
       const plane = planeFrom3Points(
         { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
-        { x: leftCorner.x, z: leftCorner.z, y: eaveTopAbs },
-        { x: rightCorner.x, z: rightCorner.z, y: eaveTopAbs }
+        { x: left.x, z: left.z, y: eaveTopAbs },
+        { x: right.x, z: right.z, y: eaveTopAbs }
       );
 
       hipPlanes.push((x, z) => plane.heightAt(x, z));

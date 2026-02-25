@@ -12,6 +12,8 @@ type RidgeLine = {
   start: Vec2;
   end: Vec2;
   height: number;
+  hipStart?: boolean;
+  hipEnd?: boolean;
 };
 
 // Helper: convert Vec2[] -> arrays for triangulation
@@ -199,6 +201,37 @@ function signedPerpDistanceToInfiniteLineXZ(
   return ((px - x1) * dz - (pz - z1) * dx) / len;
 }
 
+function planeFrom3Points(
+  p1: { x: number; z: number; y: number },
+  p2: { x: number; z: number; y: number },
+  p3: { x: number; z: number; y: number }
+) {
+  const v1 = {
+    x: p2.x - p1.x,
+    y: p2.y - p1.y,
+    z: p2.z - p1.z,
+  };
+
+  const v2 = {
+    x: p3.x - p1.x,
+    y: p3.y - p1.y,
+    z: p3.z - p1.z,
+  };
+
+  const nx = v1.y * v2.z - v1.z * v2.y;
+  const ny = v1.z * v2.x - v1.x * v2.z;
+  const nz = v1.x * v2.y - v1.y * v2.x;
+
+  const d = -(nx * p1.x + ny * p1.y + nz * p1.z);
+
+  return {
+    heightAt(x: number, z: number) {
+      if (Math.abs(ny) < 1e-9) return -Infinity;
+      return -(nx * x + nz * z + d) / ny;
+    },
+  };
+}
+
 function getRoofHeightFunctions(
   fp: Vec2[],
   ridge: RidgeLine,
@@ -207,6 +240,45 @@ function getRoofHeightFunctions(
   thickness: number
 ) {
   const fpClosed = ensureClosed(fp);
+  const hipPlanes: ((x: number, z: number) => number)[] = [];
+
+  if (ridge.hipStart) {
+    const z = ridge.start.z;
+    const leftCorner = fpClosed.find(
+      (p) => Math.abs(p.z - z) < 1e-6 && p.x < ridge.start.x
+    );
+    const rightCorner = fpClosed.find(
+      (p) => Math.abs(p.z - z) < 1e-6 && p.x > ridge.start.x
+    );
+
+    if (leftCorner && rightCorner) {
+      const plane = planeFrom3Points(
+        { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
+        { x: leftCorner.x, z: leftCorner.z, y: eaveTopAbs },
+        { x: rightCorner.x, z: rightCorner.z, y: eaveTopAbs }
+      );
+
+      hipPlanes.push((x, z) => plane.heightAt(x, z));
+    }
+  }
+
+  if (ridge.hipEnd) {
+    const z = ridge.end.z;
+    const leftCorner = fpClosed.find((p) => Math.abs(p.z - z) < 1e-6 && p.x < ridge.end.x);
+    const rightCorner = fpClosed.find(
+      (p) => Math.abs(p.z - z) < 1e-6 && p.x > ridge.end.x
+    );
+
+    if (leftCorner && rightCorner) {
+      const plane = planeFrom3Points(
+        { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
+        { x: leftCorner.x, z: leftCorner.z, y: eaveTopAbs },
+        { x: rightCorner.x, z: rightCorner.z, y: eaveTopAbs }
+      );
+
+      hipPlanes.push((x, z) => plane.heightAt(x, z));
+    }
+  }
 
   let maxRun = 0;
 
@@ -226,7 +298,7 @@ function getRoofHeightFunctions(
   const deltaH = ridgeTopAbs - eaveTopAbs;
   const k = maxRun === 0 ? 0 : deltaH / maxRun;
 
-  function roofOuterAt(px: number, pz: number) {
+  function ridgePlaneHeight(px: number, pz: number) {
     const sd = signedPerpDistanceToInfiniteLineXZ(
       px,
       pz,
@@ -237,6 +309,16 @@ function getRoofHeightFunctions(
     );
 
     return ridgeTopAbs - k * Math.abs(sd);
+  }
+
+  function roofOuterAt(px: number, pz: number) {
+    let h = ridgePlaneHeight(px, pz);
+
+    for (const hip of hipPlanes) {
+      h = Math.max(h, hip(px, pz));
+    }
+
+    return h;
   }
 
   function roofBottomAt(px: number, pz: number) {

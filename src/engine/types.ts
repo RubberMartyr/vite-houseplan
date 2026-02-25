@@ -32,7 +32,6 @@ export type RidgeSegmentSpec = {
   start: { x: number; z: number };
   end: { x: number; z: number };
   height: number; // OUTER height above level.elevation
-  pitchDeg: number; // constant pitch
 };
 
 export type RoofSpec =

@@ -68,11 +68,21 @@ function buildMultiRidgeRoof(
   const ridgeTopAbs = baseLevel.elevation + ridge.height;
   const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
 
+  console.log("---- ROOF DEBUG START ----");
+  console.log("ridge:", ridge);
+  console.log("ridge.pitchDeg:", ridge.pitchDeg);
+  console.log("ridgeTopAbs:", ridgeTopAbs);
+  console.log("eaveTopAbs:", eaveTopAbs);
+  console.log("thickness:", thickness);
+
   // Underside is derived (not authored)
   const eaveBottomAbs = eaveTopAbs - thickness;
 
   const pitchRad = (ridge.pitchDeg * Math.PI) / 180;
   const k = Math.tan(pitchRad); // height drop per meter perpendicular to ridge
+
+  console.log("pitchRad:", pitchRad);
+  console.log("k (tan):", k);
 
   function roofOuterAt(px: number, pz: number) {
     const sd = signedPerpDistanceToInfiniteLineXZ(
@@ -104,11 +114,27 @@ function buildMultiRidgeRoof(
   const topVerts: number[] = [];
   const botVerts: number[] = [];
 
+  const testPoint = baseLevel.footprint.outer[0];
+  if (testPoint) {
+    const testHeight = roofOuterAt(testPoint.x, testPoint.z);
+    console.log("Sample roofOuterAt:", testHeight);
+  }
+
   for (const p of fp) {
+    const outer = roofOuterAt(p.x, p.z);
+
+    if (isNaN(outer)) {
+      console.error("NaN detected at point:", p);
+    }
+
     const wp = archToWorldXZ(p);
 
-    const yTop = roofOuterAt(p.x, p.z);
+    const yTop = outer;
     const yBot = roofBottomAt(p.x, p.z);
+
+    if (isNaN(yTop) || isNaN(yBot)) {
+      console.error("NaN detected at computed heights:", { p, yTop, yBot });
+    }
 
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);
@@ -144,6 +170,9 @@ function buildMultiRidgeRoof(
   geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geom.setIndex(indices);
   geom.computeVertexNormals();
+
+  console.log("topVerts length:", topVerts.length);
+  console.log("---- ROOF DEBUG END ----");
 
   return [geom];
 }

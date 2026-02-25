@@ -57,6 +57,15 @@ export function deriveGableRoofGeometries(
       const geom = buildStructuralGableGeometry(baseLevel, roof);
       geometries.push(geom);
     }
+
+    if (roof.type === "multi-ridge") {
+      console.log("building multi-ridge roof");
+      const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
+      if (!baseLevel) continue;
+
+      const geom = buildMultiRidgeRoof(baseLevel, roof);
+      geometries.push(geom);
+    }
   }
 
   return geometries;
@@ -66,6 +75,8 @@ function buildMultiRidgeRoof(
   baseLevel: LevelSpec,
   roof: MultiRidgeRoofSpec
 ): THREE.BufferGeometry {
+  console.log("ridge:", roof.ridgeSegments[0]);
+  console.log("footprint points:", baseLevel.footprint.outer.length);
   const ridge = roof.ridgeSegments[0];
 
   const originalFp = baseLevel.footprint.outer;
@@ -149,6 +160,8 @@ function buildMultiRidgeRoof(
   geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geom.setIndex(indices);
   geom.computeVertexNormals();
+
+  console.log("geom vertex count:", topVerts.length);
 
   return geom;
 }

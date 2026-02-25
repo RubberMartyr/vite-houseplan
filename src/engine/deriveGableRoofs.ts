@@ -11,22 +11,6 @@ function toTHREEVec2(points: { x: number; z: number }[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
 }
 
-function bbox(points: { x: number; z: number }[]) {
-  let minX = Infinity,
-    maxX = -Infinity,
-    minZ = Infinity,
-    maxZ = -Infinity;
-
-  for (const p of points) {
-    const wp = archToWorldXZ(p);
-    minX = Math.min(minX, wp.x);
-    maxX = Math.max(maxX, wp.x);
-    minZ = Math.min(minZ, wp.z);
-    maxZ = Math.max(maxZ, wp.z);
-  }
-  return { minX, maxX, minZ, maxZ };
-}
-
 export function deriveGableRoofGeometries(
   arch: ArchitecturalHouse
 ): THREE.BufferGeometry[] {
@@ -65,21 +49,68 @@ export function buildStructuralGableGeometry(
   const contour = toTHREEVec2(archArrayToWorld(fp));
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
 
-  // Compute ridge center and half-span from the structural span
-  const { minX, maxX, minZ, maxZ } = bbox(originalFp);
+  const ridgeStart = roof.ridge.start;
+  const ridgeEnd = roof.ridge.end;
 
-  const ridgeCenterX = (minX + maxX) / 2;
-  const ridgeCenterZ = (minZ + maxZ) / 2;
-  const span = roof.ridgeDirection === "x" ? maxZ - minZ : maxX - minX;
-  const halfSpan = span / 2;
+  function distanceToLine(
+    px: number,
+    pz: number,
+    x1: number,
+    z1: number,
+    x2: number,
+    z2: number
+  ) {
+    const A = px - x1;
+    const B = pz - z1;
+    const C = x2 - x1;
+    const D = z2 - z1;
 
-  function roofHeightAt(x: number, z: number) {
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+
+    if (lenSq <= 0) {
+      const dx = px - x1;
+      const dz = pz - z1;
+      return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    const param = dot / lenSq;
+
+    const closestX = x1 + param * C;
+    const closestZ = z1 + param * D;
+
+    const dx = px - closestX;
+    const dz = pz - closestZ;
+
+    return Math.sqrt(dx * dx + dz * dz);
+  }
+
+  const span = Math.max(
+    ...originalFp.map((p) =>
+      distanceToLine(
+        p.x,
+        p.z,
+        ridgeStart.x,
+        ridgeStart.z,
+        ridgeEnd.x,
+        ridgeEnd.z
+      )
+    )
+  );
+  const halfSpan = span;
+
+  function roofHeightAt(px: number, pz: number) {
     if (halfSpan <= 0) return eaveAbs;
 
-    const d =
-      roof.ridgeDirection === "x"
-        ? Math.abs(z - ridgeCenterZ)
-        : Math.abs(x - ridgeCenterX);
+    const d = distanceToLine(
+      px,
+      pz,
+      ridgeStart.x,
+      ridgeStart.z,
+      ridgeEnd.x,
+      ridgeEnd.z
+    );
+
     const t = 1 - d / halfSpan;
     const clamped = Math.max(0, Math.min(1, t));
 
@@ -92,7 +123,7 @@ export function buildStructuralGableGeometry(
 
   for (const p of fp) {
     const wp = archToWorldXZ(p);
-    const yTop = roofHeightAt(wp.x, wp.z);
+    const yTop = roofHeightAt(p.x, p.z);
     const yBot = yTop - thickness;
 
     topVerts.push(wp.x, yTop, wp.z);

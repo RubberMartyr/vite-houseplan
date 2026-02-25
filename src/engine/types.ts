@@ -41,7 +41,10 @@ export type RoofSpec =
       baseLevelId: string;
       eaveHeight: number;
       ridgeHeight: number;
-      ridgeDirection: 'x' | 'z';
+      ridge: {
+        start: Vec2;
+        end: Vec2;
+      };
       overhang?: number;
       thickness: number;
     };

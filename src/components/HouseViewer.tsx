@@ -450,7 +450,7 @@ export default function HouseViewer() {
   });
   const [showTerrain, setShowTerrain] = useState(true);
   const [showRoof, setShowRoof] = useState(true);
-  const [showLegacy, setShowLegacy] = useState(true);
+  const [showLegacy, setShowLegacy] = useState(false);
   const [showWindows, setShowWindows] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);

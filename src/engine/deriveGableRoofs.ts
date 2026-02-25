@@ -45,7 +45,7 @@ export function deriveGableRoofGeometries(
   return geometries;
 }
 
-function buildStructuralGableGeometry(
+export function buildStructuralGableGeometry(
   baseLevel: LevelSpec,
   roof: GableRoofSpec
 ): THREE.BufferGeometry {
@@ -70,10 +70,10 @@ function buildStructuralGableGeometry(
 
   const ridgeCenterX = (minX + maxX) / 2;
   const ridgeCenterZ = (minZ + maxZ) / 2;
-  const halfSpan =
-    roof.ridgeDirection === "x" ? (maxZ - minZ) / 2 : (maxX - minX) / 2;
+  const span = roof.ridgeDirection === "x" ? maxZ - minZ : maxX - minX;
+  const halfSpan = span / 2;
 
-  function heightAt(x: number, z: number) {
+  function roofHeightAt(x: number, z: number) {
     if (halfSpan <= 0) return eaveAbs;
 
     const d =
@@ -92,7 +92,7 @@ function buildStructuralGableGeometry(
 
   for (const p of fp) {
     const wp = archToWorldXZ(p);
-    const yTop = heightAt(wp.x, wp.z);
+    const yTop = roofHeightAt(wp.x, wp.z);
     const yBot = yTop - thickness;
 
     topVerts.push(wp.x, yTop, wp.z);

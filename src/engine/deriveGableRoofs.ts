@@ -13,7 +13,7 @@ function toTHREEVec2(points: { x: number; z: number }[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
 }
 
-function distanceToSegment(
+function distanceToInfiniteLine(
   px: number,
   pz: number,
   x1: number,
@@ -21,25 +21,11 @@ function distanceToSegment(
   x2: number,
   z2: number
 ) {
-  const A = px - x1;
-  const B = pz - z1;
-  const C = x2 - x1;
-  const D = z2 - z1;
+  const A = z2 - z1;
+  const B = x1 - x2;
+  const C = x2 * z1 - x1 * z2;
 
-  const dot = A * C + B * D;
-  const lenSq = C * C + D * D;
-
-  const param = lenSq !== 0 ? dot / lenSq : 0;
-
-  const t = Math.max(0, Math.min(1, param));
-
-  const closestX = x1 + t * C;
-  const closestZ = z1 + t * D;
-
-  const dx = px - closestX;
-  const dz = pz - closestZ;
-
-  return Math.sqrt(dx * dx + dz * dz);
+  return Math.abs(A * px + B * pz + C) / Math.sqrt(A * A + B * B);
 }
 
 function signedSide(
@@ -117,7 +103,7 @@ function buildMultiRidgeRoof(
       ridge.end.z
     );
 
-    const d = distanceToSegment(
+    const d = distanceToInfiniteLine(
       p.x,
       p.z,
       ridge.start.x,
@@ -146,7 +132,7 @@ function buildMultiRidgeRoof(
       ridge.end.z
     );
 
-    const d = distanceToSegment(
+    const d = distanceToInfiniteLine(
       px,
       pz,
       ridge.start.x,
@@ -251,36 +237,9 @@ export function buildStructuralGableGeometry(
   const contour = toTHREEVec2(archArrayToWorld(fp));
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
 
-  function distanceToSegment(
-    px: number,
-    pz: number,
-    x1: number,
-    z1: number,
-    x2: number,
-    z2: number
-  ) {
-    const A = px - x1;
-    const B = pz - z1;
-    const C = x2 - x1;
-    const D = z2 - z1;
-
-    const dot = A * C + B * D;
-    const lenSq = C * C + D * D;
-    const param = lenSq > 0 ? dot / lenSq : 0;
-    const t = Math.max(0, Math.min(1, param));
-
-    const closestX = x1 + t * C;
-    const closestZ = z1 + t * D;
-
-    const dx = px - closestX;
-    const dz = pz - closestZ;
-
-    return Math.sqrt(dx * dx + dz * dz);
-  }
-
   const span = Math.max(
     ...originalFp.map((p) =>
-      distanceToSegment(
+      distanceToInfiniteLine(
         p.x,
         p.z,
         ridge.start.x,
@@ -294,7 +253,7 @@ export function buildStructuralGableGeometry(
   function roofHeightAt(px: number, pz: number) {
     if (span <= 0) return eaveAbs;
 
-    const d = distanceToSegment(
+    const d = distanceToInfiniteLine(
       px,
       pz,
       ridge.start.x,

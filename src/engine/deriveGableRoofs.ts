@@ -6,6 +6,7 @@ import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
+type StructuralRoofSpec = GableRoofSpec | MultiRidgeRoofSpec;
 
 // Helper: convert Vec2[] -> arrays for triangulation
 function toTHREEVec2(points: { x: number; z: number }[]) {
@@ -47,13 +48,7 @@ export function deriveGableRoofGeometries(
   const geometries: THREE.BufferGeometry[] = [];
 
   for (const roof of arch.roofs ?? []) {
-    if (roof.type === "multi-ridge") {
-      const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
-      if (!baseLevel) continue;
-
-      const geom = buildMultiRidgeRoof(baseLevel, roof);
-      geometries.push(geom);
-    }
+    if (roof.type !== "gable" && roof.type !== "multi-ridge") continue;
 
     if (roof.type === "gable") {
       const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
@@ -160,11 +155,20 @@ function buildMultiRidgeRoof(
 
 export function buildStructuralGableGeometry(
   baseLevel: LevelSpec,
-  roof: GableRoofSpec
+  roof: StructuralRoofSpec
 ): THREE.BufferGeometry {
   const thickness = roof.thickness ?? 0.2;
   const eaveAbs = baseLevel.elevation + roof.eaveHeight;
-  const ridgeAbs = baseLevel.elevation + roof.ridgeHeight;
+
+  const ridge =
+    roof.type === "multi-ridge"
+      ? roof.ridgeSegments[0]
+      : {
+          start: roof.ridge.start,
+          end: roof.ridge.end,
+          height: roof.ridgeHeight,
+        };
+  const ridgeAbs = baseLevel.elevation + ridge.height;
 
   const originalFp = baseLevel.footprint.outer;
 
@@ -178,10 +182,7 @@ export function buildStructuralGableGeometry(
   const contour = toTHREEVec2(archArrayToWorld(fp));
   const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
 
-  const ridgeStart = roof.ridge.start;
-  const ridgeEnd = roof.ridge.end;
-
-  function distanceToLine(
+  function distanceToSegment(
     px: number,
     pz: number,
     x1: number,
@@ -196,17 +197,11 @@ export function buildStructuralGableGeometry(
 
     const dot = A * C + B * D;
     const lenSq = C * C + D * D;
+    const param = lenSq > 0 ? dot / lenSq : 0;
+    const t = Math.max(0, Math.min(1, param));
 
-    if (lenSq <= 0) {
-      const dx = px - x1;
-      const dz = pz - z1;
-      return Math.sqrt(dx * dx + dz * dz);
-    }
-
-    const param = dot / lenSq;
-
-    const closestX = x1 + param * C;
-    const closestZ = z1 + param * D;
+    const closestX = x1 + t * C;
+    const closestZ = z1 + t * D;
 
     const dx = px - closestX;
     const dz = pz - closestZ;
@@ -216,31 +211,30 @@ export function buildStructuralGableGeometry(
 
   const span = Math.max(
     ...originalFp.map((p) =>
-      distanceToLine(
+      distanceToSegment(
         p.x,
         p.z,
-        ridgeStart.x,
-        ridgeStart.z,
-        ridgeEnd.x,
-        ridgeEnd.z
+        ridge.start.x,
+        ridge.start.z,
+        ridge.end.x,
+        ridge.end.z
       )
     )
   );
-  const halfSpan = span;
 
   function roofHeightAt(px: number, pz: number) {
-    if (halfSpan <= 0) return eaveAbs;
+    if (span <= 0) return eaveAbs;
 
-    const d = distanceToLine(
+    const d = distanceToSegment(
       px,
       pz,
-      ridgeStart.x,
-      ridgeStart.z,
-      ridgeEnd.x,
-      ridgeEnd.z
+      ridge.start.x,
+      ridge.start.z,
+      ridge.end.x,
+      ridge.end.z
     );
 
-    const t = 1 - d / halfSpan;
+    const t = 1 - d / span;
     const clamped = Math.max(0, Math.min(1, t));
 
     return eaveAbs + clamped * (ridgeAbs - eaveAbs);

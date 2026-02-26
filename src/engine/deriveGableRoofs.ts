@@ -28,7 +28,7 @@ function toTHREEVec2(points: XZ[]) {
 }
 
 function ensureClosed(points: XZ[]): XZ[] {
-  if (points.length === 0) return points;
+  if (points.length < 3) return points;
 
   const first = points[0];
   const last = points[points.length - 1];
@@ -335,7 +335,7 @@ function planeFrom3Points(
 
   return {
     heightAt(x: number, z: number) {
-      if (Math.abs(ny) < 1e-9) return -Infinity;
+      if (Math.abs(ny) < 1e-9) return Number.NaN;
       return -(nx * x + nz * z + d) / ny;
     },
   };

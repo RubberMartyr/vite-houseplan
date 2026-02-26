@@ -387,12 +387,16 @@ function deriveMultiPlaneRoofGeometries(
       regionPoly = capTriangleFromRidgeEndpoint(fp, ridge, region.end);
     }
 
+    console.log("FACE:", face.id, "regionPoly length:", regionPoly?.length);
+
     if (!regionPoly || regionPoly.length < 4) continue;
 
     let plane: { heightAt(x: number, z: number): number } | null = null;
 
     if (face.kind === "hipCap") {
       if (region.type === "ridgeCapTriangle") {
+        console.log("CAP TRIANGLE:", face.id, regionPoly);
+
         const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
         if (!ridge) continue;
 
@@ -455,7 +459,10 @@ function deriveMultiPlaneRoofGeometries(
         heightAtOuter: (x, z) => plane.heightAt(x, z),
       });
 
-    if (geometry) geometries.push(geometry);
+    if (geometry) {
+      geometries.push(geometry);
+      console.log("GEOMETRY ADDED:", face.id);
+    }
   }
 
   return geometries;

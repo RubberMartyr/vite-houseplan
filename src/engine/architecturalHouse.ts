@@ -72,7 +72,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       overhang: 0.3,
       ridgeSegments: [
         {
-          id: "main-ridge",
+          id: "main",
           start: { x: 0.6, z: 12.0 },
           end: { x: 0.6, z: 8.45 },
           height: 6.45,
@@ -82,23 +82,21 @@ export const architecturalHouse: ArchitecturalHouse = {
         {
           id: "main-A",
           kind: "ridgeSide",
-          ridgeId: "main-ridge",
-          p1: { x: 0.6, z: 12.0, h: 6.45 },
-          p2: { x: 0.6, z: 8.45, h: 6.45 },
-          p3: { x: -4.8, z: 12.0, h: 2.8 },
+          ridgeId: "main",
           region: [
             { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
+            { a: { x: -100, z: 12.0 }, b: { x: 100, z: 12.0 }, keep: "right" },
+            { a: { x: -100, z: 8.45 }, b: { x: 100, z: 8.45 }, keep: "left" },
           ],
         },
         {
           id: "main-B",
           kind: "ridgeSide",
-          ridgeId: "main-ridge",
-          p1: { x: 0.6, z: 12.0, h: 6.45 },
-          p2: { x: 0.6, z: 8.45, h: 6.45 },
-          p3: { x: 4.1, z: 12.0, h: 2.8 },
+          ridgeId: "main",
           region: [
             { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
+            { a: { x: -100, z: 12.0 }, b: { x: 100, z: 12.0 }, keep: "right" },
+            { a: { x: -100, z: 8.45 }, b: { x: 100, z: 8.45 }, keep: "left" },
           ],
         },
         {
@@ -107,7 +105,9 @@ export const architecturalHouse: ArchitecturalHouse = {
           p1: { x: 0.6, z: 12.0, h: 6.45 },
           p2: { x: -4.8, z: 12.0, h: 2.8 },
           p3: { x: 4.1, z: 12.0, h: 2.8 },
-          region: [],
+          region: [
+            { a: { x: -100, z: 12.0 }, b: { x: 100, z: 12.0 }, keep: "left" },
+          ],
         },
         {
           id: "hip-end",
@@ -115,7 +115,9 @@ export const architecturalHouse: ArchitecturalHouse = {
           p1: { x: 0.6, z: 8.45, h: 6.45 },
           p2: { x: -3.5, z: 8.45, h: 2.8 },
           p3: { x: 4.1, z: 8.45, h: 2.8 },
-          region: [],
+          region: [
+            { a: { x: -100, z: 8.45 }, b: { x: 100, z: 8.45 }, keep: "right" },
+          ],
         },
       ],
     },

@@ -276,11 +276,41 @@ function deriveMultiPlaneRoofGeometries(
     const regionPoly = clipPolyByRegion(fp, face.region);
     if (regionPoly.length < 4) continue;
 
-    const plane = planeFrom3Points(
-      { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
-      { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
-      { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
-    );
+    let plane: { heightAt(x: number, z: number): number } | null = null;
+
+    if (face.kind === "hipCap") {
+      if (!face.p1 || !face.p2 || !face.p3) continue;
+
+      plane = planeFrom3Points(
+        { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
+        { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
+        { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
+      );
+    } else if (face.kind === "ridgeSide") {
+      if (!face.ridgeId) continue;
+
+      const ridge = roof.ridgeSegments.find((r) => r.id === face.ridgeId);
+      if (!ridge) continue;
+
+      const ridgeTopAbs = baseLevel.elevation + ridge.height;
+      const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+
+      const a = ridge.start;
+      const b = ridge.end;
+
+      const eaveAnchor = pickFarthestPoint(regionPoly, a, b);
+      if (!eaveAnchor) continue;
+
+      plane = planeFrom3Points(
+        { x: a.x, z: a.z, y: ridgeTopAbs },
+        { x: b.x, z: b.z, y: ridgeTopAbs },
+        { x: eaveAnchor.x, z: eaveAnchor.z, y: eaveTopAbs }
+      );
+    } else {
+      continue;
+    }
+
+    if (!plane) continue;
 
     const triangles = triangulateXZ(regionPoly);
     geometries.push(
@@ -294,6 +324,32 @@ function deriveMultiPlaneRoofGeometries(
   }
 
   return geometries;
+}
+
+function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const len = Math.sqrt(dx * dx + dz * dz) || 1;
+  const cross = (p.x - a.x) * dz - (p.z - a.z) * dx;
+  return Math.abs(cross) / len;
+}
+
+function pickFarthestPoint(polyClosed: XZ[], a: XZ, b: XZ): XZ | null {
+  const poly = polyClosed.slice(0, -1);
+  if (poly.length < 3) return null;
+
+  let best = poly[0];
+  let bestD = -Infinity;
+
+  for (const p of poly) {
+    const d = absPerpDistanceToLineXZ(p, a, b);
+    if (d > bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+
+  return best;
 }
 
 function signedPerpDistanceToInfiniteLineXZ(

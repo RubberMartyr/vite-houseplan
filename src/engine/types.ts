@@ -52,9 +52,11 @@ export type HalfPlane = {
 
 export type RoofFaceSpec = {
   id: string;
-  p1: PlanePoint;
-  p2: PlanePoint;
-  p3: PlanePoint;
+  kind: 'ridgeSide' | 'hipCap';
+  ridgeId?: string;
+  p1?: PlanePoint;
+  p2?: PlanePoint;
+  p3?: PlanePoint;
   region: HalfPlane[];
 };
 
@@ -62,8 +64,10 @@ export type MultiPlaneRoofSpec = {
   id: string;
   type: 'multi-plane';
   baseLevelId: string;
+  eaveHeight: number;
   thickness?: number;
   overhang?: number;
+  ridgeSegments: RidgeSegmentSpec[];
   faces: RoofFaceSpec[];
 };
 

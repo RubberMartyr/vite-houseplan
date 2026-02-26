@@ -67,11 +67,22 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: "main-roof",
       type: "multi-plane",
       baseLevelId: "first",
+      eaveHeight: 2.8,
       thickness: 0.2,
       overhang: 0.3,
+      ridgeSegments: [
+        {
+          id: "main-ridge",
+          start: { x: 0.6, z: 12.0 },
+          end: { x: 0.6, z: 8.45 },
+          height: 6.45,
+        },
+      ],
       faces: [
         {
           id: "main-A",
+          kind: "ridgeSide",
+          ridgeId: "main-ridge",
           p1: { x: 0.6, z: 12.0, h: 6.45 },
           p2: { x: 0.6, z: 8.45, h: 6.45 },
           p3: { x: -4.8, z: 12.0, h: 2.8 },
@@ -81,6 +92,8 @@ export const architecturalHouse: ArchitecturalHouse = {
         },
         {
           id: "main-B",
+          kind: "ridgeSide",
+          ridgeId: "main-ridge",
           p1: { x: 0.6, z: 12.0, h: 6.45 },
           p2: { x: 0.6, z: 8.45, h: 6.45 },
           p3: { x: 4.1, z: 12.0, h: 2.8 },
@@ -90,6 +103,7 @@ export const architecturalHouse: ArchitecturalHouse = {
         },
         {
           id: "hip-front",
+          kind: "hipCap",
           p1: { x: 0.6, z: 12.0, h: 6.45 },
           p2: { x: -4.8, z: 12.0, h: 2.8 },
           p3: { x: 4.1, z: 12.0, h: 2.8 },
@@ -97,6 +111,7 @@ export const architecturalHouse: ArchitecturalHouse = {
         },
         {
           id: "hip-end",
+          kind: "hipCap",
           p1: { x: 0.6, z: 8.45, h: 6.45 },
           p2: { x: -3.5, z: 8.45, h: 2.8 },
           p3: { x: 4.1, z: 8.45, h: 2.8 },

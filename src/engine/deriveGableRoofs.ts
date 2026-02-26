@@ -28,13 +28,28 @@ function toTHREEVec2(points: XZ[]) {
 }
 
 function ensureClosed(points: XZ[]): XZ[] {
+  const deduped = dedupeConsecutivePoints(points);
+  if (deduped.length < 3) return deduped;
+
+  const first = deduped[0];
+  const last = deduped[deduped.length - 1];
+  if (first.x === last.x && first.z === last.z) return deduped;
+
+  return [...deduped, first];
+}
+
+function dedupeConsecutivePoints(points: XZ[]): XZ[] {
   if (points.length < 3) return points;
 
-  const first = points[0];
-  const last = points[points.length - 1];
-  if (first.x === last.x && first.z === last.z) return points;
+  const deduped: XZ[] = [];
+  for (const point of points) {
+    const prev = deduped[deduped.length - 1];
+    if (!prev || Math.abs(prev.x - point.x) > 1e-9 || Math.abs(prev.z - point.z) > 1e-9) {
+      deduped.push(point);
+    }
+  }
 
-  return [...points, first];
+  return deduped;
 }
 
 function signedSide(p: XZ, a: XZ, b: XZ): number {
@@ -173,16 +188,18 @@ function triangulateXZ(polyClosed: XZ[]): number[][] {
 }
 
 function buildRoofFaceGeometry(params: {
+  faceId: string;
   polyClosed: XZ[];
   triangles: number[][];
   thickness: number;
   heightAtOuter: (x: number, z: number) => number;
-}): THREE.BufferGeometry {
-  const { polyClosed, triangles, thickness, heightAtOuter } = params;
+}): THREE.BufferGeometry | null {
+  const { faceId, polyClosed, triangles, thickness, heightAtOuter } = params;
   const poly = polyClosed.slice(0, -1);
 
   const topVerts: number[] = [];
   const botVerts: number[] = [];
+  let hasInvalidHeight = false;
 
   for (const p of poly) {
     const wp = archToWorldXZ(p);
@@ -190,9 +207,18 @@ function buildRoofFaceGeometry(params: {
     const yTop = heightAtOuter(p.x, p.z);
     const yBot = yTop - thickness;
 
+    if (!Number.isFinite(yTop) || !Number.isFinite(yBot)) {
+      console.warn("[roof] NaN height at", { faceId, x: p.x, z: p.z, yTop, yBot });
+      hasInvalidHeight = true;
+      break;
+    }
+
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);
   }
+
+
+  if (hasInvalidHeight) return null;
 
   const indices: number[] = [];
   for (const tri of triangles) indices.push(tri[0], tri[1], tri[2]);
@@ -310,17 +336,21 @@ function deriveMultiPlaneRoofGeometries(
       continue;
     }
 
-    if (!plane) continue;
+    if (!plane) {
+      console.warn("[roof] face plane is vertical / invalid for y=f(x,z). Skipping face:", face.id, face);
+      continue;
+    }
 
     const triangles = triangulateXZ(regionPoly);
-    geometries.push(
-      buildRoofFaceGeometry({
+    const geometry = buildRoofFaceGeometry({
+        faceId: face.id,
         polyClosed: regionPoly,
         triangles,
         thickness,
         heightAtOuter: (x, z) => plane.heightAt(x, z),
-      })
-    );
+      });
+
+    if (geometry) geometries.push(geometry);
   }
 
   return geometries;
@@ -370,7 +400,7 @@ function planeFrom3Points(
   p1: { x: number; z: number; y: number },
   p2: { x: number; z: number; y: number },
   p3: { x: number; z: number; y: number }
-) {
+): { heightAt(x: number, z: number): number } | null {
   const v1 = {
     x: p2.x - p1.x,
     y: p2.y - p1.y,
@@ -387,11 +417,12 @@ function planeFrom3Points(
   const ny = v1.z * v2.x - v1.x * v2.z;
   const nz = v1.x * v2.y - v1.y * v2.x;
 
+  if (Math.abs(ny) < 1e-9) return null;
+
   const d = -(nx * p1.x + ny * p1.y + nz * p1.z);
 
   return {
     heightAt(x: number, z: number) {
-      if (Math.abs(ny) < 1e-9) return Number.NaN;
       return -(nx * x + nz * z + d) / ny;
     },
   };
@@ -447,7 +478,7 @@ function getRoofHeightFunctions(
         { x: right.x, z: right.z, y: eaveTopAbs }
       );
 
-      hipPlanes.push((x, z) => plane.heightAt(x, z));
+      if (plane) hipPlanes.push((x, z) => plane.heightAt(x, z));
     }
   }
 
@@ -464,7 +495,7 @@ function getRoofHeightFunctions(
         { x: right.x, z: right.z, y: eaveTopAbs }
       );
 
-      hipPlanes.push((x, z) => plane.heightAt(x, z));
+      if (plane) hipPlanes.push((x, z) => plane.heightAt(x, z));
     }
   }
 
@@ -546,24 +577,26 @@ function buildMultiRidgeRoof(
   const out: THREE.BufferGeometry[] = [];
 
   if (pos.length >= 4) {
-    out.push(
-      buildRoofFaceGeometry({
-        polyClosed: pos,
-        triangles: triangulateXZ(pos),
-        thickness,
-        heightAtOuter: roofOuterAt,
-      })
-    );
+    const posGeometry = buildRoofFaceGeometry({
+      faceId: "multi-ridge-pos",
+      polyClosed: pos,
+      triangles: triangulateXZ(pos),
+      thickness,
+      heightAtOuter: roofOuterAt,
+    });
+
+    if (posGeometry) out.push(posGeometry);
   }
   if (neg.length >= 4) {
-    out.push(
-      buildRoofFaceGeometry({
-        polyClosed: neg,
-        triangles: triangulateXZ(neg),
-        thickness,
-        heightAtOuter: roofOuterAt,
-      })
-    );
+    const negGeometry = buildRoofFaceGeometry({
+      faceId: "multi-ridge-neg",
+      polyClosed: neg,
+      triangles: triangulateXZ(neg),
+      thickness,
+      heightAtOuter: roofOuterAt,
+    });
+
+    if (negGeometry) out.push(negGeometry);
   }
 
   return out;
@@ -613,6 +646,7 @@ export function buildStructuralGableGeometry(
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);
   }
+
 
   const indices: number[] = [];
 

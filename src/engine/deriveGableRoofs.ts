@@ -180,8 +180,29 @@ function capTriangleFromRidgeEndpoint(
   const nx = -uz;
   const nz = ux;
 
-  const A = { x: E.x - nx * 1000, z: E.z - nz * 1000 };
-  const B = { x: E.x + nx * 1000, z: E.z + nz * 1000 };
+  const poly = ensureClosed(fpClosed);
+  let tExtreme = end === 'start' ? Infinity : -Infinity;
+
+  for (let i = 0; i < poly.length - 1; i++) {
+    const p = poly[i];
+    const t = (p.x - ridge.start.x) * ux + (p.z - ridge.start.z) * uz;
+
+    if (end === 'start') {
+      if (t < tExtreme) tExtreme = t;
+    } else {
+      if (t > tExtreme) tExtreme = t;
+    }
+  }
+
+  if (!Number.isFinite(tExtreme)) return null;
+
+  const C = {
+    x: ridge.start.x + ux * tExtreme,
+    z: ridge.start.z + uz * tExtreme,
+  };
+
+  const A = { x: C.x - nx * 1000, z: C.z - nz * 1000 };
+  const B = { x: C.x + nx * 1000, z: C.z + nz * 1000 };
 
   const hits = intersectPolygonWithInfiniteLine(fpClosed, A, B);
 

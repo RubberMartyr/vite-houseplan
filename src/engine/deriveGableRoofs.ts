@@ -130,6 +130,82 @@ function clipPolyByRegion(poly: XZ[], region: HalfPlane[]): XZ[] {
   return out;
 }
 
+function intersectSegmentWithInfiniteLine(p: XZ, q: XZ, a: XZ, b: XZ): XZ | null {
+  const r = { x: q.x - p.x, z: q.z - p.z };
+  const s = { x: b.x - a.x, z: b.z - a.z };
+
+  const denom = r.x * s.z - r.z * s.x;
+  if (Math.abs(denom) < 1e-9) return null;
+
+  const ap = { x: a.x - p.x, z: a.z - p.z };
+  const t = (ap.x * s.z - ap.z * s.x) / denom;
+
+  if (t < -1e-9 || t > 1 + 1e-9) return null;
+
+  return { x: p.x + t * r.x, z: p.z + t * r.z };
+}
+
+function intersectPolygonWithInfiniteLine(polyClosed: XZ[], a: XZ, b: XZ): XZ[] {
+  const hits: XZ[] = [];
+  const poly = ensureClosed(polyClosed);
+
+  for (let i = 0; i < poly.length - 1; i++) {
+    const P = poly[i];
+    const Q = poly[i + 1];
+    const I = intersectSegmentWithInfiniteLine(P, Q, a, b);
+    if (I) hits.push(I);
+  }
+
+  const out: XZ[] = [];
+  for (const h of hits) {
+    if (!out.some((o) => Math.abs(o.x - h.x) < 1e-6 && Math.abs(o.z - h.z) < 1e-6)) out.push(h);
+  }
+  return out;
+}
+
+function capTriangleFromRidgeEndpoint(
+  fpClosed: XZ[],
+  ridge: { start: XZ; end: XZ },
+  end: 'start' | 'end'
+): XZ[] | null {
+  const E = end === 'start' ? ridge.start : ridge.end;
+
+  const dx = ridge.end.x - ridge.start.x;
+  const dz = ridge.end.z - ridge.start.z;
+  const len = Math.sqrt(dx * dx + dz * dz) || 1;
+
+  const ux = dx / len;
+  const uz = dz / len;
+
+  const nx = -uz;
+  const nz = ux;
+
+  const A = { x: E.x - nx * 1000, z: E.z - nz * 1000 };
+  const B = { x: E.x + nx * 1000, z: E.z + nz * 1000 };
+
+  const hits = intersectPolygonWithInfiniteLine(fpClosed, A, B);
+
+  if (hits.length < 2) return null;
+
+  let i1 = hits[0];
+  let i2 = hits[1];
+  let best = -Infinity;
+  for (let i = 0; i < hits.length; i++) {
+    for (let j = i + 1; j < hits.length; j++) {
+      const ddx = hits[j].x - hits[i].x;
+      const ddz = hits[j].z - hits[i].z;
+      const d2 = ddx * ddx + ddz * ddz;
+      if (d2 > best) {
+        best = d2;
+        i1 = hits[i];
+        i2 = hits[j];
+      }
+    }
+  }
+
+  return ensureClosed([E, i1, i2]);
+}
+
 function clipPolyByLine(poly: XZ[], a: XZ, b: XZ, keep: "pos" | "neg"): XZ[] {
   const closed = ensureClosed(poly);
 
@@ -299,19 +375,48 @@ function deriveMultiPlaneRoofGeometries(
   const geometries: THREE.BufferGeometry[] = [];
 
   for (const face of roof.faces) {
-    const regionPoly = clipPolyByRegion(fp, face.region);
-    if (regionPoly.length < 4) continue;
+    const region = face.region;
+    let regionPoly: XZ[] | null = null;
+
+    if (region.type === "halfPlanes") {
+      regionPoly = clipPolyByRegion(fp, region.planes);
+    } else {
+      const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
+      if (!ridge) continue;
+
+      regionPoly = capTriangleFromRidgeEndpoint(fp, ridge, region.end);
+    }
+
+    if (!regionPoly || regionPoly.length < 4) continue;
 
     let plane: { heightAt(x: number, z: number): number } | null = null;
 
     if (face.kind === "hipCap") {
-      if (!face.p1 || !face.p2 || !face.p3) continue;
+      if (region.type === "ridgeCapTriangle") {
+        const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
+        if (!ridge) continue;
 
-      plane = planeFrom3Points(
-        { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
-        { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
-        { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
-      );
+        const E = region.end === "start" ? ridge.start : ridge.end;
+        const ridgeTopAbs = baseLevel.elevation + ridge.height;
+        const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+
+        const base1 = regionPoly[1];
+        const base2 = regionPoly[2];
+
+        plane = planeFrom3Points(
+          { x: E.x, z: E.z, y: ridgeTopAbs },
+          { x: base1.x, z: base1.z, y: eaveTopAbs },
+          { x: base2.x, z: base2.z, y: eaveTopAbs }
+        );
+      } else {
+        if (!face.p1 || !face.p2 || !face.p3) continue;
+
+        plane = planeFrom3Points(
+          { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
+          { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
+          { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
+        );
+      }
     } else if (face.kind === "ridgeSide") {
       if (!face.ridgeId) continue;
 

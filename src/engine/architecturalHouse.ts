@@ -73,8 +73,8 @@ export const architecturalHouse: ArchitecturalHouse = {
       ridgeSegments: [
         {
           id: "main",
-          start: { x: 0.6, z: 8.0 },
-          end: { x: 0.6, z: 4.0 },
+          start: { x: 0.6, z: 12.0 },
+          end: { x: 0.6, z: 8.45 },
           height: 6.45,
         },
       ],
@@ -83,41 +83,33 @@ export const architecturalHouse: ArchitecturalHouse = {
           id: "main-A",
           kind: "ridgeSide",
           ridgeId: "main",
-          region: [
-            { a: { x: 0.6, z: 8.0 }, b: { x: 0.6, z: 4.0 }, keep: "left" },
-            { a: { x: -100, z: 8.0 }, b: { x: 100, z: 8.0 }, keep: "left" },
-            { a: { x: -100, z: 4.0 }, b: { x: 100, z: 4.0 }, keep: "right" },
-          ],
+          region: {
+            type: "halfPlanes",
+            planes: [
+              { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
+            ],
+          },
         },
         {
           id: "main-B",
           kind: "ridgeSide",
           ridgeId: "main",
-          region: [
-            { a: { x: 0.6, z: 8.0 }, b: { x: 0.6, z: 4.0 }, keep: "right" },
-            { a: { x: -100, z: 8.0 }, b: { x: 100, z: 8.0 }, keep: "left" },
-            { a: { x: -100, z: 4.0 }, b: { x: 100, z: 4.0 }, keep: "right" },
-          ],
+          region: {
+            type: "halfPlanes",
+            planes: [
+              { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
+            ],
+          },
         },
         {
           id: "hip-front",
           kind: "hipCap",
-          p1: { x: 0.6, z: 4.0, h: 6.45 },
-          p2: { x: -4.8, z: 0.0, h: 2.8 },
-          p3: { x: 4.8, z: 0.0, h: 2.8 },
-          region: [
-            { a: { x: -100, z: 4.0 }, b: { x: 100, z: 4.0 }, keep: "left" },
-          ],
+          region: { type: "ridgeCapTriangle", ridgeId: "main", end: "start" },
         },
         {
-          id: "hip-back",
+          id: "hip-end",
           kind: "hipCap",
-          p1: { x: 0.6, z: 8.0, h: 6.45 },
-          p2: { x: -3.5, z: 12.0, h: 2.8 },
-          p3: { x: 4.1, z: 12.0, h: 2.8 },
-          region: [
-            { a: { x: -100, z: 8.0 }, b: { x: 100, z: 8.0 }, keep: "right" },
-          ],
+          region: { type: "ridgeCapTriangle", ridgeId: "main", end: "end" },
         },
       ],
     },

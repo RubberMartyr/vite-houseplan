@@ -57,7 +57,9 @@ export type RoofFaceSpec = {
   p1?: PlanePoint;
   p2?: PlanePoint;
   p3?: PlanePoint;
-  region: HalfPlane[];
+  region:
+    | { type: 'halfPlanes'; planes: HalfPlane[] }
+    | { type: 'ridgeCapTriangle'; ridgeId: string; end: 'start' | 'end' };
 };
 
 export type MultiPlaneRoofSpec = {

@@ -10,6 +10,11 @@ import type {
   Vec2,
   XZ,
 } from "./types";
+
+type RoofPlane = {
+  normal: { x: number; y: number; z: number };
+  heightAt(x: number, z: number): number;
+};
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
@@ -457,7 +462,7 @@ function deriveMultiPlaneRoofGeometries(
   const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
   const sidePlanes = new Map<
     string,
-    { left?: { heightAt(x: number, z: number): number }; right?: { heightAt(x: number, z: number): number } }
+    { left?: RoofPlane; right?: RoofPlane }
   >();
 
   const facesHip = roof.faces.filter((f) => f.kind === "hipCap");
@@ -493,7 +498,7 @@ function deriveMultiPlaneRoofGeometries(
       hipBases.set(ridgeId, entry);
     }
 
-    let plane: { heightAt(x: number, z: number): number } | null = null;
+    let plane: RoofPlane | null = null;
 
     if (face.kind === "hipCap") {
       if (region.type === "ridgeCapTriangle") {
@@ -528,6 +533,14 @@ function deriveMultiPlaneRoofGeometries(
 
       const ridgeSidePlanes = sidePlanes.get(face.ridgeId);
       plane = face.side === "left" ? ridgeSidePlanes?.left ?? null : ridgeSidePlanes?.right ?? null;
+
+      if (plane) {
+        console.log("RIDGE FACE USING SIDE PLANE", {
+          faceId: face.id,
+          side: face.side,
+          normal: plane.normal,
+        });
+      }
     } else {
       return;
     }
@@ -572,21 +585,26 @@ function deriveMultiPlaneRoofGeometries(
     const rightEnd = pickBaseForSide(ridge, bases.end, "right");
     const rightMid = midXZ(rightStart, rightEnd);
 
-    const leftPlane = planeFrom3Points(
+    const planeLeft = planeFrom3Points(
       { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
       { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
       { x: leftMid.x, z: leftMid.z, y: eaveTopAbs }
     );
 
-    const rightPlane = planeFrom3Points(
+    const planeRight = planeFrom3Points(
       { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
       { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
       { x: rightMid.x, z: rightMid.z, y: eaveTopAbs }
     );
 
-    if (!leftPlane && !rightPlane) continue;
+    console.log("SIDE PLANES", {
+      leftNormal: planeLeft?.normal,
+      rightNormal: planeRight?.normal,
+    });
 
-    sidePlanes.set(ridge.id, { left: leftPlane ?? undefined, right: rightPlane ?? undefined });
+    if (!planeLeft && !planeRight) continue;
+
+    sidePlanes.set(ridge.id, { left: planeLeft ?? undefined, right: planeRight ?? undefined });
   }
 
   // PASS 2: build ridge-side segments afterwards
@@ -668,7 +686,7 @@ function planeFrom3Points(
   p1: { x: number; z: number; y: number },
   p2: { x: number; z: number; y: number },
   p3: { x: number; z: number; y: number }
-): { heightAt(x: number, z: number): number } | null {
+): RoofPlane | null {
   const v1 = {
     x: p2.x - p1.x,
     y: p2.y - p1.y,
@@ -690,6 +708,7 @@ function planeFrom3Points(
   const d = -(nx * p1.x + ny * p1.y + nz * p1.z);
 
   return {
+    normal: { x: nx, y: ny, z: nz },
     heightAt(x: number, z: number) {
       return -(nx * x + nz * z + d) / ny;
     },

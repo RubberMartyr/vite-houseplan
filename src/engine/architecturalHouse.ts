@@ -91,8 +91,8 @@ export const architecturalHouse: ArchitecturalHouse = {
             type: "compound",
             items: [
               { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "behind" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
             ],
           },
         },
@@ -108,8 +108,8 @@ export const architecturalHouse: ArchitecturalHouse = {
             type: "compound",
             items: [
               { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "behind" },
             ],
           },
         },
@@ -125,8 +125,8 @@ export const architecturalHouse: ArchitecturalHouse = {
             type: "compound",
             items: [
               { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "behind" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
             ],
           },
         },
@@ -142,8 +142,8 @@ export const architecturalHouse: ArchitecturalHouse = {
             type: "compound",
             items: [
               { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
-              { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "behind" },
             ],
           },
         },

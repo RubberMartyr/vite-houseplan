@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { MultiPlaneRoofSpec } from '../engine/types';
 import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
+import { applyRoofFixPlan, planMultiPlaneRoofFixes } from '../engine/roof/planMultiPlaneRoofFixes';
 
 type RoofValidationEntry = { roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult };
 
@@ -75,8 +76,33 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEnt
         return;
       }
 
+      const nextRoofs = parsed;
+      const patchedRoofs = [...nextRoofs];
+
+      nextRoofs.forEach((roof, index) => {
+        if (!roof || roof.type !== 'multi-plane') return;
+        const current = (roofsValue as any[])?.[index];
+        if (!current || current.type !== 'multi-plane') return;
+
+        const plan = planMultiPlaneRoofFixes(current, roof);
+
+        if (plan.ask.length > 0) {
+          const confirmed = window.confirm(
+            `You changed ridge geometry.\n\n`
+            + `To keep the roof consistent, ${plan.ask.length} divider line(s) must be updated.\n\n`
+            + `Apply automatic fixes?`,
+          );
+
+          if (!confirmed) {
+            throw new Error('User cancelled automatic fix.');
+          }
+
+          patchedRoofs[index] = applyRoofFixPlan(roof, plan);
+        }
+      });
+
       setParseError(null);
-      onApply(parsed);
+      onApply(patchedRoofs);
     } catch (error) {
       setParseError(error instanceof Error ? error.message : String(error));
     }

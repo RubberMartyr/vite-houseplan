@@ -1,18 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { MultiPlaneRoofSpec } from '../engine/types';
+import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
+
+type RoofValidationEntry = { roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult };
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   roofsValue: unknown;
+  validationEntries: RoofValidationEntry[];
+  onDebouncedValidate: (entries: RoofValidationEntry[]) => void;
+  onHoverRidge?: (ridgeId: string | null) => void;
   onApply: (nextRoofs: any[]) => void;
 };
 
 const DRAFT_STORAGE_KEY = 'hv.roofEditor.draft';
 
-export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Props) {
+export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEntries, onDebouncedValidate, onHoverRidge, onApply }: Props) {
   const currentText = useMemo(() => JSON.stringify(roofsValue ?? [], null, 2), [roofsValue]);
   const [draftText, setDraftText] = useState<string>(currentText);
   const [parseError, setParseError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -35,6 +43,25 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
 
     window.localStorage.setItem(DRAFT_STORAGE_KEY, draftText);
   }, [draftText, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const id = window.setTimeout(() => {
+      try {
+        const parsed = JSON.parse(draftText);
+        if (!Array.isArray(parsed)) return;
+        const entries = parsed
+          .filter((roof): roof is MultiPlaneRoofSpec => !!roof && roof.type === 'multi-plane')
+          .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
+        onDebouncedValidate(entries);
+      } catch {
+        // ignored: user can type incomplete json while editing
+      }
+    }, 250);
+
+    return () => window.clearTimeout(id);
+  }, [draftText, isOpen, onDebouncedValidate]);
 
   if (!isOpen) {
     return null;
@@ -61,6 +88,19 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
     window.localStorage.setItem(DRAFT_STORAGE_KEY, currentText);
   };
 
+  const allErrors = validationEntries.flatMap((entry) => entry.validation.errors);
+  const allWarnings = validationEntries.flatMap((entry) => entry.validation.warnings);
+
+  const focusPathInEditor = (path: string | undefined) => {
+    if (!path || !textareaRef.current) return;
+    const token = path.includes('id=') ? path.split('id=')[1].replace(']', '') : path;
+    const idx = draftText.indexOf(token.replace(/"/g, ''));
+    if (idx < 0) return;
+    textareaRef.current.focus();
+    textareaRef.current.setSelectionRange(idx, idx + token.length);
+    textareaRef.current.scrollTop = Math.max(0, (idx / draftText.length) * textareaRef.current.scrollHeight - 120);
+  };
+
   return (
     <aside
       style={{
@@ -85,7 +125,12 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
         <button type="button" onClick={onClose}>Close</button>
       </div>
 
+      <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 12 }}>
+        ❌ {allErrors.length} Errors &nbsp; ⚠ {allWarnings.length} Warnings
+      </div>
+
       <textarea
+        ref={textareaRef}
         value={draftText}
         onChange={(event) => setDraftText(event.target.value)}
         spellCheck={false}
@@ -104,6 +149,23 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
           padding: 12,
         }}
       />
+
+      {allErrors.length > 0 && (
+        <div style={{ maxHeight: 140, overflow: 'auto', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: 8 }}>
+          {allErrors.map((error, index) => (
+            <button
+              key={`${error.code}-${index}`}
+              type="button"
+              onClick={() => focusPathInEditor(error.path)}
+              onMouseEnter={() => onHoverRidge?.(error.ridgeId ?? null)}
+              onMouseLeave={() => onHoverRidge?.(null)}
+              style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 6, background: 'transparent', color: '#fecaca' }}
+            >
+              {error.message}
+            </button>
+          ))}
+        </div>
+      )}
 
       {parseError && (
         <div

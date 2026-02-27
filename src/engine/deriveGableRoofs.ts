@@ -424,7 +424,8 @@ function buildRoofFaceGeometry(params: {
 }
 
 export function deriveGableRoofGeometries(
-  arch: ArchitecturalHouse
+  arch: ArchitecturalHouse,
+  options: { invalidRoofIds?: Set<string> } = {}
 ): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
 
@@ -449,6 +450,9 @@ export function deriveGableRoofGeometries(
     }
 
     if (roof.type === "multi-plane") {
+      if (options.invalidRoofIds?.has(roof.id)) {
+        continue;
+      }
       const geoms = deriveMultiPlaneRoofGeometries(arch, roof);
       geometries.push(...geoms);
     }

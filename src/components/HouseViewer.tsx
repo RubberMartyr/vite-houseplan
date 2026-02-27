@@ -46,6 +46,8 @@ import { EngineHouse } from '../engine/EngineHouse';
 import { archToWorldXZ } from '../engine/spaceMapping';
 import { validateStructure } from '../engine/validation/validateStructure';
 import type { ArchitecturalHouse, LevelSpec } from '../engine/architecturalTypes';
+import type { MultiPlaneRoofSpec } from '../engine/types';
+import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
 import { RoofJsonEditorPanel } from '../ui/RoofJsonEditorPanel';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
@@ -254,6 +256,8 @@ type WindowProps = {
 type HouseSceneCameraPreset = { position: [number, number, number]; target: [number, number, number] };
 
 type DerivedHouseData = ReturnType<typeof deriveHouse>;
+type RoofValidationEntry = { roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult };
+
 
 function DebugTruthOverlay({
   groundOuter,
@@ -523,6 +527,8 @@ export default function HouseViewer() {
   const [houseData, setHouseData] = useState<ArchitecturalHouse>(architecturalHouse);
   const [roofRevision, setRoofRevision] = useState(0);
   const [isRoofEditorOpen, setRoofEditorOpen] = useState(false);
+  const [roofValidationEntries, setRoofValidationEntries] = useState<RoofValidationEntry[]>([]);
+  const [hoveredRidgeId, setHoveredRidgeId] = useState<string | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [lastGoodDerived, setLastGoodDerived] = useState<DerivedHouseData | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -543,8 +549,23 @@ export default function HouseViewer() {
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]
   );
+
+  useEffect(() => {
+    const entries = (houseData.roofs ?? [])
+      .filter((roof): roof is MultiPlaneRoofSpec => roof.type === 'multi-plane')
+      .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
+    setRoofValidationEntries(entries);
+  }, [houseData.roofs]);
   const buildAttempt = useMemo(() => {
     try {
+      const hasRoofValidationErrors = roofValidationEntries.some((entry) => entry.validation.errors.length > 0);
+      if (hasRoofValidationErrors) {
+        return {
+          derived: null,
+          error: 'Roof validation failed. Fix multi-plane roof errors to derive new roof geometry.',
+        };
+      }
+
       validateStructure<ArchitecturalHouse>(houseData, {
         getLevels: (house) => house.levels,
         getLevelElevation: (level) => (level as LevelSpec).elevation,
@@ -565,7 +586,7 @@ export default function HouseViewer() {
         error: error instanceof Error ? error.message : String(error),
       };
     }
-  }, [houseData, roofRevision]);
+  }, [houseData, roofRevision, roofValidationEntries]);
 
   useEffect(() => {
     if (buildAttempt.derived) {
@@ -720,6 +741,8 @@ export default function HouseViewer() {
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
           controlsRef={controlsRef}
+          roofValidationEntries={roofValidationEntries}
+          hoveredRidgeId={hoveredRidgeId}
         />
       </Canvas>
 
@@ -727,11 +750,18 @@ export default function HouseViewer() {
         isOpen={isRoofEditorOpen}
         onClose={() => setRoofEditorOpen(false)}
         roofsValue={houseData.roofs ?? []}
+        validationEntries={roofValidationEntries}
+        onHoverRidge={setHoveredRidgeId}
+        onDebouncedValidate={(entries) => setRoofValidationEntries(entries)}
         onApply={(nextRoofs) => {
-          const safeRoofs = typeof structuredClone === 'function'
+          const safeRoofs: any[] = typeof structuredClone === 'function'
             ? structuredClone(nextRoofs)
             : JSON.parse(JSON.stringify(nextRoofs));
           setHouseData((prev) => ({ ...prev, roofs: safeRoofs }));
+          const entries = safeRoofs
+            .filter((roof): roof is MultiPlaneRoofSpec => !!roof && roof.type === 'multi-plane')
+            .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
+          setRoofValidationEntries(entries);
           setRoofRevision((revision) => revision + 1);
           setRoofEditorOpen(false);
         }}
@@ -759,6 +789,8 @@ function HouseScene({
   selectedRoomId,
   onSelectRoom,
   controlsRef,
+  roofValidationEntries,
+  hoveredRidgeId,
 }: {
   debugOrientation: boolean;
   screenshotMode: boolean;
@@ -778,6 +810,8 @@ function HouseScene({
   selectedRoomId: string | null;
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
+  roofValidationEntries: RoofValidationEntry[];
+  hoveredRidgeId: string | null;
 }) {
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
@@ -1229,6 +1263,8 @@ function HouseScene({
             architecturalHouse={architecturalHouse}
             derivedSlabs={derivedSlabs}
             roofRevision={roofRevision}
+            roofValidationEntries={roofValidationEntries}
+            highlightedRidgeId={hoveredRidgeId}
           />
         </group>
 

@@ -17,6 +17,7 @@ type RoofPlane = {
 };
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
+import { validateMultiPlaneRoof } from "./validation/validateMultiPlaneRoof";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
@@ -449,6 +450,12 @@ export function deriveGableRoofGeometries(
     }
 
     if (roof.type === "multi-plane") {
+      const roofValidation = validateMultiPlaneRoof(roof);
+      if (roofValidation.errors.length > 0) {
+        console.warn(`[roof-validation] Skipping multi-plane roof '${roof.id}' due to validation errors.`, roofValidation.errors);
+        continue;
+      }
+
       const geoms = deriveMultiPlaneRoofGeometries(arch, roof);
       geometries.push(...geoms);
     }

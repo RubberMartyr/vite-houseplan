@@ -47,6 +47,8 @@ import { archToWorldXZ } from '../engine/spaceMapping';
 import { validateStructure } from '../engine/validation/validateStructure';
 import type { ArchitecturalHouse, LevelSpec } from '../engine/architecturalTypes';
 import { RoofJsonEditorPanel } from '../ui/RoofJsonEditorPanel';
+import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
+import type { MultiPlaneRoofSpec } from '../engine/types';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -533,6 +535,8 @@ export default function HouseViewer() {
   const [isRoofEditorOpen, setRoofEditorOpen] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [lastGoodDerived, setLastGoodDerived] = useState<DerivedHouseData | null>(null);
+  const [highlightedRidgeId, setHighlightedRidgeId] = useState<string | null>(null);
+  const [draftRoofValidation, setDraftRoofValidation] = useState<{ errors: number; warnings: number; reports: Array<{ roofId: string; report: MultiPlaneRoofValidationResult }> }>({ errors: 0, warnings: 0, reports: [] });
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
@@ -713,6 +717,7 @@ export default function HouseViewer() {
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
           controlsRef={controlsRef}
+          highlightedRidgeId={highlightedRidgeId}
         />
       </Canvas>
 
@@ -724,6 +729,19 @@ export default function HouseViewer() {
           setHouseData((prev) => ({ ...prev, roofs: nextRoofs }));
           setRoofEditorOpen(false);
         }}
+        validationSummary={draftRoofValidation}
+        onDraftValidation={(nextRoofs) => {
+          const reports = (nextRoofs ?? [])
+            .filter((roof: any): roof is MultiPlaneRoofSpec => roof?.type === 'multi-plane')
+            .map((roof) => ({ roofId: roof.id, report: validateMultiPlaneRoof(roof) }));
+
+          setDraftRoofValidation({
+            errors: reports.reduce((sum, item) => sum + item.report.errors.length, 0),
+            warnings: reports.reduce((sum, item) => sum + item.report.warnings.length, 0),
+            reports,
+          });
+        }}
+        onHoverRidgeId={setHighlightedRidgeId}
       />
     </div>
   );
@@ -748,6 +766,7 @@ function HouseScene({
   selectedRoomId,
   onSelectRoom,
   controlsRef,
+  highlightedRidgeId,
 }: {
   debugOrientation: boolean;
   screenshotMode: boolean;
@@ -767,6 +786,7 @@ function HouseScene({
   selectedRoomId: string | null;
   onSelectRoom: (roomId: string | null) => void;
   controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
+  highlightedRidgeId: string | null;
 }) {
   const BRICK_REPEAT_X = 1.3;
   const BRICK_REPEAT_Y = 0.625;
@@ -1217,6 +1237,7 @@ function HouseScene({
             debugEngineWalls={DEBUG_ENGINE_WALLS}
             architecturalHouse={architecturalHouse}
             derivedSlabs={derivedSlabs}
+            highlightedRidgeId={highlightedRidgeId}
           />
         </group>
 

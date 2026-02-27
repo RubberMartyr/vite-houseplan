@@ -10,15 +10,21 @@ type Props = {
   debugEngineWalls: boolean;
   architecturalHouse: ArchitecturalHouse;
   derivedSlabs: DerivedSlab[];
+  highlightedRidgeId?: string | null;
 };
 
-export function EngineHouse({ debugEngineWalls, architecturalHouse, derivedSlabs }: Props) {
+export function EngineHouse({
+  debugEngineWalls,
+  architecturalHouse,
+  derivedSlabs,
+  highlightedRidgeId = null,
+}: Props) {
   return (
     <>
       <EngineWallShellsDebug visible={debugEngineWalls} arch={architecturalHouse} />
       <EngineSlabsDebug visible={debugEngineWalls} slabs={derivedSlabs} />
       <EngineFlatRoofsDebug arch={architecturalHouse} />
-      <EngineGableRoofsDebug arch={architecturalHouse} />
+      <EngineGableRoofsDebug arch={architecturalHouse} highlightedRidgeId={highlightedRidgeId} />
     </>
   );
 }

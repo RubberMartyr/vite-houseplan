@@ -50,16 +50,30 @@ export type HalfPlane = {
   keep: 'left' | 'right';
 };
 
+export type RidgePerpCut = {
+  type: 'ridgePerpCut';
+  ridgeId: string;
+  t: number;
+  keep: 'ahead' | 'behind';
+};
+
+export type FaceRegion =
+  | { type: 'halfPlanes'; planes: HalfPlane[] }
+  | { type: 'ridgeCapTriangle'; ridgeId: string; end: 'start' | 'end' }
+  | { type: 'compound'; items: (HalfPlane | RidgePerpCut)[] };
+
 export type RoofFaceSpec = {
   id: string;
-  kind: 'ridgeSide' | 'hipCap';
+  kind: 'ridgeSideSegment' | 'hipCap';
   ridgeId?: string;
+  ridgeT0?: number;
+  ridgeT1?: number;
+  side?: 'left' | 'right';
+  capEnd?: 'start' | 'end';
   p1?: PlanePoint;
   p2?: PlanePoint;
   p3?: PlanePoint;
-  region:
-    | { type: 'halfPlanes'; planes: HalfPlane[] }
-    | { type: 'ridgeCapTriangle'; ridgeId: string; end: 'start' | 'end' };
+  region: FaceRegion;
 };
 
 export type MultiPlaneRoofSpec = {

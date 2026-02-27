@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import type { ArchitecturalHouse } from "./architecturalTypes";
 import type {
+  FaceRegion,
   HalfPlane,
   LevelSpec,
   MultiPlaneRoofSpec,
+  RidgePerpCut,
   RoofSpec,
   Vec2,
   XZ,
@@ -128,6 +130,64 @@ function clipPolyByRegion(poly: XZ[], region: HalfPlane[]): XZ[] {
     if (out.length < 4) return out;
   }
   return out;
+}
+
+function ridgePointAt(ridge: { start: XZ; end: XZ }, t: number): XZ {
+  return {
+    x: ridge.start.x + (ridge.end.x - ridge.start.x) * t,
+    z: ridge.start.z + (ridge.end.z - ridge.start.z) * t,
+  };
+}
+
+function ridgePerpCutToHalfPlane(
+  ridge: { start: XZ; end: XZ },
+  t: number,
+  keep: "ahead" | "behind"
+): HalfPlane {
+  const E = ridgePointAt(ridge, t);
+
+  const dx = ridge.end.x - ridge.start.x;
+  const dz = ridge.end.z - ridge.start.z;
+  const len = Math.sqrt(dx * dx + dz * dz) || 1;
+
+  const ux = dx / len;
+  const uz = dz / len;
+
+  const nx = -uz;
+  const nz = ux;
+
+  const A = { x: E.x - nx * 1000, z: E.z - nz * 1000 };
+  const B = { x: E.x + nx * 1000, z: E.z + nz * 1000 };
+
+  const test = { x: E.x + ux * 0.01, z: E.z + uz * 0.01 };
+  const s = signedSide(test, A, B);
+  const keepAhead: "left" | "right" = s >= 0 ? "left" : "right";
+
+  if (keep === "ahead") return { a: A, b: B, keep: keepAhead };
+  return { a: A, b: B, keep: keepAhead === "left" ? "right" : "left" };
+}
+
+function resolveFaceRegionToHalfPlanes(
+  region: FaceRegion,
+  roof: MultiPlaneRoofSpec
+): HalfPlane[] | null {
+  if (region.type === "halfPlanes") return region.planes;
+  if (region.type !== "compound") return null;
+
+  const halfPlanes: HalfPlane[] = [];
+  for (const item of region.items) {
+    const cut = item as RidgePerpCut;
+    if (cut.type === "ridgePerpCut") {
+      const ridge = roof.ridgeSegments.find((r) => r.id === cut.ridgeId);
+      if (!ridge) return null;
+      halfPlanes.push(ridgePerpCutToHalfPlane(ridge, cut.t, cut.keep));
+      continue;
+    }
+
+    halfPlanes.push(item as HalfPlane);
+  }
+
+  return halfPlanes;
 }
 
 function intersectSegmentWithInfiniteLine(p: XZ, q: XZ, a: XZ, b: XZ): XZ | null {
@@ -394,23 +454,37 @@ function deriveMultiPlaneRoofGeometries(
   fp = ensureClosed(fp);
 
   const geometries: THREE.BufferGeometry[] = [];
+  const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
 
   for (const face of roof.faces) {
     const region = face.region;
     let regionPoly: XZ[] | null = null;
 
-    if (region.type === "halfPlanes") {
-      regionPoly = clipPolyByRegion(fp, region.planes);
-    } else {
+    if (region.type === "ridgeCapTriangle") {
       const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
       if (!ridge) continue;
 
       regionPoly = capTriangleFromRidgeEndpoint(fp, ridge, region.end);
+    } else {
+      const halfPlanes = resolveFaceRegionToHalfPlanes(region, roof);
+      if (!halfPlanes) continue;
+      regionPoly = clipPolyByRegion(fp, halfPlanes);
     }
 
     console.log("FACE:", face.id, "regionPoly length:", regionPoly?.length);
 
     if (!regionPoly || regionPoly.length < 4) continue;
+
+    if (face.kind === "hipCap" && face.region.type === "ridgeCapTriangle") {
+      const ridgeId = face.region.ridgeId;
+      const end = face.region.end;
+      const B1 = regionPoly[1];
+      const B2 = regionPoly[2];
+
+      const entry = hipBases.get(ridgeId) ?? {};
+      entry[end] = [B1, B2];
+      hipBases.set(ridgeId, entry);
+    }
 
     let plane: { heightAt(x: number, z: number): number } | null = null;
 
@@ -442,25 +516,27 @@ function deriveMultiPlaneRoofGeometries(
           { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
         );
       }
-    } else if (face.kind === "ridgeSide") {
-      if (!face.ridgeId) continue;
+    } else if (face.kind === "ridgeSideSegment") {
+      if (!face.ridgeId || face.ridgeT0 == null || face.ridgeT1 == null || !face.side || !face.capEnd) continue;
 
       const ridge = roof.ridgeSegments.find((r) => r.id === face.ridgeId);
       if (!ridge) continue;
 
+      const bases = hipBases.get(face.ridgeId);
+      const basePair = bases?.[face.capEnd];
+      if (!basePair) continue;
+
       const ridgeTopAbs = baseLevel.elevation + ridge.height;
       const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
 
-      const a = ridge.start;
-      const b = ridge.end;
-
-      const eaveAnchor = pickFarthestPoint(regionPoly, a, b);
-      if (!eaveAnchor) continue;
+      const R0 = ridgePointAt(ridge, face.ridgeT0);
+      const R1 = ridgePointAt(ridge, face.ridgeT1);
+      const eavePoint = pickBaseForSide(ridge, basePair, face.side);
 
       plane = planeFrom3Points(
-        { x: a.x, z: a.z, y: ridgeTopAbs },
-        { x: b.x, z: b.z, y: ridgeTopAbs },
-        { x: eaveAnchor.x, z: eaveAnchor.z, y: eaveTopAbs }
+        { x: R0.x, z: R0.z, y: ridgeTopAbs },
+        { x: R1.x, z: R1.z, y: ridgeTopAbs },
+        { x: eavePoint.x, z: eavePoint.z, y: eaveTopAbs }
       );
     } else {
       continue;
@@ -513,6 +589,29 @@ function pickFarthestPoint(polyClosed: XZ[], a: XZ, b: XZ): XZ | null {
   }
 
   return best;
+}
+
+function pickBaseForSide(
+  ridge: { start: XZ; end: XZ },
+  base: [XZ, XZ],
+  side: "left" | "right"
+): XZ {
+  const [b1, b2] = base;
+  const s1 = signedSide(b1, ridge.start, ridge.end);
+  const s2 = signedSide(b2, ridge.start, ridge.end);
+
+  const isLeft1 = s1 >= 0;
+  const isLeft2 = s2 >= 0;
+
+  if (side === "left") {
+    if (isLeft1 && !isLeft2) return b1;
+    if (isLeft2 && !isLeft1) return b2;
+    return s1 >= s2 ? b1 : b2;
+  }
+
+  if (!isLeft1 && isLeft2) return b1;
+  if (!isLeft2 && isLeft1) return b2;
+  return s1 <= s2 ? b1 : b2;
 }
 
 function signedPerpDistanceToInfiniteLineXZ(

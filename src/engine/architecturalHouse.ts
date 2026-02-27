@@ -80,24 +80,70 @@ export const architecturalHouse: ArchitecturalHouse = {
       ],
       faces: [
         {
-          id: "main-A",
-          kind: "ridgeSide",
+          id: "left-start",
+          kind: "ridgeSideSegment",
           ridgeId: "main",
+          side: "left",
+          capEnd: "start",
+          ridgeT0: 0.0,
+          ridgeT1: 0.5,
           region: {
-            type: "halfPlanes",
-            planes: [
+            type: "compound",
+            items: [
               { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "behind" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
             ],
           },
         },
         {
-          id: "main-B",
-          kind: "ridgeSide",
+          id: "left-end",
+          kind: "ridgeSideSegment",
           ridgeId: "main",
+          side: "left",
+          capEnd: "end",
+          ridgeT0: 0.5,
+          ridgeT1: 1.0,
           region: {
-            type: "halfPlanes",
-            planes: [
+            type: "compound",
+            items: [
+              { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "left" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "ahead" },
+            ],
+          },
+        },
+        {
+          id: "right-start",
+          kind: "ridgeSideSegment",
+          ridgeId: "main",
+          side: "right",
+          capEnd: "start",
+          ridgeT0: 0.0,
+          ridgeT1: 0.5,
+          region: {
+            type: "compound",
+            items: [
               { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "behind" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
+            ],
+          },
+        },
+        {
+          id: "right-end",
+          kind: "ridgeSideSegment",
+          ridgeId: "main",
+          side: "right",
+          capEnd: "end",
+          ridgeT0: 0.5,
+          ridgeT1: 1.0,
+          region: {
+            type: "compound",
+            items: [
+              { a: { x: 0.6, z: 12.0 }, b: { x: 0.6, z: 8.45 }, keep: "right" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
+              { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "ahead" },
             ],
           },
         },

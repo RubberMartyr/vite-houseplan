@@ -11,7 +11,7 @@ const DRAFT_STORAGE_KEY = 'hv.roofEditor.draft';
 
 export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Props) {
   const currentText = useMemo(() => JSON.stringify(roofsValue ?? [], null, 2), [roofsValue]);
-  const [draft, setDraft] = useState(currentText);
+  const [draftText, setDraftText] = useState<string>(currentText);
   const [parseError, setParseError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,11 +21,11 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
 
     const persisted = window.localStorage.getItem(DRAFT_STORAGE_KEY);
     if (persisted && persisted.trim().length > 0) {
-      setDraft(persisted);
+      setDraftText(persisted);
       return;
     }
 
-    setDraft(currentText);
+    setDraftText(currentText);
   }, [currentText, isOpen]);
 
   useEffect(() => {
@@ -33,8 +33,8 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
       return;
     }
 
-    window.localStorage.setItem(DRAFT_STORAGE_KEY, draft);
-  }, [draft, isOpen]);
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, draftText);
+  }, [draftText, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -42,7 +42,7 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
 
   const handleApply = () => {
     try {
-      const parsed = JSON.parse(draft);
+      const parsed = JSON.parse(draftText);
       if (!Array.isArray(parsed)) {
         setParseError('Root value must be an array of roofs.');
         return;
@@ -57,7 +57,7 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
 
   const handleReset = () => {
     setParseError(null);
-    setDraft(currentText);
+    setDraftText(currentText);
     window.localStorage.setItem(DRAFT_STORAGE_KEY, currentText);
   };
 
@@ -86,8 +86,8 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, onApply }: Pr
       </div>
 
       <textarea
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
+        value={draftText}
+        onChange={(event) => setDraftText(event.target.value)}
         spellCheck={false}
         style={{
           width: '100%',

@@ -255,15 +255,6 @@ type HouseSceneCameraPreset = { position: [number, number, number]; target: [num
 
 type DerivedHouseData = ReturnType<typeof deriveHouse>;
 
-function stableHash(input: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16);
-}
-
 function DebugTruthOverlay({
   groundOuter,
   controlsRef,
@@ -530,6 +521,7 @@ export default function HouseViewer() {
   const [showLegacy, setShowLegacy] = useState(false);
   const [showWindows, setShowWindows] = useState(true);
   const [houseData, setHouseData] = useState<ArchitecturalHouse>(architecturalHouse);
+  const [roofRevision, setRoofRevision] = useState(0);
   const [isRoofEditorOpen, setRoofEditorOpen] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [lastGoodDerived, setLastGoodDerived] = useState<DerivedHouseData | null>(null);
@@ -551,8 +543,6 @@ export default function HouseViewer() {
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]
   );
-  const roofsHash = useMemo(() => stableHash(JSON.stringify(houseData.roofs ?? [])), [houseData.roofs]);
-
   const buildAttempt = useMemo(() => {
     try {
       validateStructure<ArchitecturalHouse>(houseData, {
@@ -575,7 +565,7 @@ export default function HouseViewer() {
         error: error instanceof Error ? error.message : String(error),
       };
     }
-  }, [houseData]);
+  }, [houseData, roofRevision]);
 
   useEffect(() => {
     if (buildAttempt.derived) {
@@ -663,6 +653,23 @@ export default function HouseViewer() {
         Roof JSON
       </button>
 
+      <div
+        style={{
+          position: 'absolute',
+          right: isRoofEditorOpen ? 540 : 16,
+          bottom: 56,
+          zIndex: 25,
+          background: 'rgba(0, 0, 0, 0.65)',
+          color: '#fff',
+          borderRadius: 4,
+          padding: '4px 8px',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+          fontSize: 12,
+        }}
+      >
+        Roof rev: {roofRevision}
+      </div>
+
       {buildError && (
         <div
           style={{
@@ -706,7 +713,7 @@ export default function HouseViewer() {
           showLegacy={showLegacy}
           showWindows={showWindows}
           architecturalHouse={houseData}
-          roofsRenderKey={roofsHash}
+          roofRevision={roofRevision}
           derivedSlabs={derivedSlabs}
           cutawayEnabled={cutawayEnabled}
           facadeVisibility={facadeVisibility}
@@ -721,7 +728,11 @@ export default function HouseViewer() {
         onClose={() => setRoofEditorOpen(false)}
         roofsValue={houseData.roofs ?? []}
         onApply={(nextRoofs) => {
-          setHouseData((prev) => ({ ...prev, roofs: nextRoofs }));
+          const safeRoofs = typeof structuredClone === 'function'
+            ? structuredClone(nextRoofs)
+            : JSON.parse(JSON.stringify(nextRoofs));
+          setHouseData((prev) => ({ ...prev, roofs: safeRoofs }));
+          setRoofRevision((revision) => revision + 1);
           setRoofEditorOpen(false);
         }}
       />
@@ -741,7 +752,7 @@ function HouseScene({
   showLegacy,
   showWindows,
   architecturalHouse,
-  roofsRenderKey,
+  roofRevision,
   derivedSlabs,
   cutawayEnabled,
   facadeVisibility,
@@ -760,7 +771,7 @@ function HouseScene({
   showLegacy: boolean;
   showWindows: boolean;
   architecturalHouse: ArchitecturalHouse;
-  roofsRenderKey: string;
+  roofRevision: number;
   derivedSlabs: DerivedHouseData['slabs'];
   cutawayEnabled: boolean;
   facadeVisibility: Record<FacadeKey, boolean>;
@@ -1213,10 +1224,11 @@ function HouseScene({
             />
           )}
           <EngineHouse
-            key={roofsRenderKey}
+            key={`roof-${roofRevision}`}
             debugEngineWalls={DEBUG_ENGINE_WALLS}
             architecturalHouse={architecturalHouse}
             derivedSlabs={derivedSlabs}
+            roofRevision={roofRevision}
           />
         </group>
 

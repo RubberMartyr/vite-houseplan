@@ -10,15 +10,16 @@ type Props = {
   debugEngineWalls: boolean;
   architecturalHouse: ArchitecturalHouse;
   derivedSlabs: DerivedSlab[];
+  roofRevision: number;
 };
 
-export function EngineHouse({ debugEngineWalls, architecturalHouse, derivedSlabs }: Props) {
+export function EngineHouse({ debugEngineWalls, architecturalHouse, derivedSlabs, roofRevision }: Props) {
   return (
     <>
       <EngineWallShellsDebug visible={debugEngineWalls} arch={architecturalHouse} />
       <EngineSlabsDebug visible={debugEngineWalls} slabs={derivedSlabs} />
-      <EngineFlatRoofsDebug arch={architecturalHouse} />
-      <EngineGableRoofsDebug arch={architecturalHouse} />
+      <EngineFlatRoofsDebug arch={architecturalHouse} roofRevision={roofRevision} />
+      <EngineGableRoofsDebug arch={architecturalHouse} roofRevision={roofRevision} />
     </>
   );
 }

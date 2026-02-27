@@ -754,11 +754,9 @@ export default function HouseViewer() {
         onHoverRidge={setHoveredRidgeId}
         onDebouncedValidate={(entries) => setRoofValidationEntries(entries)}
         onApply={(nextRoofs) => {
-          const safeRoofs: any[] = typeof structuredClone === 'function'
-            ? structuredClone(nextRoofs)
-            : JSON.parse(JSON.stringify(nextRoofs));
-          setHouseData((prev) => ({ ...prev, roofs: safeRoofs }));
-          const entries = safeRoofs
+          const cloned: any[] = JSON.parse(JSON.stringify(nextRoofs));
+          setHouseData((prev) => ({ ...prev, roofs: cloned }));
+          const entries = cloned
             .filter((roof): roof is MultiPlaneRoofSpec => !!roof && roof.type === 'multi-plane')
             .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
           setRoofValidationEntries(entries);

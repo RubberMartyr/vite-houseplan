@@ -44,6 +44,9 @@ import { deriveHouse } from '../engine/derive/deriveHouse';
 import { LegacyHouse } from '../legacy/LegacyHouse';
 import { EngineHouse } from '../engine/EngineHouse';
 import { archToWorldXZ } from '../engine/spaceMapping';
+import { validateStructure } from '../engine/validation/validateStructure';
+import type { ArchitecturalHouse, LevelSpec } from '../engine/architecturalTypes';
+import { RoofJsonEditorPanel } from '../ui/RoofJsonEditorPanel';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -249,6 +252,17 @@ type WindowProps = {
   type?: 'standard' | 'classic';
 };
 type HouseSceneCameraPreset = { position: [number, number, number]; target: [number, number, number] };
+
+type DerivedHouseData = ReturnType<typeof deriveHouse>;
+
+function stableHash(input: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
 
 function DebugTruthOverlay({
   groundOuter,
@@ -515,6 +529,10 @@ export default function HouseViewer() {
   const [roofWireframe, setRoofWireframe] = useState(false);
   const [showLegacy, setShowLegacy] = useState(false);
   const [showWindows, setShowWindows] = useState(true);
+  const [houseData, setHouseData] = useState<ArchitecturalHouse>(architecturalHouse);
+  const [isRoofEditorOpen, setRoofEditorOpen] = useState(false);
+  const [buildError, setBuildError] = useState<string | null>(null);
+  const [lastGoodDerived, setLastGoodDerived] = useState<DerivedHouseData | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [cutawayEnabled, setCutawayEnabled] = useState(false);
@@ -533,6 +551,44 @@ export default function HouseViewer() {
     () => allRooms.find((room) => room.id === selectedRoomId) || null,
     [allRooms, selectedRoomId]
   );
+  const roofsHash = useMemo(() => stableHash(JSON.stringify(houseData.roofs ?? [])), [houseData.roofs]);
+
+  const buildAttempt = useMemo(() => {
+    try {
+      validateStructure<ArchitecturalHouse>(houseData, {
+        getLevels: (house) => house.levels,
+        getLevelElevation: (level) => (level as LevelSpec).elevation,
+        getLevelHeight: (level) => (level as LevelSpec).height,
+        getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
+        elevationConvention: 'TOP_OF_SLAB',
+        allowGroundSupport: true,
+      });
+
+      const derived = deriveHouse(houseData);
+      return {
+        derived,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        derived: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }, [houseData]);
+
+  useEffect(() => {
+    if (buildAttempt.derived) {
+      setBuildError(null);
+      setLastGoodDerived(buildAttempt.derived);
+      return;
+    }
+
+    setBuildError(buildAttempt.error ?? 'Unknown roof build error.');
+  }, [buildAttempt]);
+
+  const derivedData = lastGoodDerived ?? buildAttempt.derived;
+  const derivedSlabs = derivedData?.slabs ?? [];
 
   const handleToggleFloor = (key: FloorKey) => {
     setActiveFloors((prev) => ({
@@ -593,6 +649,42 @@ export default function HouseViewer() {
         onClearSelectedRoom={() => setSelectedRoomId(null)}
       />
 
+      <button
+        type="button"
+        onClick={() => setRoofEditorOpen(true)}
+        style={{
+          position: 'absolute',
+          right: isRoofEditorOpen ? 540 : 16,
+          bottom: 16,
+          zIndex: 25,
+          padding: '8px 12px',
+        }}
+      >
+        Roof JSON
+      </button>
+
+      {buildError && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            zIndex: 25,
+            maxWidth: 480,
+            background: 'rgba(120, 0, 0, 0.88)',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.35)',
+            padding: 10,
+            borderRadius: 6,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          <strong>Roof build error</strong>
+          <div>{buildError}</div>
+        </div>
+      )}
+
       <Canvas
         shadows
         camera={{ position: cameraPreset?.position ?? [0, 7, -12], fov: 50 }}
@@ -613,6 +705,9 @@ export default function HouseViewer() {
           roofWireframe={roofWireframe}
           showLegacy={showLegacy}
           showWindows={showWindows}
+          architecturalHouse={houseData}
+          roofsRenderKey={roofsHash}
+          derivedSlabs={derivedSlabs}
           cutawayEnabled={cutawayEnabled}
           facadeVisibility={facadeVisibility}
           selectedRoomId={selectedRoomId}
@@ -620,6 +715,16 @@ export default function HouseViewer() {
           controlsRef={controlsRef}
         />
       </Canvas>
+
+      <RoofJsonEditorPanel
+        isOpen={isRoofEditorOpen}
+        onClose={() => setRoofEditorOpen(false)}
+        roofsValue={houseData.roofs ?? []}
+        onApply={(nextRoofs) => {
+          setHouseData((prev) => ({ ...prev, roofs: nextRoofs }));
+          setRoofEditorOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -635,6 +740,9 @@ function HouseScene({
   roofWireframe,
   showLegacy,
   showWindows,
+  architecturalHouse,
+  roofsRenderKey,
+  derivedSlabs,
   cutawayEnabled,
   facadeVisibility,
   selectedRoomId,
@@ -651,6 +759,9 @@ function HouseScene({
   roofWireframe: boolean;
   showLegacy: boolean;
   showWindows: boolean;
+  architecturalHouse: ArchitecturalHouse;
+  roofsRenderKey: string;
+  derivedSlabs: DerivedHouseData['slabs'];
   cutawayEnabled: boolean;
   facadeVisibility: Record<FacadeKey, boolean>;
   selectedRoomId: string | null;
@@ -799,7 +910,6 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const derivedSlabs = useMemo(() => deriveHouse(architecturalHouse).slabs, []);
   const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
   const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
   const leftPlacements = useMemo<FacadeWindowPlacement[]>(
@@ -1103,6 +1213,7 @@ function HouseScene({
             />
           )}
           <EngineHouse
+            key={roofsRenderKey}
             debugEngineWalls={DEBUG_ENGINE_WALLS}
             architecturalHouse={architecturalHouse}
             derivedSlabs={derivedSlabs}

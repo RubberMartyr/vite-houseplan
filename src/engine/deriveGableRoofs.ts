@@ -455,6 +455,10 @@ function deriveMultiPlaneRoofGeometries(
 
   const geometries: THREE.BufferGeometry[] = [];
   const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
+  const sidePlanes = new Map<
+    string,
+    { left?: { heightAt(x: number, z: number): number }; right?: { heightAt(x: number, z: number): number } }
+  >();
 
   const facesHip = roof.faces.filter((f) => f.kind === "hipCap");
   const facesRidge = roof.faces.filter((f) => f.kind !== "hipCap");
@@ -520,28 +524,10 @@ function deriveMultiPlaneRoofGeometries(
         );
       }
     } else if (face.kind === "ridgeSideSegment") {
-      if (!face.ridgeId || face.ridgeT0 == null || face.ridgeT1 == null || !face.side || !face.capEnd) return;
+      if (!face.ridgeId || !face.side) return;
 
-      const ridge = roof.ridgeSegments.find((r) => r.id === face.ridgeId);
-      if (!ridge) return;
-
-      const bases = hipBases.get(face.ridgeId);
-      const basePair = bases?.[face.capEnd];
-      console.log("RIDGE FACE", face.id, "capEnd", face.capEnd, "basePair?", !!basePair);
-      if (!basePair) return;
-
-      const ridgeTopAbs = baseLevel.elevation + ridge.height;
-      const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
-
-      const R0 = ridgePointAt(ridge, face.ridgeT0);
-      const R1 = ridgePointAt(ridge, face.ridgeT1);
-      const eavePoint = pickBaseForSide(ridge, basePair, face.side);
-
-      plane = planeFrom3Points(
-        { x: R0.x, z: R0.z, y: ridgeTopAbs },
-        { x: R1.x, z: R1.z, y: ridgeTopAbs },
-        { x: eavePoint.x, z: eavePoint.z, y: eaveTopAbs }
-      );
+      const ridgeSidePlanes = sidePlanes.get(face.ridgeId);
+      plane = face.side === "left" ? ridgeSidePlanes?.left ?? null : ridgeSidePlanes?.right ?? null;
     } else {
       return;
     }
@@ -569,6 +555,38 @@ function deriveMultiPlaneRoofGeometries(
   // PASS 1: build hip caps first (and cache hipBases)
   for (const face of facesHip) {
     processFace(face);
+  }
+
+  for (const ridge of roof.ridgeSegments) {
+    const bases = hipBases.get(ridge.id);
+    if (!bases?.start || !bases?.end) continue;
+
+    const ridgeTopAbs = baseLevel.elevation + ridge.height;
+    const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+
+    const leftStart = pickBaseForSide(ridge, bases.start, "left");
+    const leftEnd = pickBaseForSide(ridge, bases.end, "left");
+    const leftMid = midXZ(leftStart, leftEnd);
+
+    const rightStart = pickBaseForSide(ridge, bases.start, "right");
+    const rightEnd = pickBaseForSide(ridge, bases.end, "right");
+    const rightMid = midXZ(rightStart, rightEnd);
+
+    const leftPlane = planeFrom3Points(
+      { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
+      { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
+      { x: leftMid.x, z: leftMid.z, y: eaveTopAbs }
+    );
+
+    const rightPlane = planeFrom3Points(
+      { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
+      { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
+      { x: rightMid.x, z: rightMid.z, y: eaveTopAbs }
+    );
+
+    if (!leftPlane && !rightPlane) continue;
+
+    sidePlanes.set(ridge.id, { left: leftPlane ?? undefined, right: rightPlane ?? undefined });
   }
 
   // PASS 2: build ridge-side segments afterwards
@@ -603,6 +621,10 @@ function pickFarthestPoint(polyClosed: XZ[], a: XZ, b: XZ): XZ | null {
   }
 
   return best;
+}
+
+function midXZ(a: XZ, b: XZ): XZ {
+  return { x: (a.x + b.x) * 0.5, z: (a.z + b.z) * 0.5 };
 }
 
 function pickBaseForSide(

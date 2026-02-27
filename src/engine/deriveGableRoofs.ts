@@ -456,24 +456,27 @@ function deriveMultiPlaneRoofGeometries(
   const geometries: THREE.BufferGeometry[] = [];
   const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
 
-  for (const face of roof.faces) {
+  const facesHip = roof.faces.filter((f) => f.kind === "hipCap");
+  const facesRidge = roof.faces.filter((f) => f.kind !== "hipCap");
+
+  const processFace = (face: MultiPlaneRoofSpec["faces"][number]) => {
     const region = face.region;
     let regionPoly: XZ[] | null = null;
 
     if (region.type === "ridgeCapTriangle") {
       const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
-      if (!ridge) continue;
+      if (!ridge) return;
 
       regionPoly = capTriangleFromRidgeEndpoint(fp, ridge, region.end);
     } else {
       const halfPlanes = resolveFaceRegionToHalfPlanes(region, roof);
-      if (!halfPlanes) continue;
+      if (!halfPlanes) return;
       regionPoly = clipPolyByRegion(fp, halfPlanes);
     }
 
-    console.log("FACE:", face.id, "regionPoly length:", regionPoly?.length);
+    console.log("FACE", face.id, "kind", face.kind, "regionPoly", regionPoly?.length);
 
-    if (!regionPoly || regionPoly.length < 4) continue;
+    if (!regionPoly || regionPoly.length < 4) return;
 
     if (face.kind === "hipCap" && face.region.type === "ridgeCapTriangle") {
       const ridgeId = face.region.ridgeId;
@@ -493,7 +496,7 @@ function deriveMultiPlaneRoofGeometries(
         console.log("CAP TRIANGLE:", face.id, regionPoly);
 
         const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
-        if (!ridge) continue;
+        if (!ridge) return;
 
         const E = region.end === "start" ? ridge.start : ridge.end;
         const ridgeTopAbs = baseLevel.elevation + ridge.height;
@@ -508,7 +511,7 @@ function deriveMultiPlaneRoofGeometries(
           { x: base2.x, z: base2.z, y: eaveTopAbs }
         );
       } else {
-        if (!face.p1 || !face.p2 || !face.p3) continue;
+        if (!face.p1 || !face.p2 || !face.p3) return;
 
         plane = planeFrom3Points(
           { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
@@ -517,14 +520,15 @@ function deriveMultiPlaneRoofGeometries(
         );
       }
     } else if (face.kind === "ridgeSideSegment") {
-      if (!face.ridgeId || face.ridgeT0 == null || face.ridgeT1 == null || !face.side || !face.capEnd) continue;
+      if (!face.ridgeId || face.ridgeT0 == null || face.ridgeT1 == null || !face.side || !face.capEnd) return;
 
       const ridge = roof.ridgeSegments.find((r) => r.id === face.ridgeId);
-      if (!ridge) continue;
+      if (!ridge) return;
 
       const bases = hipBases.get(face.ridgeId);
       const basePair = bases?.[face.capEnd];
-      if (!basePair) continue;
+      console.log("RIDGE FACE", face.id, "capEnd", face.capEnd, "basePair?", !!basePair);
+      if (!basePair) return;
 
       const ridgeTopAbs = baseLevel.elevation + ridge.height;
       const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
@@ -539,12 +543,12 @@ function deriveMultiPlaneRoofGeometries(
         { x: eavePoint.x, z: eavePoint.z, y: eaveTopAbs }
       );
     } else {
-      continue;
+      return;
     }
 
     if (!plane) {
       console.warn("[roof] face plane is vertical / invalid for y=f(x,z). Skipping face:", face.id, face);
-      continue;
+      return;
     }
 
     const triangles = triangulateXZ(regionPoly);
@@ -560,6 +564,16 @@ function deriveMultiPlaneRoofGeometries(
       geometries.push(geometry);
       console.log("GEOMETRY ADDED:", face.id);
     }
+  };
+
+  // PASS 1: build hip caps first (and cache hipBases)
+  for (const face of facesHip) {
+    processFace(face);
+  }
+
+  // PASS 2: build ridge-side segments afterwards
+  for (const face of facesRidge) {
+    processFace(face);
   }
 
   return geometries;

@@ -349,6 +349,22 @@ function triangulateXZ(polyClosed: XZ[]): number[][] {
   return THREE.ShapeUtils.triangulateShape(contour, []);
 }
 
+function planeFromArchPoints(
+  p1: { x: number; z: number; y: number },
+  p2: { x: number; z: number; y: number },
+  p3: { x: number; z: number; y: number }
+): RoofPlane | null {
+  const w1 = archToWorldXZ(p1);
+  const w2 = archToWorldXZ(p2);
+  const w3 = archToWorldXZ(p3);
+
+  return planeFrom3Points(
+    { x: w1.x, z: w1.z, y: p1.y },
+    { x: w2.x, z: w2.z, y: p2.y },
+    { x: w3.x, z: w3.z, y: p3.y }
+  );
+}
+
 function buildRoofFaceGeometry(params: {
   faceId: string;
   polyClosed: XZ[];
@@ -357,15 +373,13 @@ function buildRoofFaceGeometry(params: {
   heightAtOuter: (x: number, z: number) => number;
 }): THREE.BufferGeometry | null {
   const { faceId, polyClosed, triangles, thickness, heightAtOuter } = params;
-  const poly = polyClosed.slice(0, -1);
+  const poly = polyClosed.slice(0, -1).map(archToWorldXZ);
 
   const topVerts: number[] = [];
   const botVerts: number[] = [];
   let hasInvalidHeight = false;
 
   for (const p of poly) {
-    const wp = archToWorldXZ(p);
-
     const yTop = heightAtOuter(p.x, p.z);
     const yBot = yTop - thickness;
 
@@ -375,8 +389,8 @@ function buildRoofFaceGeometry(params: {
       break;
     }
 
-    topVerts.push(wp.x, yTop, wp.z);
-    botVerts.push(wp.x, yBot, wp.z);
+    topVerts.push(p.x, yTop, p.z);
+    botVerts.push(p.x, yBot, p.z);
   }
 
 
@@ -514,7 +528,7 @@ function deriveMultiPlaneRoofGeometries(
         const base1 = regionPoly[1];
         const base2 = regionPoly[2];
 
-        plane = planeFrom3Points(
+        plane = planeFromArchPoints(
           { x: E.x, z: E.z, y: ridgeTopAbs },
           { x: base1.x, z: base1.z, y: eaveTopAbs },
           { x: base2.x, z: base2.z, y: eaveTopAbs }
@@ -522,7 +536,7 @@ function deriveMultiPlaneRoofGeometries(
       } else {
         if (!face.p1 || !face.p2 || !face.p3) return;
 
-        plane = planeFrom3Points(
+        plane = planeFromArchPoints(
           { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
           { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
           { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
@@ -550,7 +564,7 @@ function deriveMultiPlaneRoofGeometries(
       return;
     }
 
-    const triangles = triangulateXZ(regionPoly);
+    const triangles = triangulateXZ(regionPoly.map(archToWorldXZ));
     const geometry = buildRoofFaceGeometry({
         faceId: face.id,
         polyClosed: regionPoly,
@@ -585,13 +599,13 @@ function deriveMultiPlaneRoofGeometries(
     const rightEnd = pickBaseForSide(ridge, bases.end, "right");
     const rightMid = midXZ(rightStart, rightEnd);
 
-    const planeLeft = planeFrom3Points(
+    const planeLeft = planeFromArchPoints(
       { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
       { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
       { x: leftMid.x, z: leftMid.z, y: eaveTopAbs }
     );
 
-    const planeRight = planeFrom3Points(
+    const planeRight = planeFromArchPoints(
       { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
       { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
       { x: rightMid.x, z: rightMid.z, y: eaveTopAbs }
@@ -749,18 +763,20 @@ function getRoofHeightFunctions(
   eaveTopAbs: number,
   thickness: number
 ) {
-  const fpClosed = ensureClosed(fp);
+  const fpClosed = ensureClosed(fp).map(archToWorldXZ);
+  const ridgeStart = archToWorldXZ(ridge.start);
+  const ridgeEnd = archToWorldXZ(ridge.end);
   const hipPlanes: ((x: number, z: number) => number)[] = [];
 
   if (ridge.hipStart) {
-    const hits = intersectPolygonWithHorizontalLine(fpClosed, ridge.start.z);
+    const hits = intersectPolygonWithHorizontalLine(fpClosed, ridgeStart.z);
 
     if (hits.length === 2) {
       const left = hits[0].x < hits[1].x ? hits[0] : hits[1];
       const right = hits[0].x < hits[1].x ? hits[1] : hits[0];
 
       const plane = planeFrom3Points(
-        { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
+        { x: ridgeStart.x, z: ridgeStart.z, y: ridgeTopAbs },
         { x: left.x, z: left.z, y: eaveTopAbs },
         { x: right.x, z: right.z, y: eaveTopAbs }
       );
@@ -770,14 +786,14 @@ function getRoofHeightFunctions(
   }
 
   if (ridge.hipEnd) {
-    const hits = intersectPolygonWithHorizontalLine(fpClosed, ridge.end.z);
+    const hits = intersectPolygonWithHorizontalLine(fpClosed, ridgeEnd.z);
 
     if (hits.length === 2) {
       const left = hits[0].x < hits[1].x ? hits[0] : hits[1];
       const right = hits[0].x < hits[1].x ? hits[1] : hits[0];
 
       const plane = planeFrom3Points(
-        { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
+        { x: ridgeEnd.x, z: ridgeEnd.z, y: ridgeTopAbs },
         { x: left.x, z: left.z, y: eaveTopAbs },
         { x: right.x, z: right.z, y: eaveTopAbs }
       );
@@ -792,10 +808,10 @@ function getRoofHeightFunctions(
     const sd = signedPerpDistanceToInfiniteLineXZ(
       p.x,
       p.z,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
+      ridgeStart.x,
+      ridgeStart.z,
+      ridgeEnd.x,
+      ridgeEnd.z
     );
 
     maxRun = Math.max(maxRun, Math.abs(sd));
@@ -808,10 +824,10 @@ function getRoofHeightFunctions(
     const sd = signedPerpDistanceToInfiniteLineXZ(
       px,
       pz,
-      ridge.start.x,
-      ridge.start.z,
-      ridge.end.x,
-      ridge.end.z
+      ridgeStart.x,
+      ridgeStart.z,
+      ridgeEnd.x,
+      ridgeEnd.z
     );
 
     return ridgeTopAbs - k * Math.abs(sd);
@@ -867,7 +883,7 @@ function buildMultiRidgeRoof(
     const posGeometry = buildRoofFaceGeometry({
       faceId: "multi-ridge-pos",
       polyClosed: pos,
-      triangles: triangulateXZ(pos),
+      triangles: triangulateXZ(pos.map(archToWorldXZ)),
       thickness,
       heightAtOuter: roofOuterAt,
     });
@@ -878,7 +894,7 @@ function buildMultiRidgeRoof(
     const negGeometry = buildRoofFaceGeometry({
       faceId: "multi-ridge-neg",
       polyClosed: neg,
-      triangles: triangulateXZ(neg),
+      triangles: triangulateXZ(neg.map(archToWorldXZ)),
       thickness,
       heightAtOuter: roofOuterAt,
     });
@@ -927,8 +943,8 @@ export function buildStructuralGableGeometry(
 
   for (const p of fp) {
     const wp = archToWorldXZ(p);
-    const yTop = roofOuterAt(p.x, p.z);
-    const yBot = roofBottomAt(p.x, p.z);
+    const yTop = roofOuterAt(wp.x, wp.z);
+    const yBot = roofBottomAt(wp.x, wp.z);
 
     topVerts.push(wp.x, yTop, wp.z);
     botVerts.push(wp.x, yBot, wp.z);

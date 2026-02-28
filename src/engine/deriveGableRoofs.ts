@@ -606,10 +606,9 @@ function deriveMultiPlaneRoofGeometries(
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        const corners = getConvexCorners(fp);
-        const C = corners[0]; // TEMP DEBUG: force same corner always
+        const C = pickCornerForEndAndSide(fp, ridge, endKey, B);
         if (!C) return;
-        console.log("cornerPick (forced)", { endKey, side, B, forcedCorner: C, corners });
+        console.log("cornerPick", { endKey, side, B, pickedCorner: C });
 
         const E = endKey === "start" ? ridge.start : ridge.end;
         const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
@@ -742,46 +741,35 @@ function pickCornerForEndAndSide(
   fpClosed: XZ[],
   ridge: { start: XZ; end: XZ },
   end: "start" | "end",
-  side: "left" | "right"
+  B: XZ
 ): XZ | null {
   const corners = getConvexCorners(fpClosed);
   if (!corners.length) return null;
 
   const E = end === "start" ? ridge.start : ridge.end;
 
-  // 1️⃣ Sort corners by distance to ridge endpoint
-  const sorted = corners
+  // Step 1: keep corners near the correct ridge end
+  const nearEnd = corners
     .map((c) => ({ c, d: dist2(c, E) }))
     .sort((a, b) => a.d - b.d)
+    .slice(0, 3)
     .map((o) => o.c);
 
-  // 2️⃣ Take the two closest corners
-  const local = sorted.slice(0, 2);
-  if (local.length < 2) return null;
+  if (!nearEnd.length) return null;
 
-  const ridgeDir = {
-    x: ridge.end.x - ridge.start.x,
-    z: ridge.end.z - ridge.start.z,
-  };
+  // Step 2: from those, choose closest to seam base B
+  let best = nearEnd[0];
+  let bestD = dist2(best, B);
 
-  const outwardSign = side === "left" ? 1 : -1;
-
-  // 3️⃣ Pick correct one by cross test
-  for (const c of local) {
-    const rel = {
-      x: c.x - E.x,
-      z: c.z - E.z,
-    };
-
-    const cross = ridgeDir.x * rel.z - ridgeDir.z * rel.x;
-
-    if (Math.sign(cross) === outwardSign) {
-      return c;
+  for (const c of nearEnd) {
+    const d = dist2(c, B);
+    if (d < bestD) {
+      best = c;
+      bestD = d;
     }
   }
 
-  // fallback: return closest
-  return local[0];
+  return best;
 }
 
 function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {

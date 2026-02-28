@@ -10,6 +10,14 @@ type Props = {
   invalidRoofIds?: Set<string>;
 };
 
+type BuildGeometriesOptions = {
+  invalidRoofIds?: Set<string>;
+};
+
+function buildGeometries(arch: ArchitecturalHouse, options: BuildGeometriesOptions) {
+  return deriveGableRoofGeometries(arch, options);
+}
+
 function disposeGeometries(geometries: THREE.BufferGeometry[]) {
   geometries.forEach((geometry) => geometry.dispose());
 }
@@ -20,19 +28,20 @@ export function EngineGableRoofsDebug({
   visible = true,
   invalidRoofIds,
 }: Props) {
-  const geometries = useMemo(() => deriveGableRoofGeometries(arch, { invalidRoofIds }), [arch, roofRevision, invalidRoofIds]);
+  const options = useMemo(() => ({ invalidRoofIds }), [invalidRoofIds]);
+  const sceneGeometries = useMemo(() => buildGeometries(arch, options), [arch, options, roofRevision]);
 
   useEffect(() => {
     return () => {
-      disposeGeometries(geometries);
+      disposeGeometries(sceneGeometries);
     };
-  }, [geometries]);
+  }, [sceneGeometries]);
 
   if (!visible) return null;
 
   return (
     <>
-      {geometries.map((geom, i) => (
+      {sceneGeometries.map((geom, i) => (
         <mesh key={i} geometry={geom}>
           <meshStandardMaterial color="black" wireframe />
         </mesh>

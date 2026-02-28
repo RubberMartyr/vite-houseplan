@@ -760,9 +760,11 @@ function pickCornerForEndAndSide(
   let bestScore = -Infinity;
 
   for (const c of candidates) {
+    const origin = end === "start" ? ridge.start : ridge.end;
+
     const rel = {
-      x: c.x - ridge.start.x,
-      z: c.z - ridge.start.z,
+      x: c.x - origin.x,
+      z: c.z - origin.z,
     };
 
     const cross = ridgeDir.x * rel.z - ridgeDir.z * rel.x;

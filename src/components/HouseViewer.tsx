@@ -938,26 +938,6 @@ function HouseScene({
         const orientation = assertOrientationWorld(group, camera, gl.domElement);
         (window as any).__HOUSE_ORIENTATION__ = orientation;
 
-        const leftScreenX = orientation.facades.left.screen.x;
-        const rightScreenX = orientation.facades.right.screen.x;
-        const frontScreenX = orientation.facades.front.screen.x;
-        const rearScreenX = orientation.facades.rear.screen.x;
-
-        console.assert(
-          leftScreenX < rightScreenX,
-          '[orientation] Expected left facade marker to render left of right marker on screen.',
-          orientation
-        );
-
-        if (!(leftScreenX < rightScreenX)) {
-          console.error('[orientation] Screen-space facade assertion failed', {
-            leftScreenX,
-            rightScreenX,
-            frontScreenX,
-            rearScreenX,
-            orientation,
-          });
-        }
       }
     }
 

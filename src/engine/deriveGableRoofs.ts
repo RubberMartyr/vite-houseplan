@@ -600,6 +600,7 @@ function deriveMultiPlaneRoofGeometries(
 
     (["start", "end"] as const).forEach((endKey) => {
       (["left", "right"] as const).forEach((side) => {
+        console.log("CORNER TRY", ridge.id, endKey, side);
         const seamPair = bases[endKey];
         if (!seamPair) return;
 
@@ -610,6 +611,8 @@ function deriveMultiPlaneRoofGeometries(
         console.log("cornerPick", { endKey, side, B, C });
 
         const E = endKey === "start" ? ridge.start : ridge.end;
+        const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
+        console.log("Corner area", endKey, side, area);
 
         // Build an explicit triangle poly in arch space (closed)
         const triPoly: XZ[] = ensureClosed([E, C, B]);
@@ -630,7 +633,10 @@ function deriveMultiPlaneRoofGeometries(
           heightAtOuter: (x, z) => plane.heightAt(x, z),
         });
 
-        if (geometry) geometries.push(geometry);
+        if (geometry) {
+          geometries.push(geometry);
+          console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
+        }
       });
     });
   }
@@ -711,21 +717,17 @@ function sideOfRidge(ridge: { start: XZ; end: XZ }, p: XZ): "left" | "right" | "
   return cross > 0 ? "left" : "right";
 }
 
-// convex corner test for a *closed* polygon (last point == first point)
-function isConvexVertex(prev: XZ, cur: XZ, next: XZ): boolean {
-  const ax = cur.x - prev.x;
-  const az = cur.z - prev.z;
-  const bx = next.x - cur.x;
-  const bz = next.z - cur.z;
-  const cross = ax * bz - az * bx;
-  // depending on winding this sign flips; we just want "not reflex".
-  // we'll treat "large negative" as reflex, ">=0" as convex-ish.
-  return cross >= 0;
-}
-
 function getConvexCorners(fpClosed: XZ[]): XZ[] {
   const pts = fpClosed.slice(0, -1); // remove duplicate closing point
   if (pts.length < 3) return [];
+
+  let area2 = 0;
+  for (let i = 0; i < fpClosed.length - 1; i++) {
+    const a = fpClosed[i];
+    const b = fpClosed[i + 1];
+    area2 += a.x * b.z - b.x * a.z;
+  }
+  const isCCW = area2 > 0;
 
   const corners: XZ[] = [];
   const n = pts.length;
@@ -733,7 +735,15 @@ function getConvexCorners(fpClosed: XZ[]): XZ[] {
     const prev = pts[(i - 1 + n) % n];
     const cur = pts[i];
     const next = pts[(i + 1) % n];
-    if (isConvexVertex(prev, cur, next)) corners.push(cur);
+
+    const ax = cur.x - prev.x;
+    const az = cur.z - prev.z;
+    const bx = next.x - cur.x;
+    const bz = next.z - cur.z;
+    const cross = ax * bz - az * bx;
+    const convex = isCCW ? cross >= 0 : cross <= 0;
+
+    if (convex) corners.push(cur);
   }
   return corners;
 }
@@ -746,6 +756,7 @@ function pickCornerForEndAndSideFromBase(
   B: XZ
 ): XZ | null {
   const corners = getConvexCorners(fpClosed);
+  console.log("Convex corners count", corners.length);
   if (corners.length === 0) return null;
 
   // 1) Prefer corners on correct ridge side

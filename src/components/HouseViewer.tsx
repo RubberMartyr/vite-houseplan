@@ -968,41 +968,87 @@ function HouseScene({
   const showGround = activeFloors.ground;
   const showFirst = activeFloors.first;
   const showAttic = activeFloors.attic;
-  const leftCtx = useMemo(() => createFacadeContext('architecturalLeft'), []);
-  const rightCtx = useMemo(() => createFacadeContext('architecturalRight'), []);
-  const leftPlacements = useMemo<FacadeWindowPlacement[]>(
-    () => buildFacadeWindowPlacements(leftCtx, leftSideWindowSpecs),
-    [leftCtx]
-  );
-  const rightPlacements = useMemo<FacadeWindowPlacement[]>(
-    () => buildFacadeWindowPlacements(rightCtx, rightSideWindowSpecs),
-    [rightCtx]
-  );
-  const leftSideWindows = useMemo(() => buildSideWindows({ ctx: leftCtx, placements: leftPlacements }), [leftCtx, leftPlacements]);
-  const rightSideWindows = useMemo(() => buildSideWindows({ ctx: rightCtx, placements: rightPlacements }), [rightCtx, rightPlacements]);
-  if (runtimeFlags.debugWindows) {
-    console.assert(
-      rightPlacements.length > 0,
-      'Right facade placements should be populated for side windows.'
-    );
-  }
+  const houseGeometry = useMemo(() => {
+    const leftCtx = createFacadeContext('architecturalLeft');
+    const rightCtx = createFacadeContext('architecturalRight');
+    const leftPlacements: FacadeWindowPlacement[] = buildFacadeWindowPlacements(leftCtx, leftSideWindowSpecs);
+    const rightPlacements: FacadeWindowPlacement[] = buildFacadeWindowPlacements(rightCtx, rightSideWindowSpecs);
+    const leftSideWindows = buildSideWindows({ ctx: leftCtx, placements: leftPlacements });
+    const rightSideWindows = buildSideWindows({ ctx: rightCtx, placements: rightPlacements });
 
-  const wallsGround = useMemo(
-    () =>
-      buildWallsGround({
-        leftPlacements,
-        rightPlacements,
-      }),
-    [leftPlacements, rightPlacements]
-  );
-  const wallsFirst = useMemo(
-    () =>
-      buildWallsFirst({
-        leftPlacements,
-        rightPlacements,
-      }),
-    [leftPlacements, rightPlacements]
-  );
+    if (runtimeFlags.debugWindows) {
+      console.assert(
+        rightPlacements.length > 0,
+        'Right facade placements should be populated for side windows.'
+      );
+    }
+
+    const wallsGround = buildWallsGround({
+      leftPlacements,
+      rightPlacements,
+    });
+    const wallsFirst = buildWallsFirst({
+      leftPlacements,
+      rightPlacements,
+    });
+
+    const groundOuterEnvelope = getEnvelopeOuterPolygon();
+    const groundEnvelopePolygon = getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope);
+    const groundEnvelopeShape = makeFootprintShape(groundEnvelopePolygon);
+    const basementCeilingGeometry = new THREE.ShapeGeometry(groundEnvelopeShape);
+    basementCeilingGeometry.rotateX(-Math.PI / 2);
+
+    const firstOuterEnvelope = getEnvelopeFirstOuterPolygon();
+    const firstEnvelopePolygon = getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope);
+    const firstEnvelopeShape = makeFootprintShape(firstEnvelopePolygon);
+
+    const flatRoofPolygon = getFlatRoofPolygon();
+    const flatRoofShape = makeFootprintShape(flatRoofPolygon);
+    const greenRoofPolygon = getEnvelopeInnerPolygon(0.4, flatRoofPolygon);
+    const greenRoofShape =
+      greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null;
+
+    const zSamples = [2, 5.5, 8.5, 11.5];
+    const debugWallPlaneSamples = zSamples.map((z) => {
+      const outwardLeft = leftCtx.outward as 1 | -1;
+      const outwardRight = rightCtx.outward as 1 | -1;
+      const xLeftOuter = getOuterWallXAtZ(outwardLeft, z);
+      const xRightOuter = getOuterWallXAtZ(outwardRight, z);
+      const thickness = 0.3;
+      const xLeftInner = xLeftOuter - outwardLeft * thickness;
+      const xRightInner = xRightOuter - outwardRight * thickness;
+
+      return { z, xLeftOuter, xRightOuter, xLeftInner, xRightInner };
+    });
+
+    return {
+      leftSideWindows,
+      rightSideWindows,
+      wallsGround,
+      wallsFirst,
+      groundEnvelopePolygon,
+      firstEnvelopePolygon,
+      groundEnvelopeShape,
+      basementCeilingGeometry,
+      firstEnvelopeShape,
+      flatRoofShape,
+      greenRoofShape,
+      debugWallPlaneSamples,
+    };
+  }, []);
+  const {
+    leftSideWindows,
+    rightSideWindows,
+    wallsGround,
+    wallsFirst,
+    groundEnvelopePolygon,
+    firstEnvelopePolygon,
+    groundEnvelopeShape,
+    basementCeilingGeometry,
+    firstEnvelopeShape,
+    flatRoofShape,
+    greenRoofShape,
+  } = houseGeometry;
   const wallsGroundWithOptionals = wallsGround as typeof wallsGround & {
     extensionRightWall?: PositionedMesh;
     frontFacade?: PositionedMesh;
@@ -1036,43 +1082,6 @@ function HouseScene({
     );
   }, [eavesBandMaterial, wallShellVisible]);
 
-  const getRearFacadeSpan = (points: FootprintPoint[]) => {
-    if (!points || points.length === 0) {
-      return null;
-    }
-    const maxZ = points.reduce((max, point) => Math.max(max, point.z), -Infinity);
-    const rearPoints = points.filter((point) => Math.abs(point.z - maxZ) < 1e-6);
-    const minX = rearPoints.reduce((min, point) => Math.min(min, point.x), Infinity);
-    const maxX = rearPoints.reduce((max, point) => Math.max(max, point.x), -Infinity);
-    return {
-      minX,
-      maxX,
-      maxZ,
-      width: maxX - minX,
-    };
-  };
-
-  const groundOuterEnvelope = useMemo(() => getEnvelopeOuterPolygon(), []);
-  const groundEnvelopePolygon = useMemo(
-    () => getEnvelopeInnerPolygon(wallThickness.exterior, groundOuterEnvelope),
-    [groundOuterEnvelope]
-  );
-  const groundEnvelopeShape = useMemo(() => makeFootprintShape(groundEnvelopePolygon), [groundEnvelopePolygon]);
-  const basementCeilingGeometry = useMemo(() => {
-    const geometry = new THREE.ShapeGeometry(groundEnvelopeShape);
-    geometry.rotateX(-Math.PI / 2);
-    return geometry;
-  }, [groundEnvelopeShape]);
-
-  const firstOuterEnvelope = useMemo(() => getEnvelopeFirstOuterPolygon(), []);
-  const firstEnvelopePolygon = useMemo(
-    () => getEnvelopeInnerPolygon(wallThickness.exterior, firstOuterEnvelope),
-    [firstOuterEnvelope]
-  );
-  const groundRearSpan = useMemo(() => getRearFacadeSpan(groundOuterEnvelope), [groundOuterEnvelope]);
-  const firstRearSpan = useMemo(() => getRearFacadeSpan(firstOuterEnvelope), [firstOuterEnvelope]);
-  const firstEnvelopeShape = useMemo(() => makeFootprintShape(firstEnvelopePolygon), [firstEnvelopePolygon]);
-
   useEffect(() => {
     const outer = getEnvelopeOuterPolygon();
 
@@ -1084,14 +1093,6 @@ function HouseScene({
     console.log('ENVELOPE BOUNDS', { minX, maxX, minZ, maxZ });
     console.log('FIRST 4 ENVELOPE POINTS', outer.slice(0, 4));
   }, []);
-
-  const flatRoofPolygon = useMemo(() => getFlatRoofPolygon(), []);
-  const flatRoofShape = useMemo(() => makeFootprintShape(flatRoofPolygon), [flatRoofPolygon]);
-  const greenRoofPolygon = useMemo(() => getEnvelopeInnerPolygon(0.4, flatRoofPolygon), [flatRoofPolygon]);
-  const greenRoofShape = useMemo(
-    () => (greenRoofPolygon && greenRoofPolygon.length >= 3 ? makeFootprintShape(greenRoofPolygon) : null),
-    [greenRoofPolygon]
-  );
 
   const activeRooms = useMemo(() => {
     const list: RoomVolume[] = [];
@@ -1313,28 +1314,7 @@ function HouseScene({
 
         <Roof visible={showLegacy && showRoof} wireframe={roofWireframe} />
 
-        {DEBUG_WALL_PLANES && (() => {
-          const zSamples = [2, 5.5, 8.5, 11.5]; // same z as your side windows
-          const height = 3;
-
-          const lines: React.ReactNode[] = [];
-
-          zSamples.forEach((z) => {
-            const outwardLeft = createFacadeContext('architecturalLeft').outward as 1 | -1;
-            const outwardRight = createFacadeContext('architecturalRight').outward as 1 | -1;
-
-            const xLeftOuter = getOuterWallXAtZ(outwardLeft, z);
-            const xRightOuter = getOuterWallXAtZ(outwardRight, z);
-
-            const thickness = 0.3; // your exteriorThickness
-
-            const xLeftInner = xLeftOuter - outwardLeft * thickness;
-            const xRightInner = xRightOuter - outwardRight * thickness;
-
-          });
-
-          return lines;
-        })()}
+        {DEBUG_WALL_PLANES && houseGeometry.debugWallPlaneSamples.length > 0 && null}
       </group>
 
       {/* GROUNDS */}

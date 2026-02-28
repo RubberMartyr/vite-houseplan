@@ -620,7 +620,12 @@ function deriveMultiPlaneRoofGeometries(
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
         // Step 3: choose correct corner from pair using seam base
-        const C = pickCornerFromPairByBase(cornerPair, B);
+        let C = pickCornerFromPairByBase(cornerPair, B);
+
+        // If seam base equals selected corner, force-pick the other corner.
+        if (C && B && sameXZ(C, B)) {
+          C = sameXZ(cornerPair[0], C) ? cornerPair[1] : cornerPair[0];
+        }
 
         // 🔎 DEBUG LOG
         logCornerDebug(ridge.id, endKey, side, E, cornerPair, B, C);
@@ -721,6 +726,10 @@ function dist2(a: XZ, b: XZ): number {
   const dx = a.x - b.x;
   const dz = a.z - b.z;
   return dx * dx + dz * dz;
+}
+
+function sameXZ(a: XZ, b: XZ, eps = 1e-6): boolean {
+  return Math.abs(a.x - b.x) < eps && Math.abs(a.z - b.z) < eps;
 }
 
 function logCornerDebug(

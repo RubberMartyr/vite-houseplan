@@ -590,6 +590,50 @@ function deriveMultiPlaneRoofGeometries(
     processFace(face);
   }
 
+  // PASS 1.5: build 4 corner hip facets (one per ridge end + side)
+  for (const ridge of roof.ridgeSegments) {
+    const bases = hipBases.get(ridge.id);
+    if (!bases?.start || !bases?.end) continue;
+
+    const ridgeTopAbs = baseLevel.elevation + ridge.height;
+    const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+
+    (["start", "end"] as const).forEach((endKey) => {
+      (["left", "right"] as const).forEach((side) => {
+        const seamPair = bases[endKey];
+        if (!seamPair) return;
+
+        // seam base point for that side at that ridge end
+        const B = pickBaseForSide(ridge, seamPair, side);
+        const C = pickCornerForEndAndSide(fp, ridge, endKey, side);
+        if (!C) return;
+
+        const E = endKey === "start" ? ridge.start : ridge.end;
+
+        // Build an explicit triangle poly in arch space (closed)
+        const triPoly: XZ[] = ensureClosed([E, C, B]);
+
+        const plane = planeFromArchPoints(
+          { x: E.x, z: E.z, y: ridgeTopAbs },
+          { x: C.x, z: C.z, y: eaveTopAbs },
+          { x: B.x, z: B.z, y: eaveTopAbs }
+        );
+        if (!plane) return;
+
+        const triangles = triangulateXZ(triPoly.map(archToWorldXZ));
+        const geometry = buildRoofFaceGeometry({
+          faceId: `corner-${ridge.id}-${endKey}-${side}`,
+          polyClosed: triPoly,
+          triangles,
+          thickness,
+          heightAtOuter: (x, z) => plane.heightAt(x, z),
+        });
+
+        if (geometry) geometries.push(geometry);
+      });
+    });
+  }
+
   for (const ridge of roof.ridgeSegments) {
     const bases = hipBases.get(ridge.id);
     if (!bases?.start || !bases?.end) continue;
@@ -633,6 +677,80 @@ function deriveMultiPlaneRoofGeometries(
   }
 
   return geometries;
+}
+
+function dist2(a: XZ, b: XZ) {
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return dx * dx + dz * dz;
+}
+
+// cross( ridgeDir, point - ridgeStart ) in XZ
+function sideOfRidge(ridge: { start: XZ; end: XZ }, p: XZ): "left" | "right" | "on" {
+  const vx = ridge.end.x - ridge.start.x;
+  const vz = ridge.end.z - ridge.start.z;
+  const px = p.x - ridge.start.x;
+  const pz = p.z - ridge.start.z;
+  const cross = vx * pz - vz * px;
+  if (Math.abs(cross) < 1e-9) return "on";
+  return cross > 0 ? "left" : "right";
+}
+
+// convex corner test for a *closed* polygon (last point == first point)
+function isConvexVertex(prev: XZ, cur: XZ, next: XZ): boolean {
+  const ax = cur.x - prev.x;
+  const az = cur.z - prev.z;
+  const bx = next.x - cur.x;
+  const bz = next.z - cur.z;
+  const cross = ax * bz - az * bx;
+  // depending on winding this sign flips; we just want "not reflex".
+  // we'll treat "large negative" as reflex, ">=0" as convex-ish.
+  return cross >= 0;
+}
+
+function getConvexCorners(fpClosed: XZ[]): XZ[] {
+  const pts = fpClosed.slice(0, -1); // remove duplicate closing point
+  if (pts.length < 3) return [];
+
+  const corners: XZ[] = [];
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const prev = pts[(i - 1 + n) % n];
+    const cur = pts[i];
+    const next = pts[(i + 1) % n];
+    if (isConvexVertex(prev, cur, next)) corners.push(cur);
+  }
+  return corners;
+}
+
+function pickCornerForEndAndSide(
+  fpClosed: XZ[],
+  ridge: { start: XZ; end: XZ },
+  end: "start" | "end",
+  side: "left" | "right"
+): XZ | null {
+  const corners = getConvexCorners(fpClosed);
+  if (corners.length === 0) return null;
+
+  const E = end === "start" ? ridge.start : ridge.end;
+
+  // corners on the requested side of ridge line
+  const candidates = corners.filter((c) => sideOfRidge(ridge, c) === side);
+
+  // if concavity/winding makes side test too strict, fall back to all corners
+  const pool = candidates.length > 0 ? candidates : corners;
+
+  // choose closest corner to that ridge endpoint
+  let best = pool[0];
+  let bestD = dist2(best, E);
+  for (const c of pool) {
+    const d = dist2(c, E);
+    if (d < bestD) {
+      best = c;
+      bestD = d;
+    }
+  }
+  return best;
 }
 
 function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {

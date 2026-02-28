@@ -605,7 +605,7 @@ function deriveMultiPlaneRoofGeometries(
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        const C = pickCornerForEndAndSide(fp, ridge, endKey, side);
+        const C = pickCornerForEndAndSideFromBase(fp, ridge, endKey, side, B);
         if (!C) return;
 
         const E = endKey === "start" ? ridge.start : ridge.end;
@@ -685,6 +685,20 @@ function dist2(a: XZ, b: XZ) {
   return dx * dx + dz * dz;
 }
 
+function clamp01(t: number) {
+  return Math.max(0, Math.min(1, t));
+}
+
+function ridgeParamT(ridge: { start: XZ; end: XZ }, p: XZ): number {
+  const vx = ridge.end.x - ridge.start.x;
+  const vz = ridge.end.z - ridge.start.z;
+  const denom = vx * vx + vz * vz;
+  if (denom < 1e-9) return 0;
+  const px = p.x - ridge.start.x;
+  const pz = p.z - ridge.start.z;
+  return (px * vx + pz * vz) / denom;
+}
+
 // cross( ridgeDir, point - ridgeStart ) in XZ
 function sideOfRidge(ridge: { start: XZ; end: XZ }, p: XZ): "left" | "right" | "on" {
   const vx = ridge.end.x - ridge.start.x;
@@ -723,28 +737,33 @@ function getConvexCorners(fpClosed: XZ[]): XZ[] {
   return corners;
 }
 
-function pickCornerForEndAndSide(
+function pickCornerForEndAndSideFromBase(
   fpClosed: XZ[],
   ridge: { start: XZ; end: XZ },
   end: "start" | "end",
-  side: "left" | "right"
+  side: "left" | "right",
+  B: XZ
 ): XZ | null {
   const corners = getConvexCorners(fpClosed);
   if (corners.length === 0) return null;
 
-  const E = end === "start" ? ridge.start : ridge.end;
+  // 1) Prefer corners on correct ridge side
+  let candidates = corners.filter((c) => sideOfRidge(ridge, c) === side);
 
-  // corners on the requested side of ridge line
-  const candidates = corners.filter((c) => sideOfRidge(ridge, c) === side);
+  // 2) Prefer corners on correct ridge end (using projected t)
+  const endFiltered = candidates.filter((c) => {
+    const t = ridgeParamT(ridge, c);
+    return end === "start" ? t <= 0.35 : t >= 0.65;
+  });
 
-  // if concavity/winding makes side test too strict, fall back to all corners
-  const pool = candidates.length > 0 ? candidates : corners;
+  if (endFiltered.length > 0) candidates = endFiltered;
+  if (candidates.length === 0) candidates = corners;
 
-  // choose closest corner to that ridge endpoint
-  let best = pool[0];
-  let bestD = dist2(best, E);
-  for (const c of pool) {
-    const d = dist2(c, E);
+  // 3) Choose the corner closest to seam base B (NOT ridge endpoint E)
+  let best = candidates[0];
+  let bestD = dist2(best, B);
+  for (const c of candidates) {
+    const d = dist2(c, B);
     if (d < bestD) {
       best = c;
       bestD = d;

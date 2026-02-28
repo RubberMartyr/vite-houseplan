@@ -601,16 +601,33 @@ function deriveMultiPlaneRoofGeometries(
     (["start", "end"] as const).forEach((endKey) => {
       (["left", "right"] as const).forEach((side) => {
         console.log("CORNER TRY", ridge.id, endKey, side);
+        const E = endKey === "start" ? ridge.start : ridge.end;
+
+        // Step 1: get two nearest convex corners to ridge endpoint
+        const cornerPair = pickTwoNearestCornersToEndpoint(fp, E);
+        if (!cornerPair) {
+          console.warn("No cornerPair found", ridge.id, endKey);
+          return;
+        }
+
+        // Step 2: get seam base for this side
         const seamPair = bases[endKey];
-        if (!seamPair) return;
+        if (!seamPair) {
+          console.warn("No seamPair found", ridge.id, endKey);
+          return;
+        }
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        const C = pickCornerForEndAndSide(fp, ridge, endKey, side);
+        // Step 3: choose correct corner from pair using seam base
+        const C = pickCornerFromPairByBase(cornerPair, B);
+
+        // 🔎 DEBUG LOG
+        logCornerDebug(ridge.id, endKey, side, E, cornerPair, B, C);
+
         if (!C) return;
         console.log("cornerPick", { endKey, side, B, pickedCorner: C });
 
-        const E = endKey === "start" ? ridge.start : ridge.end;
         const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
         console.log("Corner area", endKey, side, area);
 
@@ -706,6 +723,23 @@ function dist2(a: XZ, b: XZ): number {
   return dx * dx + dz * dz;
 }
 
+function logCornerDebug(
+  ridgeId: string,
+  endKey: "start" | "end",
+  side: "left" | "right",
+  E: XZ,
+  cornerPair: [XZ, XZ] | null,
+  B: XZ | null,
+  picked: XZ | null
+) {
+  console.group(`CORNER DEBUG → ridge:${ridgeId} end:${endKey} side:${side}`);
+  console.log("Ridge endpoint E:", E);
+  console.log("Corner pair:", cornerPair);
+  console.log("Seam base B:", B);
+  console.log("Picked corner C:", picked);
+  console.groupEnd();
+}
+
 function getConvexCorners(fpClosed: XZ[]): XZ[] {
   const pts = fpClosed.slice(0, -1); // remove duplicate closing point
   if (pts.length < 3) return [];
@@ -741,6 +775,27 @@ type RidgeSegment = {
   start: XZ;
   end: XZ;
 };
+
+function pickTwoNearestCornersToEndpoint(fpClosed: XZ[], E: XZ): [XZ, XZ] | null {
+  const corners = getConvexCorners(fpClosed);
+  if (corners.length < 2) return null;
+
+  const local = corners
+    .map((c) => ({ c, d: dist2(c, E) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 2)
+    .map((o) => o.c);
+
+  if (local.length < 2) return null;
+  return [local[0], local[1]];
+}
+
+function pickCornerFromPairByBase(cornerPair: [XZ, XZ], B: XZ | null): XZ | null {
+  if (!B) return null;
+
+  const [c1, c2] = cornerPair;
+  return dist2(c1, B) <= dist2(c2, B) ? c1 : c2;
+}
 
 function pickCornerForEndAndSide(
   fpClosed: XZ[],

@@ -562,11 +562,19 @@ export default function HouseViewer() {
   }, [houseData.roofs]);
   const buildAttempt = useMemo(() => {
     try {
-      const hasRoofValidationErrors = roofValidationEntries.some((entry) => entry.validation.errors.length > 0);
+      const normalizedRoofs = (houseData.roofs ?? [])
+        .filter((roof): roof is MultiPlaneRoofSpec => roof.type === 'multi-plane')
+        .map((roof) => normalizeMultiPlaneRoof(roof));
+
+      const hasRoofValidationErrors = normalizedRoofs.some((normalized) => {
+        const validation = validateMultiPlaneRoof(normalized);
+        return validation.errors.length > 0;
+      });
+
       if (hasRoofValidationErrors) {
         return {
-          derived: null,
-          error: 'Roof validation failed. Fix multi-plane roof errors to derive new roof geometry.',
+          derived: lastGoodDerived,
+          error: 'Roof invalid',
         };
       }
 
@@ -590,7 +598,7 @@ export default function HouseViewer() {
         error: error instanceof Error ? error.message : String(error),
       };
     }
-  }, [houseData, roofRevision, roofValidationEntries]);
+  }, [houseData, lastGoodDerived, roofRevision, roofValidationEntries]);
 
   useEffect(() => {
     if (buildAttempt.derived) {

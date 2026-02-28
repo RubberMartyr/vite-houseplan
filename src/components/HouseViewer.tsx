@@ -598,7 +598,7 @@ export default function HouseViewer() {
         error: error instanceof Error ? error.message : String(error),
       };
     }
-  }, [houseData, lastGoodDerived, roofRevision, roofValidationEntries]);
+  }, [houseData, roofRevision, roofValidationEntries]);
 
   useEffect(() => {
     if (buildAttempt.derived) {

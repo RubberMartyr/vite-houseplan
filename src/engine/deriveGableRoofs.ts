@@ -606,7 +606,7 @@ function deriveMultiPlaneRoofGeometries(
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        const C = pickCornerForEndAndSideFromBase(fp, ridge, endKey, side, B);
+        const C = pickCornerForEndAndSide(fp, ridge, endKey, side);
         if (!C) return;
         console.log("cornerPick", { endKey, side, B, C });
 
@@ -686,12 +686,6 @@ function deriveMultiPlaneRoofGeometries(
   return geometries;
 }
 
-function dist2(a: XZ, b: XZ) {
-  const dx = a.x - b.x;
-  const dz = a.z - b.z;
-  return dx * dx + dz * dz;
-}
-
 function clamp01(t: number) {
   return Math.max(0, Math.min(1, t));
 }
@@ -704,17 +698,6 @@ function ridgeParamT(ridge: { start: XZ; end: XZ }, p: XZ): number {
   const px = p.x - ridge.start.x;
   const pz = p.z - ridge.start.z;
   return (px * vx + pz * vz) / denom;
-}
-
-// cross( ridgeDir, point - ridgeStart ) in XZ
-function sideOfRidge(ridge: { start: XZ; end: XZ }, p: XZ): "left" | "right" | "on" {
-  const vx = ridge.end.x - ridge.start.x;
-  const vz = ridge.end.z - ridge.start.z;
-  const px = p.x - ridge.start.x;
-  const pz = p.z - ridge.start.z;
-  const cross = vx * pz - vz * px;
-  if (Math.abs(cross) < 1e-9) return "on";
-  return cross > 0 ? "left" : "right";
 }
 
 function getConvexCorners(fpClosed: XZ[]): XZ[] {
@@ -748,39 +731,51 @@ function getConvexCorners(fpClosed: XZ[]): XZ[] {
   return corners;
 }
 
-function pickCornerForEndAndSideFromBase(
+function pickCornerForEndAndSide(
   fpClosed: XZ[],
   ridge: { start: XZ; end: XZ },
   end: "start" | "end",
-  side: "left" | "right",
-  B: XZ
+  side: "left" | "right"
 ): XZ | null {
   const corners = getConvexCorners(fpClosed);
-  console.log("Convex corners count", corners.length);
-  if (corners.length === 0) return null;
+  if (!corners.length) return null;
 
-  // 1) Prefer corners on correct ridge side
-  let candidates = corners.filter((c) => sideOfRidge(ridge, c) === side);
-
-  // 2) Prefer corners on correct ridge end (using projected t)
-  const endFiltered = candidates.filter((c) => {
+  const candidates = corners.filter((c) => {
     const t = ridgeParamT(ridge, c);
-    return end === "start" ? t <= 0.35 : t >= 0.65;
+
+    // keep corners near the correct ridge end
+    return end === "start" ? t <= 0.5 : t >= 0.5;
   });
 
-  if (endFiltered.length > 0) candidates = endFiltered;
-  if (candidates.length === 0) candidates = corners;
+  if (!candidates.length) return null;
 
-  // 3) Choose the corner closest to seam base B (NOT ridge endpoint E)
-  let best = candidates[0];
-  let bestD = dist2(best, B);
+  const ridgeDir = {
+    x: ridge.end.x - ridge.start.x,
+    z: ridge.end.z - ridge.start.z,
+  };
+
+  const outwardSign = side === "left" ? 1 : -1;
+
+  let best: XZ | null = null;
+  let bestScore = -Infinity;
+
   for (const c of candidates) {
-    const d = dist2(c, B);
-    if (d < bestD) {
+    const rel = {
+      x: c.x - ridge.start.x,
+      z: c.z - ridge.start.z,
+    };
+
+    const cross = ridgeDir.x * rel.z - ridgeDir.z * rel.x;
+
+    if (Math.sign(cross) !== outwardSign) continue;
+
+    const score = Math.abs(cross);
+    if (score > bestScore) {
       best = c;
-      bestD = d;
+      bestScore = score;
     }
   }
+
   return best;
 }
 

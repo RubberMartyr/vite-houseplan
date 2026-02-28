@@ -137,11 +137,8 @@ export function assertOrientationWorld(
     },
   };
 
-  console.info('[orientation] world-space orientation markers', orientation);
-  // NOTE:
-  // Screen-space LEFT.x < RIGHT.x is camera-dependent and not
-  // a structural invariant in an orbitable 3D viewer.
-  // Removed strict assertion to prevent false negatives.
+  // Screen-space ordering check removed.
+  // Camera-dependent and not a structural invariant.
 
   return orientation;
 }

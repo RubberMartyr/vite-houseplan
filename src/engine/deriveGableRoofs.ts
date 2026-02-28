@@ -607,6 +607,7 @@ function deriveMultiPlaneRoofGeometries(
         const B = pickBaseForSide(ridge, seamPair, side);
         const C = pickCornerForEndAndSideFromBase(fp, ridge, endKey, side, B);
         if (!C) return;
+        console.log("cornerPick", { endKey, side, B, C });
 
         const E = endKey === "start" ? ridge.start : ridge.end;
 

@@ -138,17 +138,10 @@ export function assertOrientationWorld(
   };
 
   console.info('[orientation] world-space orientation markers', orientation);
-
-  const isLeftOnScreenLeft = orientation.facades.left.screen.x < orientation.facades.right.screen.x;
-  console.assert(
-    isLeftOnScreenLeft,
-    '[orientation] Expected screen LEFT.x < RIGHT.x in world-space projection.',
-    orientation
-  );
-
-  if (!isLeftOnScreenLeft) {
-    console.error('[orientation] WORLD ORIENTATION SCREEN ASSERTION FAILED', orientation);
-  }
+  // NOTE:
+  // Screen-space LEFT.x < RIGHT.x is camera-dependent and not
+  // a structural invariant in an orbitable 3D viewer.
+  // Removed strict assertion to prevent false negatives.
 
   return orientation;
 }

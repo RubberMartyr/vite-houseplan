@@ -49,6 +49,7 @@ import type { ArchitecturalHouse, LevelSpec } from '../engine/architecturalTypes
 import type { MultiPlaneRoofSpec } from '../engine/types';
 import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
 import { RoofJsonEditorPanel } from '../ui/RoofJsonEditorPanel';
+import { normalizeMultiPlaneRoof } from '../engine/roof/normalizeMultiPlaneRoof';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -553,7 +554,10 @@ export default function HouseViewer() {
   useEffect(() => {
     const entries = (houseData.roofs ?? [])
       .filter((roof): roof is MultiPlaneRoofSpec => roof.type === 'multi-plane')
-      .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
+      .map((roof) => {
+        const normalized = normalizeMultiPlaneRoof(roof);
+        return { roof: normalized, validation: validateMultiPlaneRoof(normalized) };
+      });
     setRoofValidationEntries(entries);
   }, [houseData.roofs]);
   const buildAttempt = useMemo(() => {
@@ -758,7 +762,10 @@ export default function HouseViewer() {
           setHouseData((prev) => ({ ...prev, roofs: cloned }));
           const entries = cloned
             .filter((roof): roof is MultiPlaneRoofSpec => !!roof && roof.type === 'multi-plane')
-            .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
+            .map((roof) => {
+              const normalized = normalizeMultiPlaneRoof(roof);
+              return { roof: normalized, validation: validateMultiPlaneRoof(normalized) };
+            });
           setRoofValidationEntries(entries);
           setRoofRevision((revision) => revision + 1);
           setRoofEditorOpen(false);

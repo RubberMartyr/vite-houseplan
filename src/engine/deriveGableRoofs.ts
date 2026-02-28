@@ -16,6 +16,7 @@ type RoofPlane = {
   heightAt(x: number, z: number): number;
 };
 import { offsetPolygonInward } from "./geom2d/offsetPolygon";
+import { normalizeMultiPlaneRoof } from "./roof/normalizeMultiPlaneRoof";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
@@ -453,7 +454,8 @@ export function deriveGableRoofGeometries(
       if (options.invalidRoofIds?.has(roof.id)) {
         continue;
       }
-      const geoms = deriveMultiPlaneRoofGeometries(arch, roof);
+      const normalized = normalizeMultiPlaneRoof(roof);
+      const geoms = deriveMultiPlaneRoofGeometries(arch, normalized);
       geometries.push(...geoms);
     }
   }

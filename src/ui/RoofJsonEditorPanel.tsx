@@ -43,8 +43,12 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEnt
       return;
     }
 
-    window.localStorage.setItem(DRAFT_STORAGE_KEY, draftText);
-  }, [draftText, isOpen]);
+    if (draftText !== currentText) {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, draftText);
+    } else {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, [draftText, currentText, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -115,7 +119,7 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEnt
   const handleReset = () => {
     setParseError(null);
     setDraftText(currentText);
-    window.localStorage.setItem(DRAFT_STORAGE_KEY, currentText);
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY);
   };
 
   const allErrors = validationEntries.flatMap((entry) => entry.validation.errors);

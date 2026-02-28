@@ -700,6 +700,12 @@ function ridgeParamT(ridge: { start: XZ; end: XZ }, p: XZ): number {
   return (px * vx + pz * vz) / denom;
 }
 
+function dist2(a: XZ, b: XZ): number {
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return dx * dx + dz * dz;
+}
+
 function getConvexCorners(fpClosed: XZ[]): XZ[] {
   const pts = fpClosed.slice(0, -1); // remove duplicate closing point
   if (pts.length < 3) return [];
@@ -740,14 +746,17 @@ function pickCornerForEndAndSide(
   const corners = getConvexCorners(fpClosed);
   if (!corners.length) return null;
 
-  const candidates = corners.filter((c) => {
-    const t = ridgeParamT(ridge, c);
+  const E = end === "start" ? ridge.start : ridge.end;
 
-    // keep corners near the correct ridge end
-    return end === "start" ? t <= 0.5 : t >= 0.5;
-  });
+  // 1️⃣ Sort corners by distance to ridge endpoint
+  const sorted = corners
+    .map((c) => ({ c, d: dist2(c, E) }))
+    .sort((a, b) => a.d - b.d)
+    .map((o) => o.c);
 
-  if (!candidates.length) return null;
+  // 2️⃣ Take the two closest corners
+  const local = sorted.slice(0, 2);
+  if (local.length < 2) return null;
 
   const ridgeDir = {
     x: ridge.end.x - ridge.start.x,
@@ -756,29 +765,22 @@ function pickCornerForEndAndSide(
 
   const outwardSign = side === "left" ? 1 : -1;
 
-  let best: XZ | null = null;
-  let bestScore = -Infinity;
-
-  for (const c of candidates) {
-    const origin = end === "start" ? ridge.start : ridge.end;
-
+  // 3️⃣ Pick correct one by cross test
+  for (const c of local) {
     const rel = {
-      x: c.x - origin.x,
-      z: c.z - origin.z,
+      x: c.x - E.x,
+      z: c.z - E.z,
     };
 
     const cross = ridgeDir.x * rel.z - ridgeDir.z * rel.x;
 
-    if (Math.sign(cross) !== outwardSign) continue;
-
-    const score = Math.abs(cross);
-    if (score > bestScore) {
-      best = c;
-      bestScore = score;
+    if (Math.sign(cross) === outwardSign) {
+      return c;
     }
   }
 
-  return best;
+  // fallback: return closest
+  return local[0];
 }
 
 function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {

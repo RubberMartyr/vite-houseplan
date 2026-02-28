@@ -374,7 +374,7 @@ function buildRoofFaceGeometry(params: {
   heightAtOuter: (x: number, z: number) => number;
 }): THREE.BufferGeometry | null {
   const { faceId, polyClosed, triangles, thickness, heightAtOuter } = params;
-  const poly = polyClosed.slice(0, -1);
+  const poly = polyClosed.slice(0, -1).map(archToWorldXZ);
 
   const topVerts: number[] = [];
   const botVerts: number[] = [];
@@ -383,7 +383,6 @@ function buildRoofFaceGeometry(params: {
   for (const p of poly) {
     const yTop = heightAtOuter(p.x, p.z);
     const yBot = yTop - thickness;
-    const world = archToWorldXZ(p);
 
     if (!Number.isFinite(yTop) || !Number.isFinite(yBot)) {
       console.warn("[roof] NaN height at", { faceId, x: p.x, z: p.z, yTop, yBot });
@@ -391,8 +390,8 @@ function buildRoofFaceGeometry(params: {
       break;
     }
 
-    topVerts.push(world.x, yTop, world.z);
-    botVerts.push(world.x, yBot, world.z);
+    topVerts.push(p.x, yTop, p.z);
+    botVerts.push(p.x, yBot, p.z);
   }
 
 
@@ -571,7 +570,7 @@ function deriveMultiPlaneRoofGeometries(
       return;
     }
 
-    const triangles = triangulateXZ(regionPoly);
+    const triangles = triangulateXZ(regionPoly.map(archToWorldXZ));
     const geometry = buildRoofFaceGeometry({
         faceId: face.id,
         polyClosed: regionPoly,
@@ -890,7 +889,7 @@ function buildMultiRidgeRoof(
     const posGeometry = buildRoofFaceGeometry({
       faceId: "multi-ridge-pos",
       polyClosed: pos,
-      triangles: triangulateXZ(pos),
+      triangles: triangulateXZ(pos.map(archToWorldXZ)),
       thickness,
       heightAtOuter: roofOuterAt,
     });
@@ -901,7 +900,7 @@ function buildMultiRidgeRoof(
     const negGeometry = buildRoofFaceGeometry({
       faceId: "multi-ridge-neg",
       polyClosed: neg,
-      triangles: triangulateXZ(neg),
+      triangles: triangulateXZ(neg.map(archToWorldXZ)),
       thickness,
       heightAtOuter: roofOuterAt,
     });

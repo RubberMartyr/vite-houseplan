@@ -737,9 +737,14 @@ function getConvexCorners(fpClosed: XZ[]): XZ[] {
   return corners;
 }
 
+type RidgeSegment = {
+  start: XZ;
+  end: XZ;
+};
+
 function pickCornerForEndAndSide(
   fpClosed: XZ[],
-  ridge: { start: XZ; end: XZ },
+  ridge: RidgeSegment,
   end: "start" | "end",
   side: "left" | "right"
 ): XZ | null {

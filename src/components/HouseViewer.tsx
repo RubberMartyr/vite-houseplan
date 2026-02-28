@@ -1135,26 +1135,6 @@ function HouseScene({
   useEffect(() => {
     const controls = controlsRef.current;
     const cam = cameraRef.current;
-
-    if (!controls || !cam) {
-      return;
-    }
-
-    const logCameraPosition = () => {
-      console.log('Camera position:', cam.position.toArray());
-    };
-
-    logCameraPosition();
-    controls.addEventListener('change', logCameraPosition);
-
-    return () => {
-      controls.removeEventListener('change', logCameraPosition);
-    };
-  }, []);
-
-  useEffect(() => {
-    const controls = controlsRef.current;
-    const cam = cameraRef.current;
     const root = houseGroupRef.current;
 
     if (!controls || !cam || !root) return;

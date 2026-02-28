@@ -603,13 +603,6 @@ function deriveMultiPlaneRoofGeometries(
         console.log("CORNER TRY", ridge.id, endKey, side);
         const E = endKey === "start" ? ridge.start : ridge.end;
 
-        // Step 1: get two nearest convex corners to ridge endpoint
-        const cornerPair = pickTwoNearestCornersToEndpoint(fp, E);
-        if (!cornerPair) {
-          console.warn("No cornerPair found", ridge.id, endKey);
-          return;
-        }
-
         // Step 2: get seam base for this side
         const seamPair = bases[endKey];
         if (!seamPair) {
@@ -619,16 +612,10 @@ function deriveMultiPlaneRoofGeometries(
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        // Step 3: choose correct corner from pair using seam base
-        let C = pickCornerFromPairByBase(cornerPair, B);
-
-        // If seam base equals selected corner, force-pick the other corner.
-        if (C && B && sameXZ(C, B)) {
-          C = sameXZ(cornerPair[0], C) ? cornerPair[1] : cornerPair[0];
-        }
+        const C = pickCornerForEndAndSide(fp, ridge, endKey, B);
 
         // 🔎 DEBUG LOG
-        logCornerDebug(ridge.id, endKey, side, E, cornerPair, B, C);
+        logCornerDebug(ridge.id, endKey, side, E, null, B, C);
 
         if (!C) return;
         console.log("cornerPick", { endKey, side, B, pickedCorner: C });
@@ -785,71 +772,44 @@ type RidgeSegment = {
   end: XZ;
 };
 
-function pickTwoNearestCornersToEndpoint(fpClosed: XZ[], E: XZ): [XZ, XZ] | null {
-  const corners = getConvexCorners(fpClosed);
-  if (corners.length < 2) return null;
-
-  const local = corners
-    .map((c) => ({ c, d: dist2(c, E) }))
-    .sort((a, b) => a.d - b.d)
-    .slice(0, 2)
-    .map((o) => o.c);
-
-  if (local.length < 2) return null;
-  return [local[0], local[1]];
-}
-
-function pickCornerFromPairByBase(cornerPair: [XZ, XZ], B: XZ | null): XZ | null {
-  if (!B) return null;
-
-  const [c1, c2] = cornerPair;
-  return dist2(c1, B) <= dist2(c2, B) ? c1 : c2;
-}
-
 function pickCornerForEndAndSide(
   fpClosed: XZ[],
   ridge: RidgeSegment,
   end: "start" | "end",
-  side: "left" | "right"
+  B: XZ
 ): XZ | null {
   const corners = getConvexCorners(fpClosed);
   if (!corners.length) return null;
 
-  const E = end === "start" ? ridge.start : ridge.end;
+  // 1️⃣ sort by ridge parameter t
+  const sortedByT = corners
+    .map((c) => ({ c, t: ridgeParamT(ridge, c) }))
+    .sort((a, b) => a.t - b.t);
 
-  // Step 1: sort by distance to ridge endpoint
-  const sorted = corners
-    .map((c) => ({ c, d: dist2(c, E) }))
-    .sort((a, b) => a.d - b.d)
-    .map((o) => o.c);
+  if (sortedByT.length < 2) return null;
 
-  // Step 2: take ONLY the two nearest corners
-  const local = sorted.slice(0, 2);
-  if (local.length < 2) return null;
+  // 2️⃣ isolate two closest to correct ridge end
+  const pair =
+    end === "start"
+      ? [sortedByT[0].c, sortedByT[1].c]
+      : [
+          sortedByT[sortedByT.length - 2].c,
+          sortedByT[sortedByT.length - 1].c,
+        ];
 
-  const ridgeDir = {
-    x: ridge.end.x - ridge.start.x,
-    z: ridge.end.z - ridge.start.z,
-  };
+  // 3️⃣ pick one closest to seam base B
+  let best = pair[0];
+  let bestD = dist2(best, B);
 
-  const outwardSign = side === "left" ? 1 : -1;
-
-  // Step 3: choose correct side among the two
-  for (const c of local) {
-    const rel = {
-      x: c.x - E.x,
-      z: c.z - E.z,
-    };
-
-    const cross = ridgeDir.x * rel.z - ridgeDir.z * rel.x;
-
-    if (Math.sign(cross) === outwardSign) {
-      return c;
+  for (const c of pair) {
+    const d = dist2(c, B);
+    if (d < bestD) {
+      best = c;
+      bestD = d;
     }
   }
 
-  // fallback
-  return local[0];
+  return best;
 }
 
 function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {

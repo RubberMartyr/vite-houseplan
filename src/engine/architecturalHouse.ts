@@ -90,7 +90,6 @@ export const architecturalHouse: ArchitecturalHouse = {
           region: {
             type: "compound",
             items: [
-              { type: "ridgeDivider", ridgeId: "main", keep: "left" },
               { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "ahead" },
               { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
             ],
@@ -107,7 +106,6 @@ export const architecturalHouse: ArchitecturalHouse = {
           region: {
             type: "compound",
             items: [
-              { type: "ridgeDivider", ridgeId: "main", keep: "left" },
               { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
               { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "behind" },
             ],
@@ -124,7 +122,6 @@ export const architecturalHouse: ArchitecturalHouse = {
           region: {
             type: "compound",
             items: [
-              { type: "ridgeDivider", ridgeId: "main", keep: "right" },
               { type: "ridgePerpCut", ridgeId: "main", t: 0.0, keep: "ahead" },
               { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "behind" },
             ],
@@ -141,7 +138,6 @@ export const architecturalHouse: ArchitecturalHouse = {
           region: {
             type: "compound",
             items: [
-              { type: "ridgeDivider", ridgeId: "main", keep: "right" },
               { type: "ridgePerpCut", ridgeId: "main", t: 0.5, keep: "ahead" },
               { type: "ridgePerpCut", ridgeId: "main", t: 1.0, keep: "behind" },
             ],

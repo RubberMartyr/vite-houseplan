@@ -9,11 +9,30 @@ export function normalizeMultiPlaneRoof(
     if (face.kind !== 'ridgeSideSegment') continue;
     if (!face.region || face.region.type !== 'compound') continue;
 
+    const ridge = clone.ridgeSegments.find(r => r.id === face.ridgeId);
+    if (!ridge || !face.side) continue;
+
+    const alreadyHasExplicitDivider = face.region.items.some(
+      (item: any) =>
+        item &&
+        typeof item === 'object' &&
+        'a' in item &&
+        'b' in item &&
+        'keep' in item &&
+        !('type' in item)
+    );
+
+    if (!alreadyHasExplicitDivider) {
+      face.region.items.unshift({
+        a: ridge.start,
+        b: ridge.end,
+        keep: face.side,
+      });
+    }
+
+    // Expand symbolic ridgeDivider if present (backward compatibility)
     face.region.items = face.region.items.map((item: any) => {
       if (item?.type === 'ridgeDivider') {
-        const ridge = clone.ridgeSegments.find((r) => r.id === item.ridgeId);
-        if (!ridge) return item;
-
         return {
           a: ridge.start,
           b: ridge.end,

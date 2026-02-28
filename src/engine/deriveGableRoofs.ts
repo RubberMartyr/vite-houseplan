@@ -612,7 +612,7 @@ function deriveMultiPlaneRoofGeometries(
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        const C = pickCornerForEndAndSide(fp, ridge, endKey, B);
+        const C = pickCornerFromEdgeContainingBase(fp, B);
 
         // 🔎 DEBUG LOG
         logCornerDebug(ridge.id, endKey, side, E, null, B, C);
@@ -699,22 +699,6 @@ function clamp01(t: number) {
   return Math.max(0, Math.min(1, t));
 }
 
-function ridgeParamT(ridge: { start: XZ; end: XZ }, p: XZ): number {
-  const vx = ridge.end.x - ridge.start.x;
-  const vz = ridge.end.z - ridge.start.z;
-  const denom = vx * vx + vz * vz;
-  if (denom < 1e-9) return 0;
-  const px = p.x - ridge.start.x;
-  const pz = p.z - ridge.start.z;
-  return (px * vx + pz * vz) / denom;
-}
-
-function dist2(a: XZ, b: XZ): number {
-  const dx = a.x - b.x;
-  const dz = a.z - b.z;
-  return dx * dx + dz * dz;
-}
-
 function sameXZ(a: XZ, b: XZ, eps = 1e-6): boolean {
   return Math.abs(a.x - b.x) < eps && Math.abs(a.z - b.z) < eps;
 }
@@ -736,80 +720,36 @@ function logCornerDebug(
   console.groupEnd();
 }
 
-function getConvexCorners(fpClosed: XZ[]): XZ[] {
-  const pts = fpClosed.slice(0, -1); // remove duplicate closing point
-  if (pts.length < 3) return [];
+function pickCornerFromEdgeContainingBase(fpClosed: XZ[], B: XZ, eps = 1e-6): XZ | null {
+  const n = fpClosed.length - 1; // closed polygon
 
-  let area2 = 0;
-  for (let i = 0; i < fpClosed.length - 1; i++) {
-    const a = fpClosed[i];
-    const b = fpClosed[i + 1];
-    area2 += a.x * b.z - b.x * a.z;
-  }
-  const isCCW = area2 > 0;
-
-  const corners: XZ[] = [];
-  const n = pts.length;
   for (let i = 0; i < n; i++) {
-    const prev = pts[(i - 1 + n) % n];
-    const cur = pts[i];
-    const next = pts[(i + 1) % n];
+    const A = fpClosed[i];
+    const C = fpClosed[i + 1];
 
-    const ax = cur.x - prev.x;
-    const az = cur.z - prev.z;
-    const bx = next.x - cur.x;
-    const bz = next.z - cur.z;
-    const cross = ax * bz - az * bx;
-    const convex = isCCW ? cross >= 0 : cross <= 0;
+    // Check if B lies on segment A-C
+    const AB = { x: B.x - A.x, z: B.z - A.z };
+    const AC = { x: C.x - A.x, z: C.z - A.z };
 
-    if (convex) corners.push(cur);
-  }
-  return corners;
-}
+    const cross = AB.x * AC.z - AB.z * AC.x;
+    if (Math.abs(cross) > eps) continue;
 
-type RidgeSegment = {
-  start: XZ;
-  end: XZ;
-};
+    const dot = AB.x * AC.x + AB.z * AC.z;
+    const lenSq = AC.x * AC.x + AC.z * AC.z;
 
-function pickCornerForEndAndSide(
-  fpClosed: XZ[],
-  ridge: RidgeSegment,
-  end: "start" | "end",
-  B: XZ
-): XZ | null {
-  const corners = getConvexCorners(fpClosed);
-  if (!corners.length) return null;
+    if (dot < -eps || dot > lenSq + eps) continue;
 
-  // 1️⃣ sort by ridge parameter t
-  const sortedByT = corners
-    .map((c) => ({ c, t: ridgeParamT(ridge, c) }))
-    .sort((a, b) => a.t - b.t);
+    // B lies on edge A-C
 
-  if (sortedByT.length < 2) return null;
-
-  // 2️⃣ isolate two closest to correct ridge end
-  const pair =
-    end === "start"
-      ? [sortedByT[0].c, sortedByT[1].c]
-      : [
-          sortedByT[sortedByT.length - 2].c,
-          sortedByT[sortedByT.length - 1].c,
-        ];
-
-  // 3️⃣ pick one closest to seam base B
-  let best = pair[0];
-  let bestD = dist2(best, B);
-
-  for (const c of pair) {
-    const d = dist2(c, B);
-    if (d < bestD) {
-      best = c;
-      bestD = d;
+    // Return the endpoint that is NOT equal to B
+    if (Math.abs(B.x - A.x) > eps || Math.abs(B.z - A.z) > eps) {
+      return A;
+    } else {
+      return C;
     }
   }
 
-  return best;
+  return null;
 }
 
 function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {

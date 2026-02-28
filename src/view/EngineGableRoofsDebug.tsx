@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { deriveGableRoofGeometries } from "../engine/deriveGableRoofs";
 import type { ArchitecturalHouse } from "../engine/architecturalTypes";
@@ -20,15 +20,7 @@ export function EngineGableRoofsDebug({
   visible = true,
   invalidRoofIds,
 }: Props) {
-  const lastGoodRef = useRef<THREE.BufferGeometry[] | null>(null);
-  const geometries = useMemo(() => {
-    const derived = deriveGableRoofGeometries(arch, { invalidRoofIds });
-    if (!invalidRoofIds || invalidRoofIds.size === 0) {
-      lastGoodRef.current = derived;
-      return derived;
-    }
-    return lastGoodRef.current ?? derived;
-  }, [arch, roofRevision, invalidRoofIds]);
+  const geometries = useMemo(() => deriveGableRoofGeometries(arch, { invalidRoofIds }), [arch, roofRevision, invalidRoofIds]);
 
   useEffect(() => {
     return () => {

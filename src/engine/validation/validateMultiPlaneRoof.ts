@@ -218,6 +218,33 @@ export function validateMultiPlaneRoof(roof: MultiPlaneRoofSpec): MultiPlaneRoof
       invalidRidges.push(ridge);
     }
 
+    // Ridge length validation
+    const dx = ridge.end.x - ridge.start.x;
+    const dz = ridge.end.z - ridge.start.z;
+    const lengthSq = dx * dx + dz * dz;
+
+    if (lengthSq < 1e-6) {
+      errors.push({
+        severity: 'error',
+        code: 'ridge-zero-length',
+        message: `Ridge "${ridge.id}" has zero length.`,
+        roofId: roof.id,
+        ridgeId: ridge.id,
+      });
+      invalidRidges.push(ridge);
+    }
+
+    if (ridge.height <= roof.eaveHeight) {
+      errors.push({
+        severity: 'error',
+        code: 'ridge-height-invalid',
+        message: `Ridge "${ridge.id}" height must be above eaveHeight.`,
+        roofId: roof.id,
+        ridgeId: ridge.id,
+      });
+      invalidRidges.push(ridge);
+    }
+
     if (ridge.height <= 0) {
       errors.push({
         severity: 'error',
@@ -233,6 +260,21 @@ export function validateMultiPlaneRoof(roof: MultiPlaneRoofSpec): MultiPlaneRoof
 
   for (const face of roof.faces) {
     let hasError = false;
+
+    // Ridge reference validation
+    if (face.ridgeId) {
+      const ridge = roof.ridgeSegments.find((r) => r.id === face.ridgeId);
+      if (!ridge) {
+        errors.push({
+          severity: 'error',
+          code: 'ridge-not-found',
+          message: `Face "${face.id}" references missing ridge "${face.ridgeId}".`,
+          roofId: roof.id,
+          faceId: face.id,
+        });
+        hasError = true;
+      }
+    }
 
     if (face.kind === 'ridgeSideSegment') {
       if (!face.ridgeId || !ridgeById.has(face.ridgeId)) {
@@ -261,6 +303,33 @@ export function validateMultiPlaneRoof(roof: MultiPlaneRoofSpec): MultiPlaneRoof
         });
         hasError = true;
       } else {
+        // RidgeT range validation
+        if (t0 < 0 || t0 > 1) {
+          errors.push({
+            severity: 'error',
+            code: 'ridgeT0-out-of-range',
+            message: `Face "${face.id}" ridgeT0 must be between 0 and 1.`,
+            roofId: roof.id,
+            faceId: face.id,
+            ridgeId: face.ridgeId,
+          });
+          hasError = true;
+          suspiciousFaces.push(face);
+        }
+
+        if (t1 < 0 || t1 > 1) {
+          errors.push({
+            severity: 'error',
+            code: 'ridgeT1-out-of-range',
+            message: `Face "${face.id}" ridgeT1 must be between 0 and 1.`,
+            roofId: roof.id,
+            faceId: face.id,
+            ridgeId: face.ridgeId,
+          });
+          hasError = true;
+          suspiciousFaces.push(face);
+        }
+
         if (t0 < 0 || t0 > 1 || t1 < 0 || t1 > 1) {
           errors.push({
             severity: 'error',
@@ -275,6 +344,17 @@ export function validateMultiPlaneRoof(roof: MultiPlaneRoofSpec): MultiPlaneRoof
         }
 
         if (t0 >= t1) {
+          errors.push({
+            severity: 'error',
+            code: 'ridgeT-range-invalid',
+            message: `Face "${face.id}" ridgeT0 must be less than ridgeT1.`,
+            roofId: roof.id,
+            faceId: face.id,
+            ridgeId: face.ridgeId,
+          });
+          hasError = true;
+          suspiciousFaces.push(face);
+
           errors.push({
             severity: 'error',
             code: 'FACE_TRANGE_ORDER',

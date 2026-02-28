@@ -41,11 +41,22 @@ export function EngineGableRoofsDebug({
 
   return (
     <>
-      {sceneGeometries.map((geom, i) => (
-        <mesh key={i} geometry={geom}>
-          <meshStandardMaterial color="black" wireframe />
-        </mesh>
-      ))}
+      {sceneGeometries.map((geom, i) => {
+        const faceId = geom.userData?.faceId;
+        const isCorner = typeof faceId === "string" && faceId.startsWith("corner-");
+
+        return (
+          <mesh key={i} geometry={geom}>
+            <meshStandardMaterial
+              color="black"
+              wireframe
+              polygonOffset={isCorner}
+              polygonOffsetFactor={isCorner ? -1 : 0}
+              polygonOffsetUnits={isCorner ? -1 : 0}
+            />
+          </mesh>
+        );
+      })}
     </>
   );
 }

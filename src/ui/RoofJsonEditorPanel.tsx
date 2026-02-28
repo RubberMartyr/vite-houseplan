@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { MultiPlaneRoofSpec } from '../engine/types';
 import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
 import { applyRoofFixPlan, planMultiPlaneRoofFixes } from '../engine/roof/planMultiPlaneRoofFixes';
+import { normalizeMultiPlaneRoof } from '../engine/roof/normalizeMultiPlaneRoof';
 
 type RoofValidationEntry = { roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult };
 
@@ -54,7 +55,10 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEnt
         if (!Array.isArray(parsed)) return;
         const entries = parsed
           .filter((roof): roof is MultiPlaneRoofSpec => !!roof && roof.type === 'multi-plane')
-          .map((roof) => ({ roof, validation: validateMultiPlaneRoof(roof) }));
+          .map((roof) => {
+            const normalized = normalizeMultiPlaneRoof(roof);
+            return { roof: normalized, validation: validateMultiPlaneRoof(normalized) };
+          });
         onDebouncedValidate(entries);
       } catch {
         // ignored: user can type incomplete json while editing

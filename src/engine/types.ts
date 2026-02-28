@@ -57,10 +57,25 @@ export type RidgePerpCut = {
   keep: 'ahead' | 'behind';
 };
 
+export type RidgeDividerRegionItem = {
+  type: 'ridgeDivider';
+  ridgeId: string;
+  keep: 'left' | 'right';
+};
+
+export type MultiPlaneRegionItem =
+  | RidgeDividerRegionItem
+  | {
+      a: { x: number; z: number };
+      b: { x: number; z: number };
+      keep: 'left' | 'right';
+    }
+  | RidgePerpCut;
+
 export type FaceRegion =
   | { type: 'halfPlanes'; planes: HalfPlane[] }
   | { type: 'ridgeCapTriangle'; ridgeId: string; end: 'start' | 'end' }
-  | { type: 'compound'; items: (HalfPlane | RidgePerpCut)[] };
+  | { type: 'compound'; items: MultiPlaneRegionItem[] };
 
 export type RoofFaceSpec = {
   id: string;

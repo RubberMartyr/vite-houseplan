@@ -73,8 +73,8 @@ export const architecturalHouse: ArchitecturalHouse = {
       ridgeSegments: [
         {
           id: "main",
-          start: { x: 0.6, z: 12.0 },
-          end: { x: 0.6, z: 8.45 },
+          start: { x: 0.6, z: 8.7 },
+          end: { x: 0.6, z: 4.31 },
           height: 6.45,
         },
       ],

@@ -136,7 +136,7 @@ export type WallBuildOutput = {
   }>;
 };
 
-const REMOVE_FACADES = false;
+const REMOVE_FACADES = true;
 
 export function buildWallsFromCurrentSystem(): WallBuildOutput {
   const outer = getEnvelopeOuterPolygon();

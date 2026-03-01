@@ -32,19 +32,21 @@ export function deriveHouse(house: ArchitecturalHouse) {
   const derivedSlabs = deriveSlabs(house);
   const derivedOpenings = deriveOpenings(house);
 
+  const facadePanelDepth = 0.025;
+
   const wallMeshes = house.levels.flatMap((level, levelIndex) =>
     buildFacadePanelsWithOpenings({
       outer: level.footprint.outer,
       levelIndex,
       wallHeight: level.height,
       wallBase: level.elevation,
-      panelThickness: house.wallThickness,
+      panelThickness: facadePanelDepth,
       openings: derivedOpenings,
     })
   );
 
   const openingMeshes = buildWindowMeshes(derivedOpenings, {
-    wallThickness: house.wallThickness,
+    panelDepth: facadePanelDepth,
   });
 
   return {

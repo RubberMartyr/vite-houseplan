@@ -15,6 +15,19 @@ type BuildFacadePanelsInput = {
 };
 
 const MIN_HOLE_SIZE = 1e-4;
+const PANEL_OFFSET_EPS = 1e-3;
+
+function polygonSignedAreaXZ(points: Vec2[]): number {
+  let area2 = 0;
+
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    area2 += current.x * next.z - next.x * current.z;
+  }
+
+  return area2 / 2;
+}
 
 export function buildFacadePanelsWithOpenings({
   outer,
@@ -25,6 +38,7 @@ export function buildFacadePanelsWithOpenings({
   openings,
 }: BuildFacadePanelsInput): FacadePanelMesh[] {
   const panels: FacadePanelMesh[] = [];
+  const isCounterClockwise = polygonSignedAreaXZ(outer) > 0;
 
   if (outer.length < 2) return panels;
 
@@ -77,13 +91,18 @@ export function buildFacadePanelsWithOpenings({
 
     const midpointX = (a.x + b.x) / 2;
     const midpointZ = (a.z + b.z) / 2;
-    const outward = edgeOpenings[0]?.outwardXZ ?? { x: tz, z: -tx };
+    const outward = isCounterClockwise ? { x: tz, z: -tx } : { x: -tz, z: tx };
     const yaw = Math.atan2(outward.x, outward.z);
+    const outwardOffset = panelThickness / 2 + PANEL_OFFSET_EPS;
 
     panels.push({
       id: `wall_L${levelIndex}_E${edgeIndex}`,
       geometry: geom,
-      position: [midpointX, wallBase + wallHeight / 2, midpointZ],
+      position: [
+        midpointX + outward.x * outwardOffset,
+        wallBase + wallHeight / 2,
+        midpointZ + outward.z * outwardOffset,
+      ],
       rotation: [0, yaw, 0],
       materialKey: 'wall',
     });

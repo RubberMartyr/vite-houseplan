@@ -1,59 +1,60 @@
 import { ArchitecturalHouse } from "./architecturalTypes";
+import { legacyFrontOpeningsToEngineOpenings } from './legacyFrontOpeningsToEngineOpenings';
 
 /**
  * This mirrors the current house geometry but expressed
  * as architectural intent instead of derived geometry.
  */
+const levels: ArchitecturalHouse['levels'] = [
+  {
+    id: "ground",
+    elevation: 0,
+    height: 2.8,
+    slab: {
+      thickness: 0.3,
+      inset: 0,
+    },
+    footprint: {
+      outer: [
+        { x: 4.1, z: 15 },
+        { x: -3.5, z: 15 },
+        { x: -3.5, z: 12 },
+        { x: -3.5, z: 8.45 },
+        { x: -4.1, z: 8.45 },
+        { x: -4.1, z: 4 },
+        { x: -4.8, z: 4 },
+        { x: -4.8, z: 0 },
+        { x: 4.8, z: 0 },
+      ],
+    },
+  },
+  {
+    id: "first",
+    elevation: 3.05,
+    height: 2.8,
+    slab: {
+      thickness: 0.25,
+      inset: 0,
+    },
+    footprint: {
+      outer: [
+        { x: -3.5, z: 12 },
+        { x: -3.5, z: 8.45 },
+        { x: -4.1, z: 8.45 },
+        { x: -4.1, z: 4 },
+        { x: -4.8, z: 4 },
+        { x: -4.8, z: 0 },
+        { x: 4.8, z: 0 },
+        { x: 4.1, z: 12 },
+      ],
+    },
+  },
+];
+
 export const architecturalHouse: ArchitecturalHouse = {
   wallThickness: 0.3, // match current
 
-  levels: [
-    {
-      id: "ground",
-      elevation: 0,
-      height: 2.8, // match current
-      slab: {
-        thickness: 0.3,
-        inset: 0,
-      },
-      footprint: {
-        outer: [
-          { x: 4.1, z: 15 },
-          { x: -3.5, z: 15 },
-          { x: -3.5, z: 12 },
-          { x: -3.5, z: 8.45 },
-          { x: -4.1, z: 8.45 },
-          { x: -4.1, z: 4 },
-          { x: -4.8, z: 4 },
-          { x: -4.8, z: 0 },
-          { x: 4.8, z: 0 },
-        ],
-      },
-    },
-    {
-      id: "first",
-      // TOP_OF_SLAB convention: this is slab top, so it must include slab thickness
-      // to keep slab bottom aligned with the level below wall top (2.8m).
-      elevation: 3.05,
-      height: 2.8,
-      slab: {
-        thickness: 0.25,
-        inset: 0,
-      },
-      footprint: {
-        outer: [
-          { x: -3.5, z: 12 },
-          { x: -3.5, z: 8.45 },
-          { x: -4.1, z: 8.45 },
-          { x: -4.1, z: 4 },
-          { x: -4.8, z: 4 },
-          { x: -4.8, z: 0 },
-          { x: 4.8, z: 0 },
-          { x: 4.1, z: 12 },
-        ],
-      },
-    },
-  ],
+  levels,
 
   roofs: [
     {
@@ -157,8 +158,5 @@ export const architecturalHouse: ArchitecturalHouse = {
     },
   ],
 
-  openings: [
-    // Leave empty for now.
-    // We will migrate windows in Phase 6.
-  ],
+  openings: legacyFrontOpeningsToEngineOpenings(levels),
 };

@@ -6,7 +6,7 @@ export type EngineMesh = {
   geometry: THREE.BufferGeometry;
   position: [number, number, number];
   rotation: [number, number, number];
-  materialKey: 'windowFrame' | 'windowGlass' | 'windowSill' | 'windowLintel';
+  materialKey: 'wall' | 'windowFrame' | 'windowGlass' | 'windowSill' | 'windowLintel';
 };
 
 export type WindowBuilderConstants = {

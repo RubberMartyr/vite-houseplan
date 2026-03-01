@@ -1,13 +1,9 @@
 import * as THREE from 'three';
 import type { Vec2 } from '../architecturalTypes';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
+import type { EngineMesh } from './buildWindowMeshes';
 
-export interface FacadePanelMesh {
-  edgeIndex: number;
-  geometry: THREE.BufferGeometry;
-  position: [number, number, number];
-  rotation: [number, number, number];
-}
+export type FacadePanelMesh = EngineMesh;
 
 type BuildFacadePanelsInput = {
   outer: Vec2[];
@@ -85,10 +81,11 @@ export function buildFacadePanelsWithOpenings({
     const yaw = Math.atan2(outward.x, outward.z);
 
     panels.push({
-      edgeIndex,
+      id: `wall_L${levelIndex}_E${edgeIndex}`,
       geometry: geom,
       position: [midpointX, wallBase + wallHeight / 2, midpointZ],
       rotation: [0, yaw, 0],
+      materialKey: 'wall',
     });
   }
 

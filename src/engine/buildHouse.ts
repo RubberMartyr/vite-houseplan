@@ -2,8 +2,12 @@ import { buildRoofFromCurrentSystem } from './buildRoof';
 import { buildWallsFromCurrentSystem } from './buildWalls';
 import { architecturalHouse } from './architecturalHouse';
 import type { ArchitecturalHouse, LevelSpec } from './architecturalTypes';
+import { buildFacadePanelsWithOpenings } from './builders/buildFacadePanels';
+import { buildWindowMeshes } from './builders/buildWindowMeshes';
+import { deriveOpenings } from './derive/deriveOpenings';
 import { deriveWallSegmentsFromLevels } from './deriveWalls';
 import { houseData } from './houseData';
+import { toThreeWorldMeshes } from './toThreeWorldMeshes';
 import { validateOpenings } from './validation/validateOpenings';
 import { validateStructure } from './validation/validateStructure';
 
@@ -20,12 +24,28 @@ export function buildHouse() {
 
   validateOpenings(architecturalHouse);
 
-
   const derivedWalls = deriveWallSegmentsFromLevels(architecturalHouse);
+  const derivedOpenings = deriveOpenings(architecturalHouse);
+
+  const wallMeshes = architecturalHouse.levels.flatMap((level, levelIndex) =>
+    buildFacadePanelsWithOpenings({
+      outer: level.footprint.outer,
+      levelIndex,
+      wallHeight: level.height,
+      wallBase: level.elevation,
+      panelThickness: architecturalHouse.wallThickness,
+      openings: derivedOpenings,
+    })
+  );
+  const openingMeshes = buildWindowMeshes(derivedOpenings, {
+    wallThickness: architecturalHouse.wallThickness,
+  });
+
   console.log('Derived walls:', derivedWalls);
 
   return {
     walls: buildWallsFromCurrentSystem(),
     roof: buildRoofFromCurrentSystem(),
+    worldMeshes: toThreeWorldMeshes([...wallMeshes, ...openingMeshes]),
   };
 }

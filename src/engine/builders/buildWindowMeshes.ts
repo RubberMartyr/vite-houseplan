@@ -10,7 +10,7 @@ export type EngineMesh = {
 };
 
 export type WindowBuilderConstants = {
-  wallThickness: number;
+  panelDepth: number;
   eps?: number;
   frameDepth?: number;
   frameBorder?: number;
@@ -23,7 +23,7 @@ export type WindowBuilderConstants = {
 
 export function buildWindowMeshes(openings: DerivedOpeningRect[], constants: WindowBuilderConstants): EngineMesh[] {
   const {
-    wallThickness,
+    panelDepth,
     eps = 0.001,
     frameDepth = 0.08,
     frameBorder = 0.08,
@@ -35,7 +35,7 @@ export function buildWindowMeshes(openings: DerivedOpeningRect[], constants: Win
   } = constants;
 
   const meshes: EngineMesh[] = [];
-  const panelOut = wallThickness / 2;
+  const panelOut = panelDepth / 2;
 
   for (const opening of openings) {
     if (opening.kind !== 'window') continue;

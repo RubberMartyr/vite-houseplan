@@ -4,6 +4,7 @@ import { architecturalHouse } from './architecturalHouse';
 import type { ArchitecturalHouse, LevelSpec } from './architecturalTypes';
 import { deriveWallSegmentsFromLevels } from './deriveWalls';
 import { houseData } from './houseData';
+import { validateOpenings } from './validation/validateOpenings';
 import { validateStructure } from './validation/validateStructure';
 
 export function buildHouse() {
@@ -16,6 +17,9 @@ export function buildHouse() {
     elevationConvention: 'TOP_OF_SLAB',
     allowGroundSupport: true,
   });
+
+  validateOpenings(architecturalHouse);
+
 
   const derivedWalls = deriveWallSegmentsFromLevels(architecturalHouse);
   console.log('Derived walls:', derivedWalls);

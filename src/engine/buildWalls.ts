@@ -122,7 +122,23 @@ type WallGeometryData = {
   indices: null;
 };
 
-export function buildWallsFromCurrentSystem() {
+export type WallBuildOutput = {
+  shell: {
+    geometry: WallGeometryData;
+    position: [number, number, number];
+    rotation: [number, number, number];
+  };
+  facadePanels: Array<{
+    geometry: WallGeometryData;
+    position: [number, number, number];
+    rotation: [number, number, number];
+    materialKey?: string;
+  }>;
+};
+
+const REMOVE_FACADES = false;
+
+export function buildWallsFromCurrentSystem(): WallBuildOutput {
   const outer = getEnvelopeOuterPolygon();
   const inner = getEnvelopeInnerPolygon(exteriorThickness);
   const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
@@ -280,6 +296,7 @@ export function buildWallsFromCurrentSystem() {
     const isExtensionLeftWallTriangle = false;
 
     const shouldRemove =
+      REMOVE_FACADES &&
       !isExtensionLeftWallTriangle &&
       (onRearOuter ||
         onRearInner ||
@@ -323,5 +340,6 @@ export function buildWallsFromCurrentSystem() {
       position: raw.position,
       rotation: raw.rotation,
     },
+    facadePanels: [],
   };
 }

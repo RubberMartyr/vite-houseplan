@@ -134,29 +134,40 @@ export type RoofSpec =
     }
   | MultiPlaneRoofSpec;
 
-export type OpeningSpecArch = {
-  id: string;
-  type: 'window' | 'door';
+export type OpeningKind = 'window' | 'door';
+
+export interface OpeningStyleSpec {
+  variant?: 'plain' | 'classicTransom' | 'firstFloorTransom' | 'doorDetailed';
+  grid?: { cols: number; rows: number };
+  hasSill?: boolean;
+  hasLintel?: boolean;
+  surroundRing?: boolean;
+}
+
+export interface OpeningEdgeRef {
   levelId: string;
-  host: {
-    kind: 'outerWall';
-    edgeIndex: number;
-  };
-  placement: {
-    offset: number;
-  };
-  size: {
-    width: number;
-    height: number;
-  };
+  ring: 'outer';
+  edgeIndex: number;
+  fromEnd?: boolean;
+}
+
+export interface OpeningSpec {
+  id: string;
+  kind: OpeningKind;
+  levelId: string;
+  edge: OpeningEdgeRef;
+  offset: number;
+  width: number;
   sillHeight: number;
-};
+  height: number;
+  style?: OpeningStyleSpec;
+}
 
 export interface ArchitecturalHouse {
   wallThickness: number;
   levels: LevelSpec[];
   roofs?: RoofSpec[];
-  openings?: OpeningSpecArch[];
+  openings?: OpeningSpec[];
 }
 
 export type WallSpec = {
@@ -166,7 +177,7 @@ export type WallSpec = {
   thickness: number;
 };
 
-export type OpeningSpec = {
+export type WallOpeningSpec = {
   wallId: string;
   center: Vec3;
   width: number;
@@ -180,6 +191,6 @@ export type RoofFrameSpec = {
 
 export type HouseSpec = {
   walls: WallSpec[];
-  openings: OpeningSpec[];
+  openings: WallOpeningSpec[];
   roof?: RoofFrameSpec;
 };

@@ -1,4 +1,5 @@
 import type { ArchitecturalHouse, LevelSpec } from '../types';
+import { validateOpenings } from '../validation/validateOpenings';
 import { validateStructure } from '../validation/validateStructure';
 import { deriveSlabs } from './deriveSlabs';
 
@@ -14,6 +15,8 @@ export function deriveHouse(house: ArchitecturalHouse) {
   {
     mode: 'report',
   });
+
+  validateOpenings(house);
 
   if (!validationReport.ok) {
     validationReport.issues.forEach((issue) => {

@@ -1,6 +1,7 @@
 import type { ArchitecturalHouse, LevelSpec } from '../types';
 import { validateOpenings } from '../validation/validateOpenings';
 import { validateStructure } from '../validation/validateStructure';
+import { deriveOpenings } from './deriveOpenings';
 import { deriveSlabs } from './deriveSlabs';
 
 export function deriveHouse(house: ArchitecturalHouse) {
@@ -26,8 +27,10 @@ export function deriveHouse(house: ArchitecturalHouse) {
   }
 
   const slabs = deriveSlabs(house);
+  const openings = deriveOpenings(house);
 
   return {
     slabs,
+    openings,
   };
 }

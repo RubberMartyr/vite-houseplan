@@ -8,18 +8,11 @@ export function toThreeWorldMeshes(meshes: EngineMesh[]): EngineMesh[] {
     const [x, y, z] = mesh.position;
     const [rx, ry, rz] = mesh.rotation;
     const mapped = archToWorldXZ({ x, z });
-    const outward = { x: Math.sin(ry), z: Math.cos(ry) };
-    const isWindowMesh = mesh.materialKey.startsWith('window');
 
     return {
       ...mesh,
       geometry: mesh.geometry.clone(),
-      // Quick test #3: push windows outward by 1m to check wall-embedding issues.
-      position: [
-        mapped.x + (isWindowMesh ? outward.x * 1 : 0),
-        y,
-        mapped.z + (isWindowMesh ? outward.z * 1 : 0),
-      ] as [number, number, number],
+      position: [mapped.x, y, mapped.z] as [number, number, number],
       // Quick test #1: disable yaw inversion to verify whether mirrored rotation is hiding windows.
       rotation: [rx, ry, rz] as [number, number, number],
     };

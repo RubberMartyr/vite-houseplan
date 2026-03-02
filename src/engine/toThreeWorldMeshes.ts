@@ -42,6 +42,11 @@ export function toThreeWorldMeshes(meshes: EngineMesh[]): EngineMesh[] {
       wallZ: someWallMesh.position[2],
       windowZ: someWindowMesh.position[2],
     });
+    console.log('Z OFFSET', {
+      wallZ: someWallMesh.position[2],
+      windowZ: someWindowMesh.position[2],
+      delta: someWindowMesh.position[2] - someWallMesh.position[2],
+    });
   }
 
   return mappedMeshes;

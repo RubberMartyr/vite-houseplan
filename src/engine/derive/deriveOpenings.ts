@@ -88,6 +88,27 @@ function pickOutwardNormalXZ(
   return preferred;
 }
 
+function distPointToSegmentXZ(point: Vec2XZ, a: Vec2XZ, b: Vec2XZ) {
+  const abx = b.x - a.x;
+  const abz = b.z - a.z;
+  const apx = point.x - a.x;
+  const apz = point.z - a.z;
+  const len2 = abx * abx + abz * abz;
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, (apx * abx + apz * abz) / len2));
+  const closest = {
+    x: a.x + t * abx,
+    z: a.z + t * abz,
+  };
+  const dx = point.x - closest.x;
+  const dz = point.z - closest.z;
+
+  return {
+    dist: Math.sqrt(dx * dx + dz * dz),
+    t,
+    closest,
+  };
+}
+
 export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] {
   const levelIndexById = new Map(house.levels.map((level, index) => [level.id, index]));
   const out: DerivedOpeningRect[] = [];
@@ -104,6 +125,14 @@ export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] 
 
     const a = outer[edgeIndex];
     const b = outer[(edgeIndex + 1) % outer.length];
+
+    console.log('OPENING EDGE CHECK', {
+      id: opening.id,
+      edgeIndex,
+      A: a,
+      B: b,
+      AeqB: Math.abs(a.x - b.x) < EPSILON && Math.abs(a.z - b.z) < EPSILON,
+    });
 
     const dx = b.x - a.x;
     const dz = b.z - a.z;
@@ -152,6 +181,14 @@ export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] 
     };
 
     out.push(derivedOpening);
+
+    const distanceCheck = distPointToSegmentXZ(derivedOpening.centerArch, a, b);
+    console.log('OPENING CENTER ON EDGE?', {
+      id: opening.id,
+      dist: distanceCheck.dist,
+      t: distanceCheck.t,
+      closest: distanceCheck.closest,
+    });
 
     console.log('OPENING DEBUG', {
       center: derivedOpening.centerArch,

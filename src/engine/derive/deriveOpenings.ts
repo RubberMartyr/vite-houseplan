@@ -152,5 +152,8 @@ export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] 
     });
   }
 
+  console.log('DERIVED OPENINGS:', out.length);
+  console.log(JSON.stringify(out, null, 2));
+
   return out;
 }

@@ -108,5 +108,8 @@ export function buildFacadePanelsWithOpenings({
     });
   }
 
+  console.log('FACADE PANELS COUNT:', panels.length);
+  console.log('RETURNING PANELS:', panels.length);
+
   return panels;
 }

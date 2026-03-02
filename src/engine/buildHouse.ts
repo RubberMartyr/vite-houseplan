@@ -29,7 +29,7 @@ export function buildHouse() {
 
   const facadePanelDepth = 0.025;
 
-  const wallMeshes = architecturalHouse.levels.flatMap((level, levelIndex) =>
+  const facadePanels = architecturalHouse.levels.flatMap((level, levelIndex) =>
     buildFacadePanelsWithOpenings({
       outer: level.footprint.outer,
       levelIndex,
@@ -45,9 +45,11 @@ export function buildHouse() {
 
   console.log('Derived walls:', derivedWalls);
 
+  console.log('RETURNING PANELS:', facadePanels.length);
+
   return {
     walls: buildWallsFromCurrentSystem(),
     roof: buildRoofFromCurrentSystem(),
-    worldMeshes: toThreeWorldMeshes([...wallMeshes, ...openingMeshes]),
+    worldMeshes: toThreeWorldMeshes([...facadePanels, ...openingMeshes]),
   };
 }

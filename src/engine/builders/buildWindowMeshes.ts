@@ -22,6 +22,8 @@ export type WindowBuilderConstants = {
 };
 
 export function buildWindowMeshes(openings: DerivedOpeningRect[], constants: WindowBuilderConstants): EngineMesh[] {
+  console.log('WINDOW MESH BUILD START');
+  console.log('OPENINGS INPUT:', openings.length);
   const {
     panelDepth,
     eps = 0.001,
@@ -55,7 +57,9 @@ export function buildWindowMeshes(openings: DerivedOpeningRect[], constants: Win
       opening.centerArch.z + forwardZ * frameCenterOffset,
     ];
 
-    const frameGeometry = new THREE.BoxGeometry(width, height, frameDepth);
+    console.log('WINDOW CENTER:', opening.centerArch);
+
+    const frameGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
     meshes.push({
       id: `${opening.id}_frame`,
       geometry: frameGeometry,

@@ -116,6 +116,20 @@ const FRONT_FACADE: "minZ" | "maxZ" = "minZ";
 const groundFrontEdgeIndex = findFacadeEdgeIndex(levels[0].footprint.outer, FRONT_FACADE);
 const firstFrontEdgeIndex = findFacadeEdgeIndex(levels[1].footprint.outer, FRONT_FACADE);
 
+console.log("FRONT EDGE CHECK", {
+  frontFacade: FRONT_FACADE,
+  ground: {
+    edgeIndex: groundFrontEdgeIndex,
+    start: levels[0].footprint.outer[groundFrontEdgeIndex],
+    end: levels[0].footprint.outer[(groundFrontEdgeIndex + 1) % levels[0].footprint.outer.length],
+  },
+  first: {
+    edgeIndex: firstFrontEdgeIndex,
+    start: levels[1].footprint.outer[firstFrontEdgeIndex],
+    end: levels[1].footprint.outer[(firstFrontEdgeIndex + 1) % levels[1].footprint.outer.length],
+  },
+});
+
 export const architecturalHouse: ArchitecturalHouse = {
   wallThickness: 0.3, // match current
 

@@ -4,12 +4,14 @@ export const frameMaterial = new THREE.MeshStandardMaterial({
   color: '#383E42',
   roughness: 0.55,
   metalness: 0.12,
+  side: THREE.DoubleSide,
 });
 
 export const blueStoneMaterial = new THREE.MeshStandardMaterial({
   color: '#5f6b73',
   roughness: 0.8,
   metalness: 0.0,
+  side: THREE.DoubleSide,
 });
 
 export const glassMaterial = new THREE.MeshPhysicalMaterial({
@@ -26,12 +28,14 @@ export const metalBandMaterial = new THREE.MeshStandardMaterial({
   color: 0x2f3237,
   roughness: 0.6,
   metalness: 0.2,
+  side: THREE.DoubleSide,
 });
 
 export const revealMaterial = new THREE.MeshStandardMaterial({
   color: '#e8e5df',
   roughness: 0.85,
   metalness: 0.05,
+  side: THREE.DoubleSide,
 });
 
 export const frontBlueStoneMaterial = new THREE.MeshStandardMaterial({

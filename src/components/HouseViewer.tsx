@@ -276,6 +276,14 @@ function DebugTruthOverlay({
     return { minZ: Math.min(...zs), maxZ: Math.max(...zs) };
   }, [groundOuter]);
 
+  useEffect(() => {
+    console.log('FOOTPRINT WORLD Z RANGE', {
+      min: Math.min(...groundOuter.map((point) => -point.z)),
+      max: Math.max(...groundOuter.map((point) => -point.z)),
+    });
+    console.log('CAMERA Z', camera.position.z);
+  }, [camera, groundOuter]);
+
   useFrame(() => {
     const cameraZ = camera.position.z;
     const targetZ = controlsRef.current?.target.z ?? 0;

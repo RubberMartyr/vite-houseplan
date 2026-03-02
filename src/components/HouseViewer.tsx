@@ -50,6 +50,7 @@ import type { MultiPlaneRoofSpec } from '../engine/types';
 import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
 import { RoofJsonEditorPanel } from '../ui/RoofJsonEditorPanel';
 import { normalizeMultiPlaneRoof } from '../engine/roof/normalizeMultiPlaneRoof';
+import type { DerivedOpeningRect } from '../engine/derived/derivedOpenings';
 
 const DEBUG_ENGINE_WALLS = true; // dev-only, set false to hide
 
@@ -612,6 +613,7 @@ export default function HouseViewer() {
 
   const derivedData = lastGoodDerived ?? buildAttempt.derived;
   const derivedSlabs = derivedData?.slabs ?? [];
+  const derivedOpenings = derivedData?.openings ?? [];
 
   const handleToggleFloor = (key: FloorKey) => {
     setActiveFloors((prev) => ({
@@ -748,6 +750,7 @@ export default function HouseViewer() {
           architecturalHouse={houseData}
           roofRevision={roofRevision}
           derivedSlabs={derivedSlabs}
+          derivedOpenings={derivedOpenings}
           cutawayEnabled={cutawayEnabled}
           facadeVisibility={facadeVisibility}
           selectedRoomId={selectedRoomId}
@@ -797,6 +800,7 @@ function HouseScene({
   architecturalHouse,
   roofRevision,
   derivedSlabs,
+  derivedOpenings,
   cutawayEnabled,
   facadeVisibility,
   selectedRoomId,
@@ -818,6 +822,7 @@ function HouseScene({
   architecturalHouse: ArchitecturalHouse;
   roofRevision: number;
   derivedSlabs: DerivedHouseData['slabs'];
+  derivedOpenings: DerivedOpeningRect[];
   cutawayEnabled: boolean;
   facadeVisibility: Record<FacadeKey, boolean>;
   selectedRoomId: string | null;
@@ -1040,6 +1045,7 @@ function HouseScene({
   const firstFloorCeilingHeight = ceilingHeights.first;
   const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10
   const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
+  const debugOpening = derivedOpenings[0] ?? null;
   const basementFloorLevel = -2.0;
   const basementCeilingLevel = -0.01;
   const eavesBandMesh = useMemo(() => {
@@ -1240,6 +1246,20 @@ function HouseScene({
             roofValidationEntries={roofValidationEntries}
             highlightedRidgeId={hoveredRidgeId}
           />
+
+          {debugOpening && (
+            <mesh
+              name="debug-opening-center"
+              position={[
+                debugOpening.centerArch.x,
+                debugOpening.centerArch.y,
+                debugOpening.centerArch.z,
+              ]}
+            >
+              <boxGeometry args={[1, 1, 1]} />
+              <meshBasicMaterial color={0xff0000} wireframe />
+            </mesh>
+          )}
         </group>
 
         <group ref={slabGroupRef} name="slabGroup">

@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 
-export const frameMaterial = new THREE.MeshStandardMaterial({
-  color: '#383E42',
-  roughness: 0.55,
-  metalness: 0.12,
+const debugWindowMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+  wireframe: false,
   side: THREE.DoubleSide,
+  depthTest: false,
 });
+
+export const frameMaterial = debugWindowMaterial;
 
 export const blueStoneMaterial = new THREE.MeshStandardMaterial({
   color: '#5f6b73',
@@ -14,29 +16,11 @@ export const blueStoneMaterial = new THREE.MeshStandardMaterial({
   side: THREE.DoubleSide,
 });
 
-export const glassMaterial = new THREE.MeshPhysicalMaterial({
-  color: '#e6e8ea',
-  transmission: 0.85,
-  roughness: 0.05,
-  ior: 1.5,
-  metalness: 0,
-  depthWrite: false,
-  side: THREE.DoubleSide,
-});
+export const glassMaterial = debugWindowMaterial;
 
-export const metalBandMaterial = new THREE.MeshStandardMaterial({
-  color: 0x2f3237,
-  roughness: 0.6,
-  metalness: 0.2,
-  side: THREE.DoubleSide,
-});
+export const metalBandMaterial = debugWindowMaterial;
 
-export const revealMaterial = new THREE.MeshStandardMaterial({
-  color: '#e8e5df',
-  roughness: 0.85,
-  metalness: 0.05,
-  side: THREE.DoubleSide,
-});
+export const revealMaterial = debugWindowMaterial;
 
 export const frontBlueStoneMaterial = new THREE.MeshStandardMaterial({
   color: 0x2a2f33,

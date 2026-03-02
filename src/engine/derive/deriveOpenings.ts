@@ -132,7 +132,7 @@ export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] 
     const n2 = { x: tz, z: -tx };
     const outward = pickOutwardNormalXZ(outer, edgeMid, n1, n2);
 
-    out.push({
+    const derivedOpening: DerivedOpeningRect = {
       id: opening.id,
       kind: opening.kind,
       levelIndex,
@@ -149,6 +149,14 @@ export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] 
       tangentXZ: { x: tx, z: tz },
       outwardXZ: outward,
       style: opening.style,
+    };
+
+    out.push(derivedOpening);
+
+    console.log('OPENING DEBUG', {
+      center: derivedOpening.centerArch,
+      facadeZ: outer[opening.edge.edgeIndex].z,
+      nextZ: outer[opening.edge.edgeIndex + 1]?.z,
     });
   }
 

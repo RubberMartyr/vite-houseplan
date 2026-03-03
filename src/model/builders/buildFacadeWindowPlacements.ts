@@ -1,7 +1,8 @@
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
+import { wallThickness } from '../houseSpec';
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import type { FacadeContext } from './facadeContext';
-import { resolveFacadeX } from './facadeGeometry';
+import { getWallPlanesAtZ } from './wallSurfaceResolver';
 import type { SideWindowSpec } from './windowFactory';
 
 function placementHeight(spec: SideWindowSpec): number {
@@ -11,12 +12,13 @@ function placementHeight(spec: SideWindowSpec): number {
 export function buildFacadeWindowPlacements(ctx: FacadeContext, specs: SideWindowSpec[]): FacadeWindowPlacement[] {
   return specs.map((spec) => {
     const zCenter = spec.zCenter;
-    const xFace = resolveFacadeX(ctx, zCenter);
+    const { xOuter: xFace } = getWallPlanesAtZ(ctx.outward, zCenter, wallThickness.exterior ?? 0.3);
     const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
 
     if (import.meta.env.DEV) {
       console.log('WINDOW PLANE', ctx.facade, {
         z: zCenter,
+        xFace,
         xOuterPlane,
       });
     }

@@ -622,6 +622,7 @@ export default function HouseViewer() {
   const derivedData = lastGoodDerived ?? buildAttempt.derived;
   const derivedSlabs = derivedData?.slabs ?? [];
   const derivedOpenings = derivedData?.openings ?? [];
+  const derivedWorldMeshes = derivedData?.worldMeshes ?? [];
 
   const handleToggleFloor = (key: FloorKey) => {
     setActiveFloors((prev) => ({
@@ -759,6 +760,7 @@ export default function HouseViewer() {
           roofRevision={roofRevision}
           derivedSlabs={derivedSlabs}
           derivedOpenings={derivedOpenings}
+          worldMeshes={derivedWorldMeshes}
           cutawayEnabled={cutawayEnabled}
           facadeVisibility={facadeVisibility}
           selectedRoomId={selectedRoomId}
@@ -809,6 +811,7 @@ function HouseScene({
   roofRevision,
   derivedSlabs,
   derivedOpenings,
+  worldMeshes,
   cutawayEnabled,
   facadeVisibility,
   selectedRoomId,
@@ -831,6 +834,7 @@ function HouseScene({
   roofRevision: number;
   derivedSlabs: DerivedHouseData['slabs'];
   derivedOpenings: DerivedOpeningRect[];
+  worldMeshes: DerivedHouseData['worldMeshes'];
   cutawayEnabled: boolean;
   facadeVisibility: Record<FacadeKey, boolean>;
   selectedRoomId: string | null;
@@ -1054,6 +1058,10 @@ function HouseScene({
   const atticLevelY = firstFloorLevelY + firstFloorCeilingHeight; // 2.60 + 2.50 = 5.10
   const wallShellVisible = !cutawayEnabled || Object.values(facadeVisibility).every(Boolean);
   const debugOpening = derivedOpenings[0] ?? null;
+
+  useEffect(() => {
+    console.log('FINAL RENDER INPUT:', worldMeshes.map((m) => m.materialKey));
+  }, [worldMeshes]);
   const basementFloorLevel = -2.0;
   const basementCeilingLevel = -0.01;
   const eavesBandMesh = useMemo(() => {
@@ -1257,6 +1265,17 @@ function HouseScene({
             roofValidationEntries={roofValidationEntries}
             highlightedRidgeId={hoveredRidgeId}
           />
+
+          {worldMeshes.map((m) => (
+            <mesh
+              key={m.id}
+              geometry={m.geometry}
+              position={m.position}
+              rotation={m.rotation}
+            >
+              <meshBasicMaterial color="red" wireframe />
+            </mesh>
+          ))}
 
           {debugOpening && (
             <mesh

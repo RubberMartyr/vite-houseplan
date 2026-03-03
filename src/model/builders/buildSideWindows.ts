@@ -35,6 +35,7 @@ function snapWindowToRightWallPlane(params: {
   eps: number;
 }) {
   const { zCenter, outwardSign, frameDepth, eps } = params;
+  console.log('SNAP FUNCTION HIT', zCenter);
 
   const { xOuter } = getWallPlanesAtZ(
     outwardSign,
@@ -142,7 +143,13 @@ function buildSingleSideWindow(
     const fullHeightSpec = levelBandSpec(spec, spec.groundY0, Math.max(spec.groundY1, spec.firstY1));
     meshes.push(...buildBandWindowMeshes(fullHeightSpec, commonProps));
     meshes.push(...createRevealMeshes({ spec: fullHeightSpec, zCenter, xOuter: xOuterPlane, xInner: xInnerReveal }));
-    return meshes.map(asMesh);
+    const builtMeshes = meshes.map(asMesh);
+    if (ctx.facade === 'architecturalRight') {
+      builtMeshes.forEach((mesh) => {
+        console.log('RIGHT WINDOW WORLD POS', mesh.position);
+      });
+    }
+    return builtMeshes;
   }
 
   if (spec.groundY1 > spec.groundY0) {
@@ -157,7 +164,14 @@ function buildSingleSideWindow(
     meshes.push(...createRevealMeshes({ spec: s, zCenter, xOuter: xOuterPlane, xInner: xInnerReveal }));
   }
 
-  return meshes.map(asMesh);
+  const builtMeshes = meshes.map(asMesh);
+  if (ctx.facade === 'architecturalRight') {
+    builtMeshes.forEach((mesh) => {
+      console.log('RIGHT WINDOW WORLD POS', mesh.position);
+    });
+  }
+
+  return builtMeshes;
 }
 
 export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {

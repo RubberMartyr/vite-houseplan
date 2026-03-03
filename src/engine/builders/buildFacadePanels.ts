@@ -95,7 +95,7 @@ export function buildFacadePanelsWithOpenings({
     const yaw = Math.atan2(outward.x, outward.z);
     const outwardOffset = panelThickness / 2 + PANEL_OFFSET_EPS;
 
-    panels.push({
+    const mesh: FacadePanelMesh = {
       id: `wall_L${levelIndex}_E${edgeIndex}`,
       geometry: geom,
       position: [
@@ -105,7 +105,11 @@ export function buildFacadePanelsWithOpenings({
       ],
       rotation: [0, yaw, 0],
       materialKey: 'wall',
-    });
+    };
+
+    console.log('Wall mesh X sample:', mesh.position[0]);
+
+    panels.push(mesh);
   }
 
   console.log('FACADE PANELS COUNT:', panels.length);

@@ -1221,6 +1221,8 @@ function HouseScene({
         position={[originOffset.x, 0, originOffset.z]}
       >
         <group ref={wallGroupRef} name="wallGroup">
+          {/* Quick isolation test: disable legacy house render entirely. */}
+          {/*
           {showLegacy && (
             <LegacyHouse
               showLegacy={showLegacy}
@@ -1245,6 +1247,7 @@ function HouseScene({
               rightSideWindows={rightSideWindows}
             />
           )}
+          */}
           <EngineHouse
             key={`roof-${roofRevision}`}
             debugEngineWalls={DEBUG_ENGINE_WALLS}

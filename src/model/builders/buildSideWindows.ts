@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { levelHeights, wallThickness } from '../houseSpec';
-import { FRAME_DEPTH, GLASS_INSET } from '../constants/windowConstants';
+import { EPS, FRAME_DEPTH, GLASS_INSET } from '../constants/windowConstants';
 import {
   createRevealMeshes,
   makeSimpleWindow,
@@ -27,6 +27,26 @@ export type OpeningDescriptor = {
   y1: number;
   outward: number;
 };
+
+function snapWindowToRightWallPlane(params: {
+  zCenter: number;
+  outwardSign: 1 | -1;
+  frameDepth: number;
+  eps: number;
+}) {
+  const { zCenter, outwardSign, frameDepth, eps } = params;
+
+  const { xOuter } = getWallPlanesAtZ(
+    outwardSign,
+    zCenter,
+    wallThickness.exterior,
+  );
+
+  // Snap window center directly to wall plane.
+  const x = xOuter + outwardSign * (frameDepth / 2 - eps);
+
+  return { x, xOuter };
+}
 
 function asMesh(meshSpec: WindowFactoryMesh) {
   const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
@@ -90,8 +110,17 @@ function buildSingleSideWindow(
 
   const xInnerReveal = xInnerWall - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
 
-  const frameX =
-    xOuterPlane - ctx.outward * (FRAME_DEPTH / 2);
+  const { x: frameX, xOuter } = snapWindowToRightWallPlane({
+    zCenter,
+    outwardSign: ctx.outward as 1 | -1,
+    frameDepth: FRAME_DEPTH,
+    eps: EPS,
+  });
+
+  if (runtimeFlags.debugWindows) {
+    console.log('WALL X:', xOuter);
+    console.log('WINDOW X:', frameX);
+  }
 
   const glassX =
     frameX + interiorDir * GLASS_INSET;

@@ -29,12 +29,13 @@ export type OpeningDescriptor = {
 };
 
 function snapWindowToRightWallPlane(params: {
+  facade: FacadeContext['facade'];
   zCenter: number;
   outwardSign: 1 | -1;
   frameDepth: number;
   eps: number;
 }) {
-  const { zCenter, outwardSign, frameDepth, eps } = params;
+  const { facade, zCenter, outwardSign, frameDepth, eps } = params;
   console.log('SNAP FUNCTION HIT', zCenter);
 
   const { xOuter } = getWallPlanesAtZ(
@@ -44,7 +45,8 @@ function snapWindowToRightWallPlane(params: {
   );
 
   // Snap window center directly to wall plane.
-  const x = xOuter + outwardSign * (frameDepth / 2 - eps);
+  const outwardSignForSnap = facade === 'architecturalRight' ? -outwardSign : outwardSign;
+  const x = xOuter + outwardSignForSnap * (frameDepth / 2 - eps);
 
   return { x, xOuter };
 }
@@ -112,6 +114,7 @@ function buildSingleSideWindow(
   const xInnerReveal = xInnerWall - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
 
   const { x: frameX, xOuter } = snapWindowToRightWallPlane({
+    facade: ctx.facade,
     zCenter,
     outwardSign: ctx.outward as 1 | -1,
     frameDepth: FRAME_DEPTH,

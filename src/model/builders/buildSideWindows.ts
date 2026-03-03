@@ -72,6 +72,28 @@ function levelBandSpec(spec: SideWindowSpec, y0: number, y1: number): SideWindow
   };
 }
 
+function rotateMeshesToWallTangent(params: {
+  meshes: THREE.Object3D[];
+  tangentXZ: { x: number; z: number };
+  anchorX: number;
+  anchorZ: number;
+}) {
+  const { meshes, tangentXZ, anchorX, anchorZ } = params;
+  const theta = Math.atan2(tangentXZ.x, tangentXZ.z);
+
+  if (Math.abs(theta) < 1e-6) return;
+
+  const anchor = new THREE.Vector3(anchorX, 0, anchorZ);
+  const axis = new THREE.Vector3(0, 1, 0);
+
+  for (const mesh of meshes) {
+    mesh.position.sub(anchor);
+    mesh.position.applyAxisAngle(axis, theta);
+    mesh.position.add(anchor);
+    mesh.rotateOnAxis(axis, theta);
+  }
+}
+
 function buildBandWindowMeshes(
   spec: SideWindowSpec,
   commonProps: {
@@ -96,7 +118,11 @@ function buildSingleSideWindow(
 ): THREE.Object3D[] {
   const meshes: WindowFactoryMesh[] = [];
   const { spec, zCenter, height } = placement;
-  const { xOuter: xFace, xInner: xInnerWall } = getWallPlanesAtZ(ctx.outward, zCenter, wallThickness.exterior ?? 0.3);
+  const { xOuter: xFace, xInner: xInnerWall, tangentXZ } = getWallPlanesAtZ(
+    ctx.outward,
+    zCenter,
+    wallThickness.exterior ?? 0.3,
+  );
   const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
   if (runtimeFlags.debugWindows) {
     console.log('SIDEWIN XPLANE', {
@@ -152,6 +178,12 @@ function buildSingleSideWindow(
         console.log('RIGHT WINDOW WORLD POS', mesh.position);
       });
     }
+    rotateMeshesToWallTangent({
+      meshes: builtMeshes,
+      tangentXZ,
+      anchorX: xFace,
+      anchorZ: zCenter,
+    });
     return builtMeshes;
   }
 
@@ -173,6 +205,13 @@ function buildSingleSideWindow(
       console.log('RIGHT WINDOW WORLD POS', mesh.position);
     });
   }
+
+  rotateMeshesToWallTangent({
+    meshes: builtMeshes,
+    tangentXZ,
+    anchorX: xFace,
+    anchorZ: zCenter,
+  });
 
   return builtMeshes;
 }

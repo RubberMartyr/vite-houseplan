@@ -251,10 +251,12 @@ export function makeRightFacadePanels(params: {
     panelGeometry.computeVertexNormals();
 
     const inwardOffset = -panelOutset;
-    return {
+    const panel = {
       geometry: panelGeometry,
       position: [segment.x - facadeCtx.outward * inwardOffset, baseY + wallHeight / 2, panelCenterZ],
       rotation: [0, 0, 0],
     };
+    console.log('RIGHT WALL PANEL POS', panel.position);
+    return panel;
   });
 }

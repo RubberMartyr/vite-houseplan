@@ -181,7 +181,7 @@ export function buildWallsFromCurrentSystem(): WallBuildOutput {
 
   const raw = buildExtrudedShell({
     outerPoints: outer,
-    innerPoints: inner,
+    innerPolygons: [inner],
     height: wallHeight,
     baseY: 0,
   });

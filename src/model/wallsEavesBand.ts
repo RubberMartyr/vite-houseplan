@@ -15,7 +15,7 @@ export const wallsEavesBand = {
     const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
     return buildExtrudedShell({
       outerPoints: outer,
-      innerPoints: inner,
+      innerPolygons: [inner],
       height: bandHeight,
       baseY: bandBaseY,
     });

@@ -4,13 +4,7 @@ import { deriveOpenings } from './deriveOpenings';
 import { deriveRoofs } from './deriveRoofs';
 import { deriveSlabs } from './deriveSlabs';
 import { deriveWalls } from './deriveWalls';
-
-export interface DerivedHouse {
-  slabs: ReturnType<typeof deriveSlabs>;
-  walls: ReturnType<typeof deriveWalls>;
-  roofs: ReturnType<typeof deriveRoofs>;
-  openings: ReturnType<typeof deriveOpenings>;
-}
+import type { DerivedHouse } from './types/DerivedHouse';
 
 export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
   // Stage 0

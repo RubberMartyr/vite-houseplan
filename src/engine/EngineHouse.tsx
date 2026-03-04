@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { ArchitecturalHouse } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
+import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
 import { EngineWalls } from './render/EngineWalls';
@@ -10,7 +11,10 @@ type Props = {
 };
 
 export function EngineHouse({ architecturalHouse }: Props) {
-  const derived = useMemo(() => deriveHouse(architecturalHouse), [architecturalHouse]);
+  const derived: DerivedHouse = useMemo(
+    () => deriveHouse(architecturalHouse),
+    [architecturalHouse]
+  );
 
   return (
     <>

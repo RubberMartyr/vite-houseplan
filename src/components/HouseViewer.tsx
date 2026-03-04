@@ -1,9 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
+import { AxesHelper } from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
 import { markFirstFrameRendered } from '../loadingManager';
+import { isDebugEnabled } from '../runtime/debugFlags';
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -16,6 +19,29 @@ function FirstFrameMarker() {
     firstFrameRef.current = true;
     markFirstFrameRendered();
   });
+
+  return null;
+}
+
+function DebugAxes() {
+  const { scene } = useThree();
+  const helperRef = useRef<AxesHelper | null>(null);
+
+  useEffect(() => {
+    if (!isDebugEnabled()) {
+      return;
+    }
+
+    const axes = new AxesHelper(5);
+    scene.add(axes);
+    helperRef.current = axes;
+
+    return () => {
+      if (helperRef.current) {
+        scene.remove(helperRef.current);
+      }
+    };
+  }, [scene]);
 
   return null;
 }
@@ -44,6 +70,7 @@ export default function HouseViewer() {
 
         <group>
           <EngineHouse architecturalHouse={architecturalHouse} />
+          <DebugAxes />
         </group>
 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />

@@ -4,7 +4,7 @@ import { deriveHouse } from './derive/deriveHouse';
 import { EngineFlatRoofs } from './render/EngineFlatRoofs';
 import { EngineGableRoofs } from './render/EngineGableRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
-import { EngineWallShells } from './render/EngineWallShells';
+import { EngineWalls } from './render/EngineWalls';
 
 type Props = {
   architecturalHouse: ArchitecturalHouse;
@@ -15,7 +15,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
 
   return (
     <>
-      <EngineWallShells arch={architecturalHouse} />
+      <EngineWalls walls={derived.walls} />
       <EngineSlabs slabs={derived.slabs} />
       <EngineFlatRoofs arch={architecturalHouse} roofRevision={0} />
       <EngineGableRoofs arch={architecturalHouse} roofRevision={0} />

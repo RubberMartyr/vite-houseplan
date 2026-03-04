@@ -1,8 +1,8 @@
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from 'three';
-import { getEnvelopeInnerPolygon, getFlatRoofPolygon } from '../model/envelope';
+import { getFlatRoofPolygon } from '../model/envelope';
 import { ceilingHeights, rightFacadeProfileCm, wallThickness } from '../model/houseSpec';
 import { architecturalHouse } from './architecturalHouse';
-import type { LevelSpec } from './architecturalTypes';
+import type { ArchitecturalHouse, LevelSpec } from './architecturalTypes';
 import { ARCH_RIGHT_FACADE_SEGMENTS, RIGHT_WORLD_FACADE_SEGMENTS } from './geometry/windowFactory';
 import { createFacadeContext } from './geometry/facadeContext';
 import { getWallPlanesAtZ } from './geometry/wallSurfaceResolver';
@@ -32,6 +32,18 @@ function footprintToPolygon(level: LevelSpec) {
     x: vertex.x,
     z: vertex.z,
   }));
+}
+
+function getWallPolygons(arch: ArchitecturalHouse) {
+  const level = arch.levels[0];
+  if (!level) {
+    throw new Error('Cannot build walls: architecturalHouse.levels[0] is missing.');
+  }
+
+  return {
+    outer: level.footprint.outer,
+    inner: level.footprint.holes?.[0],
+  };
 }
 
 function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number) {
@@ -156,9 +168,10 @@ export type WallBuildOutput = {
 const REMOVE_FACADES = true;
 
 export function buildWallsFromCurrentSystem(): WallBuildOutput {
-  const level = getBaseLevel();
-  const outer = footprintToPolygon(level);
-  const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
+  const { outer, inner } = getWallPolygons(architecturalHouse);
+  if (!inner) {
+    throw new Error('Cannot build walls: architecturalHouse.levels[0].footprint.holes[0] is missing.');
+  }
   const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
   const innerRearZ = rearZ - exteriorThickness;
   const facadeCtx = createFacadeContext('architecturalLeft');

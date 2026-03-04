@@ -1,9 +1,8 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
-import { deriveHouse } from '../engine/derive/deriveHouse';
 import { markFirstFrameRendered } from '../loadingManager';
 
 function FirstFrameMarker() {
@@ -22,8 +21,6 @@ function FirstFrameMarker() {
 }
 
 export default function HouseViewer() {
-  const derived = useMemo(() => deriveHouse(architecturalHouse), []);
-
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <Canvas shadows camera={{ position: [0, 7, -12], fov: 50 }} dpr={1} gl={{ antialias: true }}>
@@ -46,13 +43,7 @@ export default function HouseViewer() {
         </mesh>
 
         <group>
-          <EngineHouse
-            architecturalHouse={architecturalHouse}
-            derivedSlabs={derived.slabs}
-            roofRevision={0}
-            roofValidationEntries={[]}
-            highlightedRidgeId={null}
-          />
+          <EngineHouse architecturalHouse={architecturalHouse} />
         </group>
 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />

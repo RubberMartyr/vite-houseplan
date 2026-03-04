@@ -1,6 +1,6 @@
 import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Path, Shape, ShapeGeometry } from 'three';
-import { RIGHT_FACADE_SEGMENTS } from './windowFactory';
-import { createFacadeContext } from './facadeContext';
+import { RIGHT_FACADE_SEGMENTS } from '../../engine/geometry/windowFactory';
+import { createFacadeContext } from '../../engine/geometry/facadeContext';
 
 const EPSILON = 0.01;
 

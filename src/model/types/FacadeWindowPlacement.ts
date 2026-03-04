@@ -1,4 +1,4 @@
-import type { SideWindowSpec } from '../builders/windowFactory';
+import type { SideWindowSpec } from '../../engine/geometry/windowFactory';
 
 export type FacadeWindowPlacement = {
   spec: SideWindowSpec;

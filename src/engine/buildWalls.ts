@@ -1,10 +1,10 @@
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from 'three';
 import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from '../model/envelope';
 import { ceilingHeights, rightFacadeProfileCm, wallThickness } from '../model/houseSpec';
-import { ARCH_RIGHT_FACADE_SEGMENTS, RIGHT_WORLD_FACADE_SEGMENTS } from '../model/builders/windowFactory';
-import { createFacadeContext } from '../model/builders/facadeContext';
-import { getWallPlanesAtZ } from '../model/builders/wallSurfaceResolver';
-import { buildExtrudedShell } from '../model/builders/buildExtrudedShell';
+import { ARCH_RIGHT_FACADE_SEGMENTS, RIGHT_WORLD_FACADE_SEGMENTS } from './geometry/windowFactory';
+import { createFacadeContext } from './geometry/facadeContext';
+import { getWallPlanesAtZ } from './geometry/wallSurfaceResolver';
+import { buildExtrudedShell } from './geometry/buildExtrudedShell';
 
 const wallHeight = ceilingHeights.ground;
 const exteriorThickness = wallThickness.exterior;

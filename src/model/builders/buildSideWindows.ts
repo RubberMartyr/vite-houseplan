@@ -7,11 +7,11 @@ import {
   makeSplitTallWindow,
   type SideWindowSpec,
   type WindowFactoryMesh,
-} from './windowFactory';
+} from '../../engine/geometry/windowFactory';
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
-import { worldSideFromOutward, type FacadeContext } from './facadeContext';
-import { debugWallIntersectionsAtZ, getOuterWallXAtZ, getWallPlanesAtZ } from './wallSurfaceResolver';
+import { worldSideFromOutward, type FacadeContext } from '../../engine/geometry/facadeContext';
+import { debugWallIntersectionsAtZ, getOuterWallXAtZ, getWallPlanesAtZ } from '../../engine/geometry/wallSurfaceResolver';
 import { runtimeFlags } from '../runtimeFlags';
 
 export type BuildSideWindowsConfig = {

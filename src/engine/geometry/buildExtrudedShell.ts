@@ -1,6 +1,6 @@
 import { ExtrudeGeometry, Path, Shape } from 'three';
-import { FootprintPoint } from '../envelope';
-import { archToWorldXZ } from '../../engine/spaceMapping';
+import { FootprintPoint } from '../../model/envelope';
+import { archToWorldXZ } from '../spaceMapping';
 
 export interface ShellResult {
   geometry: ExtrudeGeometry;

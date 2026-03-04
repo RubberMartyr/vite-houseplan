@@ -1,4 +1,4 @@
-import type { FacadeContext } from '../builders/facadeContext';
+import type { FacadeContext } from '../../engine/geometry/facadeContext';
 import type { OpeningCut } from './OpeningCut';
 import type { FacadeWindowPlacement } from './FacadeWindowPlacement';
 

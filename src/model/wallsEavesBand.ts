@@ -1,6 +1,6 @@
 import { getEnvelopeFirstOuterPolygon, getEnvelopeInnerPolygon } from './envelope';
 import { wallThickness } from './houseSpec';
-import { buildExtrudedShell } from './builders/buildExtrudedShell';
+import { buildExtrudedShell } from '../engine/geometry/buildExtrudedShell';
 
 const EAVES_BAND_BASE_Y = 5.1;
 const EAVES_BAND_THICKNESS = 0.12;

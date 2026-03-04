@@ -1,7 +1,7 @@
-import type { SideWindowSpec } from './windowFactory';
+import type { SideWindowSpec } from '../../engine/geometry/windowFactory';
 import { buildFacadePlan } from './buildFacadePlan';
 import type { FacadePlan } from '../types/FacadePlan';
-import type { FacadeSide } from './facadeContext';
+import type { FacadeSide } from '../../engine/geometry/facadeContext';
 
 type FacadeAssembly = FacadePlan & {
   windowMeshes: [];

@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { deriveGableRoofGeometries } from "../deriveGableRoofs";
-import type { ArchitecturalHouse } from "../architecturalTypes";
-import type { MultiPlaneRoofSpec } from "../types";
+import type { DerivedRoof } from "../derive/types/DerivedRoof";
 
 type Props = {
-  arch: ArchitecturalHouse;
-  roofs: MultiPlaneRoofSpec[];
+  roofs: DerivedRoof[];
   roofRevision: number;
   visible?: boolean;
   invalidRoofIds?: Set<string>;
@@ -16,23 +14,17 @@ type BuildGeometriesOptions = {
   invalidRoofIds?: Set<string>;
 };
 
-function buildGeometries(arch: ArchitecturalHouse, roofs: MultiPlaneRoofSpec[], options: BuildGeometriesOptions) {
-  return deriveGableRoofGeometries(arch, roofs, options);
+function buildGeometries(roofs: DerivedRoof[], options: BuildGeometriesOptions) {
+  return deriveGableRoofGeometries(roofs, options);
 }
 
 function disposeGeometries(geometries: THREE.BufferGeometry[]) {
   geometries.forEach((geometry) => geometry.dispose());
 }
 
-export function EngineGableRoofs({
-  arch,
-  roofs,
-  roofRevision,
-  visible = true,
-  invalidRoofIds,
-}: Props) {
+export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidRoofIds }: Props) {
   const options = useMemo(() => ({ invalidRoofIds }), [invalidRoofIds]);
-  const sceneGeometries = useMemo(() => buildGeometries(arch, roofs, options), [arch, roofs, options, roofRevision]);
+  const sceneGeometries = useMemo(() => buildGeometries(roofs, options), [roofs, options, roofRevision]);
 
   useEffect(() => {
     return () => {

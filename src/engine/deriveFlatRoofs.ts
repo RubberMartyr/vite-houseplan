@@ -1,40 +1,34 @@
 import * as THREE from "three";
 import polygonClipping from "polygon-clipping";
-import type { ArchitecturalHouse } from "./architecturalTypes";
-import type { MultiPlaneRoofSpec, RoofSpec } from "./types";
+import type { RoofSpec, XZ } from "./types";
+import type { DerivedRoof } from "./derive/types/DerivedRoof";
 
-function toPoly(points: { x: number; z: number }[]) {
-  return [points.map((p) => [p.x, p.z])];
+function toPoly(points: XZ[]) {
+  const ring = points[0] === points[points.length - 1] ? points : [...points, points[0]];
+  return [ring.map((p) => [p.x, p.z])];
 }
 
-export function deriveFlatRoofGeometries(
-  arch: ArchitecturalHouse,
-  roofs: MultiPlaneRoofSpec[]
-): THREE.BufferGeometry[] {
+export function deriveFlatRoofGeometries(roofs: DerivedRoof[]): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
+  const footprintByLevelId = new Map<string, XZ[]>();
 
-  for (const roof of roofs as unknown as RoofSpec[]) {
-    if (roof.type === "multi-ridge") {
-      console.log("multi-ridge roof detected");
-    }
+  for (const roof of roofs) {
+    footprintByLevelId.set(roof.baseLevel.id, roof.footprintOuter);
+  }
+
+  for (const derivedRoof of roofs) {
+    const roof = derivedRoof.spec as RoofSpec;
 
     if (roof.type !== "flat") continue;
 
-    const baseLevel = arch.levels.find(
-      (l) => l.id === roof.baseLevelId
-    );
-    if (!baseLevel) continue;
-
-    const basePoly = toPoly(baseLevel.footprint.outer);
+    const basePoly = toPoly(derivedRoof.roofPolygonOuter);
 
     let result: any = basePoly;
 
     if (roof.subtractAboveLevelId) {
-      const aboveLevel = arch.levels.find(
-        (l) => l.id === roof.subtractAboveLevelId
-      );
-      if (aboveLevel) {
-        const abovePoly = toPoly(aboveLevel.footprint.outer);
+      const aboveFootprint = footprintByLevelId.get(roof.subtractAboveLevelId);
+      if (aboveFootprint) {
+        const abovePoly = toPoly(aboveFootprint);
         result = polygonClipping.difference(basePoly as any, abovePoly as any);
       }
     }
@@ -56,11 +50,7 @@ export function deriveFlatRoofGeometries(
 
       geom.rotateX(-Math.PI / 2);
 
-      geom.translate(
-        0,
-        baseLevel.elevation + baseLevel.height,
-        0
-      );
+      geom.translate(0, derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height, 0);
 
       geom.computeVertexNormals();
 

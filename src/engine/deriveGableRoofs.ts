@@ -1,21 +1,19 @@
 import * as THREE from "three";
-import type { ArchitecturalHouse } from "./architecturalTypes";
 import type {
   FaceRegion,
   HalfPlane,
-  LevelSpec,
   MultiPlaneRoofSpec,
   RidgePerpCut,
   RoofSpec,
   Vec2,
   XZ,
 } from "./types";
+import type { DerivedRoof } from "./derive/types/DerivedRoof";
 
 type RoofPlane = {
   normal: { x: number; y: number; z: number };
   heightAt(x: number, z: number): number;
 };
-import { offsetPolygonInward } from "./geom2d/offsetPolygon";
 import { normalizeMultiPlaneRoof } from "./roof/normalizeMultiPlaneRoof";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
@@ -425,29 +423,23 @@ function buildRoofFaceGeometry(params: {
 }
 
 export function deriveGableRoofGeometries(
-  arch: ArchitecturalHouse,
-  roofs: MultiPlaneRoofSpec[],
+  roofs: DerivedRoof[],
   options: { invalidRoofIds?: Set<string> } = {}
 ): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
 
-  for (const roof of roofs as unknown as RoofSpec[]) {
+  for (const derivedRoof of roofs) {
+    const roof = derivedRoof.spec as RoofSpec;
     if (roof.type !== "gable" && roof.type !== "multi-ridge" && roof.type !== "multi-plane") continue;
 
     if (roof.type === "gable") {
-      const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
-      if (!baseLevel) continue;
-
-      const geom = buildStructuralGableGeometry(baseLevel, roof);
+      const geom = buildStructuralGableGeometry(derivedRoof, roof);
       geometries.push(geom);
     }
 
     if (roof.type === "multi-ridge") {
-      const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
-      if (!baseLevel) continue;
-
       console.log("USING MULTI-RIDGE BUILDER (derived k)");
-      const geoms = buildMultiRidgeRoof(baseLevel, roof);
+      const geoms = buildMultiRidgeRoof(derivedRoof, roof);
       geometries.push(...geoms);
     }
 
@@ -456,7 +448,7 @@ export function deriveGableRoofGeometries(
         continue;
       }
       const normalized = normalizeMultiPlaneRoof(roof);
-      const geoms = deriveMultiPlaneRoofGeometries(arch, normalized);
+      const geoms = deriveMultiPlaneRoofGeometries(derivedRoof, normalized);
       geometries.push(...geoms);
     }
   }
@@ -465,19 +457,12 @@ export function deriveGableRoofGeometries(
 }
 
 function deriveMultiPlaneRoofGeometries(
-  arch: ArchitecturalHouse,
+  derivedRoof: DerivedRoof,
   roof: MultiPlaneRoofSpec
 ): THREE.BufferGeometry[] {
-  const baseLevel = arch.levels.find((l) => l.id === roof.baseLevelId);
-  if (!baseLevel) return [];
-
   const thickness = roof.thickness ?? 0.2;
 
-  let fp: XZ[] = baseLevel.footprint.outer;
-  if (roof.overhang && roof.overhang !== 0) {
-    fp = offsetPolygonInward(fp, -roof.overhang);
-  }
-  fp = ensureClosed(fp);
+  const fp: XZ[] = ensureClosed(derivedRoof.roofPolygonOuter);
 
   const geometries: THREE.BufferGeometry[] = [];
   const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
@@ -529,8 +514,8 @@ function deriveMultiPlaneRoofGeometries(
         if (!ridge) return;
 
         const E = region.end === "start" ? ridge.start : ridge.end;
-        const ridgeTopAbs = baseLevel.elevation + ridge.height;
-        const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+        const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
+        const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
         const base1 = regionPoly[1];
         const base2 = regionPoly[2];
@@ -544,9 +529,9 @@ function deriveMultiPlaneRoofGeometries(
         if (!face.p1 || !face.p2 || !face.p3) return;
 
         plane = planeFromArchPoints(
-          { x: face.p1.x, z: face.p1.z, y: baseLevel.elevation + face.p1.h },
-          { x: face.p2.x, z: face.p2.z, y: baseLevel.elevation + face.p2.h },
-          { x: face.p3.x, z: face.p3.z, y: baseLevel.elevation + face.p3.h }
+          { x: face.p1.x, z: face.p1.z, y: derivedRoof.baseLevel.elevation + face.p1.h },
+          { x: face.p2.x, z: face.p2.z, y: derivedRoof.baseLevel.elevation + face.p2.h },
+          { x: face.p3.x, z: face.p3.z, y: derivedRoof.baseLevel.elevation + face.p3.h }
         );
       }
     } else if (face.kind === "ridgeSideSegment") {
@@ -596,8 +581,8 @@ function deriveMultiPlaneRoofGeometries(
     const bases = hipBases.get(ridge.id);
     if (!bases?.start || !bases?.end) continue;
 
-    const ridgeTopAbs = baseLevel.elevation + ridge.height;
-    const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+    const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
+    const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
     (["start", "end"] as const).forEach((endKey) => {
       (["left", "right"] as const).forEach((side) => {
@@ -655,8 +640,8 @@ function deriveMultiPlaneRoofGeometries(
     const bases = hipBases.get(ridge.id);
     if (!bases?.start || !bases?.end) continue;
 
-    const ridgeTopAbs = baseLevel.elevation + ridge.height;
-    const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+    const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
+    const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
     const leftStart = pickBaseForSide(ridge, bases.start, "left");
     const leftEnd = pickBaseForSide(ridge, bases.end, "left");
@@ -975,7 +960,7 @@ function getRoofHeightFunctions(
 }
 
 function buildMultiRidgeRoof(
-  baseLevel: LevelSpec,
+  derivedRoof: DerivedRoof,
   roof: MultiRidgeRoofSpec
 ): THREE.BufferGeometry[] {
   const ridge = roof.ridgeSegments[0];
@@ -983,14 +968,10 @@ function buildMultiRidgeRoof(
 
   const thickness = roof.thickness ?? 0.2;
 
-  const ridgeTopAbs = baseLevel.elevation + ridge.height;
-  const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+  const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
+  const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
-  let fp = baseLevel.footprint.outer;
-  if (roof.overhang && roof.overhang !== 0) {
-    fp = offsetPolygonInward(fp, -roof.overhang);
-  }
-  fp = ensureClosed(fp);
+  const fp = ensureClosed(derivedRoof.roofPolygonOuter);
 
   const { roofOuterAt } = getRoofHeightFunctions(
     fp,
@@ -1030,11 +1011,11 @@ function buildMultiRidgeRoof(
 }
 
 export function buildStructuralGableGeometry(
-  baseLevel: LevelSpec,
+  derivedRoof: DerivedRoof,
   roof: StructuralRoofSpec
 ): THREE.BufferGeometry {
   const thickness = roof.thickness ?? 0.2;
-  const eaveTopAbs = baseLevel.elevation + roof.eaveHeight;
+  const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
   const ridge: RidgeLine =
     roof.type === "multi-ridge"
@@ -1044,15 +1025,13 @@ export function buildStructuralGableGeometry(
           end: roof.ridge.end,
           height: roof.ridgeHeight,
         };
-  const ridgeTopAbs = baseLevel.elevation + ridge.height;
+  const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
 
-  let fp = baseLevel.footprint.outer;
-  if (roof.overhang && roof.overhang !== 0) {
-    fp = offsetPolygonInward(fp, -roof.overhang);
-  }
+  const fpClosed = ensureClosed(derivedRoof.roofPolygonOuter);
+  const fp = fpClosed.slice(0, -1);
 
   const { roofOuterAt, roofBottomAt } = getRoofHeightFunctions(
-    fp,
+    fpClosed,
     ridge,
     ridgeTopAbs,
     eaveTopAbs,

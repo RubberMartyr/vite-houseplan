@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { DerivedWallSegment } from '../deriveWalls';
 import { buildWallsFromDerivedSegments } from '../buildWallsFromDerivedSegments';
+import { DebugWireframe } from '../debug/DebugWireframe';
 
 type EngineWallsProps = {
   walls: DerivedWallSegment[];
@@ -25,6 +26,7 @@ export function EngineWalls({ walls, visible = true }: EngineWallsProps) {
       {builtWalls.map(({ id, geometry }) => (
         <mesh key={id} geometry={geometry}>
           <meshStandardMaterial />
+          <DebugWireframe />
         </mesh>
       ))}
     </>

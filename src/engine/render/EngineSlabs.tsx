@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
-import type { DerivedSlab } from '../engine/derive/deriveSlabs';
-import { buildSlabMesh } from './buildSlabMeshes';
-import { renderStyleConfig } from './renderStyleConfig';
+import type { DerivedSlab } from '../derive/deriveSlabs';
+import { buildSlabMesh } from '../../view/buildSlabMeshes';
+import { renderStyleConfig } from '../../view/renderStyleConfig';
 
-type EngineSlabsDebugProps = {
+type EngineSlabsProps = {
   slabs: DerivedSlab[];
   visible?: boolean;
 };
 
-export function EngineSlabsDebug({ slabs, visible = true }: EngineSlabsDebugProps) {
+export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
   const slabMeshes = useMemo(
     () => slabs.map((slab) => buildSlabMesh(slab, renderStyleConfig)),
     [slabs],

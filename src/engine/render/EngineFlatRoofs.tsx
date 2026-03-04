@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { deriveFlatRoofGeometries } from "../engine/deriveFlatRoofs";
-import type { ArchitecturalHouse } from "../engine/architecturalTypes";
+import { deriveFlatRoofGeometries } from "../deriveFlatRoofs";
+import type { ArchitecturalHouse } from "../architecturalTypes";
 
 type Props = {
   arch: ArchitecturalHouse;
@@ -13,7 +13,7 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
   geometries.forEach((geometry) => geometry.dispose());
 }
 
-export function EngineFlatRoofsDebug({
+export function EngineFlatRoofs({
   arch,
   roofRevision,
   visible = true,

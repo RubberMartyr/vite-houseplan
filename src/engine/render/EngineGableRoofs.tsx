@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { deriveGableRoofGeometries } from "../engine/deriveGableRoofs";
-import type { ArchitecturalHouse } from "../engine/architecturalTypes";
+import { deriveGableRoofGeometries } from "../deriveGableRoofs";
+import type { ArchitecturalHouse } from "../architecturalTypes";
 
 type Props = {
   arch: ArchitecturalHouse;
@@ -22,7 +22,7 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
   geometries.forEach((geometry) => geometry.dispose());
 }
 
-export function EngineGableRoofsDebug({
+export function EngineGableRoofs({
   arch,
   roofRevision,
   visible = true,

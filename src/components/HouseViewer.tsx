@@ -47,7 +47,6 @@ export default function HouseViewer() {
 
         <group>
           <EngineHouse
-            debugEngineWalls={false}
             architecturalHouse={architecturalHouse}
             derivedSlabs={derived.slabs}
             roofRevision={0}

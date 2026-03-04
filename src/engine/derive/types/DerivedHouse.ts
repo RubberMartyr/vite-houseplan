@@ -6,8 +6,8 @@ import type { DerivedRoof } from './DerivedRoof';
 export interface DerivedRevisions {
   slabs: number;
   walls: number;
-  openings: number;
   roofs: number;
+  openings: number;
 }
 
 export interface DerivedHouse {

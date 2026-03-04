@@ -42,7 +42,7 @@ function getWallPolygons(arch: ArchitecturalHouse) {
 
   return {
     outer: level.footprint.outer,
-    inner: level.footprint.holes?.[0],
+    holes: level.footprint.holes ?? [],
   };
 }
 
@@ -168,7 +168,8 @@ export type WallBuildOutput = {
 const REMOVE_FACADES = true;
 
 export function buildWallsFromCurrentSystem(): WallBuildOutput {
-  const { outer, inner } = getWallPolygons(architecturalHouse);
+  const { outer, holes } = getWallPolygons(architecturalHouse);
+  const inner = holes[0];
   if (!inner) {
     throw new Error('Cannot build walls: architecturalHouse.levels[0].footprint.holes[0] is missing.');
   }

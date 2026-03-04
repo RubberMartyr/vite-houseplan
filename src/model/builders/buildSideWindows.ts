@@ -11,7 +11,7 @@ import {
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { worldSideFromOutward, type FacadeContext } from './facadeContext';
-import { getWallPlanesAtZ } from './wallSurfaceResolver';
+import { debugWallIntersectionsAtZ, getWallPlanesAtZ } from './wallSurfaceResolver';
 import { runtimeFlags } from '../runtimeFlags';
 
 export type BuildSideWindowsConfig = {
@@ -165,6 +165,10 @@ function buildSingleSideWindow(
   const interiorDir = -ctx.outward;
 
   const xInnerReveal = xInnerWall - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
+
+  if (runtimeFlags.debugWindows) {
+    debugWallIntersectionsAtZ(zCenter);
+  }
 
   const { x: frameX, xOuter } = snapWindowToRightWallPlane({
     facade: ctx.facade,

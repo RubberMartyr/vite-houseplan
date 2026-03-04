@@ -16,11 +16,11 @@ function toShapePoints(points: FootprintPoint[]): FootprintPoint[] {
 
 export function buildExtrudedShell(params: {
   outerPoints: FootprintPoint[];
-  innerPoints: FootprintPoint[];
+  innerPolygons?: FootprintPoint[][];
   height: number;
   baseY: number;
 }): ShellResult {
-  const { outerPoints, innerPoints, height, baseY } = params;
+  const { outerPoints, innerPolygons = [], height, baseY } = params;
 
   const outerShape = new Shape();
   toShapePoints(outerPoints).forEach((point, index) => {
@@ -33,17 +33,19 @@ export function buildExtrudedShell(params: {
   });
   outerShape.closePath();
 
-  const holePath = new Path();
-  toShapePoints(innerPoints).forEach((point, index) => {
-    const wp = archToWorldXZ(point);
-    if (index === 0) {
-      holePath.moveTo(wp.x, wp.z);
-      return;
-    }
-    holePath.lineTo(wp.x, wp.z);
-  });
-  holePath.closePath();
-  outerShape.holes.push(holePath);
+  for (const polygon of innerPolygons) {
+    const holePath = new Path();
+    toShapePoints(polygon).forEach((point, index) => {
+      const wp = archToWorldXZ(point);
+      if (index === 0) {
+        holePath.moveTo(wp.x, wp.z);
+        return;
+      }
+      holePath.lineTo(wp.x, wp.z);
+    });
+    holePath.closePath();
+    outerShape.holes.push(holePath);
+  }
 
   const geometry = new ExtrudeGeometry(outerShape, { depth: height, bevelEnabled: false });
   geometry.rotateX(-Math.PI / 2);

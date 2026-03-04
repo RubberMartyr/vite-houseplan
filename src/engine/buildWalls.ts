@@ -1,6 +1,8 @@
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from 'three';
-import { getEnvelopeInnerPolygon, getEnvelopeOuterPolygon, getFlatRoofPolygon } from '../model/envelope';
+import { getEnvelopeInnerPolygon, getFlatRoofPolygon } from '../model/envelope';
 import { ceilingHeights, rightFacadeProfileCm, wallThickness } from '../model/houseSpec';
+import { architecturalHouse } from './architecturalHouse';
+import type { LevelSpec } from './architecturalTypes';
 import { ARCH_RIGHT_FACADE_SEGMENTS, RIGHT_WORLD_FACADE_SEGMENTS } from './geometry/windowFactory';
 import { createFacadeContext } from './geometry/facadeContext';
 import { getWallPlanesAtZ } from './geometry/wallSurfaceResolver';
@@ -16,6 +18,21 @@ type WallMesh = {
 };
 
 type FacadeSegment = { x: number; z0: number; z1: number };
+
+function getBaseLevel(): LevelSpec {
+  const level = architecturalHouse.levels[0];
+  if (!level) {
+    throw new Error('Cannot build walls: architecturalHouse.levels[0] is missing.');
+  }
+  return level;
+}
+
+function footprintToPolygon(level: LevelSpec) {
+  return level.footprint.outer.map((vertex) => ({
+    x: vertex.x,
+    z: vertex.z,
+  }));
+}
 
 function getFacadeXExtremesAtZ(poly: { x: number; z: number }[], zQuery: number) {
   const xs: number[] = [];
@@ -81,7 +98,7 @@ const EXTENSION_SIDE_WALL = (() => {
   const z0 = raw.z0;
   const z1 = raw.z1;
 
-  const outer = getEnvelopeOuterPolygon();
+  const outer = footprintToPolygon(getBaseLevel());
   const envMinX = outer.reduce((m, p) => Math.min(m, p.x), Infinity);
   const envMaxX = outer.reduce((m, p) => Math.max(m, p.x), -Infinity);
 
@@ -139,8 +156,9 @@ export type WallBuildOutput = {
 const REMOVE_FACADES = true;
 
 export function buildWallsFromCurrentSystem(): WallBuildOutput {
-  const outer = getEnvelopeOuterPolygon();
-  const inner = getEnvelopeInnerPolygon(exteriorThickness);
+  const level = getBaseLevel();
+  const outer = footprintToPolygon(level);
+  const inner = getEnvelopeInnerPolygon(exteriorThickness, outer);
   const rearZ = outer.reduce((max, point) => Math.max(max, point.z), -Infinity);
   const innerRearZ = rearZ - exteriorThickness;
   const facadeCtx = createFacadeContext('architecturalLeft');

@@ -26,8 +26,8 @@ export function EngineHouse({ debugEngineWalls, architecturalHouse, derivedSlabs
 
   return (
     <>
-      <EngineWallShellsDebug visible={debugEngineWalls} arch={architecturalHouse} />
-      <EngineSlabsDebug visible={debugEngineWalls} slabs={derivedSlabs} />
+      <EngineWallShellsDebug visible arch={architecturalHouse} />
+      <EngineSlabsDebug visible slabs={derivedSlabs} />
       <EngineFlatRoofsDebug arch={architecturalHouse} roofRevision={roofRevision} />
       <EngineGableRoofsDebug arch={architecturalHouse} roofRevision={roofRevision} invalidRoofIds={invalidRoofIds} />
       <RoofValidationOverlay entries={roofValidationEntries} highlightedRidgeId={highlightedRidgeId} />

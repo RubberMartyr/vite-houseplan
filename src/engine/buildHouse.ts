@@ -6,6 +6,7 @@ import { buildFacadePanelsWithOpenings } from './builders/buildFacadePanels';
 import { buildWindowMeshes } from './builders/buildWindowMeshes';
 import { deriveOpenings } from './derive/deriveOpenings';
 import { deriveWallSegmentsFromLevels } from './deriveWalls';
+import { deriveSlabs } from './derive/deriveSlabs';
 import { houseData } from './houseData';
 import { toThreeWorldMeshes } from './toThreeWorldMeshes';
 import { validateOpenings } from './validation/validateOpenings';
@@ -24,8 +25,12 @@ export function buildHouse() {
 
   validateOpenings(architecturalHouse);
 
+  const derivedSlabs = deriveSlabs(architecturalHouse);
   const derivedWalls = deriveWallSegmentsFromLevels(architecturalHouse);
-  const derivedOpenings = deriveOpenings(architecturalHouse);
+  const derivedOpenings = deriveOpenings(architecturalHouse, {
+    slabs: derivedSlabs,
+    walls: derivedWalls,
+  });
 
   const facadePanelDepth = 0.025;
 

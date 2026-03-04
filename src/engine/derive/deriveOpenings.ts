@@ -1,5 +1,7 @@
 import type { ArchitecturalHouse, Vec2 } from '../architecturalTypes';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
+import type { DerivedSlab } from './deriveSlabs';
+import type { DerivedWallSegment } from '../deriveWalls';
 
 type Vec2XZ = { x: number; z: number };
 
@@ -109,7 +111,15 @@ function distPointToSegmentXZ(point: Vec2XZ, a: Vec2XZ, b: Vec2XZ) {
   };
 }
 
-export function deriveOpenings(house: ArchitecturalHouse): DerivedOpeningRect[] {
+type DeriveOpeningsContext = {
+  slabs: DerivedSlab[];
+  walls: DerivedWallSegment[];
+};
+
+export function deriveOpenings(
+  house: ArchitecturalHouse,
+  _context: DeriveOpeningsContext
+): DerivedOpeningRect[] {
   const levelIndexById = new Map(house.levels.map((level, index) => [level.id, index]));
   const out: DerivedOpeningRect[] = [];
 

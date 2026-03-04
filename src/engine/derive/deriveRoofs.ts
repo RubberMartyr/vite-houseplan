@@ -2,6 +2,9 @@ import type { ArchitecturalHouse } from '../architecturalTypes';
 import { offsetPolygonInward } from '../geom2d/offsetPolygon';
 import type { XZ } from '../types';
 import type { DerivedRoof } from './types/DerivedRoof';
+import type { DerivedSlab } from './deriveSlabs';
+import type { DerivedWallSegment } from '../deriveWalls';
+import type { DerivedOpeningRect } from '../derived/derivedOpenings';
 
 function dedupeConsecutivePoints(points: XZ[]): XZ[] {
   if (points.length < 2) return points;
@@ -28,7 +31,13 @@ function ensureClosed(points: XZ[]): XZ[] {
   return [...deduped, first];
 }
 
-export function deriveRoofs(arch: ArchitecturalHouse): DerivedRoof[] {
+type DeriveRoofsContext = {
+  slabs: DerivedSlab[];
+  walls: DerivedWallSegment[];
+  openings: DerivedOpeningRect[];
+};
+
+export function deriveRoofs(arch: ArchitecturalHouse, _context: DeriveRoofsContext): DerivedRoof[] {
   const { roofs = [] } = arch;
 
   return roofs.flatMap((roof) => {

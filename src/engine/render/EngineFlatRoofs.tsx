@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { deriveFlatRoofGeometries } from "../deriveFlatRoofs";
-import type { ArchitecturalHouse } from "../architecturalTypes";
-import type { MultiPlaneRoofSpec } from "../types";
+import type { DerivedRoof } from "../derive/types/DerivedRoof";
 
 type Props = {
-  arch: ArchitecturalHouse;
-  roofs: MultiPlaneRoofSpec[];
+  roofs: DerivedRoof[];
   roofRevision: number;
   visible?: boolean;
 };
@@ -15,13 +13,8 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
   geometries.forEach((geometry) => geometry.dispose());
 }
 
-export function EngineFlatRoofs({
-  arch,
-  roofs,
-  roofRevision,
-  visible = true,
-}: Props) {
-  const geometries = useMemo(() => deriveFlatRoofGeometries(arch, roofs), [arch, roofs, roofRevision]);
+export function EngineFlatRoofs({ roofs, roofRevision, visible = true }: Props) {
+  const geometries = useMemo(() => deriveFlatRoofGeometries(roofs), [roofs, roofRevision]);
 
   useEffect(() => {
     return () => {

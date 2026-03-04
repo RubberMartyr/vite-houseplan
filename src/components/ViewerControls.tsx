@@ -19,8 +19,6 @@ type ViewerControlsProps = {
   roofWireframe: boolean;
   onToggleRoofWireframe: () => void;
   onBasementView: () => void;
-  showLegacy: boolean;
-  onToggleLegacy: () => void;
   showWindows: boolean;
   onToggleWindows: () => void;
   focusMode: boolean;
@@ -45,8 +43,6 @@ export function ViewerControls({
   roofWireframe,
   onToggleRoofWireframe,
   onBasementView,
-  showLegacy,
-  onToggleLegacy,
   showWindows,
   onToggleWindows,
   focusMode,
@@ -202,17 +198,6 @@ export function ViewerControls({
           Rendering
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <button
-            style={{
-              ...buttonStyle,
-              background: showLegacy ? '#1d6f42' : buttonStyle.background,
-              color: showLegacy ? '#fff' : '#111',
-              width: '100%',
-            }}
-            onClick={onToggleLegacy}
-          >
-            {showLegacy ? 'Legacy: ON' : 'Legacy: OFF'}
-          </button>
 
           <button
             style={{

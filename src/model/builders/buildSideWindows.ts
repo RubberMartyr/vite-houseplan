@@ -11,7 +11,7 @@ import {
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
 import { worldSideFromOutward, type FacadeContext } from './facadeContext';
-import { debugWallIntersectionsAtZ, getWallPlanesAtZ } from './wallSurfaceResolver';
+import { debugWallIntersectionsAtZ, getOuterWallXAtZ, getWallPlanesAtZ } from './wallSurfaceResolver';
 import { runtimeFlags } from '../runtimeFlags';
 
 export type BuildSideWindowsConfig = {
@@ -278,7 +278,19 @@ export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {
 
     if (isWindowDebugEnabled()) {
       const yMid = spec.groundY0 + placement.height / 2;
-      meshes.push(createWallPlaneDebugLine({ xWallPlane: xWall, zCenter, yMid }));
+      console.log('WINDOW SEGMENT CHECK', {
+        z: zCenter,
+        xFromResolver: getOuterWallXAtZ(ctx.outward, zCenter),
+      });
+
+      const debugLine = createWallPlaneDebugLine({ xWallPlane: xWall, zCenter, yMid });
+      const sampledWallMeshX = debugLine.geometry.attributes.position.getX(0);
+      console.log('WINDOW SEGMENT MESH SAMPLE', {
+        z: zCenter,
+        sampledWallMeshX,
+      });
+
+      meshes.push(debugLine);
     }
   }
 

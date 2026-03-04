@@ -1,16 +1,16 @@
 import { useMemo } from 'react';
-import type { ArchitecturalHouse } from '../engine/architecturalTypes';
-import { deriveWallShellsFromLevels } from '../engine/deriveWallShells';
+import type { ArchitecturalHouse } from '../architecturalTypes';
+import { deriveWallShellsFromLevels } from '../deriveWallShells';
 
-type EngineWallShellsDebugProps = {
+type EngineWallShellsProps = {
   arch: ArchitecturalHouse;
   visible?: boolean;
 };
 
-export function EngineWallShellsDebug({
+export function EngineWallShells({
   arch,
   visible = true,
-}: EngineWallShellsDebugProps) {
+}: EngineWallShellsProps) {
   const shells = useMemo(() => {
     if (!visible) {
       return [];

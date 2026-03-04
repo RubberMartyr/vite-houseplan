@@ -10,7 +10,7 @@ export function EngineDebugHUD({ derived }: Props) {
   if (!isDebugEnabled()) return null;
 
   return (
-    <Html fullscreen>
+    <Html prepend>
       <div
         style={{
           position: 'absolute',

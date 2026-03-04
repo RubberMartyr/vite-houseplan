@@ -912,6 +912,7 @@ function HouseScene({
 
   const slabGroupRef = useRef<THREE.Group>(null);
   const wallGroupRef = useRef<THREE.Group>(null);
+  const windowGroupRef = useRef<THREE.Group>(null);
   const houseGroupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
@@ -1114,11 +1115,12 @@ function HouseScene({
   const greenRoofY = flatRoofY + baseRoofThickness + 0.002;
 
   useEffect(() => {
-    if (runtimeFlags.isDev) {
+    if (runtimeFlags.isDev || runtimeFlags.debugWindows) {
       console.log('Ground slab polygon points (first 5):', groundEnvelopePolygon.slice(0, 5));
       console.log('First floor slab polygon points (first 5):', firstEnvelopePolygon.slice(0, 5));
-      console.log('slabGroup position:', slabGroupRef.current?.position.toArray());
-      console.log('wallGroup position:', wallGroupRef.current?.position.toArray());
+      console.log('[GROUP TRANSFORM] slabGroup.position:', slabGroupRef.current?.position.toArray());
+      console.log('[GROUP TRANSFORM] wallGroup.position:', wallGroupRef.current?.position.toArray());
+      console.log('[GROUP TRANSFORM] windowGroup.position:', windowGroupRef.current?.position.toArray());
       const offsetPoints = groundEnvelopePolygon.slice(0, 2).map((point) => ({
         x: point.x + originOffset.x,
         z: point.z + originOffset.z,
@@ -1126,13 +1128,35 @@ function HouseScene({
       console.log('Origin offset applied:', originOffset);
       console.log('First two envelope points after offset:', offsetPoints);
     }
-  }, [firstEnvelopePolygon, groundEnvelopePolygon]);
+  }, [firstEnvelopePolygon, groundEnvelopePolygon, originOffset.x, originOffset.z]);
 
   useEffect(() => {
     if (runtimeFlags.debugWindows) {
       console.log('✅ windowsSide parented under originOffset group');
     }
   }, []);
+
+  useEffect(() => {
+    if (!(runtimeFlags.debugWindows || import.meta.env.DEV)) return;
+
+    const wallGroup = wallGroupRef.current;
+    const windowGroup = windowGroupRef.current;
+
+    if (wallGroup) {
+      wallGroup.children.forEach((child) => {
+        console.log('[SCENE ATTACH] mesh.name:', child.name || child.type);
+        console.log('[SCENE ATTACH] parent.name:', child.parent?.name ?? null);
+      });
+    }
+
+    if (windowGroup) {
+      windowGroup.children.forEach((child) => {
+        console.log('[SCENE ATTACH] mesh.name:', child.name || child.type);
+        console.log('[SCENE ATTACH] parent.name:', child.parent?.name ?? null);
+      });
+    }
+  }, [worldMeshes]);
+
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -1266,16 +1290,19 @@ function HouseScene({
             highlightedRidgeId={hoveredRidgeId}
           />
 
-          {worldMeshes.map((m) => (
-            <mesh
-              key={m.id}
-              geometry={m.geometry}
-              position={m.position}
-              rotation={m.rotation}
-            >
-              <meshBasicMaterial color="red" wireframe />
-            </mesh>
-          ))}
+          <group ref={windowGroupRef} name="windowGroup">
+            {worldMeshes.map((m) => (
+              <mesh
+                key={m.id}
+                name={m.id}
+                geometry={m.geometry}
+                position={m.position}
+                rotation={m.rotation}
+              >
+                <meshBasicMaterial color="red" wireframe />
+              </mesh>
+            ))}
+          </group>
 
           {debugOpening && (
             <mesh

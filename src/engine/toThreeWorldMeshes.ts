@@ -1,21 +1,26 @@
 import type { EngineMesh } from './builders/buildWindowMeshes';
 import { archToWorldXZ } from './spaceMapping';
 import * as THREE from 'three';
+import { runtimeFlags } from '../model/runtimeFlags';
+
+const isDebugEnabled = () => runtimeFlags.debugWindows || import.meta.env.DEV;
 
 export function toThreeWorldMeshes(meshes: EngineMesh[]): EngineMesh[] {
-  console.log('RENDERING MESH COUNT:', meshes.length);
+  if (isDebugEnabled()) {
+    console.log('[WORLD SPACE CHECK] source mesh count:', meshes.length);
+  }
 
   const mappedMeshes = meshes.map((mesh) => {
     const [x, y, z] = mesh.position;
     const [rx, ry, rz] = mesh.rotation;
     const mapped = archToWorldXZ({ x, z });
 
-    if (mesh.materialKey?.startsWith('window')) {
+    if (isDebugEnabled() && mesh.materialKey?.startsWith('window')) {
       const attr = mesh.geometry.getAttribute('position');
-      console.log('WINDOW VERTEX COUNT:', attr?.count);
+      console.log('[WORLD SPACE CHECK] window vertex count:', attr?.count);
 
       if (attr && attr.count > 0) {
-        console.log('FIRST THREE VERTICES:', [
+        console.log('[WORLD SPACE CHECK] first three vertices:', [
           attr.getX(0),
           attr.getY(0),
           attr.getZ(0),
@@ -42,27 +47,24 @@ export function toThreeWorldMeshes(meshes: EngineMesh[]): EngineMesh[] {
     };
   });
 
-  for (const mesh of mappedMeshes) {
-    if (!mesh.materialKey.startsWith('window')) continue;
-    // Quick test #4: inspect raw window geometry bounds for degenerate meshes.
-    mesh.geometry.computeBoundingBox();
-    console.log('WINDOW BOUNDS:', mesh.geometry.boundingBox);
+  if (isDebugEnabled()) {
+    for (const mesh of mappedMeshes) {
+      if (!mesh.materialKey.startsWith('window')) continue;
+      mesh.geometry.computeBoundingBox();
+      console.log('[WORLD SPACE CHECK] window bounds:', mesh.geometry.boundingBox);
+    }
   }
 
   const someWallMesh = mappedMeshes.find((mesh) => mesh.materialKey === 'wall');
   const someWindowMesh = mappedMeshes.find((mesh) => mesh.materialKey.startsWith('window'));
 
-  if (someWallMesh && someWindowMesh) {
-    console.log('WALL POS SAMPLE:', someWallMesh.position);
-    console.log('WINDOW POS SAMPLE:', someWindowMesh.position);
-    console.log('Z COMPARE (wall vs window):', {
-      wallZ: someWallMesh.position[2],
-      windowZ: someWindowMesh.position[2],
-    });
-    console.log('Z OFFSET', {
-      wallZ: someWallMesh.position[2],
-      windowZ: someWindowMesh.position[2],
-      delta: someWindowMesh.position[2] - someWallMesh.position[2],
+  if (isDebugEnabled() && someWallMesh && someWindowMesh) {
+    console.log('[WORLD SPACE CHECK] wall position:', someWallMesh.position);
+    console.log('[WORLD SPACE CHECK] window position:', someWindowMesh.position);
+    console.log('[WORLD SPACE CHECK] delta:', {
+      x: someWindowMesh.position[0] - someWallMesh.position[0],
+      y: someWindowMesh.position[1] - someWallMesh.position[1],
+      z: someWindowMesh.position[2] - someWallMesh.position[2],
     });
   }
 

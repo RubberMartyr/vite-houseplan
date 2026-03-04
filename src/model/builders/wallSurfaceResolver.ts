@@ -1,4 +1,7 @@
 import { getEnvelopeOuterPolygon } from '../envelope';
+import { runtimeFlags } from '../runtimeFlags';
+
+const isWallDebugEnabled = () => runtimeFlags.debugWindows || import.meta.env.DEV;
 
 export function getOuterWallHitAtZ(outward: 1 | -1, zQuery: number): {
   xOuter: number;
@@ -51,13 +54,65 @@ export function getOuterWallHitAtZ(outward: 1 | -1, zQuery: number): {
 }
 
 export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
-  return getOuterWallHitAtZ(outward, zQuery).xOuter;
+  const poly = getEnvelopeOuterPolygon();
+  const xs: number[] = [];
+
+  if (isWallDebugEnabled()) {
+    console.log('[WALL RESOLVE] zQuery:', zQuery);
+    console.log('[WALL RESOLVE] outward:', outward);
+  }
+
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+
+    if (isWallDebugEnabled()) {
+      console.log('[WALL RESOLVE] segment:', {
+        index: i,
+        a,
+        b,
+      });
+    }
+
+    const zMin = Math.min(a.z, b.z);
+    const zMax = Math.max(a.z, b.z);
+
+    if (zQuery < zMin || zQuery > zMax) continue;
+    if (Math.abs(a.z - b.z) < 1e-6) continue;
+
+    const t = (zQuery - a.z) / (b.z - a.z);
+    const x = a.x + t * (b.x - a.x);
+    xs.push(x);
+
+    if (isWallDebugEnabled()) {
+      console.log('[WALL RESOLVE] intersectionX:', x);
+    }
+  }
+
+  if (!xs.length) {
+    if (isWallDebugEnabled()) {
+      console.log('[WALL RESOLVE] xsCandidates:', xs);
+      console.log('[WALL RESOLVE] chosenX:', 0);
+    }
+    return 0;
+  }
+
+  const chosenX = outward === 1 ? Math.max(...xs) : Math.min(...xs);
+
+  if (isWallDebugEnabled()) {
+    console.log('[WALL RESOLVE] xsCandidates:', xs);
+    console.log('[WALL RESOLVE] chosenX:', chosenX);
+  }
+
+  return chosenX;
 }
 
 export function getWallPlanesAtZ(outward: 1 | -1, z: number, thickness: number) {
   const hit = getOuterWallHitAtZ(outward, z);
   const xOuter = hit.xOuter;
-  console.log('Envelope X:', xOuter);
+  if (isWallDebugEnabled()) {
+    console.log('[WALL RESOLVE] envelopeX:', xOuter);
+  }
   const xInner = xOuter - outward * thickness;
   return { xOuter, xInner, tangentXZ: hit.tangentXZ };
 }

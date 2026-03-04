@@ -28,6 +28,26 @@ export type OpeningDescriptor = {
   outward: number;
 };
 
+const isWindowDebugEnabled = () => runtimeFlags.debugWindows || import.meta.env.DEV;
+
+function createWallPlaneDebugLine(params: {
+  xWallPlane: number;
+  zCenter: number;
+  yMid: number;
+}): THREE.Line {
+  const { xWallPlane, zCenter, yMid } = params;
+  const halfLen = 0.25;
+  const points = [
+    new THREE.Vector3(xWallPlane, yMid, zCenter - halfLen),
+    new THREE.Vector3(xWallPlane, yMid, zCenter + halfLen),
+  ];
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
+  const line = new THREE.Line(geometry, material);
+  line.name = `debug_wall_plane_z_${zCenter.toFixed(2)}`;
+  return line;
+}
+
 function snapWindowToRightWallPlane(params: {
   facade: FacadeContext['facade'];
   zCenter: number;
@@ -36,7 +56,9 @@ function snapWindowToRightWallPlane(params: {
   eps: number;
 }) {
   const { facade, zCenter, outwardSign, frameDepth, eps } = params;
-  console.log('SNAP FUNCTION HIT', zCenter);
+  if (isWindowDebugEnabled()) {
+    console.log('[SIDE WINDOW SNAP] zCenter:', zCenter);
+  }
 
   const { xOuter } = getWallPlanesAtZ(
     outwardSign,
@@ -55,10 +77,15 @@ function asMesh(meshSpec: WindowFactoryMesh) {
   const mesh = new THREE.Mesh(meshSpec.geometry, meshSpec.material);
   mesh.name = meshSpec.id;
   mesh.position.set(...meshSpec.position);
-  if (runtimeFlags.debugWindows) {
-    console.log('SIDEWIN MESH POS', mesh.name, { x: mesh.position.x, z: mesh.position.z });
-  }
   mesh.rotation.set(...meshSpec.rotation);
+
+  if (isWindowDebugEnabled()) {
+    console.log('[MESH CREATED] name:', mesh.name);
+    console.log('[MESH CREATED] position:', mesh.position.toArray());
+    console.log('[MESH CREATED] rotation:', mesh.rotation.toArray());
+    console.log('[MESH CREATED] parent:', mesh.parent?.name ?? null);
+  }
+
   return mesh;
 }
 
@@ -124,14 +151,14 @@ function buildSingleSideWindow(
     wallThickness.exterior ?? 0.3,
   );
   const xOuterPlane = xFace - ctx.outward * FACADE_PANEL_PLANE_OFFSET;
-  if (runtimeFlags.debugWindows) {
-    console.log('SIDEWIN XPLANE', {
-      id: placement.spec.id,
-      z: zCenter,
-      xFace,
-      xOuterPlane,
-      outward: ctx.outward,
-    });
+  if (isWindowDebugEnabled()) {
+    console.log('[SIDE WINDOW BUILD] id:', placement.spec.id);
+    console.log('[SIDE WINDOW BUILD] zCenter:', zCenter);
+    console.log('[SIDE WINDOW BUILD] width:', placement.width);
+    console.log('[SIDE WINDOW BUILD] wallFaceX:', xFace);
+    console.log('[SIDE WINDOW BUILD] xInnerWall:', xInnerWall);
+    console.log('[SIDE WINDOW BUILD] ctx.facade:', ctx.facade);
+    console.log('[SIDE WINDOW BUILD] ctx.outward:', ctx.outward);
   }
 
   // Interior direction is always opposite of outward
@@ -147,13 +174,14 @@ function buildSingleSideWindow(
     eps: EPS,
   });
 
-  if (runtimeFlags.debugWindows) {
-    console.log('WALL X:', xOuter);
-    console.log('WINDOW X:', frameX);
-  }
-
   const glassX =
     frameX + interiorDir * GLASS_INSET;
+
+  if (isWindowDebugEnabled()) {
+    console.log('[SIDE WINDOW BUILD] resolvedWallOuterX:', xOuter);
+    console.log('[SIDE WINDOW BUILD] frameX:', frameX);
+    console.log('[SIDE WINDOW BUILD] glassX:', glassX);
+  }
 
   const worldSide = worldSideFromOutward(ctx.outward);
 
@@ -173,9 +201,9 @@ function buildSingleSideWindow(
     meshes.push(...buildBandWindowMeshes(fullHeightSpec, commonProps));
     meshes.push(...createRevealMeshes({ spec: fullHeightSpec, zCenter, xOuter: xOuterPlane, xInner: xInnerReveal }));
     const builtMeshes = meshes.map(asMesh);
-    if (ctx.facade === 'architecturalRight') {
+    if (isWindowDebugEnabled() && ctx.facade === 'architecturalRight') {
       builtMeshes.forEach((mesh) => {
-        console.log('RIGHT WINDOW WORLD POS', mesh.position);
+        console.log('[SIDE WINDOW BUILD] right window world pos:', mesh.position.toArray());
       });
     }
     rotateMeshesToWallTangent({
@@ -200,9 +228,9 @@ function buildSingleSideWindow(
   }
 
   const builtMeshes = meshes.map(asMesh);
-  if (ctx.facade === 'architecturalRight') {
+  if (isWindowDebugEnabled() && ctx.facade === 'architecturalRight') {
     builtMeshes.forEach((mesh) => {
-      console.log('RIGHT WINDOW WORLD POS', mesh.position);
+      console.log('[SIDE WINDOW BUILD] right window world pos:', mesh.position.toArray());
     });
   }
 
@@ -220,13 +248,13 @@ export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {
   meshes: THREE.Object3D[];
   openings: OpeningDescriptor[];
 } {
-  if (runtimeFlags.debugWindows) {
+  if (isWindowDebugEnabled()) {
     console.log('CTX', ctx.facade, 'placements=', placements.length);
   }
 
   const meshes: THREE.Object3D[] = [];
   const sideOpenings: OpeningDescriptor[] = [];
-  if (runtimeFlags.debugWindows) {
+  if (isWindowDebugEnabled()) {
     console.log('BUILD SIDE WINDOWS CONTEXT', ctx.facade, 'outward=', ctx.outward);
   }
 
@@ -243,6 +271,11 @@ export function buildSideWindows({ ctx, placements }: BuildSideWindowsConfig): {
     };
     sideOpenings.push(opening);
     meshes.push(...buildSingleSideWindow(placement, ctx));
+
+    if (isWindowDebugEnabled()) {
+      const yMid = spec.groundY0 + placement.height / 2;
+      meshes.push(createWallPlaneDebugLine({ xWallPlane: xWall, zCenter, yMid }));
+    }
   }
 
   return { meshes, openings: sideOpenings };

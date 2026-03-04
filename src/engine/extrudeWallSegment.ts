@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import type { DerivedWallSegment } from './deriveWalls';
+import { archToWorldXZ } from './spaceMapping';
 
 export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometry {
-  const dx = seg.end.x - seg.start.x;
-  const dz = seg.end.z - seg.start.z;
+  const ws = archToWorldXZ(seg.start);
+  const we = archToWorldXZ(seg.end);
+  const dx = we.x - ws.x;
+  const dz = we.z - ws.z;
   const length = Math.hypot(dx, dz);
 
   if (length === 0) {
@@ -16,14 +19,14 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
   const yBottom = seg.start.y;
   const yTop = seg.start.y + seg.height;
 
-  const s1x = seg.start.x + px * halfThickness;
-  const s1z = seg.start.z + pz * halfThickness;
-  const s2x = seg.start.x - px * halfThickness;
-  const s2z = seg.start.z - pz * halfThickness;
-  const e1x = seg.end.x + px * halfThickness;
-  const e1z = seg.end.z + pz * halfThickness;
-  const e2x = seg.end.x - px * halfThickness;
-  const e2z = seg.end.z - pz * halfThickness;
+  const s1x = ws.x + px * halfThickness;
+  const s1z = ws.z + pz * halfThickness;
+  const s2x = ws.x - px * halfThickness;
+  const s2z = ws.z - pz * halfThickness;
+  const e1x = we.x + px * halfThickness;
+  const e1z = we.z + pz * halfThickness;
+  const e2x = we.x - px * halfThickness;
+  const e2z = we.z - pz * halfThickness;
 
   const positions = new Float32Array([
     s1x, yBottom, s1z,

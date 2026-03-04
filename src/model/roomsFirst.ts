@@ -1,7 +1,27 @@
 import { ceilingHeights, levelHeights } from './houseSpec';
 import { layoutGround } from './layoutGround';
 import { RoomVolume } from './roomsGround';
-import { buildFloorRooms } from './builders/buildFloorRooms';
+
+function buildFloorRooms(params: {
+  floorLevel: number;
+  ceilingHeight: number;
+  rooms: Array<{
+    id: string;
+    label: string;
+    bounds: { xMin: number; xMax: number; zMin: number; zMax: number };
+  }>;
+}): RoomVolume[] {
+  const { floorLevel, ceilingHeight, rooms } = params;
+  return rooms.map(({ id, label, bounds }) => ({
+    id,
+    label,
+    bounds: {
+      ...bounds,
+      yMin: floorLevel,
+      yMax: floorLevel + ceilingHeight,
+    },
+  }));
+}
 
 const firstFloorLevel = levelHeights.firstFloor;
 const firstFloorCeilingHeight = ceilingHeights.first;

@@ -426,11 +426,12 @@ function buildRoofFaceGeometry(params: {
 
 export function deriveGableRoofGeometries(
   arch: ArchitecturalHouse,
+  roofs: MultiPlaneRoofSpec[],
   options: { invalidRoofIds?: Set<string> } = {}
 ): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
 
-  for (const roof of arch.roofs ?? []) {
+  for (const roof of roofs as unknown as RoofSpec[]) {
     if (roof.type !== "gable" && roof.type !== "multi-ridge" && roof.type !== "multi-plane") continue;
 
     if (roof.type === "gable") {

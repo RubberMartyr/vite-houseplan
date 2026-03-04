@@ -1,17 +1,19 @@
 import * as THREE from "three";
 import polygonClipping from "polygon-clipping";
 import type { ArchitecturalHouse } from "./architecturalTypes";
+import type { MultiPlaneRoofSpec, RoofSpec } from "./types";
 
 function toPoly(points: { x: number; z: number }[]) {
   return [points.map((p) => [p.x, p.z])];
 }
 
 export function deriveFlatRoofGeometries(
-  arch: ArchitecturalHouse
+  arch: ArchitecturalHouse,
+  roofs: MultiPlaneRoofSpec[]
 ): THREE.BufferGeometry[] {
   const geometries: THREE.BufferGeometry[] = [];
 
-  for (const roof of arch.roofs ?? []) {
+  for (const roof of roofs as unknown as RoofSpec[]) {
     if (roof.type === "multi-ridge") {
       console.log("multi-ridge roof detected");
     }
@@ -33,7 +35,7 @@ export function deriveFlatRoofGeometries(
       );
       if (aboveLevel) {
         const abovePoly = toPoly(aboveLevel.footprint.outer);
-        result = polygonClipping.difference(basePoly, abovePoly);
+        result = polygonClipping.difference(basePoly as any, abovePoly as any);
       }
     }
 

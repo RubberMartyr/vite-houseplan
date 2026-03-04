@@ -1,59 +1,46 @@
-import type { ArchitecturalHouse, LevelSpec } from '../types';
-import { buildFacadePanelsWithOpenings } from '../builders/buildFacadePanels';
-import { buildWindowMeshes } from '../builders/buildWindowMeshes';
-import { validateOpenings } from '../validation/validateOpenings';
-import { toThreeWorldMeshes } from '../toThreeWorldMeshes';
+import type { ArchitecturalHouse, LevelSpec } from '../architecturalTypes';
 import { validateStructure } from '../validation/validateStructure';
 import { deriveOpenings } from './deriveOpenings';
+import { deriveRoofs } from './deriveRoofs';
 import { deriveSlabs } from './deriveSlabs';
+import { deriveWalls } from './deriveWalls';
 
-export function deriveHouse(house: ArchitecturalHouse) {
-  const validationReport = validateStructure(house, {
-    getLevels: (h) => h.levels,
-    getLevelElevation: (lvl) => (lvl as LevelSpec).elevation,
-    getLevelHeight: (lvl) => (lvl as LevelSpec).height,
-    getSlabThickness: (lvl) => (lvl as LevelSpec).slab?.thickness ?? null,
-    elevationConvention: 'TOP_OF_SLAB',
-    allowGroundSupport: true,
-  },
-  {
-    mode: 'report',
-  });
+export interface DerivedHouse {
+  slabs: ReturnType<typeof deriveSlabs>;
+  walls: ReturnType<typeof deriveWalls>;
+  roofs: ReturnType<typeof deriveRoofs>;
+  openings: ReturnType<typeof deriveOpenings>;
+}
 
-  validateOpenings(house);
-
-  if (!validationReport.ok) {
-    validationReport.issues.forEach((issue) => {
-      const log = issue.severity === 'error' ? console.error : console.warn;
-      log(`[validateStructure] ${issue.message}`, issue);
-    });
-  }
-
-  const derivedSlabs = deriveSlabs(house);
-  const derivedOpenings = deriveOpenings(house);
-
-  const facadePanelDepth = 0.025;
-
-  const facadePanels = house.levels.flatMap((level, levelIndex) =>
-    buildFacadePanelsWithOpenings({
-      outer: level.footprint.outer,
-      levelIndex,
-      wallHeight: level.height,
-      wallBase: level.elevation,
-      panelThickness: facadePanelDepth,
-      openings: derivedOpenings,
-    })
+export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
+  // Stage 0
+  validateStructure(
+    arch,
+    {
+      getLevels: (house) => house.levels,
+      getLevelElevation: (level) => (level as LevelSpec).elevation,
+      getLevelHeight: (level) => (level as LevelSpec).height,
+      getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
+      elevationConvention: 'TOP_OF_SLAB',
+      allowGroundSupport: true,
+    },
+    { mode: 'throw' }
   );
 
-  const openingMeshes = buildWindowMeshes(derivedOpenings, {
-    panelDepth: facadePanelDepth,
-  });
+  // Stage 1
+  const slabs = deriveSlabs(arch);
+  const walls = deriveWalls(arch, slabs);
 
-  console.log('RETURNING PANELS:', facadePanels.length);
+  // Stage 2
+  const openings = deriveOpenings(arch);
+
+  // Stage 3
+  const roofs = deriveRoofs(arch, walls);
 
   return {
-    slabs: derivedSlabs,
-    openings: derivedOpenings,
-    worldMeshes: toThreeWorldMeshes([...facadePanels, ...openingMeshes]),
+    slabs,
+    walls,
+    roofs,
+    openings,
   };
 }

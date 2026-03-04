@@ -129,6 +129,12 @@ export function getOuterWallXAtZ(outward: 1 | -1, zQuery: number): number {
     const a = poly[i];
     const b = poly[(i + 1) % poly.length];
 
+    const dx = Math.abs(a.x - b.x);
+    const dz = Math.abs(a.z - b.z);
+
+    // Ignore diagonal polygon-seam edges; real walls are axis-aligned.
+    if (dx > EPS_Z && dz > EPS_Z) continue;
+
     const zMin = Math.min(a.z, b.z);
     const zMax = Math.max(a.z, b.z);
 

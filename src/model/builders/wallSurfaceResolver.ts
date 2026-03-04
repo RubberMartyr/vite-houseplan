@@ -3,6 +3,38 @@ import { runtimeFlags } from '../runtimeFlags';
 
 const isWallDebugEnabled = () => runtimeFlags.debugWindows || import.meta.env.DEV;
 
+
+export function debugWallIntersectionsAtZ(zQuery: number) {
+  const poly = getEnvelopeOuterPolygon();
+  const hits: { x: number; a: { x: number; z: number }; b: { x: number; z: number } }[] = [];
+
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+
+    const zMin = Math.min(a.z, b.z);
+    const zMax = Math.max(a.z, b.z);
+
+    if (zQuery < zMin || zQuery > zMax) continue;
+    if (Math.abs(a.z - b.z) < 1e-6) continue;
+
+    const t = (zQuery - a.z) / (b.z - a.z);
+    const x = a.x + t * (b.x - a.x);
+    hits.push({ x, a: { x: a.x, z: a.z }, b: { x: b.x, z: b.z } });
+  }
+
+  hits.sort((p, q) => p.x - q.x);
+
+  console.log('[debugWallIntersectionsAtZ]', {
+    zQuery,
+    hitCount: hits.length,
+    xs: hits.map((h) => h.x),
+    hits,
+  });
+
+  return hits;
+}
+
 export function getOuterWallHitAtZ(outward: 1 | -1, zQuery: number): {
   xOuter: number;
   tangentXZ: { x: number; z: number };

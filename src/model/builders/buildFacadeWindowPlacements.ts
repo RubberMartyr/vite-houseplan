@@ -1,8 +1,8 @@
 import type { FacadeWindowPlacement } from '../types/FacadeWindowPlacement';
 import { FACADE_PANEL_PLANE_OFFSET } from '../constants/facadeConstants';
-import type { FacadeContext } from './facadeContext';
+import type { FacadeContext } from '../../engine/geometry/facadeContext';
 import { resolveFacadeX } from './facadeGeometry';
-import type { SideWindowSpec } from './windowFactory';
+import type { SideWindowSpec } from '../../engine/geometry/windowFactory';
 
 function placementHeight(spec: SideWindowSpec): number {
   return spec.kind === 'tall' ? Math.max(spec.groundY1, spec.firstY1) - spec.groundY0 : spec.groundY1 - spec.groundY0;

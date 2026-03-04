@@ -1,5 +1,5 @@
 import { ExtrudeGeometry, Path, Shape } from 'three';
-import { FRAME_BORDER, FRAME_DEPTH } from '../constants/windowConstants';
+import { FRAME_BORDER, FRAME_DEPTH } from '../../model/constants/windowConstants';
 
 export function buildFrameGeometry(
   width: number,

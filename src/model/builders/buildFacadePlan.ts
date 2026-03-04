@@ -1,8 +1,8 @@
 import type { FacadePlan } from '../types/FacadePlan';
 import { buildFacadeWindowPlacements } from './buildFacadeWindowPlacements';
 import { buildWallOpenings } from './buildWallOpenings';
-import { type FacadeSide, createFacadeContext } from './facadeContext';
-import type { SideWindowSpec } from './windowFactory';
+import { type FacadeSide, createFacadeContext } from '../../engine/geometry/facadeContext';
+import type { SideWindowSpec } from '../../engine/geometry/windowFactory';
 
 export function buildFacadePlan({
   facade,

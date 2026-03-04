@@ -1,5 +1,5 @@
-import { getEnvelopeOuterPolygon } from '../envelope';
-import { runtimeFlags } from '../runtimeFlags';
+import { getEnvelopeOuterPolygon } from '../../model/envelope';
+import { runtimeFlags } from '../../model/runtimeFlags';
 
 const isWallDebugEnabled = () => runtimeFlags.debugWindows || import.meta.env.DEV;
 

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SILL_DEPTH, SILL_HEIGHT, SILL_OVERHANG, SILL_WIDTH_OVERHANG } from '../constants/windowConstants';
-import { blueStoneMaterial } from '../materials/windowMaterials';
+import { SILL_DEPTH, SILL_HEIGHT, SILL_OVERHANG, SILL_WIDTH_OVERHANG } from '../../model/constants/windowConstants';
+import { blueStoneMaterial } from '../../model/materials/windowMaterials';
 
 export type WindowMesh = {
   id: string;

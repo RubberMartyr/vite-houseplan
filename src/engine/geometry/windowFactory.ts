@@ -8,12 +8,12 @@ import {
   METAL_BAND_DEPTH,
   METAL_BAND_HEIGHT,
   METAL_BAND_OUTSET,
-} from '../constants/windowConstants';
+} from '../../model/constants/windowConstants';
 import { buildFrameGeometry } from './buildFrameGeometry';
 import { buildSill } from './buildSill';
-import { frameMaterial, glassMaterial, metalBandMaterial, revealMaterial } from '../materials/windowMaterials';
-import { type ArchSide } from '../houseSpec';
-import { getEnvelopeOuterPolygon } from '../envelope';
+import { frameMaterial, glassMaterial, metalBandMaterial, revealMaterial } from '../../model/materials/windowMaterials';
+import { type ArchSide } from '../../model/houseSpec';
+import { getEnvelopeOuterPolygon } from '../../model/envelope';
 
 const REVEAL_FACE = 0.05;
 

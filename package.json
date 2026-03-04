@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:visual": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "guard:no-arch-render-geometry": "bash scripts/check-no-arch-in-render-geometry.sh"
   },
   "dependencies": {
     "react": "^18.3.1",

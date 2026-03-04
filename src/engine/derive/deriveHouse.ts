@@ -23,13 +23,13 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
 
   // Stage 1
   const slabs = deriveSlabs(arch);
-  const walls = deriveWalls(arch, slabs);
+  const walls = deriveWalls(arch, { slabs });
 
   // Stage 2
-  const openings = deriveOpenings(arch);
+  const openings = deriveOpenings(arch, { slabs, walls });
 
   // Stage 3
-  const roofs = deriveRoofs(arch);
+  const roofs = deriveRoofs(arch, { slabs, walls, openings });
 
   return {
     slabs,

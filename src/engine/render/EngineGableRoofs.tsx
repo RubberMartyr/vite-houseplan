@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { deriveGableRoofGeometries } from "../deriveGableRoofs";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
+import { DebugWireframe } from "../debug/DebugWireframe";
 
 type Props = {
   roofs: DerivedRoof[];
@@ -44,11 +45,11 @@ export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidR
           <mesh key={i} geometry={geom}>
             <meshStandardMaterial
               color="black"
-              wireframe
               polygonOffset={isCorner}
               polygonOffsetFactor={isCorner ? -1 : 0}
               polygonOffsetUnits={isCorner ? -1 : 0}
             />
+            <DebugWireframe />
           </mesh>
         );
       })}

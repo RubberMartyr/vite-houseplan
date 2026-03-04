@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { DerivedSlab } from '../derive/deriveSlabs';
 import { buildSlabMesh } from '../../view/buildSlabMeshes';
 import { renderStyleConfig } from '../../view/renderStyleConfig';
+import { DebugWireframe } from '../debug/DebugWireframe';
 
 type EngineSlabsProps = {
   slabs: DerivedSlab[];
@@ -21,7 +22,9 @@ export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
   return (
     <>
       {slabMeshes.map((mesh, index) => (
-        <primitive key={`slab-${index}`} object={mesh} />
+        <primitive key={`slab-${index}`} object={mesh}>
+          <DebugWireframe />
+        </primitive>
       ))}
     </>
   );

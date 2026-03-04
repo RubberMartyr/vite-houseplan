@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { deriveFlatRoofGeometries } from "../deriveFlatRoofs";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
+import { DebugWireframe } from "../debug/DebugWireframe";
 
 type Props = {
   roofs: DerivedRoof[];
@@ -34,6 +35,7 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true }: Props) 
             opacity={0.5}
             depthWrite={false}
           />
+          <DebugWireframe />
         </mesh>
       ))}
     </>

@@ -19,8 +19,8 @@ export function EngineRoofs({ arch, roofRevision, roofValidationEntries }: Engin
 
   return (
     <>
-      <EngineFlatRoofs arch={arch} roofRevision={roofRevision} />
-      <EngineGableRoofs arch={arch} roofRevision={roofRevision} invalidRoofIds={invalidRoofIds} />
+      <EngineFlatRoofs arch={arch} roofs={(arch.roofs ?? []) as MultiPlaneRoofSpec[]} roofRevision={roofRevision} />
+      <EngineGableRoofs arch={arch} roofs={(arch.roofs ?? []) as MultiPlaneRoofSpec[]} roofRevision={roofRevision} invalidRoofIds={invalidRoofIds} />
     </>
   );
 }

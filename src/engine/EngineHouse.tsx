@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import type { ArchitecturalHouse } from './architecturalTypes';
-import type { MultiPlaneRoofSpec } from './types';
 import { deriveHouse } from './derive/deriveHouse';
-import { EngineFlatRoofs } from './render/EngineFlatRoofs';
-import { EngineGableRoofs } from './render/EngineGableRoofs';
+import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
 import { EngineWalls } from './render/EngineWalls';
 
@@ -18,8 +16,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
     <>
       <EngineWalls walls={derived.walls} />
       <EngineSlabs slabs={derived.slabs} />
-      <EngineFlatRoofs arch={architecturalHouse} roofs={derived.roofs as MultiPlaneRoofSpec[]} roofRevision={0} />
-      <EngineGableRoofs arch={architecturalHouse} roofs={derived.roofs as MultiPlaneRoofSpec[]} roofRevision={0} />
+      <EngineRoofs arch={architecturalHouse} roofs={derived.roofs} roofRevision={0} roofValidationEntries={[]} />
     </>
   );
 }

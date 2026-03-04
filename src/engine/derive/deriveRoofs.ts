@@ -1,6 +1,13 @@
 import type { ArchitecturalHouse } from '../architecturalTypes';
-import type { DerivedWallSegment } from '../deriveWalls';
+import type { DerivedRoof } from './types/DerivedRoof';
 
-export function deriveRoofs(arch: ArchitecturalHouse, _walls: DerivedWallSegment[]) {
-  return arch.roofs ?? [];
+export function deriveRoofs(arch: ArchitecturalHouse): DerivedRoof[] {
+  if (!arch.roofs) return [];
+
+  return arch.roofs.map((roof) => ({
+    id: roof.id,
+    kind: roof.kind,
+    baseLevelId: roof.baseLevelId,
+    spec: roof,
+  }));
 }

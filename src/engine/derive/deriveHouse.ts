@@ -35,7 +35,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
   const openings = deriveOpenings(arch);
 
   // Stage 3
-  const roofs = deriveRoofs(arch, walls);
+  const roofs = deriveRoofs(arch);
 
   return {
     slabs,

@@ -5,6 +5,7 @@ import { EngineDebugHUD } from './debug/EngineDebugHUD';
 import { DerivedGraphOverlay } from './debug/DerivedGraphOverlay';
 import { RoofPlaneVisualizer } from './debug/RoofPlaneVisualizer';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
+import { EngineOpenings } from './render/EngineOpenings';
 import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
 import { EngineWalls } from './render/EngineWalls';
@@ -22,6 +23,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
   return (
     <>
       <EngineWalls walls={derived.walls} wallRevision={derived.revisions.walls} />
+      <EngineOpenings openings={derived.openings} />
       <EngineSlabs slabs={derived.slabs} />
       <EngineRoofs roofs={derived.roofs} roofRevision={derived.revisions.roofs} roofValidationEntries={[]} />
       <EngineDebugHUD derived={derived} />

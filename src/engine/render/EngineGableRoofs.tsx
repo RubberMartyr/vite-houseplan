@@ -4,6 +4,7 @@ import { deriveGableRoofGeometries } from "../deriveGableRoofs";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
 import { DebugWireframe } from "../debug/DebugWireframe";
 import { createGeometryCache } from "../cache/geometryCache";
+import { useDebugUIState } from "../debug/debugUIState";
 
 type Props = {
   roofs: DerivedRoof[];
@@ -27,6 +28,7 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
 const getGeometry = createGeometryCache<THREE.BufferGeometry[]>();
 
 export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidRoofIds }: Props) {
+  const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const options = useMemo(() => ({ invalidRoofIds }), [invalidRoofIds]);
   const sceneGeometries = useMemo(
     () => getGeometry(roofRevision, () => buildGeometries(roofs, options)),
@@ -54,6 +56,7 @@ export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidR
               polygonOffset={isCorner}
               polygonOffsetFactor={isCorner ? -1 : 0}
               polygonOffsetUnits={isCorner ? -1 : 0}
+              wireframe={debugWireframe}
             />
             <DebugWireframe />
           </mesh>

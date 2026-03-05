@@ -3,6 +3,7 @@ import type { DerivedWallSegment } from '../deriveWalls';
 import { buildWallsFromDerivedSegments } from '../buildWallsFromDerivedSegments';
 import { DebugWireframe } from '../debug/DebugWireframe';
 import { createGeometryCache } from '../cache/geometryCache';
+import { useDebugUIState } from '../debug/debugUIState';
 
 type EngineWallsProps = {
   walls: DerivedWallSegment[];
@@ -13,6 +14,8 @@ type EngineWallsProps = {
 const getGeometry = createGeometryCache<ReturnType<typeof buildWallsFromDerivedSegments>>();
 
 export function EngineWalls({ walls, wallRevision, visible = true }: EngineWallsProps) {
+  const debugWireframe = useDebugUIState((state) => state.debugWireframe);
+
   const builtWalls = useMemo(() => {
     if (!visible) {
       return [];
@@ -29,7 +32,7 @@ export function EngineWalls({ walls, wallRevision, visible = true }: EngineWalls
     <>
       {builtWalls.map(({ id, geometry }) => (
         <mesh key={id} geometry={geometry}>
-          <meshStandardMaterial />
+          <meshStandardMaterial wireframe={debugWireframe} />
           <DebugWireframe />
         </mesh>
       ))}

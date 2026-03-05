@@ -7,6 +7,8 @@ import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
 import { markFirstFrameRendered } from '../loadingManager';
 import { isDebugEnabled } from '../runtime/debugFlags';
+import { DebugButton } from '../engine/debug/DebugButton';
+import { DebugPanel } from '../engine/debug/DebugPanel';
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -47,6 +49,8 @@ function DebugAxes() {
 }
 
 export default function HouseViewer() {
+  const debugEnabled = isDebugEnabled();
+
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <Canvas shadows camera={{ position: [0, 7, -12], fov: 50 }} dpr={1} gl={{ antialias: true }}>
@@ -76,6 +80,8 @@ export default function HouseViewer() {
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
       </Canvas>
+      {debugEnabled && <DebugButton />}
+      {debugEnabled && <DebugPanel />}
     </div>
   );
 }

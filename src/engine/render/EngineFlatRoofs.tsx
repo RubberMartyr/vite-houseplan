@@ -4,6 +4,7 @@ import { deriveFlatRoofGeometries } from "../deriveFlatRoofs";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
 import { DebugWireframe } from "../debug/DebugWireframe";
 import { createGeometryCache } from "../cache/geometryCache";
+import { useDebugUIState } from "../debug/debugUIState";
 
 type Props = {
   roofs: DerivedRoof[];
@@ -18,6 +19,7 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
 const getGeometry = createGeometryCache<THREE.BufferGeometry[]>();
 
 export function EngineFlatRoofs({ roofs, roofRevision, visible = true }: Props) {
+  const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const geometries = useMemo(
     () => getGeometry(roofRevision, () => deriveFlatRoofGeometries(roofs)),
     [roofs, roofRevision]
@@ -40,6 +42,7 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true }: Props) 
             transparent
             opacity={0.5}
             depthWrite={false}
+            wireframe={debugWireframe}
           />
           <DebugWireframe />
         </mesh>

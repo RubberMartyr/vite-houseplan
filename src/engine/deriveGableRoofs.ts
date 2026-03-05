@@ -15,6 +15,7 @@ type RoofPlane = {
   heightAt(x: number, z: number): number;
 };
 import { normalizeMultiPlaneRoof } from "./roof/normalizeMultiPlaneRoof";
+import { buildRoofGeometry } from "./geometry/buildRoofGeometry";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
@@ -415,11 +416,7 @@ function buildRoofFaceGeometry(params: {
   }
 
   const positions = new Float32Array([...topVerts, ...botVerts]);
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geom.setIndex(indices);
-  geom.computeVertexNormals();
-  return geom;
+  return buildRoofGeometry(positions, indices);
 }
 
 export function deriveGableRoofGeometries(

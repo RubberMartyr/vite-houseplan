@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { deriveGableRoofGeometries } from "../deriveGableRoofs";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
 import { DebugWireframe } from "../debug/DebugWireframe";
 import { createGeometryCache } from "../cache/geometryCache";
@@ -17,7 +16,20 @@ type BuildGeometriesOptions = {
 };
 
 function buildGeometries(roofs: DerivedRoof[], options: BuildGeometriesOptions) {
-  return deriveGableRoofGeometries(roofs, options);
+  return roofs
+    .filter((roof) => roof.type === "gable" && !options.invalidRoofIds?.has(roof.id))
+    .map((roof) => {
+      const positions: number[] = [];
+
+      for (const tri of roof.triangles) {
+        positions.push(...tri.a, ...tri.b, ...tri.c);
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geometry.computeVertexNormals();
+      return geometry;
+    });
 }
 
 function disposeGeometries(geometries: THREE.BufferGeometry[]) {
@@ -44,16 +56,10 @@ export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidR
   return (
     <>
       {sceneGeometries.map((geom, i) => {
-        const faceId = geom.userData?.faceId;
-        const isCorner = typeof faceId === "string" && faceId.startsWith("corner-");
-
         return (
           <mesh key={i} geometry={geom}>
             <meshStandardMaterial
               color="black"
-              polygonOffset={isCorner}
-              polygonOffsetFactor={isCorner ? -1 : 0}
-              polygonOffsetUnits={isCorner ? -1 : 0}
             />
             <DebugWireframe />
           </mesh>

@@ -2,20 +2,24 @@ import { useMemo } from 'react';
 import type { DerivedWallSegment } from '../deriveWalls';
 import { buildWallsFromDerivedSegments } from '../buildWallsFromDerivedSegments';
 import { DebugWireframe } from '../debug/DebugWireframe';
+import { createGeometryCache } from '../cache/geometryCache';
 
 type EngineWallsProps = {
   walls: DerivedWallSegment[];
+  wallRevision: number;
   visible?: boolean;
 };
 
-export function EngineWalls({ walls, visible = true }: EngineWallsProps) {
+const getGeometry = createGeometryCache<ReturnType<typeof buildWallsFromDerivedSegments>>();
+
+export function EngineWalls({ walls, wallRevision, visible = true }: EngineWallsProps) {
   const builtWalls = useMemo(() => {
     if (!visible) {
       return [];
     }
 
-    return buildWallsFromDerivedSegments(walls);
-  }, [walls, visible]);
+    return getGeometry(wallRevision, () => buildWallsFromDerivedSegments(walls));
+  }, [walls, wallRevision, visible]);
 
   if (!visible) {
     return null;

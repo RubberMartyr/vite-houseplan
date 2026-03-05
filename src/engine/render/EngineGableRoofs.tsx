@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { deriveGableRoofGeometries } from "../deriveGableRoofs";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
 import { DebugWireframe } from "../debug/DebugWireframe";
+import { createGeometryCache } from "../cache/geometryCache";
 
 type Props = {
   roofs: DerivedRoof[];
@@ -23,9 +24,14 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
   geometries.forEach((geometry) => geometry.dispose());
 }
 
+const getGeometry = createGeometryCache<THREE.BufferGeometry[]>();
+
 export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidRoofIds }: Props) {
   const options = useMemo(() => ({ invalidRoofIds }), [invalidRoofIds]);
-  const sceneGeometries = useMemo(() => buildGeometries(roofs, options), [roofs, options, roofRevision]);
+  const sceneGeometries = useMemo(
+    () => getGeometry(roofRevision, () => buildGeometries(roofs, options)),
+    [roofs, options, roofRevision]
+  );
 
   useEffect(() => {
     return () => {

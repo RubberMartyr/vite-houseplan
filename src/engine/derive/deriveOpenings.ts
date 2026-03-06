@@ -1,7 +1,9 @@
 import type { ArchitecturalHouse, Vec2 } from '../architecturalTypes';
-import type { DerivedOpeningRect } from '../derived/derivedOpenings';
 import type { DerivedSlab } from './deriveSlabs';
 import type { DerivedWallSegment } from '../deriveWalls';
+import { normalizeOpeningStyle } from './openings/normalizeOpeningStyle';
+import type { DerivedOpening } from './types/DerivedOpening';
+import { validateWallOpenings } from '../validation/validateWallOpenings';
 
 type Vec2XZ = { x: number; z: number };
 
@@ -90,27 +92,6 @@ function pickOutwardNormalXZ(
   return preferred;
 }
 
-function distPointToSegmentXZ(point: Vec2XZ, a: Vec2XZ, b: Vec2XZ) {
-  const abx = b.x - a.x;
-  const abz = b.z - a.z;
-  const apx = point.x - a.x;
-  const apz = point.z - a.z;
-  const len2 = abx * abx + abz * abz;
-  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, (apx * abx + apz * abz) / len2));
-  const closest = {
-    x: a.x + t * abx,
-    z: a.z + t * abz,
-  };
-  const dx = point.x - closest.x;
-  const dz = point.z - closest.z;
-
-  return {
-    dist: Math.sqrt(dx * dx + dz * dz),
-    t,
-    closest,
-  };
-}
-
 type DeriveOpeningsContext = {
   slabs: DerivedSlab[];
   walls: DerivedWallSegment[];
@@ -119,9 +100,12 @@ type DeriveOpeningsContext = {
 export function deriveOpenings(
   house: ArchitecturalHouse,
   context: DeriveOpeningsContext
-): DerivedOpeningRect[] {
+): DerivedOpening[] {
+  void context.slabs;
+
   const levelIndexById = new Map(house.levels.map((level, index) => [level.id, index]));
-  const out: DerivedOpeningRect[] = [];
+  const wallById = new Map(context.walls.map((wall) => [wall.id, wall]));
+  const out: DerivedOpening[] = [];
 
   for (const opening of house.openings ?? []) {
     const levelIndex = levelIndexById.get(opening.levelId);
@@ -135,15 +119,6 @@ export function deriveOpenings(
 
     const a = outer[edgeIndex];
     const b = outer[(edgeIndex + 1) % outer.length];
-
-    console.log('OPENING EDGE CHECK', {
-      id: opening.id,
-      edgeIndex,
-      A: a,
-      B: b,
-      AeqB: Math.abs(a.x - b.x) < EPSILON && Math.abs(a.z - b.z) < EPSILON,
-    });
-
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const edgeLength = Math.hypot(dx, dz);
@@ -161,6 +136,9 @@ export function deriveOpenings(
     const vMin = opening.sillHeight;
     const vMax = opening.sillHeight + opening.height;
 
+    const width = uMax - uMin;
+    const height = vMax - vMin;
+
     const edgeMidU = (uMin + uMax) / 2;
     const edgeMid = {
       x: a.x + tx * edgeMidU,
@@ -170,17 +148,24 @@ export function deriveOpenings(
     const n1 = { x: -tz, z: tx };
     const n2 = { x: tz, z: -tx };
     const outward = pickOutwardNormalXZ(outer, edgeMid, n1, n2);
+    const wallId = `wall-${opening.levelId}-${edgeIndex}`;
 
-    const derivedOpening: DerivedOpeningRect = {
+    const style = normalizeOpeningStyle(opening.style);
+    const ownerWall = wallById.get(wallId);
+    const frameDepth = Math.min(style.frameDepth, ownerWall?.thickness ?? house.wallThickness);
+
+    out.push({
       id: opening.id,
       kind: opening.kind,
-      wallThickness: context.walls.find((wall) => wall.levelId === level.id && wall.id.endsWith(`-${edgeIndex}`))?.thickness ?? house.wallThickness,
+      wallId,
       levelIndex,
       edgeIndex,
       uMin,
       uMax,
       vMin,
       vMax,
+      width,
+      height,
       centerArch: {
         x: edgeMid.x,
         y: level.elevation + (vMin + vMax) / 2,
@@ -188,28 +173,13 @@ export function deriveOpenings(
       },
       tangentXZ: { x: tx, z: tz },
       outwardXZ: outward,
-      style: opening.style,
-    };
-
-    out.push(derivedOpening);
-
-    const distanceCheck = distPointToSegmentXZ(derivedOpening.centerArch, a, b);
-    console.log('OPENING CENTER ON EDGE?', {
-      id: opening.id,
-      dist: distanceCheck.dist,
-      t: distanceCheck.t,
-      closest: distanceCheck.closest,
-    });
-
-    console.log('OPENING DEBUG', {
-      center: derivedOpening.centerArch,
-      facadeZ: outer[opening.edge.edgeIndex].z,
-      nextZ: outer[opening.edge.edgeIndex + 1]?.z,
+      style: {
+        ...style,
+        frameDepth,
+      },
     });
   }
 
-  console.log('DERIVED OPENINGS:', out.length);
-  console.log(JSON.stringify(out, null, 2));
-
+  validateWallOpenings(context.walls, out);
   return out;
 }

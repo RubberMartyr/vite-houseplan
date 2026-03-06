@@ -130,6 +130,15 @@ console.log("FRONT EDGE CHECK", {
   },
 });
 
+const a = levels[0].footprint.outer[groundFrontEdgeIndex];
+const b = levels[0].footprint.outer[(groundFrontEdgeIndex + 1) % levels[0].footprint.outer.length];
+
+console.log("FRONT EDGE DIRECTION", {
+  start: a,
+  end: b,
+  direction: { x: b.x - a.x, z: b.z - a.z },
+});
+
 export const architecturalHouse: ArchitecturalHouse = {
   wallThickness: 0.3, // match current
 
@@ -242,7 +251,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_G_W1',
       kind: 'window',
       levelId: 'ground',
-      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
       offset: 0.45,
       width: 1.1,
       sillHeight: 0.7,
@@ -253,7 +262,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_G_W2',
       kind: 'window',
       levelId: 'ground',
-      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
       offset: 2.25,
       width: 1.1,
       sillHeight: 0.7,
@@ -264,7 +273,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_G_DOOR',
       kind: 'door',
       levelId: 'ground',
-      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
       offset: 4.3,
       width: 1,
       sillHeight: 0,
@@ -275,7 +284,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_G_W3',
       kind: 'window',
       levelId: 'ground',
-      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
       offset: 6.45,
       width: 0.7,
       sillHeight: 1.65,
@@ -286,7 +295,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_F_W1',
       kind: 'window',
       levelId: 'first',
-      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: 0.55,
       width: 0.9,
       sillHeight: 0.35,
@@ -297,7 +306,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_F_W2',
       kind: 'window',
       levelId: 'first',
-      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: 2.35,
       width: 0.9,
       sillHeight: 0.35,
@@ -308,7 +317,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_F_W3',
       kind: 'window',
       levelId: 'first',
-      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: 4.35,
       width: 0.9,
       sillHeight: 1.1,
@@ -319,7 +328,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'FRONT_F_W4',
       kind: 'window',
       levelId: 'first',
-      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex, fromEnd: true },
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: 6.45,
       width: 0.7,
       sillHeight: 1.05,

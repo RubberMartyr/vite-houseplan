@@ -118,7 +118,7 @@ type DeriveOpeningsContext = {
 
 export function deriveOpenings(
   house: ArchitecturalHouse,
-  _context: DeriveOpeningsContext
+  context: DeriveOpeningsContext
 ): DerivedOpeningRect[] {
   const levelIndexById = new Map(house.levels.map((level, index) => [level.id, index]));
   const out: DerivedOpeningRect[] = [];
@@ -174,6 +174,7 @@ export function deriveOpenings(
     const derivedOpening: DerivedOpeningRect = {
       id: opening.id,
       kind: opening.kind,
+      wallThickness: context.walls.find((wall) => wall.levelId === level.id && wall.id.endsWith(`-${edgeIndex}`))?.thickness ?? house.wallThickness,
       levelIndex,
       edgeIndex,
       uMin,

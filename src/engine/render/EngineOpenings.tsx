@@ -7,6 +7,7 @@ type OpeningMesh = {
   key: string;
   width: number;
   height: number;
+  depth: number;
   color: string;
   position: [number, number, number];
 };
@@ -28,6 +29,7 @@ export function EngineOpenings({ openings }: Props) {
         key: `${o.kind}-${index}`,
         width,
         height,
+        depth: o.wallThickness,
         color: o.kind === 'door' ? '#884422' : '#88aadd',
         position: [x, o.centerArch.y + height / 2, z],
       };
@@ -38,7 +40,7 @@ export function EngineOpenings({ openings }: Props) {
     <>
       {meshes.map((mesh) => (
         <mesh key={mesh.key} position={mesh.position}>
-          <boxGeometry args={[mesh.width, mesh.height, 0.1]} />
+          <boxGeometry args={[mesh.width, mesh.height, mesh.depth]} />
           <meshStandardMaterial color={mesh.color} wireframe={debugWireframe} />
         </mesh>
       ))}

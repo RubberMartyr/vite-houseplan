@@ -3,6 +3,7 @@ import type { OpeningStyleSpec } from '../architecturalTypes';
 export interface DerivedOpeningRect {
   id: string;
   kind: 'window' | 'door';
+  wallThickness: number;
 
   levelIndex: number;
   edgeIndex: number;

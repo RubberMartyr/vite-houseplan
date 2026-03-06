@@ -34,7 +34,7 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
         const outward = new THREE.Vector3(outwardXZ.x, 0, outwardXZ.z).normalize();
         const up = new THREE.Vector3(0, 1, 0);
 
-        const centerY = (o.vMin + o.vMax) / 2;
+        const centerY = (o.yMin + o.yMax) / 2;
         const centerXZ = archToWorldXZ({ x: o.centerArch.x, z: o.centerArch.z });
 
         const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);
@@ -47,7 +47,7 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
 
         return (
           <group key={o.id} position={glassPosition.toArray()} quaternion={quaternion.toArray()}>
-            <mesh>
+            <mesh userData={{ debugIgnore: true }}>
               <boxGeometry args={[glassWidth, glassHeight, glassDepth]} />
               <meshPhysicalMaterial
                 transmission={1}
@@ -60,22 +60,22 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
               />
             </mesh>
 
-            <mesh position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}>
+            <mesh userData={{ debugIgnore: true }} position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}>
               <boxGeometry args={[frameThickness, height, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh position={[glassWidth / 2 + frameThickness / 2, 0, 0]}>
+            <mesh userData={{ debugIgnore: true }} position={[glassWidth / 2 + frameThickness / 2, 0, 0]}>
               <boxGeometry args={[frameThickness, height, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh position={[0, glassHeight / 2 + frameThickness / 2, 0]}>
+            <mesh userData={{ debugIgnore: true }} position={[0, glassHeight / 2 + frameThickness / 2, 0]}>
               <boxGeometry args={[width, frameThickness, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh position={[0, -glassHeight / 2 - frameThickness / 2, 0]}>
+            <mesh userData={{ debugIgnore: true }} position={[0, -glassHeight / 2 - frameThickness / 2, 0]}>
               <boxGeometry args={[width, frameThickness, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>

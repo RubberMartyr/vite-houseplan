@@ -24,6 +24,10 @@ export function DebugEdges() {
       }
 
       const mesh = obj as THREE.Mesh;
+      if (mesh.userData?.debugIgnore) {
+        return;
+      }
+
       if (!mesh.geometry || isTransparentMaterial(mesh.material)) {
         return;
       }

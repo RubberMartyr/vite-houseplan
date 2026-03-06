@@ -34,7 +34,14 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
         const outward = new THREE.Vector3(outwardXZ.x, 0, outwardXZ.z).normalize();
         const up = new THREE.Vector3(0, 1, 0);
 
-        const centerY = (o.yMin + o.yMax) / 2;
+        const openingCenterYOffset = (o.vMin + o.vMax) / 2;
+        const levelElevation =
+          'baseElevation' in o
+            ? o.baseElevation
+            : 'levelElevation' in o
+              ? o.levelElevation
+              : o.centerArch.y - openingCenterYOffset;
+        const centerY = levelElevation + openingCenterYOffset;
         const centerXZ = archToWorldXZ({ x: o.centerArch.x, z: o.centerArch.z });
 
         const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);

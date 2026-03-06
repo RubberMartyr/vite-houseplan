@@ -1,22 +1,2 @@
-import type { OpeningStyleSpec } from '../architecturalTypes';
-
-export interface DerivedOpeningRect {
-  id: string;
-  kind: 'window' | 'door';
-  wallThickness: number;
-
-  levelIndex: number;
-  edgeIndex: number;
-
-  uMin: number;
-  uMax: number;
-
-  vMin: number;
-  vMax: number;
-
-  centerArch: { x: number; y: number; z: number };
-  tangentXZ: { x: number; z: number };
-  outwardXZ: { x: number; z: number };
-
-  style?: OpeningStyleSpec;
-}
+export type { DerivedOpening as DerivedOpeningRect } from '../derive/types/DerivedOpening';
+export type { DerivedOpening } from '../derive/types/DerivedOpening';

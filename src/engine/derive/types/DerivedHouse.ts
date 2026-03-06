@@ -1,5 +1,5 @@
 import type { DerivedWallSegment } from '../../deriveWalls';
-import type { DerivedOpeningRect as DerivedOpening } from '../../derived/derivedOpenings';
+import type { DerivedOpening } from './DerivedOpening';
 import type { DerivedSlab } from '../deriveSlabs';
 import type { DerivedRoof } from './DerivedRoof';
 

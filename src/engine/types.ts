@@ -137,6 +137,17 @@ export type RoofSpec =
 export type OpeningKind = 'window' | 'door';
 
 export interface OpeningStyleSpec {
+  frameThickness?: number;
+  frameDepth?: number;
+  glassInset?: number;
+  glassThickness?: number;
+  sillDepth?: number;
+  sillThickness?: number;
+  mullionWidth?: number;
+  mullionCount?: number;
+  materialKey?: string;
+  glassMaterialKey?: string;
+
   variant?: 'plain' | 'classicTransom' | 'firstFloorTransom' | 'doorDetailed';
   grid?: { cols: number; rows: number };
   hasSill?: boolean;

@@ -15,6 +15,10 @@ type Props = {
   openings: DerivedOpeningRect[];
 };
 
+const wallThickness = 0.1;
+const frameThickness = 0.06;
+const glassThickness = 0.02;
+
 export function EngineOpenings({ openings }: Props) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
 
@@ -36,12 +40,28 @@ export function EngineOpenings({ openings }: Props) {
 
   return (
     <>
-      {meshes.map((mesh) => (
-        <mesh key={mesh.key} position={mesh.position}>
-          <boxGeometry args={[mesh.width, mesh.height, 0.1]} />
-          <meshStandardMaterial color={mesh.color} wireframe={debugWireframe} />
-        </mesh>
-      ))}
+      {meshes.map((mesh) => {
+        const glassWidth = Math.max(mesh.width - frameThickness, 0.01);
+        const glassHeight = Math.max(mesh.height - frameThickness, 0.01);
+
+        return (
+          <group key={mesh.key} position={mesh.position}>
+            <mesh>
+              <boxGeometry args={[mesh.width, mesh.height, wallThickness]} />
+              <meshStandardMaterial color={mesh.color} wireframe={debugWireframe} />
+            </mesh>
+            <mesh>
+              <boxGeometry args={[glassWidth, glassHeight, glassThickness]} />
+              <meshPhysicalMaterial
+                transmission={1}
+                roughness={0}
+                thickness={glassThickness}
+                wireframe={debugWireframe}
+              />
+            </mesh>
+          </group>
+        );
+      })}
     </>
   );
 }

@@ -11,6 +11,7 @@ import { DebugButton } from '../engine/debug/ui/DebugButton';
 import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
 import { isDebugEnabled } from '../engine/debug/ui/debugMode';
 import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
+import { DebugEdges } from './debug/DebugEdges';
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -82,6 +83,7 @@ export default function HouseViewer() {
         <group>
           <EngineHouse architecturalHouse={house} />
           <DebugAxes />
+          {debugEnabled && <DebugEdges />}
         </group>
 
         {debugEnabled && <WireframeOverride enabled={wireframeEnabled} />}

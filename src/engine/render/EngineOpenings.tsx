@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
+import * as THREE from 'three';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
 import { archToWorldXZ } from '../spaceMapping';
 import { useDebugUIState } from '../debug/debugUIState';
 
 type OpeningMesh = {
   key: string;
+  kind: DerivedOpeningRect['kind'];
   width: number;
   height: number;
   depth: number;
@@ -27,6 +29,7 @@ export function EngineOpenings({ openings }: Props) {
 
       return {
         key: `${o.kind}-${index}`,
+        kind: o.kind,
         width,
         height,
         depth: o.wallThickness,
@@ -39,10 +42,43 @@ export function EngineOpenings({ openings }: Props) {
   return (
     <>
       {meshes.map((mesh) => (
-        <mesh key={mesh.key} position={mesh.position}>
-          <boxGeometry args={[mesh.width, mesh.height, mesh.depth]} />
-          <meshStandardMaterial color={mesh.color} wireframe={debugWireframe} />
-        </mesh>
+        <group key={mesh.key} position={mesh.position}>
+          {mesh.kind === 'window' ? (
+            (() => {
+              const frameThickness = 0.06;
+
+              const frame = new THREE.BoxGeometry(mesh.width, mesh.height, mesh.depth);
+
+              const glass = new THREE.BoxGeometry(
+                mesh.width - frameThickness,
+                mesh.height - frameThickness,
+                0.02
+              );
+
+              return (
+                <>
+                  <mesh geometry={frame}>
+                    <meshStandardMaterial color="#f5f5f5" wireframe={debugWireframe} />
+                  </mesh>
+                  <mesh geometry={glass}>
+                    <meshPhysicalMaterial
+                      color="#cfe8ff"
+                      transmission={1}
+                      roughness={0}
+                      thickness={0.02}
+                      wireframe={debugWireframe}
+                    />
+                  </mesh>
+                </>
+              );
+            })()
+          ) : (
+            <mesh>
+              <boxGeometry args={[mesh.width, mesh.height, mesh.depth]} />
+              <meshStandardMaterial color={mesh.color} wireframe={debugWireframe} />
+            </mesh>
+          )}
+        </group>
       ))}
     </>
   );

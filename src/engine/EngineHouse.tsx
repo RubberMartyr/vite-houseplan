@@ -28,11 +28,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
       />
-      <EngineOpenings
-        openings={derived.openings}
-        walls={derived.walls}
-        openingsRevision={derived.revisions.openings}
-      />
+      <EngineOpenings openings={derived.openings} />
       <EngineSlabs slabs={derived.slabs} />
       <EngineRoofs roofs={derived.roofs} roofRevision={derived.revisions.roofs} roofValidationEntries={[]} />
       <EngineDebugHUD derived={derived} />

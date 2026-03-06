@@ -1,95 +1,76 @@
-import { useMemo } from 'react';
 import * as THREE from 'three';
-import type { DerivedWallSegment } from '../deriveWalls';
-import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import { archToWorldXZ } from '../spaceMapping';
-import { useDebugUIState } from '../debug/debugUIState';
-import { createGeometryCache } from '../cache/geometryCache';
-import { buildOpeningFrameGeometry } from '../openings/buildOpeningFrameGeometry';
-import { buildOpeningGlassGeometry } from '../openings/buildOpeningGlassGeometry';
-
-type OpeningDraw = {
-  id: string;
-  kind: DerivedOpening['kind'];
-  position: [number, number, number];
-  rotationY: number;
-  frameGeometry: THREE.BufferGeometry;
-  glassGeometry: THREE.BufferGeometry | null;
-};
+import type { DerivedOpeningRect } from '../derived/derivedOpenings';
 
 type Props = {
-  openings: DerivedOpening[];
-  walls: DerivedWallSegment[];
-  openingsRevision: number;
+  openings: DerivedOpeningRect[];
+  wallThickness?: number;
 };
 
-const getOpeningGeometry = createGeometryCache<OpeningDraw[]>();
+const FRAME_THICKNESS = 0.06;
+const GLASS_INSET = 0.02;
+const GLASS_DEPTH = 0.01;
 
-export function EngineOpenings({ openings, walls, openingsRevision }: Props) {
-  const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-
-  const meshes: OpeningDraw[] = useMemo(() => {
-    const wallById = new Map(walls.map((wall) => [wall.id, wall]));
-
-    return getOpeningGeometry(openingsRevision, () =>
-      openings.map((opening) => {
-        const wall = wallById.get(opening.wallId);
-        const wallThickness = wall?.thickness ?? opening.style.frameDepth;
-        const frameDepth = Math.min(opening.style.frameDepth, wallThickness);
-
-        const frameGeometry = buildOpeningFrameGeometry(
-          opening.width,
-          opening.height,
-          opening.style.frameThickness,
-          frameDepth
-        );
-
-        const glassGeometry =
-          opening.kind === 'window'
-            ? buildOpeningGlassGeometry(
-                opening.width,
-                opening.height,
-                opening.style.frameThickness,
-                opening.style.glassThickness,
-                opening.style.glassInset,
-                frameDepth
-              )
-            : null;
-
-        const { x, z } = archToWorldXZ({ x: opening.centerArch.x, z: opening.centerArch.z });
-
-        return {
-          id: opening.id,
-          kind: opening.kind,
-          position: [x, opening.centerArch.y, z],
-          rotationY: Math.atan2(opening.tangentXZ.z, opening.tangentXZ.x),
-          frameGeometry,
-          glassGeometry,
-        };
-      })
-    );
-  }, [openings, walls, openingsRevision]);
-
+export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
   return (
     <>
-      {meshes.map((mesh) => (
-        <group key={mesh.id} position={mesh.position} rotation={[0, mesh.rotationY, 0]}>
-          <mesh geometry={mesh.frameGeometry}>
-            <meshStandardMaterial color="#f5f5f5" wireframe={debugWireframe} />
-          </mesh>
-          {mesh.glassGeometry && (
-            <mesh geometry={mesh.glassGeometry}>
+      {openings.map((o) => {
+        const width = o.uMax - o.uMin;
+        const height = o.vMax - o.vMin;
+
+        const glassWidth = Math.max(0.01, width - FRAME_THICKNESS * 2);
+        const glassHeight = Math.max(0.01, height - FRAME_THICKNESS * 2);
+
+        const frameDepth = Math.max(0.01, wallThickness - GLASS_INSET * 2);
+        const sideFrameHeight = Math.max(0.01, height - FRAME_THICKNESS * 2);
+
+        const glassCenterY = (o.vMin + o.vMax) / 2;
+
+        const tangent = new THREE.Vector3(o.tangentXZ.x, 0, o.tangentXZ.z).normalize();
+        const outward = new THREE.Vector3(o.outwardXZ.x, 0, o.outwardXZ.z).normalize();
+
+        const { x: centerX, z: centerZ } = archToWorldXZ({ x: o.centerArch.x, z: o.centerArch.z });
+        const center = new THREE.Vector3(centerX, glassCenterY, centerZ);
+
+        const inward = outward.clone().multiplyScalar(-wallThickness / 2 + GLASS_INSET);
+        inward.z *= -1;
+
+        const glassPosition = center.clone().add(inward);
+        const rotationY = Math.atan2(-tangent.z, tangent.x);
+
+        return (
+          <group key={o.id} position={glassPosition.toArray()} rotation={[0, rotationY, 0]}>
+            <mesh position={[0, height / 2 - FRAME_THICKNESS / 2, 0]}>
+              <boxGeometry args={[width, FRAME_THICKNESS, frameDepth]} />
+              <meshStandardMaterial color="#f5f5f5" />
+            </mesh>
+            <mesh position={[0, -height / 2 + FRAME_THICKNESS / 2, 0]}>
+              <boxGeometry args={[width, FRAME_THICKNESS, frameDepth]} />
+              <meshStandardMaterial color="#f5f5f5" />
+            </mesh>
+            <mesh position={[-width / 2 + FRAME_THICKNESS / 2, 0, 0]}>
+              <boxGeometry args={[FRAME_THICKNESS, sideFrameHeight, frameDepth]} />
+              <meshStandardMaterial color="#f5f5f5" />
+            </mesh>
+            <mesh position={[width / 2 - FRAME_THICKNESS / 2, 0, 0]}>
+              <boxGeometry args={[FRAME_THICKNESS, sideFrameHeight, frameDepth]} />
+              <meshStandardMaterial color="#f5f5f5" />
+            </mesh>
+            <mesh>
+              <boxGeometry args={[glassWidth, glassHeight, GLASS_DEPTH]} />
               <meshPhysicalMaterial
-                color="#cfe8ff"
                 transmission={1}
-                roughness={0}
-                thickness={0.02}
-                wireframe={debugWireframe}
+                thickness={0.01}
+                roughness={0.05}
+                metalness={0}
+                transparent
+                opacity={0.6}
+                color="#cfe8ff"
               />
             </mesh>
-          )}
-        </group>
-      ))}
+          </group>
+        );
+      })}
     </>
   );
 }

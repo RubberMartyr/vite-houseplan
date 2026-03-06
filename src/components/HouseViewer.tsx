@@ -1,14 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import { AxesHelper } from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
+import type { ArchitecturalHouse } from '../engine/architecturalTypes';
 import { markFirstFrameRendered } from '../loadingManager';
-import { isDebugEnabled } from '../runtime/debugFlags';
-import { DebugButton } from '../engine/debug/DebugButton';
-import { DebugPanel } from '../engine/debug/DebugPanel';
+import { DebugButton } from '../engine/debug/ui/DebugButton';
+import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
+import { isDebugEnabled } from '../engine/debug/ui/debugMode';
+import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -50,9 +52,14 @@ function DebugAxes() {
 
 export default function HouseViewer() {
   const debugEnabled = isDebugEnabled();
+  const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [wireframeEnabled, setWireframeEnabled] = useState(false);
+
+  const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
 
   return (
-    <div style={{ width: '100%', height: '100vh' }}>
+    <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
       <Canvas shadows camera={{ position: [0, 7, -12], fov: 50 }} dpr={1} gl={{ antialias: true }}>
         <color attach="background" args={['#f5f7fb']} />
         <ambientLight intensity={0.45} />
@@ -73,15 +80,28 @@ export default function HouseViewer() {
         </mesh>
 
         <group>
-          <EngineHouse architecturalHouse={architecturalHouse} />
+          <EngineHouse architecturalHouse={house} />
           <DebugAxes />
         </group>
+
+        {debugEnabled && <WireframeOverride enabled={wireframeEnabled} />}
 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
       </Canvas>
-      {debugEnabled && <DebugButton />}
-      {debugEnabled && <DebugPanel />}
+      {debugEnabled && (
+        <>
+          <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />
+          <DebugDashboard
+            isOpen={isDashboardOpen}
+            onClose={() => setIsDashboardOpen(false)}
+            wireframeEnabled={wireframeEnabled}
+            onWireframeChange={setWireframeEnabled}
+            initialJson={initialJson}
+            onApplyArchitecturalHouse={setHouse}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ type OpeningMesh = {
   depth: number;
   color: string;
   position: [number, number, number];
+  rotationY: number;
 };
 
 type Props = {
@@ -35,6 +36,7 @@ export function EngineOpenings({ openings }: Props) {
         depth: o.wallThickness,
         color: o.kind === 'door' ? '#884422' : '#88aadd',
         position: [x, o.centerArch.y + height / 2, z],
+        rotationY: Math.atan2(o.tangentXZ.z, o.tangentXZ.x),
       };
     });
   }, [openings]);
@@ -42,7 +44,7 @@ export function EngineOpenings({ openings }: Props) {
   return (
     <>
       {meshes.map((mesh) => (
-        <group key={mesh.key} position={mesh.position}>
+        <group key={mesh.key} position={mesh.position} rotation={[0, mesh.rotationY, 0]}>
           {mesh.kind === 'window' ? (
             (() => {
               const frameThickness = 0.06;

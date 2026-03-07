@@ -8,8 +8,12 @@ type TabId = 'rendering' | 'json';
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  wireframeEnabled: boolean;
-  onWireframeChange: (enabled: boolean) => void;
+  showWireframe: boolean;
+  onShowWireframeChange: (enabled: boolean) => void;
+  showEdges: boolean;
+  onShowEdgesChange: (enabled: boolean) => void;
+  showOpeningEdges: boolean;
+  onShowOpeningEdgesChange: (enabled: boolean) => void;
   initialJson: string;
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
 };
@@ -17,8 +21,12 @@ type Props = {
 export function DebugDashboard({
   isOpen,
   onClose,
-  wireframeEnabled,
-  onWireframeChange,
+  showWireframe,
+  onShowWireframeChange,
+  showEdges,
+  onShowEdgesChange,
+  showOpeningEdges,
+  onShowOpeningEdgesChange,
   initialJson,
   onApplyArchitecturalHouse,
 }: Props) {
@@ -44,8 +52,27 @@ export function DebugDashboard({
       return <JsonEditorTab initialJson={initialJson} onApplyArchitecturalHouse={onApplyArchitecturalHouse} />;
     }
 
-    return <RenderingTab wireframeEnabled={wireframeEnabled} onWireframeChange={onWireframeChange} />;
-  }, [activeTab, initialJson, onApplyArchitecturalHouse, onWireframeChange, wireframeEnabled]);
+    return (
+      <RenderingTab
+        showWireframe={showWireframe}
+        onShowWireframeChange={onShowWireframeChange}
+        showEdges={showEdges}
+        onShowEdgesChange={onShowEdgesChange}
+        showOpeningEdges={showOpeningEdges}
+        onShowOpeningEdgesChange={onShowOpeningEdgesChange}
+      />
+    );
+  }, [
+    activeTab,
+    initialJson,
+    onApplyArchitecturalHouse,
+    onShowEdgesChange,
+    onShowOpeningEdgesChange,
+    onShowWireframeChange,
+    showEdges,
+    showOpeningEdges,
+    showWireframe,
+  ]);
 
   if (!isOpen) {
     return null;

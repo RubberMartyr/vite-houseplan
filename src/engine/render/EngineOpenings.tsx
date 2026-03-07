@@ -54,7 +54,7 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
 
         return (
           <group key={o.id} position={glassPosition.toArray()} quaternion={quaternion.toArray()}>
-            <mesh userData={{ debugIgnore: true }}>
+            <mesh userData={{ debugOpening: true }}>
               <boxGeometry args={[glassWidth, glassHeight, glassDepth]} />
               <meshPhysicalMaterial
                 transmission={1}
@@ -67,22 +67,22 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
               />
             </mesh>
 
-            <mesh userData={{ debugIgnore: true }} position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}>
+            <mesh userData={{ debugOpening: true }} position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}>
               <boxGeometry args={[frameThickness, height, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh userData={{ debugIgnore: true }} position={[glassWidth / 2 + frameThickness / 2, 0, 0]}>
+            <mesh userData={{ debugOpening: true }} position={[glassWidth / 2 + frameThickness / 2, 0, 0]}>
               <boxGeometry args={[frameThickness, height, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh userData={{ debugIgnore: true }} position={[0, glassHeight / 2 + frameThickness / 2, 0]}>
+            <mesh userData={{ debugOpening: true }} position={[0, glassHeight / 2 + frameThickness / 2, 0]}>
               <boxGeometry args={[width, frameThickness, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh userData={{ debugIgnore: true }} position={[0, -glassHeight / 2 - frameThickness / 2, 0]}>
+            <mesh userData={{ debugOpening: true }} position={[0, -glassHeight / 2 - frameThickness / 2, 0]}>
               <boxGeometry args={[width, frameThickness, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>

@@ -55,7 +55,9 @@ export default function HouseViewer() {
   const debugEnabled = isDebugEnabled();
   const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [wireframeEnabled, setWireframeEnabled] = useState(false);
+  const [showWireframe, setShowWireframe] = useState(false);
+  const [showEdges, setShowEdges] = useState(true);
+  const [showOpeningEdges, setShowOpeningEdges] = useState(false);
 
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
 
@@ -83,10 +85,10 @@ export default function HouseViewer() {
         <group>
           <EngineHouse architecturalHouse={house} />
           <DebugAxes />
-          {debugEnabled && <DebugEdges />}
+          {debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
         </group>
 
-        {debugEnabled && <WireframeOverride enabled={wireframeEnabled} />}
+        {debugEnabled && <WireframeOverride enabled={showWireframe} />}
 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
@@ -97,8 +99,12 @@ export default function HouseViewer() {
           <DebugDashboard
             isOpen={isDashboardOpen}
             onClose={() => setIsDashboardOpen(false)}
-            wireframeEnabled={wireframeEnabled}
-            onWireframeChange={setWireframeEnabled}
+            showWireframe={showWireframe}
+            onShowWireframeChange={setShowWireframe}
+            showEdges={showEdges}
+            onShowEdgesChange={setShowEdges}
+            showOpeningEdges={showOpeningEdges}
+            onShowOpeningEdgesChange={setShowOpeningEdges}
             initialJson={initialJson}
             onApplyArchitecturalHouse={setHouse}
           />

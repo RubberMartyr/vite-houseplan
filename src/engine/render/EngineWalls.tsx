@@ -69,7 +69,7 @@ export function EngineWalls({
   return (
     <>
       {builtWalls.map(({ id, geometry }) => (
-        <mesh key={id} geometry={geometry}>
+        <mesh key={id} geometry={geometry} userData={{ debugType: 'structure' }}>
           <meshStandardMaterial wireframe={debugWireframe} />
           <DebugWireframe />
         </mesh>

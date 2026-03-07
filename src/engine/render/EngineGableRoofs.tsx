@@ -50,7 +50,7 @@ export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidR
         const isCorner = typeof faceId === "string" && faceId.startsWith("corner-");
 
         return (
-          <mesh key={i} geometry={geom}>
+          <mesh key={i} geometry={geom} userData={{ debugType: "structure" }}>
             <meshStandardMaterial
               color="black"
               polygonOffset={isCorner}

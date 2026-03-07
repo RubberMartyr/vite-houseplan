@@ -29,6 +29,16 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
         const mullionThickness = 0.025;
         const mullionDepth = frameDepth * 0.5;
         const mullionOffset = glassDepth / 2 + 0.002;
+        const sillHeight = 0.04;
+        const sillDepth = 0.06;
+        const sillOverhang = 0.03;
+
+        const lintelHeight = 0.06;
+        const lintelDepth = frameDepth;
+        const lintelOverhang = 0.02;
+
+        const sillY = -height / 2 - sillHeight / 2;
+        const lintelY = height / 2 + lintelHeight / 2;
         const cols = o.style?.grid?.cols ?? 1;
         const rows = o.style?.grid?.rows ?? 1;
         const cellWidth = glassWidth / cols;
@@ -123,6 +133,23 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
               <boxGeometry args={[width, frameThickness, frameDepth]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
+
+            {o.style?.hasSill && (
+              <mesh
+                position={[0, sillY, frameDepth / 2 + sillDepth / 2]}
+                userData={{ debugIgnore: true }}
+              >
+                <boxGeometry args={[width + sillOverhang * 2, sillHeight, sillDepth]} />
+                <meshStandardMaterial color="#e5e5e5" />
+              </mesh>
+            )}
+
+            {o.style?.hasLintel && (
+              <mesh position={[0, lintelY, 0]} userData={{ debugIgnore: true }}>
+                <boxGeometry args={[width + lintelOverhang * 2, lintelHeight, lintelDepth]} />
+                <meshStandardMaterial color="#e5e5e5" />
+              </mesh>
+            )}
           </group>
         );
       })}

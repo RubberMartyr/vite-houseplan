@@ -33,9 +33,7 @@ export function DebugEdges({ showEdges, showOpeningEdges }: Props) {
       }
 
       const mesh = obj as THREE.Mesh;
-      const isOpeningMesh = mesh.userData?.debugOpening === true;
-
-      if (isOpeningMesh && !showOpeningEdges) {
+      if (mesh.userData?.debugType !== 'structure') {
         return;
       }
 

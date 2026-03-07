@@ -36,7 +36,7 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true }: Props) 
   return (
     <>
       {geometries.map((geom, i) => (
-        <mesh key={i} geometry={geom}>
+        <mesh key={i} geometry={geom} userData={{ debugType: "structure" }}>
           <meshStandardMaterial
             color="green"
             transparent

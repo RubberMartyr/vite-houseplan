@@ -179,6 +179,35 @@ export interface ArchitecturalHouse {
   levels: LevelSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
+  materials?: {
+    walls?: {
+      type: 'texture';
+      src: string;
+      scale?: number;
+    } | {
+      type: 'color';
+      value: string;
+    };
+    windowFrame?: {
+      type: 'texture';
+      src: string;
+      scale?: number;
+    } | {
+      type: 'color';
+      value: string;
+    };
+    glass?: {
+      type: 'glass';
+    };
+    roof?: {
+      type: 'texture';
+      src: string;
+      scale?: number;
+    } | {
+      type: 'color';
+      value: string;
+    };
+  };
 }
 
 export type WallSpec = {

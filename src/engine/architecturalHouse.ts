@@ -151,6 +151,25 @@ export const architecturalHouse: ArchitecturalHouse = {
 
   levels,
 
+  materials: {
+    walls: {
+      type: 'texture',
+      src: '/textures/brick1.jpg',
+      scale: 1,
+    },
+    windowFrame: {
+      type: 'color',
+      value: '#ffffff',
+    },
+    glass: {
+      type: 'glass',
+    },
+    roof: {
+      type: 'color',
+      value: '#333333',
+    },
+  },
+
   roofs: [
     {
       id: "ground-flat",

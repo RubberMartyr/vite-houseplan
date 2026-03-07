@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { BuiltWall } from '../buildWallsFromDerivedSegments';
@@ -9,6 +9,7 @@ import { useDebugUIState } from '../debug/debugUIState';
 import { groupOpeningsByWall } from '../openings/groupOpeningsByWall';
 import { splitWallByOpenings } from '../openings/splitWallByOpenings';
 import { buildWallPieceGeometry } from '../geometry/buildWallPieceGeometry';
+import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
 
 type EngineWallsProps = {
   walls: DerivedWallSegment[];
@@ -16,6 +17,7 @@ type EngineWallsProps = {
   wallRevision: number;
   openingsRevision: number;
   visible?: boolean;
+  wallMaterialSpec?: MaterialSpec;
 };
 
 const getGeometry = createGeometryCache<BuiltWall[]>();
@@ -26,8 +28,16 @@ export function EngineWalls({
   wallRevision,
   openingsRevision,
   visible = true,
+  wallMaterialSpec,
 }: EngineWallsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
+  const wallMaterial = useMemo(() => resolveMaterial(wallMaterialSpec), [wallMaterialSpec]);
+
+  useEffect(() => {
+    if ('wireframe' in wallMaterial) {
+      (wallMaterial as { wireframe?: boolean }).wireframe = debugWireframe;
+    }
+  }, [debugWireframe, wallMaterial]);
 
   const builtWalls = useMemo(() => {
     if (!visible) {
@@ -69,8 +79,7 @@ export function EngineWalls({
   return (
     <>
       {builtWalls.map(({ id, geometry }) => (
-        <mesh key={id} geometry={geometry} userData={{ debugType: 'structure' }}>
-          <meshStandardMaterial wireframe={debugWireframe} />
+        <mesh key={id} geometry={geometry} material={wallMaterial} userData={{ debugType: 'structure' }}>
           <DebugWireframe />
         </mesh>
       ))}

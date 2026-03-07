@@ -1,17 +1,29 @@
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { archToWorldXZ } from '../spaceMapping';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
+import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
 
 type Props = {
   openings: DerivedOpeningRect[];
   wallThickness?: number;
+  windowFrameMaterialSpec?: MaterialSpec;
+  glassMaterialSpec?: MaterialSpec;
 };
 
 const FRAME_THICKNESS = 0.06;
 const GLASS_INSET = 0.02;
 const GLASS_DEPTH = 0.01;
 
-export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
+export function EngineOpenings({
+  openings,
+  wallThickness = 0.3,
+  windowFrameMaterialSpec,
+  glassMaterialSpec,
+}: Props) {
+  const frameMaterial = useMemo(() => resolveMaterial(windowFrameMaterialSpec), [windowFrameMaterialSpec]);
+  const glassMaterial = useMemo(() => resolveMaterial(glassMaterialSpec), [glassMaterialSpec]);
+
   return (
     <>
       {openings.map((o) => {
@@ -51,14 +63,7 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
         const outward = new THREE.Vector3(outwardXZ.x, 0, outwardXZ.z).normalize();
         const up = new THREE.Vector3(0, 1, 0);
 
-        const openingCenterYOffset = (o.vMin + o.vMax) / 2;
-        const levelElevation =
-          'baseElevation' in o
-            ? o.baseElevation
-            : 'levelElevation' in o
-              ? o.levelElevation
-              : o.centerArch.y - openingCenterYOffset;
-        const centerY = levelElevation + openingCenterYOffset;
+        const centerY = o.centerArch.y;
         const centerXZ = archToWorldXZ({ x: o.centerArch.x, z: o.centerArch.z });
 
         const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);
@@ -71,17 +76,8 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
 
         return (
           <group key={o.id} position={glassPosition.toArray()} quaternion={quaternion.toArray()}>
-            <mesh userData={{ debugType: 'opening' }}>
+            <mesh material={glassMaterial} userData={{ debugType: 'opening' }}>
               <boxGeometry args={[glassWidth, glassHeight, glassDepth]} />
-              <meshPhysicalMaterial
-                transmission={1}
-                thickness={0.01}
-                roughness={0.05}
-                metalness={0}
-                transparent
-                opacity={0.6}
-                color="#cfe8ff"
-              />
             </mesh>
 
             {Array.from({ length: cols - 1 }).map((_, i) => {
@@ -90,11 +86,11 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
               return (
                 <mesh
                   key={`v-${i}`}
+                  material={frameMaterial}
                   position={[x, 0, mullionOffset]}
                   userData={{ debugIgnore: true }}
                 >
                   <boxGeometry args={[mullionThickness, glassHeight, mullionDepth]} />
-                  <meshStandardMaterial color="#ffffff" />
                 </mesh>
               );
             })}
@@ -105,49 +101,60 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
               return (
                 <mesh
                   key={`h-${i}`}
+                  material={frameMaterial}
                   position={[0, y, mullionOffset]}
                   userData={{ debugIgnore: true }}
                 >
                   <boxGeometry args={[glassWidth, mullionThickness, mullionDepth]} />
-                  <meshStandardMaterial color="#ffffff" />
                 </mesh>
               );
             })}
 
-            <mesh userData={{ debugType: 'opening' }} position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}>
+            <mesh
+              material={frameMaterial}
+              userData={{ debugType: 'opening' }}
+              position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}
+            >
               <boxGeometry args={[frameThickness, height, frameDepth]} />
-              <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh userData={{ debugType: 'opening' }} position={[glassWidth / 2 + frameThickness / 2, 0, 0]}>
+            <mesh
+              material={frameMaterial}
+              userData={{ debugType: 'opening' }}
+              position={[glassWidth / 2 + frameThickness / 2, 0, 0]}
+            >
               <boxGeometry args={[frameThickness, height, frameDepth]} />
-              <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh userData={{ debugType: 'opening' }} position={[0, glassHeight / 2 + frameThickness / 2, 0]}>
+            <mesh
+              material={frameMaterial}
+              userData={{ debugType: 'opening' }}
+              position={[0, glassHeight / 2 + frameThickness / 2, 0]}
+            >
               <boxGeometry args={[width, frameThickness, frameDepth]} />
-              <meshStandardMaterial color="#ffffff" />
             </mesh>
 
-            <mesh userData={{ debugType: 'opening' }} position={[0, -glassHeight / 2 - frameThickness / 2, 0]}>
+            <mesh
+              material={frameMaterial}
+              userData={{ debugType: 'opening' }}
+              position={[0, -glassHeight / 2 - frameThickness / 2, 0]}
+            >
               <boxGeometry args={[width, frameThickness, frameDepth]} />
-              <meshStandardMaterial color="#ffffff" />
             </mesh>
 
             {o.style?.hasSill && (
               <mesh
+                material={frameMaterial}
                 position={[0, sillY, frameDepth / 2 + sillDepth / 2]}
                 userData={{ debugIgnore: true }}
               >
                 <boxGeometry args={[width + sillOverhang * 2, sillHeight, sillDepth]} />
-                <meshStandardMaterial color="#e5e5e5" />
               </mesh>
             )}
 
             {o.style?.hasLintel && (
-              <mesh position={[0, lintelY, 0]} userData={{ debugIgnore: true }}>
+              <mesh material={frameMaterial} position={[0, lintelY, 0]} userData={{ debugIgnore: true }}>
                 <boxGeometry args={[width + lintelOverhang * 2, lintelHeight, lintelDepth]} />
-                <meshStandardMaterial color="#e5e5e5" />
               </mesh>
             )}
           </group>

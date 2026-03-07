@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import * as THREE from 'three';
 import type { DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { BuiltWall } from '../buildWallsFromDerivedSegments';
@@ -31,7 +32,10 @@ export function EngineWalls({
   wallMaterialSpec,
 }: EngineWallsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const wallMaterial = useMemo(() => resolveMaterial(wallMaterialSpec), [wallMaterialSpec]);
+  const wallMaterial = useMemo(
+    () => resolveMaterial(wallMaterialSpec, { side: THREE.DoubleSide }),
+    [wallMaterialSpec]
+  );
 
   useEffect(() => {
     if ('wireframe' in wallMaterial) {

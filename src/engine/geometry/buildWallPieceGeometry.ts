@@ -55,6 +55,19 @@ export function buildWallPieceGeometry(
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const uv = new Float32Array([
+    piece.uMin, piece.vMin,
+    piece.uMin, piece.vMin,
+    piece.uMax, piece.vMin,
+    piece.uMax, piece.vMin,
+    piece.uMin, piece.vMax,
+    piece.uMin, piece.vMax,
+    piece.uMax, piece.vMax,
+    piece.uMax, piece.vMax,
+  ]);
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;

@@ -32,7 +32,7 @@ export function DebugEdges() {
         return;
       }
 
-      const edgeGeo = new THREE.EdgesGeometry(mesh.geometry, 20);
+      const edgeGeo = new THREE.EdgesGeometry(mesh.geometry);
       const edgeMat = new THREE.LineBasicMaterial({
         color: 0x000000,
         linewidth: 1,

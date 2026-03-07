@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
+type Props = {
+  showEdges: boolean;
+  showOpeningEdges: boolean;
+};
+
 function isTransparentMaterial(material: THREE.Material | THREE.Material[] | undefined): boolean {
   if (!material) return false;
 
@@ -12,10 +17,14 @@ function isTransparentMaterial(material: THREE.Material | THREE.Material[] | und
   return material.transparent;
 }
 
-export function DebugEdges() {
+export function DebugEdges({ showEdges, showOpeningEdges }: Props) {
   const { scene } = useThree();
 
   useEffect(() => {
+    if (!showEdges) {
+      return;
+    }
+
     const edges: THREE.LineSegments[] = [];
 
     scene.traverse((obj) => {
@@ -24,7 +33,9 @@ export function DebugEdges() {
       }
 
       const mesh = obj as THREE.Mesh;
-      if (mesh.userData?.debugIgnore) {
+      const isOpeningMesh = mesh.userData?.debugOpening === true;
+
+      if (isOpeningMesh && !showOpeningEdges) {
         return;
       }
 
@@ -60,7 +71,7 @@ export function DebugEdges() {
         }
       });
     };
-  }, [scene]);
+  }, [scene, showEdges, showOpeningEdges]);
 
   return null;
 }

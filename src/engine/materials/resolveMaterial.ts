@@ -68,7 +68,7 @@ export function resolveMaterial(spec?: MaterialSpec, options?: ResolveMaterialOp
 
     return new THREE.MeshStandardMaterial({
       map: tex,
-      side,
+      side: THREE.DoubleSide,
     });
   }
 

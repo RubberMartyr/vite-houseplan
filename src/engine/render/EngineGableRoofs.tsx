@@ -1,16 +1,18 @@
-import React, { useEffect, useMemo } from "react";
-import * as THREE from "three";
-import { deriveGableRoofGeometries } from "../deriveGableRoofs";
-import type { DerivedRoof } from "../derive/types/DerivedRoof";
-import { DebugWireframe } from "../debug/DebugWireframe";
-import { createGeometryCache } from "../cache/geometryCache";
-import { useDebugUIState } from "../debug/debugUIState";
+import React, { useEffect, useMemo } from 'react';
+import * as THREE from 'three';
+import { deriveGableRoofGeometries } from '../deriveGableRoofs';
+import type { DerivedRoof } from '../derive/types/DerivedRoof';
+import { DebugWireframe } from '../debug/DebugWireframe';
+import { createGeometryCache } from '../cache/geometryCache';
+import { useDebugUIState } from '../debug/debugUIState';
+import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
 
 type Props = {
   roofs: DerivedRoof[];
   roofRevision: number;
   visible?: boolean;
   invalidRoofIds?: Set<string>;
+  roofMaterialSpec?: MaterialSpec;
 };
 
 type BuildGeometriesOptions = {
@@ -27,9 +29,23 @@ function disposeGeometries(geometries: THREE.BufferGeometry[]) {
 
 const getGeometry = createGeometryCache<THREE.BufferGeometry[]>();
 
-export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidRoofIds }: Props) {
+export function EngineGableRoofs({
+  roofs,
+  roofRevision,
+  visible = true,
+  invalidRoofIds,
+  roofMaterialSpec,
+}: Props) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const options = useMemo(() => ({ invalidRoofIds }), [invalidRoofIds]);
+  const roofMaterial = useMemo(() => resolveMaterial(roofMaterialSpec), [roofMaterialSpec]);
+
+  useEffect(() => {
+    if ('wireframe' in roofMaterial) {
+      (roofMaterial as { wireframe?: boolean }).wireframe = debugWireframe;
+    }
+  }, [debugWireframe, roofMaterial]);
+
   const sceneGeometries = useMemo(
     () => getGeometry(roofRevision, () => buildGeometries(roofs, options)),
     [roofs, options, roofRevision]
@@ -45,23 +61,11 @@ export function EngineGableRoofs({ roofs, roofRevision, visible = true, invalidR
 
   return (
     <>
-      {sceneGeometries.map((geom, i) => {
-        const faceId = geom.userData?.faceId;
-        const isCorner = typeof faceId === "string" && faceId.startsWith("corner-");
-
-        return (
-          <mesh key={i} geometry={geom} userData={{ debugType: "structure" }}>
-            <meshStandardMaterial
-              color="black"
-              polygonOffset={isCorner}
-              polygonOffsetFactor={isCorner ? -1 : 0}
-              polygonOffsetUnits={isCorner ? -1 : 0}
-              wireframe={debugWireframe}
-            />
-            <DebugWireframe />
-          </mesh>
-        );
-      })}
+      {sceneGeometries.map((geom, i) => (
+        <mesh key={i} geometry={geom} material={roofMaterial} userData={{ debugType: 'structure' }}>
+          <DebugWireframe />
+        </mesh>
+      ))}
     </>
   );
 }

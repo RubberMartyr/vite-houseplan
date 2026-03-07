@@ -26,6 +26,13 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
         const glassHeight = Math.max(0.01, height - frameThickness * 2);
 
         const glassDepth = GLASS_DEPTH;
+        const mullionThickness = 0.025;
+        const mullionDepth = frameDepth * 0.5;
+        const mullionOffset = glassDepth / 2 + 0.002;
+        const cols = o.style?.grid?.cols ?? 1;
+        const rows = o.style?.grid?.rows ?? 1;
+        const cellWidth = glassWidth / cols;
+        const cellHeight = glassHeight / rows;
 
         const tangentXZ = archToWorldXZ({ x: o.tangentXZ.x, z: o.tangentXZ.z });
         const outwardXZ = archToWorldXZ({ x: o.outwardXZ.x, z: o.outwardXZ.z });
@@ -66,6 +73,36 @@ export function EngineOpenings({ openings, wallThickness = 0.3 }: Props) {
                 color="#cfe8ff"
               />
             </mesh>
+
+            {Array.from({ length: cols - 1 }).map((_, i) => {
+              const x = -glassWidth / 2 + cellWidth * (i + 1);
+
+              return (
+                <mesh
+                  key={`v-${i}`}
+                  position={[x, 0, mullionOffset]}
+                  userData={{ debugIgnore: true }}
+                >
+                  <boxGeometry args={[mullionThickness, glassHeight, mullionDepth]} />
+                  <meshStandardMaterial color="#ffffff" />
+                </mesh>
+              );
+            })}
+
+            {Array.from({ length: rows - 1 }).map((_, i) => {
+              const y = -glassHeight / 2 + cellHeight * (i + 1);
+
+              return (
+                <mesh
+                  key={`h-${i}`}
+                  position={[0, y, mullionOffset]}
+                  userData={{ debugIgnore: true }}
+                >
+                  <boxGeometry args={[glassWidth, mullionThickness, mullionDepth]} />
+                  <meshStandardMaterial color="#ffffff" />
+                </mesh>
+              );
+            })}
 
             <mesh userData={{ debugType: 'opening' }} position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}>
               <boxGeometry args={[frameThickness, height, frameDepth]} />

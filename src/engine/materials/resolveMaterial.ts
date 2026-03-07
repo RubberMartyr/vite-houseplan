@@ -17,6 +17,10 @@ type GlassMaterialSpec = {
 
 export type MaterialSpec = ColorMaterialSpec | TextureMaterialSpec | GlassMaterialSpec;
 
+type ResolveMaterialOptions = {
+  side?: THREE.Side;
+};
+
 function normalizePublicTexturePath(src: string): string {
   const trimmed = src.trim();
 
@@ -38,14 +42,17 @@ function normalizePublicTexturePath(src: string): string {
   return `/textures/${withoutLeadingSlash}`;
 }
 
-export function resolveMaterial(spec?: MaterialSpec): THREE.Material {
+export function resolveMaterial(spec?: MaterialSpec, options?: ResolveMaterialOptions): THREE.Material {
+  const side = options?.side;
+
   if (!spec) {
-    return new THREE.MeshStandardMaterial({ color: '#cccccc' });
+    return new THREE.MeshStandardMaterial({ color: '#cccccc', side });
   }
 
   if (spec.type === 'color') {
     return new THREE.MeshStandardMaterial({
       color: spec.value,
+      side,
     });
   }
 
@@ -61,6 +68,7 @@ export function resolveMaterial(spec?: MaterialSpec): THREE.Material {
 
     return new THREE.MeshStandardMaterial({
       map: tex,
+      side,
     });
   }
 
@@ -73,5 +81,5 @@ export function resolveMaterial(spec?: MaterialSpec): THREE.Material {
     });
   }
 
-  return new THREE.MeshStandardMaterial({ color: '#cccccc' });
+  return new THREE.MeshStandardMaterial({ color: '#cccccc', side });
 }

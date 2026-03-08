@@ -3,6 +3,8 @@ import type { DerivedWallSegment } from '../deriveWalls';
 import { archToWorldVec3 } from '../spaceMapping';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
 
+const BRICK_UV_SCALE = 2;
+
 export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
   piece: WallPieceRect
@@ -56,15 +58,18 @@ export function buildWallPieceGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
+  const vMinWorld = wall.start.y + piece.vMin;
+  const vMaxWorld = wall.start.y + piece.vMax;
+
   const uv = new Float32Array([
-    piece.uMin, piece.vMin,
-    piece.uMin, piece.vMin,
-    piece.uMax, piece.vMin,
-    piece.uMax, piece.vMin,
-    piece.uMin, piece.vMax,
-    piece.uMin, piece.vMax,
-    piece.uMax, piece.vMax,
-    piece.uMax, piece.vMax,
+    piece.uMin * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
+    piece.uMin * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
+    piece.uMax * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
+    piece.uMax * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
+    piece.uMin * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
+    piece.uMin * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
+    piece.uMax * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
+    piece.uMax * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
   ]);
   geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 

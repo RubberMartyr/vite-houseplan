@@ -3,7 +3,7 @@ import type { DerivedWallSegment } from '../deriveWalls';
 import { archToWorldVec3 } from '../spaceMapping';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
 
-const BRICK_UV_SCALE = 2;
+const BRICK_UV_SCALE = 0.5;
 
 export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
@@ -58,20 +58,19 @@ export function buildWallPieceGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-  const vMinWorld = wall.start.y + piece.vMin;
-  const vMaxWorld = wall.start.y + piece.vMax;
+  const uv: number[] = [];
 
-  const uv = new Float32Array([
-    piece.uMin * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
-    piece.uMin * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
-    piece.uMax * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
-    piece.uMax * BRICK_UV_SCALE, vMinWorld * BRICK_UV_SCALE,
-    piece.uMin * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
-    piece.uMin * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
-    piece.uMax * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
-    piece.uMax * BRICK_UV_SCALE, vMaxWorld * BRICK_UV_SCALE,
-  ]);
-  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  for (let i = 0; i < positions.length; i += 3) {
+    const x = positions[i];
+    const y = positions[i + 1];
+    const z = positions[i + 2];
+
+    const u = (Math.abs(x) > Math.abs(z) ? z : x) * BRICK_UV_SCALE;
+    const v = y * BRICK_UV_SCALE;
+    uv.push(u, v);
+  }
+
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
 
   geometry.setIndex(indices);
   geometry.computeVertexNormals();

@@ -39,6 +39,21 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
     e2x, yTop, e2z,
   ]);
 
+  const brickScale = 0.6;
+  const tangentXZ = { x: dx / length, z: dz / length };
+  const uv = [];
+
+  for (let i = 0; i < positions.length; i += 3) {
+    const x = positions[i];
+    const y = positions[i + 1];
+    const z = positions[i + 2];
+
+    const u = (x * tangentXZ.x + z * tangentXZ.z) * brickScale;
+    const v = y * brickScale;
+
+    uv.push(u, v);
+  }
+
   const indices = [
     0, 2, 1,
     1, 2, 3,
@@ -61,6 +76,7 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
 

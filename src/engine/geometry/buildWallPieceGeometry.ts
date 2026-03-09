@@ -81,6 +81,7 @@ export function buildWallPieceGeometry(
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
 
   geometry.setIndex(indices);
+  // Recompute normals after wall attributes/index are configured to reduce seam lighting.
   geometry.computeVertexNormals();
   return geometry;
 }

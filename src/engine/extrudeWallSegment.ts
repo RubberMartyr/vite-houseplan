@@ -78,6 +78,7 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
+  // Recompute normals after setting wall attributes to reduce panel seam lighting.
   geometry.computeVertexNormals();
 
   return geometry;

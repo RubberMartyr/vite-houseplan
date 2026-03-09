@@ -3,8 +3,6 @@ import type { DerivedWallSegment } from '../deriveWalls';
 import { archToWorldVec3 } from '../spaceMapping';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
 
-const BRICK_UV_SCALE = 0.5;
-
 export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
   piece: WallPieceRect
@@ -58,6 +56,15 @@ export function buildWallPieceGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
+  const tangentX = positions[6] - positions[0];
+  const tangentZ = positions[8] - positions[2];
+  const tangentLength = Math.hypot(tangentX, tangentZ);
+  const tangentXZ =
+    tangentLength > 1e-9
+      ? { x: tangentX / tangentLength, z: tangentZ / tangentLength }
+      : { x: 1, z: 0 };
+
+  const brickScale = 0.6;
   const uv: number[] = [];
 
   for (let i = 0; i < positions.length; i += 3) {
@@ -65,8 +72,9 @@ export function buildWallPieceGeometry(
     const y = positions[i + 1];
     const z = positions[i + 2];
 
-    const u = (Math.abs(x) > Math.abs(z) ? z : x) * BRICK_UV_SCALE;
-    const v = y * BRICK_UV_SCALE;
+    const u = (x * tangentXZ.x + z * tangentXZ.z) * brickScale;
+    const v = y * brickScale;
+
     uv.push(u, v);
   }
 

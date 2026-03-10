@@ -48,8 +48,11 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
     const y = positions[i + 1];
     const z = positions[i + 2];
 
-    const u = (x * tangentXZ.x + z * tangentXZ.z) * brickScale;
-    const v = y * brickScale;
+    const relx = x - ws.x;
+    const relz = z - ws.z;
+
+    const u = (relx * tangentXZ.x + relz * tangentXZ.z) * brickScale;
+    const v = (y - yBottom) * brickScale;
 
     uv.push(u, v);
   }

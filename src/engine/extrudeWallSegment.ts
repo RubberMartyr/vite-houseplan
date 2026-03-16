@@ -37,17 +37,16 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
   // ---- UV mapping ----
 
   const brickScale = 0.6;
-  const uv = [];
+  const uv: number[] = [];
+  const dirx = dx / length;
+  const dirz = dz / length;
 
   for (let i = 0; i < positions.length; i += 3) {
     const x = positions[i];
     const y = positions[i + 1];
     const z = positions[i + 2];
 
-    const relx = x - ws.x;
-    const relz = z - ws.z;
-
-    const u = ((relx * dx + relz * dz) / length) * brickScale;
+    const u = (x * dirx + z * dirz) * brickScale;
     const v = (y - yBottom) * brickScale;
 
     uv.push(u, v);

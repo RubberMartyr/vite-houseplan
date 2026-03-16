@@ -52,7 +52,8 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
     const relz = z - ws.z;
 
     // Distance along wall direction.
-    const u = ((relx * dx + relz * dz) / length) * brickScale;
+    const localDistance = (relx * dx + relz * dz) / length;
+    const u = (seg.uOffset + localDistance) * brickScale;
 
     // Vertical distance from wall base.
     const v = (y - yBottom) * brickScale;

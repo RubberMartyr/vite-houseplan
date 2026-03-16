@@ -21,6 +21,7 @@ export type DerivedWallSegment = {
   height: number;
   thickness: number;
   outwardSign: 1 | -1;
+  uOffset: number;
 };
 
 export function deriveWallSegmentsFromLevels(
@@ -33,10 +34,12 @@ export function deriveWallSegmentsFromLevels(
     const area = signedAreaXZ(outer);
     const isCCW = area > 0;
     const outwardSign: 1 | -1 = isCCW ? -1 : 1;
+    let uOffset = 0;
 
     for (let i = 0; i < outer.length; i++) {
       const current = outer[i];
       const next = outer[(i + 1) % outer.length];
+      const segmentLength = Math.hypot(next.x - current.x, next.z - current.z);
 
       segments.push({
         id: `wall-${level.id}-${i}`,
@@ -54,7 +57,10 @@ export function deriveWallSegmentsFromLevels(
         height: level.height,
         thickness: arch.wallThickness,
         outwardSign,
+        uOffset,
       });
+
+      uOffset += segmentLength;
     }
   }
 

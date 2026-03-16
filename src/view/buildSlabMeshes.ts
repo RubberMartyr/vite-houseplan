@@ -3,6 +3,22 @@ import type { DerivedSlab } from '../engine/derive/deriveSlabs';
 import { archToWorldXZ } from '../engine/spaceMapping';
 import type { RenderStyleConfig } from './renderStyleConfig';
 
+
+function ensureClosedPolygon(points: Array<{ x: number; z: number }>) {
+  if (points.length === 0) {
+    return points;
+  }
+
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  if (first.x === last.x && first.z === last.z) {
+    return points;
+  }
+
+  return [...points, first];
+}
+
 function addPolygonPath(shape: Shape | Path, points: Array<{ x: number; z: number }>) {
   points.forEach((point, index) => {
     const mapped = archToWorldXZ(point);
@@ -17,12 +33,12 @@ function addPolygonPath(shape: Shape | Path, points: Array<{ x: number; z: numbe
 
 export function buildSlabMesh(slab: DerivedSlab, renderConfig: RenderStyleConfig): Mesh {
   const shape = new Shape();
-  const outer = slab.footprint.outer;
-  addPolygonPath(shape, outer);
+  const slabPolygon = ensureClosedPolygon(slab.footprint.outer);
+  addPolygonPath(shape, slabPolygon);
 
   (slab.footprint.holes ?? []).forEach((holePoints) => {
     const hole = new Path();
-    addPolygonPath(hole, holePoints);
+    addPolygonPath(hole, ensureClosedPolygon(holePoints));
     shape.holes.push(hole);
   });
 

@@ -56,13 +56,14 @@ export function buildWallPieceGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-  const tangentX = positions[6] - positions[0];
-  const tangentZ = positions[8] - positions[2];
-  const tangentLength = Math.hypot(tangentX, tangentZ);
-  const tangentXZ =
-    tangentLength > 1e-9
-      ? { x: tangentX / tangentLength, z: tangentZ / tangentLength }
-      : { x: 1, z: 0 };
+  const wallStartWorld = archToWorldVec3(wall.start.x, wall.start.y, wall.start.z);
+  const wallEndWorld = archToWorldVec3(wall.end.x, wall.start.y, wall.end.z);
+  const worldDx = wallEndWorld.x - wallStartWorld.x;
+  const worldDz = wallEndWorld.z - wallStartWorld.z;
+  const worldLength = Math.hypot(worldDx, worldDz);
+  const dirx = worldLength > 1e-9 ? worldDx / worldLength : 1;
+  const dirz = worldLength > 1e-9 ? worldDz / worldLength : 0;
+  const yBottom = wallStartWorld.y;
 
   const brickScale = 0.6;
   const uv: number[] = [];
@@ -72,8 +73,8 @@ export function buildWallPieceGeometry(
     const y = positions[i + 1];
     const z = positions[i + 2];
 
-    const u = (x * tangentXZ.x + z * tangentXZ.z) * brickScale;
-    const v = y * brickScale;
+    const u = (x * dirx + z * dirz) * brickScale;
+    const v = (y - yBottom) * brickScale;
 
     uv.push(u, v);
   }

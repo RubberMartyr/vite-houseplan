@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { BuiltWall } from '../buildWallsFromDerivedSegments';
@@ -76,17 +77,28 @@ export function EngineWalls({
     });
   }, [walls, openings, wallRevision, openingsRevision, visible]);
 
+  const mergedGeometry = useMemo(() => {
+    if (!builtWalls.length) {
+      return null;
+    }
+
+    return mergeGeometries(
+      builtWalls.map(({ geometry }) => geometry),
+      false
+    );
+  }, [builtWalls]);
+
   if (!visible) {
     return null;
   }
 
+  if (!mergedGeometry) {
+    return null;
+  }
+
   return (
-    <>
-      {builtWalls.map(({ id, geometry }) => (
-        <mesh key={id} geometry={geometry} material={wallMaterial} userData={{ debugType: 'structure' }}>
-          <DebugWireframe />
-        </mesh>
-      ))}
-    </>
+    <mesh geometry={mergedGeometry} material={wallMaterial} userData={{ debugType: 'structure' }}>
+      <DebugWireframe />
+    </mesh>
   );
 }

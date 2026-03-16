@@ -1,5 +1,4 @@
 import { ExtrudeGeometry, Mesh, MeshStandardMaterial, Path, Shape } from 'three';
-import { offsetPolygonInward } from '../engine/geom2d/offsetPolygon';
 import type { DerivedSlab } from '../engine/derive/deriveSlabs';
 import { archToWorldXZ } from '../engine/spaceMapping';
 import type { RenderStyleConfig } from './renderStyleConfig';
@@ -18,7 +17,7 @@ function addPolygonPath(shape: Shape | Path, points: Array<{ x: number; z: numbe
 
 export function buildSlabMesh(slab: DerivedSlab, renderConfig: RenderStyleConfig): Mesh {
   const shape = new Shape();
-  const outer = offsetPolygonInward(slab.footprint.outer, slab.inset);
+  const outer = slab.footprint.outer;
   addPolygonPath(shape, outer);
 
   (slab.footprint.holes ?? []).forEach((holePoints) => {

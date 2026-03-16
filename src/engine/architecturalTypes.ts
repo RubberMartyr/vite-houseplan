@@ -1,5 +1,6 @@
 export type {
   ArchitecturalHouse,
+  ArchitecturalMaterials,
   Footprint,
   LevelSpec,
   OpeningEdgeRef,

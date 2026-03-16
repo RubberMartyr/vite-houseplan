@@ -5,14 +5,15 @@ import type { DerivedRoof } from '../derive/types/DerivedRoof';
 import { DebugWireframe } from '../debug/DebugWireframe';
 import { createGeometryCache } from '../cache/geometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
-import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
+import { createRoofMaterial } from '../materials/materialResolver';
+import type { ArchitecturalMaterials } from '../architecturalTypes';
 
 type Props = {
   roofs: DerivedRoof[];
   roofRevision: number;
   visible?: boolean;
   invalidRoofIds?: Set<string>;
-  roofMaterialSpec?: MaterialSpec;
+  roofMaterialSpec?: ArchitecturalMaterials['roof'];
 };
 
 type BuildGeometriesOptions = {
@@ -38,7 +39,7 @@ export function EngineGableRoofs({
 }: Props) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const options = useMemo(() => ({ invalidRoofIds }), [invalidRoofIds]);
-  const roofMaterial = useMemo(() => resolveMaterial(roofMaterialSpec), [roofMaterialSpec]);
+  const roofMaterial = useMemo(() => createRoofMaterial(roofMaterialSpec), [roofMaterialSpec]);
 
   useEffect(() => {
     if ('wireframe' in roofMaterial) {

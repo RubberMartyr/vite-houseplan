@@ -174,40 +174,29 @@ export interface OpeningSpec {
   style?: OpeningStyleSpec;
 }
 
+export type ArchitecturalMaterials = {
+  walls?: {
+    texture?: string;
+    scale?: number;
+    color?: string;
+  };
+  roof?: {
+    texture?: string;
+    color?: string;
+  };
+  windows?: {
+    frameColor?: string;
+    glassColor?: string;
+    glassOpacity?: number;
+  };
+};
+
 export interface ArchitecturalHouse {
   wallThickness: number;
   levels: LevelSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
-  materials?: {
-    walls?: {
-      type: 'texture';
-      src: string;
-      scale?: number;
-    } | {
-      type: 'color';
-      value: string;
-    };
-    windowFrame?: {
-      type: 'texture';
-      src: string;
-      scale?: number;
-    } | {
-      type: 'color';
-      value: string;
-    };
-    glass?: {
-      type: 'glass';
-    };
-    roof?: {
-      type: 'texture';
-      src: string;
-      scale?: number;
-    } | {
-      type: 'color';
-      value: string;
-    };
-  };
+  materials?: ArchitecturalMaterials;
 }
 
 export type WallSpec = {

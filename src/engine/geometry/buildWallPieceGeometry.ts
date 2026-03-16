@@ -5,7 +5,8 @@ import type { WallPieceRect } from '../openings/splitWallByOpenings';
 
 export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
-  piece: WallPieceRect
+  piece: WallPieceRect,
+  brickScale = 0.6
 ): THREE.BufferGeometry {
   const wallDx = wall.end.x - wall.start.x;
   const wallDz = wall.end.z - wall.start.z;
@@ -72,7 +73,6 @@ export function buildWallPieceGeometry(
   const dirz = worldLength > 1e-9 ? worldDz / worldLength : 0;
   const yBottom = wallStartWorld.y;
 
-  const brickScale = 0.6;
   const uv: number[] = [];
 
   for (let i = 0; i < positions.length; i += 3) {

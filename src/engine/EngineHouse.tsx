@@ -32,8 +32,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
       <EngineOpenings
         openings={derived.openings}
         wallThickness={architecturalHouse.wallThickness}
-        windowFrameMaterialSpec={architecturalHouse.materials?.windowFrame}
-        glassMaterialSpec={architecturalHouse.materials?.glass}
+        windowsMaterialSpec={architecturalHouse.materials?.windows}
       />
       <EngineSlabs slabs={derived.slabs} />
       <EngineRoofs

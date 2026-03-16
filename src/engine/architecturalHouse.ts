@@ -153,20 +153,16 @@ export const architecturalHouse: ArchitecturalHouse = {
 
   materials: {
     walls: {
-      type: 'texture',
-      src: '/textures/brick1.jpg',
+      texture: '/textures/brick1.jpg',
       scale: 1,
     },
-    windowFrame: {
-      type: 'color',
-      value: '#ffffff',
-    },
-    glass: {
-      type: 'glass',
+    windows: {
+      frameColor: '#ffffff',
+      glassColor: '#a8d0ff',
+      glassOpacity: 0.35,
     },
     roof: {
-      type: 'color',
-      value: '#333333',
+      color: '#333333',
     },
   },
 

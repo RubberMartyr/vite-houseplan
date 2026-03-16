@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from 'react';
-import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
@@ -11,7 +10,8 @@ import { useDebugUIState } from '../debug/debugUIState';
 import { groupOpeningsByWall } from '../openings/groupOpeningsByWall';
 import { splitWallByOpenings } from '../openings/splitWallByOpenings';
 import { buildWallPieceGeometry } from '../geometry/buildWallPieceGeometry';
-import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
+import { createWallMaterial } from '../materials/materialResolver';
+import type { ArchitecturalMaterials } from '../architecturalTypes';
 
 type EngineWallsProps = {
   walls: DerivedWallSegment[];
@@ -19,7 +19,7 @@ type EngineWallsProps = {
   wallRevision: number;
   openingsRevision: number;
   visible?: boolean;
-  wallMaterialSpec?: MaterialSpec;
+  wallMaterialSpec?: ArchitecturalMaterials['walls'];
 };
 
 const getGeometry = createGeometryCache<BuiltWall[]>();
@@ -33,10 +33,7 @@ export function EngineWalls({
   wallMaterialSpec,
 }: EngineWallsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const wallMaterial = useMemo(
-    () => resolveMaterial(wallMaterialSpec, { side: THREE.DoubleSide }),
-    [wallMaterialSpec]
-  );
+  const wallMaterial = useMemo(() => createWallMaterial(wallMaterialSpec), [wallMaterialSpec]);
 
   useEffect(() => {
     if ('wireframe' in wallMaterial) {
@@ -61,7 +58,7 @@ export function EngineWalls({
           return [
             {
               id: wall.id,
-              geometry: extrudeWallSegment(wall),
+              geometry: extrudeWallSegment(wall, wallMaterialSpec?.scale ?? 0.6),
             },
           ];
         }
@@ -71,11 +68,11 @@ export function EngineWalls({
 
         return pieces.map((piece, pieceIndex) => ({
           id: `${wall.id}-piece-${pieceIndex}`,
-          geometry: buildWallPieceGeometry(wall, piece),
+          geometry: buildWallPieceGeometry(wall, piece, wallMaterialSpec?.scale ?? 0.6),
         }));
       });
     });
-  }, [walls, openings, wallRevision, openingsRevision, visible]);
+  }, [walls, openings, wallRevision, openingsRevision, visible, wallMaterialSpec?.scale]);
 
   const mergedGeometry = useMemo(() => {
     if (!builtWalls.length) {

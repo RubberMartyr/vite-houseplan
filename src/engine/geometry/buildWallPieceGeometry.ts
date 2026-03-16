@@ -21,16 +21,21 @@ export function buildWallPieceGeometry(
   const nz = tx * wall.outwardSign;
   const halfT = wall.thickness / 2;
 
-  const corners = [
+  const front = [
     [piece.uMin, piece.vMin, +halfT],
-    [piece.uMin, piece.vMin, -halfT],
     [piece.uMax, piece.vMin, +halfT],
-    [piece.uMax, piece.vMin, -halfT],
     [piece.uMin, piece.vMax, +halfT],
-    [piece.uMin, piece.vMax, -halfT],
     [piece.uMax, piece.vMax, +halfT],
+  ] as const;
+
+  const back = [
+    [piece.uMin, piece.vMin, -halfT],
+    [piece.uMax, piece.vMin, -halfT],
+    [piece.uMin, piece.vMax, -halfT],
     [piece.uMax, piece.vMax, -halfT],
   ] as const;
+
+  const corners = [...front, ...back] as const;
 
   const positions = new Float32Array(corners.length * 3);
 
@@ -46,12 +51,12 @@ export function buildWallPieceGeometry(
 
   const indices = [
     // front
-    0, 2, 1,
-    1, 2, 3,
+    0, 1, 2,
+    2, 1, 3,
 
     // back
-    4, 5, 6,
-    5, 7, 6,
+    4, 6, 5,
+    5, 6, 7,
   ];
 
   const geometry = new THREE.BufferGeometry();

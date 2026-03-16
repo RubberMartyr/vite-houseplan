@@ -12,6 +12,7 @@ import { splitWallByOpenings } from '../openings/splitWallByOpenings';
 import { buildWallPieceGeometry } from '../geometry/buildWallPieceGeometry';
 import { createWallMaterial } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
+import { mergeExteriorWallsForRendering } from './mergeExteriorWallsForRendering';
 
 type EngineWallsProps = {
   walls: DerivedWallSegment[];
@@ -49,9 +50,10 @@ export function EngineWalls({
     const revision = wallRevision * 1_000_000 + openingsRevision;
 
     return getGeometry(revision, () => {
-      const openingsByWall = groupOpeningsByWall(walls, openings);
+      const { walls: visibleWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(walls, openings);
+      const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
 
-      return walls.flatMap((wall) => {
+      return visibleWalls.flatMap((wall) => {
         const openingsOnWall = openingsByWall.get(wall.id) ?? [];
 
         if (!openingsOnWall.length) {

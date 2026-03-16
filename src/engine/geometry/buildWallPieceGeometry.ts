@@ -21,21 +21,22 @@ export function buildWallPieceGeometry(
   const nz = tx * wall.outwardSign;
   const halfT = wall.thickness / 2;
 
+  // Build the wall piece from two explicit surfaces instead of a box corner layout.
   const front = [
     [piece.uMin, piece.vMin, +halfT],
     [piece.uMax, piece.vMin, +halfT],
     [piece.uMin, piece.vMax, +halfT],
     [piece.uMax, piece.vMax, +halfT],
-  ] as const;
+  ];
 
   const back = [
     [piece.uMin, piece.vMin, -halfT],
     [piece.uMax, piece.vMin, -halfT],
     [piece.uMin, piece.vMax, -halfT],
     [piece.uMax, piece.vMax, -halfT],
-  ] as const;
+  ];
 
-  const corners = [...front, ...back] as const;
+  const corners = [...front, ...back];
 
   const positions = new Float32Array(corners.length * 3);
 

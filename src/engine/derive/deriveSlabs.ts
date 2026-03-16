@@ -13,15 +13,15 @@ export function deriveSlabs(house: ArchitecturalHouse): DerivedSlab[] {
   return house.levels.map((level, index) => {
     const top = level.elevation;
     const bottom = level.elevation - level.slab.thickness;
-    const inset = level.slab.inset ?? 0;
-    const slabOuter = offsetPolygonInward(level.footprint.outer, inset);
+    const inset = level.slab?.inset ?? 0;
+    const slabPolygon = offsetPolygonInward(level.footprint.outer, inset);
 
     return {
       levelIndex: index,
       elevationTop: top,
       elevationBottom: bottom,
       footprint: {
-        outer: slabOuter,
+        outer: slabPolygon,
         holes: level.footprint.holes,
       },
       inset,

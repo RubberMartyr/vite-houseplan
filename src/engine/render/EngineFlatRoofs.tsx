@@ -5,13 +5,14 @@ import type { DerivedRoof } from '../derive/types/DerivedRoof';
 import { DebugWireframe } from '../debug/DebugWireframe';
 import { createGeometryCache } from '../cache/geometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
-import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
+import { createRoofMaterial } from '../materials/materialResolver';
+import type { ArchitecturalMaterials } from '../architecturalTypes';
 
 type Props = {
   roofs: DerivedRoof[];
   roofRevision: number;
   visible?: boolean;
-  roofMaterialSpec?: MaterialSpec;
+  roofMaterialSpec?: ArchitecturalMaterials['roof'];
 };
 
 function disposeGeometries(geometries: THREE.BufferGeometry[]) {
@@ -22,7 +23,7 @@ const getGeometry = createGeometryCache<THREE.BufferGeometry[]>();
 
 export function EngineFlatRoofs({ roofs, roofRevision, visible = true, roofMaterialSpec }: Props) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const roofMaterial = useMemo(() => resolveMaterial(roofMaterialSpec), [roofMaterialSpec]);
+  const roofMaterial = useMemo(() => createRoofMaterial(roofMaterialSpec), [roofMaterialSpec]);
 
   useEffect(() => {
     if ('wireframe' in roofMaterial) {

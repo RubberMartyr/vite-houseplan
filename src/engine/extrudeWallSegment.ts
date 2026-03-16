@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { DerivedWallSegment } from "./deriveWalls";
 import { archToWorldXZ } from "./spaceMapping";
 
-export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometry {
+export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): THREE.BufferGeometry {
   const ws = archToWorldXZ(seg.start);
   const we = archToWorldXZ(seg.end);
 
@@ -36,7 +36,6 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
 
   // ---- UV mapping ----
 
-  const brickScale = 0.6;
   const uv: number[] = [];
   const dirx = dx / length;
   const dirz = dz / length;

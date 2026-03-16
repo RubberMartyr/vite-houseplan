@@ -2,13 +2,12 @@ import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { archToWorldXZ } from '../spaceMapping';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
-import { resolveMaterial, type MaterialSpec } from '../materials/resolveMaterial';
+import type { ArchitecturalMaterials } from '../architecturalTypes';
 
 type Props = {
   openings: DerivedOpeningRect[];
   wallThickness?: number;
-  windowFrameMaterialSpec?: MaterialSpec;
-  glassMaterialSpec?: MaterialSpec;
+  windowsMaterialSpec?: ArchitecturalMaterials['windows'];
 };
 
 const FRAME_THICKNESS = 0.06;
@@ -18,11 +17,25 @@ const GLASS_DEPTH = 0.01;
 export function EngineOpenings({
   openings,
   wallThickness = 0.3,
-  windowFrameMaterialSpec,
-  glassMaterialSpec,
+  windowsMaterialSpec,
 }: Props) {
-  const frameMaterial = useMemo(() => resolveMaterial(windowFrameMaterialSpec), [windowFrameMaterialSpec]);
-  const glassMaterial = useMemo(() => resolveMaterial(glassMaterialSpec), [glassMaterialSpec]);
+  const frameMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: windowsMaterialSpec?.frameColor ?? '#f0f0f0',
+      }),
+    [windowsMaterialSpec?.frameColor]
+  );
+
+  const glassMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: windowsMaterialSpec?.glassColor ?? '#a8d0ff',
+        transparent: true,
+        opacity: windowsMaterialSpec?.glassOpacity ?? 0.35,
+      }),
+    [windowsMaterialSpec?.glassColor, windowsMaterialSpec?.glassOpacity]
+  );
 
   return (
     <>

@@ -4,13 +4,13 @@ import { EngineGableRoofs } from './EngineGableRoofs';
 import type { MultiPlaneRoofValidationResult } from '../validation/validateMultiPlaneRoof';
 import type { MultiPlaneRoofSpec } from '../types';
 import type { DerivedRoof } from '../derive/types/DerivedRoof';
-import type { MaterialSpec } from '../materials/resolveMaterial';
+import type { ArchitecturalMaterials } from '../architecturalTypes';
 
 type EngineRoofsProps = {
   roofs: DerivedRoof[];
   roofRevision: number;
   roofValidationEntries: Array<{ roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult }>;
-  roofMaterialSpec?: MaterialSpec;
+  roofMaterialSpec?: ArchitecturalMaterials['roof'];
 };
 
 export function EngineRoofs({ roofs, roofRevision, roofValidationEntries, roofMaterialSpec }: EngineRoofsProps) {

@@ -47,8 +47,15 @@ export function extrudeWallSegment(seg: DerivedWallSegment): THREE.BufferGeometr
     const y = positions[i + 1];
     const z = positions[i + 2];
 
-    const u = x * brickScale;
-    const v = y * brickScale;
+    // Position relative to wall start.
+    const relx = x - ws.x;
+    const relz = z - ws.z;
+
+    // Distance along wall direction.
+    const u = ((relx * dx + relz * dz) / length) * brickScale;
+
+    // Vertical distance from wall base.
+    const v = (y - yBottom) * brickScale;
 
     uv.push(u, v);
   }

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
-import { AxesHelper } from 'three';
+import { AxesHelper, PCFSoftShadowMap } from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse } from '../engine/architecturalTypes';
@@ -63,13 +63,22 @@ export default function HouseViewer() {
 
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
-      <Canvas shadows camera={{ position: [0, 7, -12], fov: 50 }} dpr={1} gl={{ antialias: true }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 7, -12], fov: 50 }}
+        dpr={1}
+        gl={{ antialias: true }}
+        onCreated={({ gl }) => {
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = PCFSoftShadowMap;
+        }}
+      >
         <color attach="background" args={['#f5f7fb']} />
-        <ambientLight intensity={0.45} />
+        <ambientLight intensity={0.4} />
         <directionalLight
           castShadow
           intensity={1}
-          position={[10, 12, 6]}
+          position={[10, 20, 10]}
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
           shadow-camera-near={0.5}
@@ -77,7 +86,7 @@ export default function HouseViewer() {
         />
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} castShadow receiveShadow>
           <planeGeometry args={[160, 160]} />
           <meshStandardMaterial color="#d8d8d8" />
         </mesh>

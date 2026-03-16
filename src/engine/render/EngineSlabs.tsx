@@ -19,6 +19,9 @@ export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
 
   useEffect(() => {
     slabMeshes.forEach((mesh) => {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
       const material = mesh.material;
       if (Array.isArray(material)) {
         material.forEach((entry) => {

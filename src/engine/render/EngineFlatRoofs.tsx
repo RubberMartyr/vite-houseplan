@@ -47,7 +47,14 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true, roofMater
   return (
     <>
       {geometries.map((geom, i) => (
-        <mesh key={i} geometry={geom} material={roofMaterial} userData={{ debugType: 'structure' }}>
+        <mesh
+          key={i}
+          geometry={geom}
+          material={roofMaterial}
+          castShadow
+          receiveShadow
+          userData={{ debugType: 'structure' }}
+        >
           <DebugWireframe />
         </mesh>
       ))}

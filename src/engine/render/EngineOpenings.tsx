@@ -37,6 +37,11 @@ export function EngineOpenings({
     [windowsMaterialSpec?.glassColor, windowsMaterialSpec?.glassOpacity]
   );
 
+  const shadowProps = {
+    castShadow: true,
+    receiveShadow: true,
+  };
+
   return (
     <>
       {openings.map((o) => {
@@ -89,7 +94,7 @@ export function EngineOpenings({
 
         return (
           <group key={o.id} position={glassPosition.toArray()} quaternion={quaternion.toArray()}>
-            <mesh material={glassMaterial} userData={{ debugType: 'opening' }}>
+            <mesh {...shadowProps} material={glassMaterial} userData={{ debugType: 'opening' }}>
               <boxGeometry args={[glassWidth, glassHeight, glassDepth]} />
             </mesh>
 
@@ -98,6 +103,7 @@ export function EngineOpenings({
 
               return (
                 <mesh
+                  {...shadowProps}
                   key={`v-${i}`}
                   material={frameMaterial}
                   position={[x, 0, mullionOffset]}
@@ -113,6 +119,7 @@ export function EngineOpenings({
 
               return (
                 <mesh
+                  {...shadowProps}
                   key={`h-${i}`}
                   material={frameMaterial}
                   position={[0, y, mullionOffset]}
@@ -124,6 +131,7 @@ export function EngineOpenings({
             })}
 
             <mesh
+              {...shadowProps}
               material={frameMaterial}
               userData={{ debugType: 'opening' }}
               position={[-glassWidth / 2 - frameThickness / 2, 0, 0]}
@@ -132,6 +140,7 @@ export function EngineOpenings({
             </mesh>
 
             <mesh
+              {...shadowProps}
               material={frameMaterial}
               userData={{ debugType: 'opening' }}
               position={[glassWidth / 2 + frameThickness / 2, 0, 0]}
@@ -140,6 +149,7 @@ export function EngineOpenings({
             </mesh>
 
             <mesh
+              {...shadowProps}
               material={frameMaterial}
               userData={{ debugType: 'opening' }}
               position={[0, glassHeight / 2 + frameThickness / 2, 0]}
@@ -148,6 +158,7 @@ export function EngineOpenings({
             </mesh>
 
             <mesh
+              {...shadowProps}
               material={frameMaterial}
               userData={{ debugType: 'opening' }}
               position={[0, -glassHeight / 2 - frameThickness / 2, 0]}
@@ -157,6 +168,7 @@ export function EngineOpenings({
 
             {o.style?.hasSill && (
               <mesh
+                {...shadowProps}
                 material={frameMaterial}
                 position={[0, sillY, frameDepth / 2 + sillDepth / 2]}
                 userData={{ debugIgnore: true }}
@@ -166,7 +178,7 @@ export function EngineOpenings({
             )}
 
             {o.style?.hasLintel && (
-              <mesh material={frameMaterial} position={[0, lintelY, 0]} userData={{ debugIgnore: true }}>
+              <mesh {...shadowProps} material={frameMaterial} position={[0, lintelY, 0]} userData={{ debugIgnore: true }}>
                 <boxGeometry args={[width + lintelOverhang * 2, lintelHeight, lintelDepth]} />
               </mesh>
             )}

@@ -63,7 +63,14 @@ export function EngineGableRoofs({
   return (
     <>
       {sceneGeometries.map((geom, i) => (
-        <mesh key={i} geometry={geom} material={roofMaterial} userData={{ debugType: 'structure' }}>
+        <mesh
+          key={i}
+          geometry={geom}
+          material={roofMaterial}
+          castShadow
+          receiveShadow
+          userData={{ debugType: 'structure' }}
+        >
           <DebugWireframe />
         </mesh>
       ))}

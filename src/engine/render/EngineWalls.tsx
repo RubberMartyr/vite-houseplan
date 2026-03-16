@@ -94,7 +94,13 @@ export function EngineWalls({
   }
 
   return (
-    <mesh geometry={mergedGeometry} material={wallMaterial} userData={{ debugType: 'structure' }}>
+    <mesh
+      geometry={mergedGeometry}
+      material={wallMaterial}
+      castShadow
+      receiveShadow
+      userData={{ debugType: 'structure' }}
+    >
       <DebugWireframe />
     </mesh>
   );

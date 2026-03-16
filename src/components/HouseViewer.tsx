@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
-import { AxesHelper, PCFSoftShadowMap } from 'three';
+import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse } from '../engine/architecturalTypes';
@@ -30,14 +30,14 @@ function FirstFrameMarker() {
 
 function DebugAxes() {
   const { scene } = useThree();
-  const helperRef = useRef<AxesHelper | null>(null);
+  const helperRef = useRef<THREE.AxesHelper | null>(null);
 
   useEffect(() => {
     if (!isDebugEnabled()) {
       return;
     }
 
-    const axes = new AxesHelper(5);
+    const axes = new THREE.AxesHelper(5);
     scene.add(axes);
     helperRef.current = axes;
 
@@ -70,7 +70,7 @@ export default function HouseViewer() {
         gl={{ antialias: true }}
         onCreated={({ gl }) => {
           gl.shadowMap.enabled = true;
-          gl.shadowMap.type = PCFSoftShadowMap;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
       >
         <color attach="background" args={['#f5f7fb']} />

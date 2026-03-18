@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import type { Vec2 } from '../architecturalTypes';
 import { getWallVisibleHeight, type DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { BuiltWall } from '../buildWallsFromDerivedSegments';
@@ -19,6 +20,7 @@ type EngineWallsProps = {
   openings: DerivedOpening[];
   wallRevision: number;
   openingsRevision: number;
+  levelFootprintsById?: Record<string, Vec2[]>;
   visible?: boolean;
   wallMaterialSpec?: ArchitecturalMaterials['walls'];
 };
@@ -30,6 +32,7 @@ export function EngineWalls({
   openings,
   wallRevision,
   openingsRevision,
+  levelFootprintsById,
   visible = true,
   wallMaterialSpec,
 }: EngineWallsProps) {
@@ -55,12 +58,13 @@ export function EngineWalls({
 
       return visibleWalls.flatMap((wall) => {
         const openingsOnWall = openingsByWall.get(wall.id) ?? [];
+        const footprintOuter = levelFootprintsById?.[wall.levelId];
 
         if (!openingsOnWall.length) {
           return [
             {
               id: wall.id,
-              geometry: extrudeWallSegment(wall, wallMaterialSpec?.scale ?? 0.6),
+              geometry: extrudeWallSegment(wall, wallMaterialSpec?.scale ?? 0.6, footprintOuter),
             },
           ];
         }
@@ -70,11 +74,11 @@ export function EngineWalls({
 
         return pieces.map((piece, pieceIndex) => ({
           id: `${wall.id}-piece-${pieceIndex}`,
-          geometry: buildWallPieceGeometry(wall, piece, wallMaterialSpec?.scale ?? 0.6),
+          geometry: buildWallPieceGeometry(wall, piece, wallMaterialSpec?.scale ?? 0.6, footprintOuter),
         }));
       });
     });
-  }, [walls, openings, wallRevision, openingsRevision, visible, wallMaterialSpec?.scale]);
+  }, [walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
 
   const mergedGeometry = useMemo(() => {
     if (!builtWalls.length) {

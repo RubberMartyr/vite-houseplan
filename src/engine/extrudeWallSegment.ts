@@ -1,45 +1,58 @@
 import * as THREE from "three";
 import type { DerivedWallSegment } from "./deriveWalls";
 import { getWallVisibleBaseY, getWallVisibleTopY } from "./deriveWalls";
-import { archToWorldXZ } from "./spaceMapping";
+import { archToWorldVec3 } from "./spaceMapping";
 
 export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): THREE.BufferGeometry {
-  const ws = archToWorldXZ(seg.start);
-  const we = archToWorldXZ(seg.end);
+  const wallDx = seg.end.x - seg.start.x;
+  const wallDz = seg.end.z - seg.start.z;
+  const length = Math.hypot(wallDx, wallDz);
 
-  const dx = we.x - ws.x;
-  const dz = we.z - ws.z;
-  const length = Math.hypot(dx, dz);
-
-  if (length === 0) {
+  if (length <= 1e-9) {
     return new THREE.BufferGeometry();
   }
 
+  const tx = wallDx / length;
+  const tz = wallDz / length;
+  const nx = -tz * seg.outwardSign;
+  const nz = tx * seg.outwardSign;
   const yBottom = getWallVisibleBaseY(seg);
   const yTop = getWallVisibleTopY(seg);
+  const exteriorOffset = 0;
+  const interiorOffset = -seg.thickness;
 
-  // ---- vertices (single wall surface) ----
+  const corners = [
+    [0, yBottom, exteriorOffset],
+    [length, yBottom, exteriorOffset],
+    [0, yTop, exteriorOffset],
+    [length, yTop, exteriorOffset],
+    [0, yBottom, interiorOffset],
+    [length, yBottom, interiorOffset],
+    [0, yTop, interiorOffset],
+    [length, yTop, interiorOffset],
+  ] as const;
 
-  const positions = new Float32Array([
-    ws.x,
-    yBottom,
-    ws.z, // 0
-    we.x,
-    yBottom,
-    we.z, // 1
-    ws.x,
-    yTop,
-    ws.z, // 2
-    we.x,
-    yTop,
-    we.z, // 3
-  ]);
+  const positions = new Float32Array(corners.length * 3);
+
+  corners.forEach(([u, y, n], i) => {
+    const archX = seg.start.x + tx * u + nx * n;
+    const archZ = seg.start.z + tz * u + nz * n;
+    const world = archToWorldVec3(archX, y, archZ);
+    positions[i * 3 + 0] = world.x;
+    positions[i * 3 + 1] = world.y;
+    positions[i * 3 + 2] = world.z;
+  });
 
   // ---- UV mapping ----
 
   const uv: number[] = [];
-  const dirx = dx / length;
-  const dirz = dz / length;
+  const wallStartWorld = archToWorldVec3(seg.start.x, yBottom, seg.start.z);
+  const wallEndWorld = archToWorldVec3(seg.end.x, yBottom, seg.end.z);
+  const worldDx = wallEndWorld.x - wallStartWorld.x;
+  const worldDz = wallEndWorld.z - wallStartWorld.z;
+  const worldLength = Math.hypot(worldDx, worldDz);
+  const dirx = worldLength > 1e-9 ? worldDx / worldLength : 1;
+  const dirz = worldLength > 1e-9 ? worldDz / worldLength : 0;
 
   for (let i = 0; i < positions.length; i += 3) {
     const x = positions[i];
@@ -52,9 +65,15 @@ export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): T
     uv.push(u, v);
   }
 
-  // ---- two triangles ----
+  const indices = [
+    // exterior face
+    0, 1, 2,
+    2, 1, 3,
 
-  const indices = [0, 2, 1, 1, 2, 3];
+    // interior face
+    4, 6, 5,
+    5, 6, 7,
+  ];
 
   const geometry = new THREE.BufferGeometry();
 

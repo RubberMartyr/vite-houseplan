@@ -349,6 +349,29 @@ function triangulateXZ(polyClosed: XZ[]): number[][] {
   return THREE.ShapeUtils.triangulateShape(contour, []);
 }
 
+function signedArea(polyClosed: XZ[]): number {
+  let area = 0;
+
+  for (let i = 0; i < polyClosed.length - 1; i++) {
+    const current = polyClosed[i];
+    const next = polyClosed[i + 1];
+    area += current.x * next.z - next.x * current.z;
+  }
+
+  return area * 0.5;
+}
+
+function orientRoofFacePolygon(polyClosed: XZ[]): XZ[] {
+  const closed = ensureClosed(polyClosed);
+  const worldClosed = closed.map(archToWorldXZ);
+
+  if (signedArea(worldClosed) <= 0) {
+    return closed;
+  }
+
+  return ensureClosed(closed.slice(0, -1).reverse());
+}
+
 function planeFromArchPoints(
   p1: { x: number; z: number; y: number },
   p2: { x: number; z: number; y: number },
@@ -553,10 +576,11 @@ function deriveMultiPlaneRoofGeometries(
       return;
     }
 
-    const triangles = triangulateXZ(regionPoly.map(archToWorldXZ));
+    const orientedRegionPoly = orientRoofFacePolygon(regionPoly);
+    const triangles = triangulateXZ(orientedRegionPoly.map(archToWorldXZ));
     const geometry = buildRoofFaceGeometry({
         faceId: face.id,
-        polyClosed: regionPoly,
+        polyClosed: orientedRegionPoly,
         triangles,
         thickness,
         heightAtOuter: (x, z) => plane.heightAt(x, z),
@@ -607,7 +631,7 @@ function deriveMultiPlaneRoofGeometries(
         console.log("Corner area", endKey, side, area);
 
         // Build an explicit triangle poly in arch space (closed)
-        const triPoly: XZ[] = ensureClosed([E, C, B]);
+        const triPoly: XZ[] = orientRoofFacePolygon([E, C, B]);
 
         const plane = planeFromArchPoints(
           { x: E.x, z: E.z, y: ridgeTopAbs },
@@ -1032,10 +1056,11 @@ function buildMultiRidgeRoof(
   const out: THREE.BufferGeometry[] = [];
 
   if (pos.length >= 4) {
+    const orientedPos = orientRoofFacePolygon(pos);
     const posGeometry = buildRoofFaceGeometry({
       faceId: "multi-ridge-pos",
-      polyClosed: pos,
-      triangles: triangulateXZ(pos.map(archToWorldXZ)),
+      polyClosed: orientedPos,
+      triangles: triangulateXZ(orientedPos.map(archToWorldXZ)),
       thickness,
       heightAtOuter: roofOuterAt,
     });
@@ -1043,10 +1068,11 @@ function buildMultiRidgeRoof(
     if (posGeometry) out.push(posGeometry);
   }
   if (neg.length >= 4) {
+    const orientedNeg = orientRoofFacePolygon(neg);
     const negGeometry = buildRoofFaceGeometry({
       faceId: "multi-ridge-neg",
-      polyClosed: neg,
-      triangles: triangulateXZ(neg.map(archToWorldXZ)),
+      polyClosed: orientedNeg,
+      triangles: triangulateXZ(orientedNeg.map(archToWorldXZ)),
       thickness,
       heightAtOuter: roofOuterAt,
     });

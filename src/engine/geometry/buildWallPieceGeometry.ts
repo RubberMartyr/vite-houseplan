@@ -1,53 +1,49 @@
 import * as THREE from 'three';
+import type { Vec2 } from '../architecturalTypes';
 import type { DerivedWallSegment } from '../deriveWalls';
 import { getWallVisibleBaseY } from '../deriveWalls';
-import { archToWorldVec3 } from '../spaceMapping';
+import { resolveWallExtrusionDirection } from '../geom2d/wallExtrusionDirection';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
+import { archToWorldVec3 } from '../spaceMapping';
 
 export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
   piece: WallPieceRect,
-  brickScale = 0.6
+  brickScale = 0.6,
+  footprintOuter?: Vec2[]
 ): THREE.BufferGeometry {
-  const wallDx = wall.end.x - wall.start.x;
-  const wallDz = wall.end.z - wall.start.z;
-  const length = Math.hypot(wallDx, wallDz);
+  const direction = resolveWallExtrusionDirection(wall, footprintOuter);
 
-  if (length <= 1e-9) {
+  if (!direction) {
     return new THREE.BufferGeometry();
   }
 
-  const tx = wallDx / length;
-  const tz = wallDz / length;
-  const nx = -tz * wall.outwardSign;
-  const nz = tx * wall.outwardSign;
+  const { tangent, inward } = direction;
   const exteriorOffset = 0;
-  const interiorOffset = -wall.thickness;
+  const interiorOffset = wall.thickness;
   const wallBaseY = getWallVisibleBaseY(wall);
 
-  // Keep the exterior face on the facade segment and offset the interior face inward only.
   const front = [
     [piece.uMin, piece.vMin, exteriorOffset],
     [piece.uMax, piece.vMin, exteriorOffset],
     [piece.uMin, piece.vMax, exteriorOffset],
     [piece.uMax, piece.vMax, exteriorOffset],
-  ];
+  ] as const;
 
   const back = [
     [piece.uMin, piece.vMin, interiorOffset],
     [piece.uMax, piece.vMin, interiorOffset],
     [piece.uMin, piece.vMax, interiorOffset],
     [piece.uMax, piece.vMax, interiorOffset],
-  ];
+  ] as const;
 
   const corners = [...front, ...back];
-
   const positions = new Float32Array(corners.length * 3);
 
   corners.forEach(([u, v, n], i) => {
-    const archX = wall.start.x + tx * u + nx * n;
+    const archX = wall.start.x + tangent.x * u + inward.x * n;
     const archY = wallBaseY + v;
-    const archZ = wall.start.z + tz * u + nz * n;
+    const archZ = wall.start.z + tangent.z * u + inward.z * n;
     const world = archToWorldVec3(archX, archY, archZ);
     positions[i * 3 + 0] = world.x;
     positions[i * 3 + 1] = world.y;
@@ -55,11 +51,8 @@ export function buildWallPieceGeometry(
   });
 
   const indices = [
-    // front
     0, 1, 2,
     2, 1, 3,
-
-    // back
     4, 6, 5,
     5, 6, 7,
   ];
@@ -90,9 +83,7 @@ export function buildWallPieceGeometry(
   }
 
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-
   geometry.setIndex(indices);
-  // Recompute normals after wall attributes/index are configured to reduce seam lighting.
   geometry.computeVertexNormals();
   return geometry;
 }

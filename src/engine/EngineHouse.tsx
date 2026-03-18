@@ -19,6 +19,10 @@ export function EngineHouse({ architecturalHouse }: Props) {
     () => deriveHouse(architecturalHouse),
     [architecturalHouse]
   );
+  const levelFootprintsById = useMemo(
+    () => Object.fromEntries(architecturalHouse.levels.map((level) => [level.id, level.footprint.outer])),
+    [architecturalHouse]
+  );
 
   return (
     <>
@@ -27,6 +31,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
         openings={derived.openings}
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
+        levelFootprintsById={levelFootprintsById}
         wallMaterialSpec={architecturalHouse.materials?.walls}
       />
       <EngineOpenings

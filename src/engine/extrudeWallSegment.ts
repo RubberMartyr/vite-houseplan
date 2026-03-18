@@ -1,25 +1,26 @@
 import * as THREE from "three";
+import type { Vec2 } from "./architecturalTypes";
 import type { DerivedWallSegment } from "./deriveWalls";
 import { getWallVisibleBaseY, getWallVisibleTopY } from "./deriveWalls";
+import { resolveWallExtrusionDirection } from "./geom2d/wallExtrusionDirection";
 import { archToWorldVec3 } from "./spaceMapping";
 
-export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): THREE.BufferGeometry {
-  const wallDx = seg.end.x - seg.start.x;
-  const wallDz = seg.end.z - seg.start.z;
-  const length = Math.hypot(wallDx, wallDz);
+export function extrudeWallSegment(
+  seg: DerivedWallSegment,
+  brickScale = 0.6,
+  footprintOuter?: Vec2[]
+): THREE.BufferGeometry {
+  const direction = resolveWallExtrusionDirection(seg, footprintOuter);
 
-  if (length <= 1e-9) {
+  if (!direction) {
     return new THREE.BufferGeometry();
   }
 
-  const tx = wallDx / length;
-  const tz = wallDz / length;
-  const nx = -tz * seg.outwardSign;
-  const nz = tx * seg.outwardSign;
+  const { length, tangent, inward } = direction;
   const yBottom = getWallVisibleBaseY(seg);
   const yTop = getWallVisibleTopY(seg);
   const exteriorOffset = 0;
-  const interiorOffset = -seg.thickness;
+  const interiorOffset = seg.thickness;
 
   const corners = [
     [0, yBottom, exteriorOffset],
@@ -35,15 +36,13 @@ export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): T
   const positions = new Float32Array(corners.length * 3);
 
   corners.forEach(([u, y, n], i) => {
-    const archX = seg.start.x + tx * u + nx * n;
-    const archZ = seg.start.z + tz * u + nz * n;
+    const archX = seg.start.x + tangent.x * u + inward.x * n;
+    const archZ = seg.start.z + tangent.z * u + inward.z * n;
     const world = archToWorldVec3(archX, y, archZ);
     positions[i * 3 + 0] = world.x;
     positions[i * 3 + 1] = world.y;
     positions[i * 3 + 2] = world.z;
   });
-
-  // ---- UV mapping ----
 
   const uv: number[] = [];
   const wallStartWorld = archToWorldVec3(seg.start.x, yBottom, seg.start.z);
@@ -66,23 +65,16 @@ export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): T
   }
 
   const indices = [
-    // exterior face
     0, 1, 2,
     2, 1, 3,
-
-    // interior face
     4, 6, 5,
     5, 6, 7,
   ];
 
   const geometry = new THREE.BufferGeometry();
-
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-
   geometry.setIndex(indices);
-
   geometry.computeVertexNormals();
 
   return geometry;

@@ -1,4 +1,4 @@
-import { getEnvelopeFirstOuterPolygon, getEnvelopeOuterPolygon } from "../model/envelope";
+import { architecturalInput } from "../data/architecturalInput";
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 
@@ -63,36 +63,13 @@ export function findFacadeEdgeIndex(ring: XZ[], which: "minZ" | "maxZ"): number 
   return idx;
 }
 
-/**
- * This mirrors the current house geometry but expressed
- * as architectural intent instead of derived geometry.
- */
-const levels: ArchitecturalHouse['levels'] = [
-  {
-    id: "ground",
-    elevation: 0,
-    height: 2.8,
-    slab: {
-      thickness: 0.3,
-      inset: 0,
-    },
-    footprint: {
-      outer: openRing(getEnvelopeOuterPolygon()),
-    },
+const levels: ArchitecturalHouse['levels'] = architecturalInput.levels.map((level) => ({
+  ...level,
+  footprint: {
+    ...level.footprint,
+    outer: openRing(level.footprint.outer),
   },
-  {
-    id: "first",
-    elevation: 3.05,
-    height: 2.8,
-    slab: {
-      thickness: 0.25,
-      inset: 0,
-    },
-    footprint: {
-      outer: openRing(getEnvelopeFirstOuterPolygon()),
-    },
-  },
-];
+}));
 
 // Current envelope orientation has the front facade at z = 0.
 const FRONT_FACADE: "minZ" | "maxZ" = "minZ";
@@ -129,6 +106,7 @@ console.log("FRONT EDGE DIRECTION", {
 });
 
 export const architecturalHouse: ArchitecturalHouse = {
+  ...architecturalInput,
   wallThickness: 0.3, // match current
 
   levels,

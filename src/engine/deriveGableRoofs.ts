@@ -514,6 +514,7 @@ function deriveMultiPlaneRoofGeometries(
 
   const geometries: THREE.BufferGeometry[] = [];
   const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
+  const faceRegionPolys = new Map<string, XZ[]>();
   const sidePlanes = new Map<
     string,
     { left?: RoofPlane; right?: RoofPlane }
@@ -522,7 +523,10 @@ function deriveMultiPlaneRoofGeometries(
   const facesHip = roof.faces.filter((f) => f.kind === "hipCap");
   const facesRidge = roof.faces.filter((f) => f.kind !== "hipCap");
 
-  const processFace = (face: MultiPlaneRoofSpec["faces"][number]) => {
+  const resolveFaceRegionPoly = (face: MultiPlaneRoofSpec["faces"][number]) => {
+    const cached = faceRegionPolys.get(face.id);
+    if (cached) return cached;
+
     const region = face.region;
     let regionPoly: XZ[] | null = null;
 
@@ -548,6 +552,17 @@ function deriveMultiPlaneRoofGeometries(
       if (!halfPlanes) return;
       regionPoly = clipPolyByRegion(fp, halfPlanes);
     }
+
+    if (regionPoly) {
+      faceRegionPolys.set(face.id, regionPoly);
+    }
+
+    return regionPoly;
+  };
+
+  const processFace = (face: MultiPlaneRoofSpec["faces"][number]) => {
+    const region = face.region;
+    const regionPoly = resolveFaceRegionPoly(face);
 
     console.log("FACE", face.id, "kind", face.kind, "regionPoly", regionPoly?.length);
 
@@ -661,14 +676,20 @@ function deriveMultiPlaneRoofGeometries(
           }
 
           // seam base point for that side at that ridge end
-          const B = pickBaseForSide(ridge, seamPair, side);
-          const { corner: C, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          const adjacentFace = findAdjacentCornerFace(roof.faces, ridge.id, endKey, side);
+          const adjacentPoly = adjacentFace ? resolveFaceRegionPoly(adjacentFace) : null;
+
+          const basePoint = pickBaseForSide(ridge, seamPair, side);
+          const B = snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
+          const { corner: rawCorner, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
 
           // 🔎 DEBUG LOG
-          logCornerDebug(ridge.id, endKey, side, E, B, candidates, C);
+          logCornerDebug(ridge.id, endKey, side, E, B, candidates, rawCorner);
 
-          if (!C) return;
-          console.log("cornerPick", { endKey, side, B, pickedCorner: C });
+          if (!rawCorner) return;
+
+          const C = snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
+          console.log("cornerPick", { endKey, side, B, pickedCorner: C, adjacentFaceId: adjacentFace?.id });
 
           const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
           console.log("Corner area", endKey, side, area);
@@ -881,6 +902,44 @@ function pickFarthestPoint(polyClosed: XZ[], a: XZ, b: XZ): XZ | null {
 
 function midXZ(a: XZ, b: XZ): XZ {
   return { x: (a.x + b.x) * 0.5, z: (a.z + b.z) * 0.5 };
+}
+
+function distanceXZ(a: XZ, b: XZ): number {
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
+function snap(p: XZ, target: XZ, eps = 1e-6): XZ {
+  if (distanceXZ(p, target) < eps) return target;
+  return p;
+}
+
+function findVertexReference(polyClosed: XZ[] | null | undefined, target: XZ, eps = 1e-6): XZ | null {
+  if (!polyClosed) return null;
+
+  for (const point of polyClosed.slice(0, -1)) {
+    if (distanceXZ(point, target) < eps) return point;
+  }
+
+  return null;
+}
+
+function findAdjacentCornerFace(
+  faces: MultiPlaneRoofSpec["faces"],
+  ridgeId: string,
+  endKey: "start" | "end",
+  side: "left" | "right"
+) {
+  return (
+    faces.find(
+      (face) =>
+        face.kind === "ridgeSideSegment" &&
+        face.ridgeId === ridgeId &&
+        face.side === side &&
+        face.capEnd === endKey
+    ) ?? null
+  );
 }
 
 function pickBaseForSide(

@@ -292,6 +292,34 @@ function capTriangleFromRidgeEndpoint(
   return ensureClosed([E, i1, i2]);
 }
 
+function ridgeEndpointCapMiddlePolygon(params: {
+  endpoint: XZ;
+  leftBase: XZ;
+  rightBase: XZ;
+  leftCorner?: XZ | null;
+  rightCorner?: XZ | null;
+}): XZ[] | null {
+  const { endpoint, leftBase, rightBase, leftCorner, rightCorner } = params;
+
+  const ordered: XZ[] = [endpoint];
+
+  if (leftCorner && !sameXZ(leftCorner, endpoint) && !sameXZ(leftCorner, leftBase)) {
+    ordered.push(leftCorner);
+  }
+
+  ordered.push(leftBase);
+  ordered.push(rightBase);
+
+  if (rightCorner && !sameXZ(rightCorner, rightBase) && !sameXZ(rightCorner, endpoint)) {
+    ordered.push(rightCorner);
+  }
+
+  const closed = ensureClosed(ordered);
+  if (closed.length < 4) return null;
+
+  return orientRoofFacePolygon(closed);
+}
+
 function clipPolyByLine(poly: XZ[], a: XZ, b: XZ, keep: "pos" | "neg"): XZ[] {
   const closed = ensureClosed(poly);
 
@@ -522,6 +550,11 @@ function deriveMultiPlaneRoofGeometries(
       const entry = hipBases.get(ridgeId) ?? {};
       entry[end] = [B1, B2];
       hipBases.set(ridgeId, entry);
+
+      // PASS 1 only caches the broad ridge-end cap footprint.
+      // PASS 1.5 rebuilds the endpoint as corner facets + a middle cap region
+      // so the plan decomposition is mutually exclusive.
+      return;
     }
 
     let plane: RoofPlane | null = null;
@@ -597,7 +630,9 @@ function deriveMultiPlaneRoofGeometries(
     processFace(face);
   }
 
-  // PASS 1.5: build 4 corner hip facets (one per ridge end + side)
+  // PASS 1.5: rebuild each ridge endpoint as:
+  //   left corner facet + middle cap region + right corner facet.
+  // This replaces the old overlapping full-width cap triangle.
   for (const ridge of roof.ridgeSegments) {
     const bases = hipBases.get(ridge.id);
     if (!bases?.start || !bases?.end) continue;
@@ -606,25 +641,28 @@ function deriveMultiPlaneRoofGeometries(
     const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
     (["start", "end"] as const).forEach((endKey) => {
-      (["left", "right"] as const).forEach((side) => {
-        console.log("CORNER TRY", ridge.id, endKey, side);
-        const E = endKey === "start" ? ridge.start : ridge.end;
+      const E = endKey === "start" ? ridge.start : ridge.end;
 
-        // Step 2: get seam base for this side
-        const seamPair = bases[endKey];
-        if (!seamPair) {
-          console.warn("No seamPair found", ridge.id, endKey);
-          return;
-        }
+      const seamPair = bases[endKey];
+      if (!seamPair) {
+        console.warn("No seamPair found", ridge.id, endKey);
+        return;
+      }
+
+      const leftBase = pickBaseForSide(ridge, seamPair, "left");
+      const rightBase = pickBaseForSide(ridge, seamPair, "right");
+
+      const cornerData = (["left", "right"] as const).map((side) => {
+        console.log("CORNER TRY", ridge.id, endKey, side);
 
         // seam base point for that side at that ridge end
-        const B = pickBaseForSide(ridge, seamPair, side);
+        const B = side === "left" ? leftBase : rightBase;
         const { corner: C, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
 
         // 🔎 DEBUG LOG
         logCornerDebug(ridge.id, endKey, side, E, B, candidates, C);
 
-        if (!C) return;
+        if (!C) return { side, base: B, corner: null as XZ | null };
         console.log("cornerPick", { endKey, side, B, pickedCorner: C });
 
         const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
@@ -653,7 +691,43 @@ function deriveMultiPlaneRoofGeometries(
           geometries.push(geometry);
           console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
         }
+
+        return { side, base: B, corner: C };
       });
+
+      const leftCorner = cornerData.find((item) => item?.side === "left")?.corner ?? null;
+      const rightCorner = cornerData.find((item) => item?.side === "right")?.corner ?? null;
+
+      const middlePoly = ridgeEndpointCapMiddlePolygon({
+        endpoint: E,
+        leftBase,
+        rightBase,
+        leftCorner,
+        rightCorner,
+      });
+
+      if (!middlePoly || middlePoly.length < 4) return;
+
+      const capPlane = planeFromArchPoints(
+        { x: E.x, z: E.z, y: ridgeTopAbs },
+        { x: leftBase.x, z: leftBase.z, y: eaveTopAbs },
+        { x: rightBase.x, z: rightBase.z, y: eaveTopAbs }
+      );
+      if (!capPlane) return;
+
+      const middleTriangles = triangulateXZ(middlePoly.map(archToWorldXZ));
+      const middleGeometry = buildRoofFaceGeometry({
+        faceId: `cap-middle-${ridge.id}-${endKey}`,
+        polyClosed: middlePoly,
+        triangles: middleTriangles,
+        thickness,
+        heightAtOuter: (x, z) => capPlane.heightAt(x, z),
+      });
+
+      if (middleGeometry) {
+        geometries.push(middleGeometry);
+        console.log("CAP MIDDLE GEOMETRY ADDED", `cap-middle-${ridge.id}-${endKey}`);
+      }
     });
   }
 

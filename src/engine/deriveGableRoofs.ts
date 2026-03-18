@@ -680,16 +680,31 @@ function deriveMultiPlaneRoofGeometries(
           const adjacentPoly = adjacentFace ? resolveFaceRegionPoly(adjacentFace) : null;
 
           const basePoint = pickBaseForSide(ridge, seamPair, side);
-          const B = snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
-          const { corner: rawCorner, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          const sharedBoundary = adjacentPoly
+            ? findSharedCornerBoundaryFromAdjacentPatch(adjacentPoly, fp, basePoint)
+            : null;
+
+          const B = sharedBoundary?.base ?? snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
+          const fallbackCorner = sharedBoundary ? null : pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          const rawCorner = sharedBoundary?.corner ?? fallbackCorner?.corner ?? null;
+          const candidates = sharedBoundary
+            ? [sharedBoundary.base, sharedBoundary.corner]
+            : fallbackCorner?.candidates ?? [];
 
           // 🔎 DEBUG LOG
           logCornerDebug(ridge.id, endKey, side, E, B, candidates, rawCorner);
 
           if (!rawCorner) return;
 
-          const C = snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
-          console.log("cornerPick", { endKey, side, B, pickedCorner: C, adjacentFaceId: adjacentFace?.id });
+          const C = sharedBoundary?.corner ?? snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
+          console.log("cornerPick", {
+            endKey,
+            side,
+            B,
+            pickedCorner: C,
+            adjacentFaceId: adjacentFace?.id,
+            reusedAdjacentBoundary: Boolean(sharedBoundary),
+          });
 
           const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
           console.log("Corner area", endKey, side, area);
@@ -765,6 +780,67 @@ function deriveMultiPlaneRoofGeometries(
   }
 
   return geometries;
+}
+
+
+function pointLiesOnSegment(point: XZ, start: XZ, end: XZ, eps = 1e-6): boolean {
+  const segment = { x: end.x - start.x, z: end.z - start.z };
+  const toPoint = { x: point.x - start.x, z: point.z - start.z };
+  const cross = segment.x * toPoint.z - segment.z * toPoint.x;
+  if (Math.abs(cross) > eps) return false;
+
+  const dot = toPoint.x * segment.x + toPoint.z * segment.z;
+  if (dot < -eps) return false;
+
+  const lenSq = segment.x * segment.x + segment.z * segment.z;
+  if (dot > lenSq + eps) return false;
+
+  return true;
+}
+
+function segmentLiesOnFootprintBoundary(
+  start: XZ,
+  end: XZ,
+  fpClosed: XZ[],
+  eps = 1e-6
+): boolean {
+  const fp = ensureClosed(fpClosed);
+
+  for (let i = 0; i < fp.length - 1; i++) {
+    const boundaryStart = fp[i];
+    const boundaryEnd = fp[i + 1];
+
+    if (
+      pointLiesOnSegment(start, boundaryStart, boundaryEnd, eps) &&
+      pointLiesOnSegment(end, boundaryStart, boundaryEnd, eps)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function findSharedCornerBoundaryFromAdjacentPatch(
+  adjacentPolyClosed: XZ[],
+  fpClosed: XZ[],
+  basePoint: XZ,
+  eps = 1e-6
+): { base: XZ; corner: XZ } | null {
+  const adjacentPoly = ensureClosed(adjacentPolyClosed);
+
+  for (let i = 0; i < adjacentPoly.length - 1; i++) {
+    const start = adjacentPoly[i];
+    const end = adjacentPoly[i + 1];
+
+    if (!pointLiesOnSegment(basePoint, start, end, eps)) continue;
+    if (!segmentLiesOnFootprintBoundary(start, end, fpClosed, eps)) continue;
+
+    if (sameXZ(start, basePoint, eps)) return { base: start, corner: end };
+    if (sameXZ(end, basePoint, eps)) return { base: end, corner: start };
+  }
+
+  return null;
 }
 
 function clamp01(t: number) {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { DerivedWallSegment } from '../deriveWalls';
+import { getWallVisibleBaseY } from '../deriveWalls';
 import { archToWorldVec3 } from '../spaceMapping';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
 
@@ -21,6 +22,7 @@ export function buildWallPieceGeometry(
   const nx = -tz * wall.outwardSign;
   const nz = tx * wall.outwardSign;
   const halfT = wall.thickness / 2;
+  const wallBaseY = getWallVisibleBaseY(wall);
 
   // Build the wall piece from two explicit surfaces instead of a box corner layout.
   const front = [
@@ -43,7 +45,7 @@ export function buildWallPieceGeometry(
 
   corners.forEach(([u, v, n], i) => {
     const archX = wall.start.x + tx * u + nx * n;
-    const archY = wall.start.y + v;
+    const archY = wallBaseY + v;
     const archZ = wall.start.z + tz * u + nz * n;
     const world = archToWorldVec3(archX, archY, archZ);
     positions[i * 3 + 0] = world.x;
@@ -64,8 +66,8 @@ export function buildWallPieceGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-  const wallStartWorld = archToWorldVec3(wall.start.x, wall.start.y, wall.start.z);
-  const wallEndWorld = archToWorldVec3(wall.end.x, wall.start.y, wall.end.z);
+  const wallStartWorld = archToWorldVec3(wall.start.x, wallBaseY, wall.start.z);
+  const wallEndWorld = archToWorldVec3(wall.end.x, wallBaseY, wall.end.z);
   const worldDx = wallEndWorld.x - wallStartWorld.x;
   const worldDz = wallEndWorld.z - wallStartWorld.z;
   const worldLength = Math.hypot(worldDx, worldDz);

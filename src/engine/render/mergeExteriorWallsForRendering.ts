@@ -1,4 +1,5 @@
 import type { DerivedWallSegment } from '../deriveWalls';
+import { getWallVisibleBaseY, getWallVisibleTopY } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 
 const EPSILON = 1e-6;
@@ -45,7 +46,8 @@ function groupWallsByPlanEdge(walls: DerivedWallSegment[]): WallMergeGroup[] {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, groupedWalls]) => ({
       walls: groupedWalls.sort((a, b) => {
-        if (!approxEqual(a.start.y, b.start.y)) return a.start.y - b.start.y;
+        const baseDiff = getWallVisibleBaseY(a) - getWallVisibleBaseY(b);
+        if (!approxEqual(baseDiff, 0)) return baseDiff;
         return a.id.localeCompare(b.id);
       }),
     }));
@@ -56,12 +58,12 @@ function mergeVerticalRuns(walls: DerivedWallSegment[]): DerivedWallSegment[][] 
 
   const runs: DerivedWallSegment[][] = [];
   let currentRun: DerivedWallSegment[] = [walls[0]];
-  let currentTop = walls[0].start.y + walls[0].height;
+  let currentTop = getWallVisibleTopY(walls[0]);
 
   for (let i = 1; i < walls.length; i += 1) {
     const wall = walls[i];
-    const base = wall.start.y;
-    const top = base + wall.height;
+    const base = getWallVisibleBaseY(wall);
+    const top = getWallVisibleTopY(wall);
 
     if (base <= currentTop + EPSILON) {
       currentRun.push(wall);
@@ -88,15 +90,15 @@ export function mergeExteriorWallsForRendering(
   openings: DerivedOpening[]
 ): MergeResult {
   const mergedWalls: DerivedWallSegment[] = [];
-  const openingWallIdMap = new Map<string, { mergedWallId: string; baseY: number }>();
+  const openingWallIdMap = new Map<string, { mergedWallId: string; renderedBaseY: number }>();
 
   for (const group of groupWallsByPlanEdge(walls)) {
     const runs = mergeVerticalRuns(group.walls);
 
     for (const run of runs) {
       const first = run[0];
-      const baseY = run[0].start.y;
-      const topY = Math.max(...run.map((wall) => wall.start.y + wall.height));
+      const renderedBaseY = Math.min(...run.map((wall) => getWallVisibleBaseY(wall)));
+      const renderedTopY = Math.max(...run.map((wall) => getWallVisibleTopY(wall)));
       const mergedWallId = run.length === 1 ? first.id : createMergedWallId(run);
       const sortedLevelIds = [...new Set(run.map((wall) => wall.levelId))].sort();
 
@@ -104,10 +106,10 @@ export function mergeExteriorWallsForRendering(
         ...first,
         id: mergedWallId,
         levelId: sortedLevelIds.join('__'),
-        start: { ...first.start, y: baseY },
-        end: { ...first.end, y: baseY },
-        height: topY - baseY,
+        height: first.height,
         uOffset: 0,
+        visibleBaseY: renderedBaseY,
+        visibleHeight: renderedTopY - renderedBaseY,
       };
 
       mergedWalls.push(mergedWall);
@@ -115,7 +117,7 @@ export function mergeExteriorWallsForRendering(
       for (const sourceWall of run) {
         openingWallIdMap.set(sourceWall.id, {
           mergedWallId,
-          baseY,
+          renderedBaseY,
         });
       }
     }
@@ -125,13 +127,9 @@ export function mergeExteriorWallsForRendering(
     const mapping = openingWallIdMap.get(opening.wallId);
     if (!mapping) return [];
 
-    if (mapping.mergedWallId === opening.wallId) {
-      return [opening];
-    }
-
     const openingLocalCenterY = (opening.vMin + opening.vMax) / 2;
     const sourceWallBaseY = opening.centerArch.y - openingLocalCenterY;
-    const baseShift = sourceWallBaseY - mapping.baseY;
+    const baseShift = sourceWallBaseY - mapping.renderedBaseY;
     return [
       {
         ...opening,

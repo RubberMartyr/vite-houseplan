@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { DerivedWallSegment } from "./deriveWalls";
+import { getWallVisibleBaseY, getWallVisibleTopY } from "./deriveWalls";
 import { archToWorldXZ } from "./spaceMapping";
 
 export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): THREE.BufferGeometry {
@@ -14,8 +15,8 @@ export function extrudeWallSegment(seg: DerivedWallSegment, brickScale = 0.6): T
     return new THREE.BufferGeometry();
   }
 
-  const yBottom = seg.start.y;
-  const yTop = seg.start.y + seg.height;
+  const yBottom = getWallVisibleBaseY(seg);
+  const yTop = getWallVisibleTopY(seg);
 
   // ---- vertices (single wall surface) ----
 

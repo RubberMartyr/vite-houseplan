@@ -21,22 +21,23 @@ export function buildWallPieceGeometry(
   const tz = wallDz / length;
   const nx = -tz * wall.outwardSign;
   const nz = tx * wall.outwardSign;
-  const halfT = wall.thickness / 2;
+  const exteriorOffset = 0;
+  const interiorOffset = -wall.thickness;
   const wallBaseY = getWallVisibleBaseY(wall);
 
-  // Build the wall piece from two explicit surfaces instead of a box corner layout.
+  // Keep the exterior face on the facade segment and offset the interior face inward only.
   const front = [
-    [piece.uMin, piece.vMin, +halfT],
-    [piece.uMax, piece.vMin, +halfT],
-    [piece.uMin, piece.vMax, +halfT],
-    [piece.uMax, piece.vMax, +halfT],
+    [piece.uMin, piece.vMin, exteriorOffset],
+    [piece.uMax, piece.vMin, exteriorOffset],
+    [piece.uMin, piece.vMax, exteriorOffset],
+    [piece.uMax, piece.vMax, exteriorOffset],
   ];
 
   const back = [
-    [piece.uMin, piece.vMin, -halfT],
-    [piece.uMax, piece.vMin, -halfT],
-    [piece.uMin, piece.vMax, -halfT],
-    [piece.uMax, piece.vMax, -halfT],
+    [piece.uMin, piece.vMin, interiorOffset],
+    [piece.uMax, piece.vMin, interiorOffset],
+    [piece.uMin, piece.vMax, interiorOffset],
+    [piece.uMax, piece.vMax, interiorOffset],
   ];
 
   const corners = [...front, ...back];

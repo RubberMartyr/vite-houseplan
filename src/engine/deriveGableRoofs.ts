@@ -595,10 +595,10 @@ function deriveMultiPlaneRoofGeometries(
 
         // seam base point for that side at that ridge end
         const B = pickBaseForSide(ridge, seamPair, side);
-        const C = pickCornerFromEdgeContainingBase(fp, B);
+        const { corner: C, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
 
         // 🔎 DEBUG LOG
-        logCornerDebug(ridge.id, endKey, side, E, null, B, C);
+        logCornerDebug(ridge.id, endKey, side, E, B, candidates, C);
 
         if (!C) return;
         console.log("cornerPick", { endKey, side, B, pickedCorner: C });
@@ -691,26 +691,83 @@ function logCornerDebug(
   endKey: "start" | "end",
   side: "left" | "right",
   E: XZ,
-  cornerPair: [XZ, XZ] | null,
   B: XZ | null,
+  candidates: XZ[],
   picked: XZ | null
 ) {
   console.group(`CORNER DEBUG → ridge:${ridgeId} end:${endKey} side:${side}`);
+  console.log("ridgeId:", ridgeId);
+  console.log("endKey:", endKey);
+  console.log("side:", side);
   console.log("Ridge endpoint E:", E);
-  console.log("Corner pair:", cornerPair);
   console.log("Seam base B:", B);
+  console.log("Candidate corners:", candidates);
   console.log("Picked corner C:", picked);
   console.groupEnd();
 }
 
-function pickCornerFromEdgeContainingBase(fpClosed: XZ[], B: XZ, eps = 1e-6): XZ | null {
-  const n = fpClosed.length - 1; // closed polygon
+function pickCornerFromEdgeContainingBase(
+  fpClosed: XZ[],
+  B: XZ,
+  ridge: { start: XZ; end: XZ },
+  side: "left" | "right",
+  eps = 1e-6
+): { corner: XZ | null; candidates: XZ[] } {
+  const fp = ensureClosed(fpClosed);
+  const n = fp.length - 1; // closed polygon
+  const desiredSideSign = side === "left" ? 1 : -1;
+
+  const rankCandidate = (candidate: XZ) => {
+    const sideScore = signedSide(candidate, ridge.start, ridge.end);
+    const onRequestedSide = desiredSideSign * sideScore >= -eps;
+    return {
+      candidate,
+      sideScore,
+      onRequestedSide,
+      requestAlignment: desiredSideSign * sideScore,
+      distanceToBaseSq: (candidate.x - B.x) * (candidate.x - B.x) + (candidate.z - B.z) * (candidate.z - B.z),
+    };
+  };
+
+  const chooseCorner = (candidates: XZ[]) => {
+    if (candidates.length === 0) return null;
+
+    const ranked = candidates.map(rankCandidate).sort((a, b) => {
+      if (Number(b.onRequestedSide) !== Number(a.onRequestedSide)) {
+        return Number(b.onRequestedSide) - Number(a.onRequestedSide);
+      }
+
+      if (Math.abs(b.requestAlignment - a.requestAlignment) > eps) {
+        return b.requestAlignment - a.requestAlignment;
+      }
+
+      return a.distanceToBaseSq - b.distanceToBaseSq;
+    });
+
+    return ranked[0]?.candidate ?? null;
+  };
+
+  const dedupeCandidates = (candidates: XZ[]) => {
+    const out: XZ[] = [];
+    for (const candidate of candidates) {
+      if (sameXZ(candidate, B, eps)) continue;
+      if (!out.some((point) => sameXZ(point, candidate, eps))) out.push(candidate);
+    }
+    return out;
+  };
+
+  const vertexIndex = fp.slice(0, -1).findIndex((point) => sameXZ(point, B, eps));
+  if (vertexIndex >= 0) {
+    const prev = fp[(vertexIndex - 1 + n) % n];
+    const next = fp[(vertexIndex + 1) % n];
+    const candidates = dedupeCandidates([prev, next]);
+    return { corner: chooseCorner(candidates), candidates };
+  }
 
   for (let i = 0; i < n; i++) {
-    const A = fpClosed[i];
-    const C = fpClosed[i + 1];
+    const A = fp[i];
+    const C = fp[i + 1];
 
-    // Check if B lies on segment A-C
     const AB = { x: B.x - A.x, z: B.z - A.z };
     const AC = { x: C.x - A.x, z: C.z - A.z };
 
@@ -719,20 +776,13 @@ function pickCornerFromEdgeContainingBase(fpClosed: XZ[], B: XZ, eps = 1e-6): XZ
 
     const dot = AB.x * AC.x + AB.z * AC.z;
     const lenSq = AC.x * AC.x + AC.z * AC.z;
-
     if (dot < -eps || dot > lenSq + eps) continue;
 
-    // B lies on edge A-C
-
-    // Return the endpoint that is NOT equal to B
-    if (Math.abs(B.x - A.x) > eps || Math.abs(B.z - A.z) > eps) {
-      return A;
-    } else {
-      return C;
-    }
+    const candidates = dedupeCandidates([A, C]);
+    return { corner: chooseCorner(candidates), candidates };
   }
 
-  return null;
+  return { corner: null, candidates: [] };
 }
 
 function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {

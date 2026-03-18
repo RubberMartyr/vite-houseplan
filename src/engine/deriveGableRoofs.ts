@@ -652,8 +652,91 @@ function deriveMultiPlaneRoofGeometries(
     processFace(face);
   }
 
-  // Build side planes before corner facets so corner triangles can reuse the
-  // exact roof-face plane of their adjacent ridge-side patch.
+  // PASS 1.5: build 4 corner hip facets (one per ridge end + side)
+  if (verificationMode.disableCornerFacets) {
+    console.warn("[roof] Verification mode skipping PASS 1.5 corner facets");
+  } else {
+    for (const ridge of roof.ridgeSegments) {
+      const bases = hipBases.get(ridge.id);
+      if (!bases?.start || !bases?.end) continue;
+
+      const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
+      const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+
+      (["start", "end"] as const).forEach((endKey) => {
+        (["left", "right"] as const).forEach((side) => {
+          console.log("CORNER TRY", ridge.id, endKey, side);
+          const E = endKey === "start" ? ridge.start : ridge.end;
+
+          // Step 2: get seam base for this side
+          const seamPair = bases[endKey];
+          if (!seamPair) {
+            console.warn("No seamPair found", ridge.id, endKey);
+            return;
+          }
+
+          // seam base point for that side at that ridge end
+          const adjacentFace = findAdjacentCornerFace(roof.faces, ridge.id, endKey, side);
+          const adjacentPoly = adjacentFace ? resolveFaceRegionPoly(adjacentFace) : null;
+
+          const basePoint = pickBaseForSide(ridge, seamPair, side);
+          const sharedBoundary = adjacentPoly
+            ? findSharedCornerBoundaryFromAdjacentPatch(adjacentPoly, fp, basePoint)
+            : null;
+
+          const B = sharedBoundary?.base ?? snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
+          const fallbackCorner = sharedBoundary ? null : pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          const rawCorner = sharedBoundary?.corner ?? fallbackCorner?.corner ?? null;
+          const candidates = sharedBoundary
+            ? [sharedBoundary.base, sharedBoundary.corner]
+            : fallbackCorner?.candidates ?? [];
+
+          // 🔎 DEBUG LOG
+          logCornerDebug(ridge.id, endKey, side, E, B, candidates, rawCorner);
+
+          if (!rawCorner) return;
+
+          const C = sharedBoundary?.corner ?? snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
+          console.log("cornerPick", {
+            endKey,
+            side,
+            B,
+            pickedCorner: C,
+            adjacentFaceId: adjacentFace?.id,
+            reusedAdjacentBoundary: Boolean(sharedBoundary),
+          });
+
+          const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
+          console.log("Corner area", endKey, side, area);
+
+          // Build an explicit triangle poly in arch space (closed)
+          const triPoly: XZ[] = orientRoofFacePolygon([E, C, B]);
+
+          const plane = planeFromArchPoints(
+            { x: E.x, z: E.z, y: ridgeTopAbs },
+            { x: C.x, z: C.z, y: eaveTopAbs },
+            { x: B.x, z: B.z, y: eaveTopAbs }
+          );
+          if (!plane) return;
+
+          const triangles = triangulateXZ(triPoly.map(archToWorldXZ));
+          const geometry = buildRoofFaceGeometry({
+            faceId: `corner-${ridge.id}-${endKey}-${side}`,
+            polyClosed: triPoly,
+            triangles,
+            thickness,
+            heightAtOuter: (x, z) => plane.heightAt(x, z),
+          });
+
+          if (geometry) {
+            geometries.push(geometry);
+            console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
+          }
+        });
+      });
+    }
+  }
+
   for (const ridge of roof.ridgeSegments) {
     const bases = hipBases.get(ridge.id);
     if (!bases?.start || !bases?.end) continue;
@@ -689,95 +772,6 @@ function deriveMultiPlaneRoofGeometries(
     if (!planeLeft && !planeRight) continue;
 
     sidePlanes.set(ridge.id, { left: planeLeft ?? undefined, right: planeRight ?? undefined });
-  }
-
-  // PASS 1.5: build 4 corner hip facets (one per ridge end + side)
-  if (verificationMode.disableCornerFacets) {
-    console.warn("[roof] Verification mode skipping PASS 1.5 corner facets");
-  } else {
-    for (const ridge of roof.ridgeSegments) {
-      const bases = hipBases.get(ridge.id);
-      if (!bases?.start || !bases?.end) continue;
-
-      (["start", "end"] as const).forEach((endKey) => {
-        (["left", "right"] as const).forEach((side) => {
-          console.log("CORNER TRY", ridge.id, endKey, side);
-          const E = endKey === "start" ? ridge.start : ridge.end;
-          const cornerPlane = sidePlanes.get(ridge.id)?.[side] ?? null;
-
-          if (!cornerPlane) {
-            console.warn("[roof] Missing adjacent side plane for corner facet", {
-              ridgeId: ridge.id,
-              endKey,
-              side,
-            });
-            return;
-          }
-
-          // Step 2: get seam base for this side
-          const seamPair = bases[endKey];
-          if (!seamPair) {
-            console.warn("No seamPair found", ridge.id, endKey);
-            return;
-          }
-
-          // seam base point for that side at that ridge end
-          const adjacentFace = findAdjacentCornerFace(roof.faces, ridge.id, endKey, side);
-          const adjacentPoly = adjacentFace ? resolveFaceRegionPoly(adjacentFace) : null;
-
-          const basePoint = pickBaseForSide(ridge, seamPair, side);
-          const sharedBoundary = adjacentPoly
-            ? findSharedCornerBoundaryFromAdjacentPatch(adjacentPoly, fp, basePoint)
-            : null;
-
-          const BPrime = sharedBoundary?.base
-            ?? snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
-          const fallbackCorner = sharedBoundary ? null : pickCornerFromEdgeContainingBase(fp, BPrime, ridge, side);
-          const rawCorner = sharedBoundary?.corner ?? fallbackCorner?.corner ?? null;
-          const candidates = sharedBoundary
-            ? [sharedBoundary.base, sharedBoundary.corner]
-            : fallbackCorner?.candidates ?? [];
-
-          // 🔎 DEBUG LOG
-          logCornerDebug(ridge.id, endKey, side, E, BPrime, candidates, rawCorner);
-
-          if (!rawCorner) return;
-
-          const CPrime = sharedBoundary?.corner
-            ?? snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
-          console.log("cornerPick", {
-            endKey,
-            side,
-            BPrime,
-            pickedCorner: CPrime,
-            adjacentFaceId: adjacentFace?.id,
-            reusedAdjacentBoundary: Boolean(sharedBoundary),
-            cornerPlaneNormal: cornerPlane.normal,
-          });
-
-          const area = (CPrime.x - BPrime.x) * (E.z - BPrime.z) - (CPrime.z - BPrime.z) * (E.x - BPrime.x);
-          console.log("Corner area", endKey, side, area);
-
-          // Reuse the adjacent side plane directly so the corner triangle stays
-          // coplanar with the rectangular roof patch it meets.
-          const triPoly: XZ[] = orientRoofFacePolygon([E, BPrime, CPrime]);
-
-          const triangles = triangulateXZ(triPoly.map(archToWorldXZ));
-          const geometry = buildRoofFaceGeometry({
-            faceId: `corner-${ridge.id}-${endKey}-${side}`,
-            polyClosed: triPoly,
-            triangles,
-            thickness,
-            heightAtOuter: (x, z) => cornerPlane.heightAt(x, z),
-          });
-
-          if (geometry) {
-            geometries.push(geometry);
-            console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
-          }
-        });
-      });
-    }
   }
 
   // PASS 2: build ridge-side segments afterwards

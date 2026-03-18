@@ -1,3 +1,4 @@
+import { getEnvelopeFirstOuterPolygon, getEnvelopeOuterPolygon } from "../model/envelope";
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 
@@ -76,17 +77,7 @@ const levels: ArchitecturalHouse['levels'] = [
       inset: 0,
     },
     footprint: {
-      outer: [
-        { x: 4.1, z: 15 },
-        { x: -3.5, z: 15 },
-        { x: -3.5, z: 12 },
-        { x: -3.5, z: 8.45 },
-        { x: -4.1, z: 8.45 },
-        { x: -4.1, z: 4 },
-        { x: -4.8, z: 4 },
-        { x: -4.8, z: 0 },
-        { x: 4.8, z: 0 },
-      ],
+      outer: openRing(getEnvelopeOuterPolygon()),
     },
   },
   {
@@ -98,20 +89,7 @@ const levels: ArchitecturalHouse['levels'] = [
       inset: 0,
     },
     footprint: {
-      outer: [
-        { x: -3.5, z: 12 },
-        { x: -3.5, z: 8.45 },
-        { x: -4.1, z: 8.45 },
-        { x: -4.1, z: 4 },
-        { x: -4.8, z: 4 },
-        { x: -4.8, z: 0 },
-        { x: 4.8, z: 0 },
-        { x: 4.8, z: 4 },
-        { x: 4.1, z: 4 },
-        { x: 4.1, z: 8.45 },
-        { x: 3.5, z: 8.45 },
-        { x: 3.5, z: 12 },
-      ],
+      outer: openRing(getEnvelopeFirstOuterPolygon()),
     },
   },
 ];

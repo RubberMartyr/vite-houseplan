@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { DerivedWallSegment } from '../deriveWalls';
+import { getWallVisibleHeight, type DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { BuiltWall } from '../buildWallsFromDerivedSegments';
 import { extrudeWallSegment } from '../extrudeWallSegment';
@@ -66,7 +66,7 @@ export function EngineWalls({
         }
 
         const wallLength = Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z);
-        const pieces = splitWallByOpenings(wallLength, wall.height, openingsOnWall);
+        const pieces = splitWallByOpenings(wallLength, getWallVisibleHeight(wall), openingsOnWall);
 
         return pieces.map((piece, pieceIndex) => ({
           id: `${wall.id}-piece-${pieceIndex}`,

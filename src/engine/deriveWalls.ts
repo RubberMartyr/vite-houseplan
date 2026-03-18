@@ -22,7 +22,21 @@ export type DerivedWallSegment = {
   thickness: number;
   outwardSign: 1 | -1;
   uOffset: number;
+  visibleBaseY?: number;
+  visibleHeight?: number;
 };
+
+export function getWallVisibleBaseY(segment: DerivedWallSegment): number {
+  return segment.visibleBaseY ?? segment.start.y;
+}
+
+export function getWallVisibleHeight(segment: DerivedWallSegment): number {
+  return segment.visibleHeight ?? segment.height;
+}
+
+export function getWallVisibleTopY(segment: DerivedWallSegment): number {
+  return getWallVisibleBaseY(segment) + getWallVisibleHeight(segment);
+}
 
 export function deriveWallSegmentsFromLevels(
   arch: ArchitecturalHouse
@@ -34,6 +48,8 @@ export function deriveWallSegmentsFromLevels(
     const area = signedAreaXZ(outer);
     const isCCW = area > 0;
     const outwardSign: 1 | -1 = isCCW ? -1 : 1;
+    const visibleBaseY = level.elevation - level.slab.thickness;
+    const visibleHeight = level.height + level.slab.thickness;
     let uOffset = 0;
 
     for (let i = 0; i < outer.length; i++) {
@@ -58,6 +74,8 @@ export function deriveWallSegmentsFromLevels(
         thickness: arch.wallThickness,
         outwardSign,
         uOffset,
+        visibleBaseY,
+        visibleHeight,
       });
 
       uOffset += segmentLength;

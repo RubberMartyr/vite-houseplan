@@ -25,10 +25,15 @@ export const leftFacadeProfileCm: EnvelopePoint[] = [
   { z: depthCm, x: -350 },
 ];
 
-export const rightFacadeProfileCm: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
-  z: point.z,
-  x: Math.abs(point.x),
-}));
+// Do not mirror the left facade here. The corrected architectural footprint
+// keeps the right facade flat at x = 4.8 until z = 8.45, with a single inset
+// to x = 4.1 for the rear extension.
+export const rightFacadeProfileCm: EnvelopePoint[] = [
+  { z: 0, x: 480 },
+  { z: 845, x: 480 },
+  { z: 845, x: 410 },
+  { z: depthCm, x: 410 },
+];
 
 export const leftFacadeProfile: EnvelopePoint[] = leftFacadeProfileCm.map((point) => ({
   x: cmToMeters(point.x),

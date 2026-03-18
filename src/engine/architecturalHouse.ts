@@ -77,6 +77,7 @@ const levels: ArchitecturalHouse['levels'] = [
     },
     footprint: {
       outer: [
+        { x: 4.8, z: 15 },
         { x: 4.1, z: 15 },
         { x: -3.5, z: 15 },
         { x: -3.5, z: 12 },

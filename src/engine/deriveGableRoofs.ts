@@ -29,6 +29,33 @@ type RidgeLine = {
   hipEnd?: boolean;
 };
 
+type RoofOverlapVerificationMode = {
+  disableCornerFacets: boolean;
+  disableHipCapAt?: { ridgeId: string; end: "start" | "end" };
+};
+
+function getRoofOverlapVerificationMode(): RoofOverlapVerificationMode {
+  if (typeof window === "undefined") {
+    return { disableCornerFacets: false };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const hipCapTarget = params.get("disableHipCapAt");
+
+  let disableHipCapAt: RoofOverlapVerificationMode["disableHipCapAt"];
+  if (hipCapTarget) {
+    const [ridgeId, end] = hipCapTarget.split(":");
+    if (ridgeId && (end === "start" || end === "end")) {
+      disableHipCapAt = { ridgeId, end };
+    }
+  }
+
+  return {
+    disableCornerFacets: params.get("disableCornerFacets") === "1",
+    disableHipCapAt,
+  };
+}
+
 // Helper: convert Vec2[] -> arrays for triangulation
 function toTHREEVec2(points: XZ[]) {
   return points.map((p) => new THREE.Vector2(p.x, p.z));
@@ -480,6 +507,7 @@ function deriveMultiPlaneRoofGeometries(
   derivedRoof: DerivedRoof,
   roof: MultiPlaneRoofSpec
 ): THREE.BufferGeometry[] {
+  const verificationMode = getRoofOverlapVerificationMode();
   const thickness = roof.thickness ?? 0.2;
 
   const fp: XZ[] = ensureClosed(derivedRoof.roofPolygonOuter);
@@ -499,6 +527,18 @@ function deriveMultiPlaneRoofGeometries(
     let regionPoly: XZ[] | null = null;
 
     if (region.type === "ridgeCapTriangle") {
+      if (
+        verificationMode.disableHipCapAt?.ridgeId === region.ridgeId &&
+        verificationMode.disableHipCapAt.end === region.end
+      ) {
+        console.warn("[roof] Verification mode skipping hip-cap triangle", {
+          ridgeId: region.ridgeId,
+          end: region.end,
+          faceId: face.id,
+        });
+        return;
+      }
+
       const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
       if (!ridge) return;
 
@@ -598,63 +638,67 @@ function deriveMultiPlaneRoofGeometries(
   }
 
   // PASS 1.5: build 4 corner hip facets (one per ridge end + side)
-  for (const ridge of roof.ridgeSegments) {
-    const bases = hipBases.get(ridge.id);
-    if (!bases?.start || !bases?.end) continue;
+  if (verificationMode.disableCornerFacets) {
+    console.warn("[roof] Verification mode skipping PASS 1.5 corner facets");
+  } else {
+    for (const ridge of roof.ridgeSegments) {
+      const bases = hipBases.get(ridge.id);
+      if (!bases?.start || !bases?.end) continue;
 
-    const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-    const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+      const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
+      const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
 
-    (["start", "end"] as const).forEach((endKey) => {
-      (["left", "right"] as const).forEach((side) => {
-        console.log("CORNER TRY", ridge.id, endKey, side);
-        const E = endKey === "start" ? ridge.start : ridge.end;
+      (["start", "end"] as const).forEach((endKey) => {
+        (["left", "right"] as const).forEach((side) => {
+          console.log("CORNER TRY", ridge.id, endKey, side);
+          const E = endKey === "start" ? ridge.start : ridge.end;
 
-        // Step 2: get seam base for this side
-        const seamPair = bases[endKey];
-        if (!seamPair) {
-          console.warn("No seamPair found", ridge.id, endKey);
-          return;
-        }
+          // Step 2: get seam base for this side
+          const seamPair = bases[endKey];
+          if (!seamPair) {
+            console.warn("No seamPair found", ridge.id, endKey);
+            return;
+          }
 
-        // seam base point for that side at that ridge end
-        const B = pickBaseForSide(ridge, seamPair, side);
-        const { corner: C, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          // seam base point for that side at that ridge end
+          const B = pickBaseForSide(ridge, seamPair, side);
+          const { corner: C, candidates } = pickCornerFromEdgeContainingBase(fp, B, ridge, side);
 
-        // 🔎 DEBUG LOG
-        logCornerDebug(ridge.id, endKey, side, E, B, candidates, C);
+          // 🔎 DEBUG LOG
+          logCornerDebug(ridge.id, endKey, side, E, B, candidates, C);
 
-        if (!C) return;
-        console.log("cornerPick", { endKey, side, B, pickedCorner: C });
+          if (!C) return;
+          console.log("cornerPick", { endKey, side, B, pickedCorner: C });
 
-        const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
-        console.log("Corner area", endKey, side, area);
+          const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
+          console.log("Corner area", endKey, side, area);
 
-        // Build an explicit triangle poly in arch space (closed)
-        const triPoly: XZ[] = orientRoofFacePolygon([E, C, B]);
+          // Build an explicit triangle poly in arch space (closed)
+          const triPoly: XZ[] = orientRoofFacePolygon([E, C, B]);
 
-        const plane = planeFromArchPoints(
-          { x: E.x, z: E.z, y: ridgeTopAbs },
-          { x: C.x, z: C.z, y: eaveTopAbs },
-          { x: B.x, z: B.z, y: eaveTopAbs }
-        );
-        if (!plane) return;
+          const plane = planeFromArchPoints(
+            { x: E.x, z: E.z, y: ridgeTopAbs },
+            { x: C.x, z: C.z, y: eaveTopAbs },
+            { x: B.x, z: B.z, y: eaveTopAbs }
+          );
+          if (!plane) return;
 
-        const triangles = triangulateXZ(triPoly.map(archToWorldXZ));
-        const geometry = buildRoofFaceGeometry({
-          faceId: `corner-${ridge.id}-${endKey}-${side}`,
-          polyClosed: triPoly,
-          triangles,
-          thickness,
-          heightAtOuter: (x, z) => plane.heightAt(x, z),
+          const triangles = triangulateXZ(triPoly.map(archToWorldXZ));
+          const geometry = buildRoofFaceGeometry({
+            faceId: `corner-${ridge.id}-${endKey}-${side}`,
+            polyClosed: triPoly,
+            triangles,
+            thickness,
+            heightAtOuter: (x, z) => plane.heightAt(x, z),
+          });
+
+          if (geometry) {
+            geometries.push(geometry);
+            console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
+          }
         });
-
-        if (geometry) {
-          geometries.push(geometry);
-          console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
-        }
       });
-    });
+    }
   }
 
   for (const ridge of roof.ridgeSegments) {

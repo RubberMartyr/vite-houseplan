@@ -121,12 +121,29 @@ const levels: ArchitecturalHouse['levels'] = [
 const FRONT_FACADE: "minZ" | "maxZ" = "minZ";
 const groundFrontEdgeIndex = findFacadeEdgeIndex(levels[0].footprint.outer, FRONT_FACADE);
 const firstFrontEdgeIndex = findFacadeEdgeIndex(levels[1].footprint.outer, FRONT_FACADE);
+const GROUND_REAR_MAIN_EDGE = 1;
+const FIRST_REAR_EDGE = 9;
 
 const groundChain = [1.15, 1.1, 0.7, 1.1, 0.95, 1.0, 1.15, 0.7, 1.75];
 const [W1, W2, DOOR, W3] = computeOpeningOffsetsFromChain(groundChain);
 
 const firstChain = [1.25, 0.9, 0.9, 0.9, 1.1, 0.9, 1.2, 0.7, 1.75];
 const [FW1, FW2, FW3, FW4] = computeOpeningOffsetsFromChain(firstChain);
+
+// Rear elevations are authored against explicit edge indices because the current
+// rear facades are split and a generic "maxZ edge" helper can pick the short stub.
+const GROUND_REAR_OPENING_OFFSET = 1.0;
+const GROUND_REAR_OPENING_WIDTH = 5.6;
+
+// The first-floor rear wall is 8.3m wide, while the elevation drawing is a 7.6m
+// composition centered within it, so keep 0.35m of padding on both sides.
+const FIRST_REAR_COMPOSITION_PADDING = 0.35;
+const FIRST_REAR_WINDOW_WIDTH = 1.1;
+const FIRST_REAR_WINDOW_SILL_HEIGHT = 0.35;
+const FIRST_REAR_WINDOW_HEIGHT = 1.6;
+const FIRST_REAR_LEFT_WINDOW_OFFSET = FIRST_REAR_COMPOSITION_PADDING + 1.7;
+const FIRST_REAR_RIGHT_WINDOW_OFFSET =
+  FIRST_REAR_COMPOSITION_PADDING + 1.7 + FIRST_REAR_WINDOW_WIDTH + 2.0;
 
 console.log("FRONT EDGE CHECK", {
   frontFacade: FRONT_FACADE,
@@ -361,6 +378,39 @@ export const architecturalHouse: ArchitecturalHouse = {
       sillHeight: 1.05,
       height: 0.9,
       style: { variant: 'plain', grid: { cols: 2, rows: 2 }, hasSill: true, hasLintel: true },
+    },
+    {
+      id: 'REAR_G_GLAZED',
+      kind: 'window',
+      levelId: 'ground',
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: GROUND_REAR_MAIN_EDGE },
+      offset: GROUND_REAR_OPENING_OFFSET,
+      width: GROUND_REAR_OPENING_WIDTH,
+      sillHeight: 0,
+      height: 2.45,
+      style: { variant: 'plain', grid: { cols: 3, rows: 1 }, hasSill: false, hasLintel: true },
+    },
+    {
+      id: 'REAR_F_W_LEFT',
+      kind: 'window',
+      levelId: 'first',
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: FIRST_REAR_EDGE, fromEnd: true },
+      offset: FIRST_REAR_LEFT_WINDOW_OFFSET,
+      width: FIRST_REAR_WINDOW_WIDTH,
+      sillHeight: FIRST_REAR_WINDOW_SILL_HEIGHT,
+      height: FIRST_REAR_WINDOW_HEIGHT,
+      style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 1 }, hasSill: true, hasLintel: true },
+    },
+    {
+      id: 'REAR_F_W_RIGHT',
+      kind: 'window',
+      levelId: 'first',
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: FIRST_REAR_EDGE, fromEnd: true },
+      offset: FIRST_REAR_RIGHT_WINDOW_OFFSET,
+      width: FIRST_REAR_WINDOW_WIDTH,
+      sillHeight: FIRST_REAR_WINDOW_SILL_HEIGHT,
+      height: FIRST_REAR_WINDOW_HEIGHT,
+      style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 1 }, hasSill: true, hasLintel: true },
     },
   ],
 };

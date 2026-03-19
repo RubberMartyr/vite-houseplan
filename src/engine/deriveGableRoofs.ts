@@ -503,6 +503,10 @@ export function deriveGableRoofGeometries(
   return geometries;
 }
 
+function getRoofEaveTopAbs(derivedRoof: DerivedRoof): number {
+  return derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height;
+}
+
 function deriveMultiPlaneRoofGeometries(
   derivedRoof: DerivedRoof,
   roof: MultiPlaneRoofSpec
@@ -590,7 +594,7 @@ function deriveMultiPlaneRoofGeometries(
 
         const E = region.end === "start" ? ridge.start : ridge.end;
         const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-        const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+        const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
 
         const base1 = regionPoly[1];
         const base2 = regionPoly[2];
@@ -661,7 +665,7 @@ function deriveMultiPlaneRoofGeometries(
       if (!bases?.start || !bases?.end) continue;
 
       const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-      const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+      const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
 
       (["start", "end"] as const).forEach((endKey) => {
         (["left", "right"] as const).forEach((side) => {
@@ -752,7 +756,7 @@ function deriveMultiPlaneRoofGeometries(
     if (!bases?.start || !bases?.end) continue;
 
     const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-    const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+    const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
 
     const leftStart = pickBaseForSide(ridge, bases.start, "left");
     const leftEnd = pickBaseForSide(ridge, bases.end, "left");
@@ -1251,7 +1255,7 @@ function buildMultiRidgeRoof(
   const thickness = roof.thickness ?? 0.2;
 
   const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-  const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+  const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
 
   const fp = ensureClosed(derivedRoof.roofPolygonOuter);
 
@@ -1299,7 +1303,7 @@ export function buildStructuralGableGeometry(
   roof: StructuralRoofSpec
 ): THREE.BufferGeometry {
   const thickness = roof.thickness ?? 0.2;
-  const eaveTopAbs = derivedRoof.baseLevel.elevation + roof.eaveHeight;
+  const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
 
   const ridge: RidgeLine =
     roof.type === "multi-ridge"

@@ -3,6 +3,8 @@ import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 
 type XZ = { x: number; z: number };
 const EPS = 1e-6;
+const WALL_THICKNESS = 0.3;
+const MAIN_ROOF_OVERHANG = WALL_THICKNESS / 2;
 
 /**
  * Removes duplicated closing vertex if present.
@@ -150,7 +152,7 @@ console.log("FRONT EDGE DIRECTION", {
 });
 
 export const architecturalHouse: ArchitecturalHouse = {
-  wallThickness: 0.3, // match current
+  wallThickness: WALL_THICKNESS, // match current
 
   levels,
 
@@ -183,7 +185,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       baseLevelId: "first",
       eaveHeight: 2.8,
       thickness: 0.2,
-      overhang: 0,
+      overhang: MAIN_ROOF_OVERHANG,
       ridgeSegments: [
         {
           id: "main",

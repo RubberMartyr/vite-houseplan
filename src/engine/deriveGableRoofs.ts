@@ -222,6 +222,17 @@ function resolveFaceRegionToHalfPlanes(
   return halfPlanes;
 }
 
+function shouldSkipBoundaryRidgePerpCut(
+  face: MultiPlaneRoofSpec["faces"][number],
+  cut: RidgePerpCut
+): boolean {
+  if (face.kind !== "ridgeSideSegment" || face.capEnd !== "end" || !face.ridgeId) {
+    return false;
+  }
+
+  return cut.ridgeId === face.ridgeId && Math.abs(cut.t - 1) < 1e-9;
+}
+
 function intersectSegmentWithInfiniteLine(p: XZ, q: XZ, a: XZ, b: XZ): XZ | null {
   const r = { x: q.x - p.x, z: q.z - p.z };
   const s = { x: b.x - a.x, z: b.z - a.z };
@@ -559,13 +570,35 @@ function deriveMultiPlaneRoofGeometries(
 
       regionPoly = capTriangleFromRidgeEndpoint(roofBoundaryOuter, ridge, region.end);
     } else {
-      const halfPlanes = resolveFaceRegionToHalfPlanes(region, roof);
+      let effectiveRegion = region;
+      if (face.kind === "ridgeSideSegment" && region.type === "compound") {
+        const filteredItems = region.items.filter((item) => {
+          if (!("type" in item) || item.type !== "ridgePerpCut") return true;
+          return !shouldSkipBoundaryRidgePerpCut(face, item);
+        });
+
+        if (filteredItems.length !== region.items.length) {
+          effectiveRegion = {
+            ...region,
+            items: filteredItems,
+          };
+        }
+      }
+
+      const halfPlanes = resolveFaceRegionToHalfPlanes(effectiveRegion, roof);
       if (!halfPlanes) return;
       regionPoly = clipPolyByRegion(roofBoundaryOuter, halfPlanes);
     }
 
     if (regionPoly) {
       faceRegionPolys.set(face.id, regionPoly);
+
+      if (face.id === "left-end" || face.id === "right-end") {
+        console.log("[roof] ridgeSideSegment regionPoly", {
+          faceId: face.id,
+          regionPoly,
+        });
+      }
     }
 
     return regionPoly;

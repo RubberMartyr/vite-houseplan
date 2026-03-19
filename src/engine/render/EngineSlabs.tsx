@@ -47,7 +47,7 @@ export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
   return (
     <>
       {slabMeshes.map((mesh, index) => (
-        <primitive key={`slab-${index}`} object={mesh} userData={{ debugType: 'structure' }}>
+        <primitive key={slabs[index]?.id ?? `slab-${index}`} object={mesh} userData={{ debugType: 'structure' }}>
           <DebugWireframe />
         </primitive>
       ))}

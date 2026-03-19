@@ -7,6 +7,13 @@ export type NormalizedOpeningStyleCore = Required<
   >
 >;
 
+export const DEFAULT_FRAME_EDGES: NonNullable<OpeningStyleSpec['frameEdges']> = {
+  left: true,
+  right: true,
+  top: true,
+  bottom: true,
+};
+
 export const DEFAULT_OPENING_STYLE: NormalizedOpeningStyleCore = {
   frameThickness: 0.05,
   frameDepth: 0.12,

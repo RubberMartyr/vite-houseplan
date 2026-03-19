@@ -1,5 +1,5 @@
 import type { OpeningStyleSpec } from '../../architecturalTypes';
-import { DEFAULT_OPENING_STYLE } from '../../openings/openingDefaults';
+import { DEFAULT_FRAME_EDGES, DEFAULT_OPENING_STYLE } from '../../openings/openingDefaults';
 
 export function normalizeOpeningStyle(style: OpeningStyleSpec | undefined):
   Required<
@@ -12,5 +12,9 @@ export function normalizeOpeningStyle(style: OpeningStyleSpec | undefined):
   return {
     ...DEFAULT_OPENING_STYLE,
     ...(style ?? {}),
+    frameEdges: {
+      ...DEFAULT_FRAME_EDGES,
+      ...(style?.frameEdges ?? {}),
+    },
   };
 }

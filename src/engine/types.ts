@@ -147,6 +147,7 @@ export interface OpeningStyleSpec {
   mullionCount?: number;
   materialKey?: string;
   glassMaterialKey?: string;
+  frameEdges?: Partial<Record<'left' | 'right' | 'top' | 'bottom', boolean>>;
 
   variant?: 'plain' | 'classicTransom' | 'firstFloorTransom' | 'doorDetailed' | 'verticalTransom';
   grid?: { cols: number; rows: number };

@@ -17,7 +17,6 @@ type RoofPlane = {
 import { normalizeMultiPlaneRoof } from "./roof/normalizeMultiPlaneRoof";
 import { buildRoofGeometry } from "./geometry/buildRoofGeometry";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
-import { isDebugEnabled } from "../runtime/debugFlags";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
@@ -400,25 +399,6 @@ function orientRoofFacePolygon(polyClosed: XZ[]): XZ[] {
   return ensureClosed(closed.slice(0, -1).reverse());
 }
 
-function getPolygonWinding(polyClosed: XZ[]): "CW" | "CCW" | "degenerate" {
-  const area = signedArea(ensureClosed(polyClosed));
-
-  if (area > 1e-9) return "CCW";
-  if (area < -1e-9) return "CW";
-  return "degenerate";
-}
-
-function orientRoofFacePolygonForExteriorTop(polyClosed: XZ[]): XZ[] {
-  const closed = ensureClosed(polyClosed);
-  const worldClosed = closed.map(archToWorldXZ);
-
-  if (signedArea(worldClosed) >= 0) {
-    return closed;
-  }
-
-  return ensureClosed(closed.slice(0, -1).reverse());
-}
-
 function planeFromArchPoints(
   p1: { x: number; z: number; y: number },
   p2: { x: number; z: number; y: number },
@@ -550,7 +530,6 @@ function deriveMultiPlaneRoofGeometries(
     string,
     { left?: RoofPlane; right?: RoofPlane }
   >();
-  const debugRoofWinding = isDebugEnabled();
 
   const facesHip = roof.faces.filter((f) => f.kind === "hipCap");
   const facesRidge = roof.faces.filter((f) => f.kind !== "hipCap");
@@ -663,9 +642,7 @@ function deriveMultiPlaneRoofGeometries(
       return;
     }
 
-    const archWindingBefore = getPolygonWinding(regionPoly);
-    const orientedRegionPoly = orientRoofFacePolygonForExteriorTop(regionPoly);
-    const archWindingAfter = getPolygonWinding(orientedRegionPoly);
+    const orientedRegionPoly = orientRoofFacePolygon(regionPoly);
     const triangles = triangulateXZ(orientedRegionPoly.map(archToWorldXZ));
     const geometry = buildRoofFaceGeometry({
         faceId: face.id,
@@ -677,15 +654,6 @@ function deriveMultiPlaneRoofGeometries(
 
     if (geometry) {
       geometries.push(geometry);
-      if (debugRoofWinding) {
-        console.log("[roof][winding]", {
-          faceId: face.id,
-          geometryId: geometry.uuid,
-          archWindingBefore,
-          archWindingAfter,
-          worldWindingAfter: getPolygonWinding(orientedRegionPoly.map(archToWorldXZ)),
-        });
-      }
       console.log("GEOMETRY ADDED:", face.id);
     }
   };
@@ -766,7 +734,7 @@ function deriveMultiPlaneRoofGeometries(
           console.log("Corner area", endKey, side, area);
 
           // Build an explicit triangle poly in arch space (closed)
-          const triPoly: XZ[] = orientRoofFacePolygonForExteriorTop([E, C, B]);
+          const triPoly: XZ[] = orientRoofFacePolygon([E, C, B]);
 
           const plane = planeFromArchPoints(
             { x: E.x, z: E.z, y: ridgeTopAbs },
@@ -786,15 +754,6 @@ function deriveMultiPlaneRoofGeometries(
 
           if (geometry) {
             geometries.push(geometry);
-            if (debugRoofWinding) {
-              console.log("[roof][winding]", {
-                faceId: `corner-${ridge.id}-${endKey}-${side}`,
-                geometryId: geometry.uuid,
-                archWindingBefore: getPolygonWinding([E, C, B]),
-                archWindingAfter: getPolygonWinding(triPoly),
-                worldWindingAfter: getPolygonWinding(triPoly.map(archToWorldXZ)),
-              });
-            }
             console.log("CORNER GEOMETRY ADDED", `corner-${ridge.id}-${endKey}-${side}`);
           }
         });

@@ -684,26 +684,49 @@ function deriveMultiPlaneRoofGeometries(
             ? findSharedCornerBoundaryFromAdjacentPatch(adjacentPoly, fp, basePoint)
             : null;
 
+          const adjacentBoundaryCorner = adjacentPoly
+            ? findCornerBoundaryPointFromAdjacentPatch(adjacentPoly, fp, E)
+            : null;
           const B = sharedBoundary?.base ?? snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
-          const fallbackCorner = sharedBoundary ? null : pickCornerFromEdgeContainingBase(fp, B, ridge, side);
-          const rawCorner = sharedBoundary?.corner ?? fallbackCorner?.corner ?? null;
-          const candidates = sharedBoundary
-            ? [sharedBoundary.base, sharedBoundary.corner]
-            : fallbackCorner?.candidates ?? [];
+          const fallbackCorner =
+            adjacentFace || sharedBoundary ? null : pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          const rawCorner = adjacentFace
+            ? adjacentBoundaryCorner
+            : sharedBoundary?.corner ?? fallbackCorner?.corner ?? null;
+          const candidates = adjacentBoundaryCorner
+            ? [E, adjacentBoundaryCorner]
+            : sharedBoundary
+              ? [sharedBoundary.base, sharedBoundary.corner]
+              : fallbackCorner?.candidates ?? [];
 
           // 🔎 DEBUG LOG
           logCornerDebug(ridge.id, endKey, side, E, B, candidates, rawCorner);
 
+          if (adjacentFace && !adjacentBoundaryCorner) {
+            console.warn("[roof] adjacent patch available but no corner boundary edge found", {
+              ridgeId: ridge.id,
+              endKey,
+              side,
+              faceId: adjacentFace.id,
+              ridgeEndpoint: E,
+              basePoint,
+            });
+            return;
+          }
+
           if (!rawCorner) return;
 
-          const C = sharedBoundary?.corner ?? snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
+          const C =
+            adjacentBoundaryCorner ??
+            sharedBoundary?.corner ??
+            snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
           console.log("cornerPick", {
             endKey,
             side,
             B,
             pickedCorner: C,
             adjacentFaceId: adjacentFace?.id,
-            reusedAdjacentBoundary: Boolean(sharedBoundary),
+            reusedAdjacentBoundary: Boolean(adjacentBoundaryCorner ?? sharedBoundary),
           });
 
           const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
@@ -838,6 +861,28 @@ function findSharedCornerBoundaryFromAdjacentPatch(
 
     if (sameXZ(start, basePoint, eps)) return { base: start, corner: end };
     if (sameXZ(end, basePoint, eps)) return { base: end, corner: start };
+  }
+
+  return null;
+}
+
+function findCornerBoundaryPointFromAdjacentPatch(
+  adjacentPolyClosed: XZ[],
+  fpClosed: XZ[],
+  ridgeEndpoint: XZ,
+  eps = 1e-6
+): XZ | null {
+  const adjacentPoly = ensureClosed(adjacentPolyClosed);
+
+  for (let i = 0; i < adjacentPoly.length - 1; i++) {
+    const start = adjacentPoly[i];
+    const end = adjacentPoly[i + 1];
+
+    if (!segmentLiesOnFootprintBoundary(start, end, fpClosed, eps)) continue;
+    if (!pointLiesOnSegment(ridgeEndpoint, start, end, eps)) continue;
+
+    if (sameXZ(start, ridgeEndpoint, eps)) return end;
+    if (sameXZ(end, ridgeEndpoint, eps)) return start;
   }
 
   return null;

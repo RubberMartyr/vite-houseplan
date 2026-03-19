@@ -1,4 +1,4 @@
-import { ArchitecturalHouse } from "./architecturalTypes";
+import { ArchitecturalHouse, RoofSpec } from "./architecturalTypes";
 import { Vec3 } from "./types";
 
 function signedAreaXZ(pts: { x: number; z: number }[]): number {
@@ -38,10 +38,59 @@ export function getWallVisibleTopY(segment: DerivedWallSegment): number {
   return getWallVisibleBaseY(segment) + getWallVisibleHeight(segment);
 }
 
+function edgeKey(start: { x: number; z: number }, end: { x: number; z: number }): string {
+  return `${start.x},${start.z}->${end.x},${end.z}`;
+}
+
+type RoofWallCap = {
+  visibleTopY: number;
+  edgeKeys: Set<string>;
+};
+
+function isRoofBearingSpec(roof: RoofSpec): boolean {
+  return roof.type !== 'flat';
+}
+
+function buildRoofWallCaps(arch: ArchitecturalHouse): Map<string, RoofWallCap> {
+  const caps = new Map<string, RoofWallCap>();
+
+  for (const roof of arch.roofs ?? []) {
+    if (!isRoofBearingSpec(roof)) continue;
+
+    const baseLevel = arch.levels.find((level) => level.id === roof.baseLevelId);
+    if (!baseLevel) continue;
+
+    const edgeKeys = new Set<string>();
+    const outer = baseLevel.footprint.outer;
+    for (let i = 0; i < outer.length; i += 1) {
+      const current = outer[i];
+      const next = outer[(i + 1) % outer.length];
+      edgeKeys.add(edgeKey(current, next));
+    }
+
+    const cap = caps.get(baseLevel.id);
+    const visibleTopY = baseLevel.elevation + baseLevel.height;
+    if (!cap) {
+      caps.set(baseLevel.id, {
+        visibleTopY,
+        edgeKeys,
+      });
+      continue;
+    }
+
+    for (const key of edgeKeys) {
+      cap.edgeKeys.add(key);
+    }
+  }
+
+  return caps;
+}
+
 export function deriveWallSegmentsFromLevels(
   arch: ArchitecturalHouse
 ): DerivedWallSegment[] {
   const segments: DerivedWallSegment[] = [];
+  const roofWallCaps = buildRoofWallCaps(arch);
 
   for (const level of arch.levels) {
     const outer = level.footprint.outer;
@@ -49,13 +98,17 @@ export function deriveWallSegmentsFromLevels(
     const isCCW = area > 0;
     const outwardSign: 1 | -1 = isCCW ? -1 : 1;
     const visibleBaseY = level.elevation - level.slab.thickness;
-    const visibleHeight = level.height + level.slab.thickness;
     let uOffset = 0;
+    const roofWallCap = roofWallCaps.get(level.id);
 
     for (let i = 0; i < outer.length; i++) {
       const current = outer[i];
       const next = outer[(i + 1) % outer.length];
       const segmentLength = Math.hypot(next.x - current.x, next.z - current.z);
+      const cappedVisibleTopY = roofWallCap?.edgeKeys.has(edgeKey(current, next))
+        ? roofWallCap.visibleTopY
+        : undefined;
+      const visibleHeight = (cappedVisibleTopY ?? (level.elevation + level.height)) - visibleBaseY;
 
       segments.push({
         id: `wall-${level.id}-${i}`,

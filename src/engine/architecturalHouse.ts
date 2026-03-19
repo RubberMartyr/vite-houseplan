@@ -4,7 +4,7 @@ import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 type XZ = { x: number; z: number };
 const EPS = 1e-6;
 const WALL_THICKNESS = 0.3;
-const MAIN_ROOF_OVERHANG = WALL_THICKNESS / 2;
+const MAIN_ROOF_OVERHANG = 0;
 
 /**
  * Removes duplicated closing vertex if present.

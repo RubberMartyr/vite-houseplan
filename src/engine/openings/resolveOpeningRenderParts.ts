@@ -1,0 +1,180 @@
+import type { OpeningStyleSpec } from '../architecturalTypes';
+import { DEFAULT_OPENING_STYLE } from './openingDefaults';
+
+export type OpeningRenderPart = {
+  key: string;
+  size: [number, number, number];
+  position: [number, number, number];
+  material: 'frame' | 'glass';
+  debugType?: 'opening';
+  debugIgnore?: boolean;
+};
+
+export type OpeningRenderConfig = {
+  frameThickness: number;
+  frameDepth: number;
+  glassInset: number;
+  glassThickness: number;
+  parts: OpeningRenderPart[];
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
+  const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
+
+  if (cleaned.length >= 2) {
+    const total = cleaned.reduce((sum, value) => sum + value, 0);
+    return cleaned.map((value) => value / total);
+  }
+
+  return Array.from({ length: Math.max(fallbackCount, 1) }, () => 1 / Math.max(fallbackCount, 1));
+}
+
+function resolveRowFractions(style: OpeningStyleSpec | undefined, rows: number): number[] {
+  if (style?.variant === 'verticalTransom') {
+    if (style.rowFractions && style.rowFractions.length >= 2) {
+      return normalizeFractions(style.rowFractions, style.rowFractions.length);
+    }
+
+    const transomRatio = style.transomRatio ?? 0.62;
+    const clampedRatio = clamp(transomRatio, 0.1, 0.9);
+    return [clampedRatio, 1 - clampedRatio];
+  }
+
+  return normalizeFractions(style?.rowFractions, rows);
+}
+
+export function resolveOpeningRenderParts(
+  openingWidth: number,
+  openingHeight: number,
+  style: OpeningStyleSpec | undefined,
+  wallThickness: number
+): OpeningRenderConfig {
+  const frameThickness = Math.max(style?.frameThickness ?? DEFAULT_OPENING_STYLE.frameThickness, 0.01);
+  const frameDepth = Math.max(
+    Math.min(style?.frameDepth ?? wallThickness, wallThickness),
+    0.01
+  );
+  const glassThickness = clamp(
+    style?.glassThickness ?? DEFAULT_OPENING_STYLE.glassThickness,
+    0.005,
+    frameDepth
+  );
+  const maxInset = Math.max((frameDepth - glassThickness) / 2, 0);
+  const glassInset = clamp(style?.glassInset ?? DEFAULT_OPENING_STYLE.glassInset, -maxInset, maxInset);
+
+  const glassWidth = Math.max(0.01, openingWidth - frameThickness * 2);
+  const glassHeight = Math.max(0.01, openingHeight - frameThickness * 2);
+  const mullionThickness = clamp(
+    style?.mullionWidth ?? frameThickness * 0.9,
+    0.01,
+    Math.min(glassWidth, glassHeight)
+  );
+  const mullionDepth = clamp(frameDepth * 0.65, glassThickness, frameDepth);
+  const mullionOffset = glassInset + glassThickness / 2 + 0.002;
+
+  const cols = Math.max(style?.grid?.cols ?? 1, 1);
+  const rows = Math.max(style?.grid?.rows ?? 1, 1);
+  const columnFractions = normalizeFractions(undefined, cols);
+  const rowFractions = resolveRowFractions(style, rows);
+
+  const sillThickness = Math.max(style?.sillThickness ?? 0.04, 0.01);
+  const sillDepth = Math.max(style?.sillDepth ?? 0.06, 0.01);
+  const sillOverhang = Math.max(frameThickness * 0.5, 0.02);
+  const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
+  const lintelDepth = frameDepth;
+  const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
+
+  const parts: OpeningRenderPart[] = [
+    {
+      key: 'glass',
+      material: 'glass',
+      debugType: 'opening',
+      size: [glassWidth, glassHeight, glassThickness],
+      position: [0, 0, glassInset],
+    },
+    {
+      key: 'frame-left',
+      material: 'frame',
+      debugType: 'opening',
+      size: [frameThickness, openingHeight, frameDepth],
+      position: [-glassWidth / 2 - frameThickness / 2, 0, 0],
+    },
+    {
+      key: 'frame-right',
+      material: 'frame',
+      debugType: 'opening',
+      size: [frameThickness, openingHeight, frameDepth],
+      position: [glassWidth / 2 + frameThickness / 2, 0, 0],
+    },
+    {
+      key: 'frame-top',
+      material: 'frame',
+      debugType: 'opening',
+      size: [openingWidth, frameThickness, frameDepth],
+      position: [0, glassHeight / 2 + frameThickness / 2, 0],
+    },
+    {
+      key: 'frame-bottom',
+      material: 'frame',
+      debugType: 'opening',
+      size: [openingWidth, frameThickness, frameDepth],
+      position: [0, -glassHeight / 2 - frameThickness / 2, 0],
+    },
+  ];
+
+  let cumulativeWidth = -glassWidth / 2;
+  for (let index = 0; index < columnFractions.length - 1; index += 1) {
+    cumulativeWidth += glassWidth * columnFractions[index];
+    parts.push({
+      key: `mullion-v-${index}`,
+      material: 'frame',
+      debugIgnore: true,
+      size: [mullionThickness, glassHeight, mullionDepth],
+      position: [cumulativeWidth, 0, mullionOffset],
+    });
+  }
+
+  let cumulativeHeight = -glassHeight / 2;
+  for (let index = 0; index < rowFractions.length - 1; index += 1) {
+    cumulativeHeight += glassHeight * rowFractions[index];
+    parts.push({
+      key: `mullion-h-${index}`,
+      material: 'frame',
+      debugIgnore: true,
+      size: [glassWidth, mullionThickness, mullionDepth],
+      position: [0, cumulativeHeight, mullionOffset],
+    });
+  }
+
+  if (style?.hasSill) {
+    parts.push({
+      key: 'sill',
+      material: 'frame',
+      debugIgnore: true,
+      size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
+      position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2],
+    });
+  }
+
+  if (style?.hasLintel) {
+    parts.push({
+      key: 'lintel',
+      material: 'frame',
+      debugIgnore: true,
+      size: [openingWidth + lintelOverhang * 2, lintelThickness, lintelDepth],
+      position: [0, openingHeight / 2 + lintelThickness / 2, 0],
+    });
+  }
+
+  return {
+    frameThickness,
+    frameDepth,
+    glassInset,
+    glassThickness,
+    parts,
+  };
+}

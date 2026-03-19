@@ -507,6 +507,10 @@ function getRoofEaveTopAbs(derivedRoof: DerivedRoof): number {
   return derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height;
 }
 
+function getMultiPlaneRoofBoundaryOuter(derivedRoof: DerivedRoof): XZ[] {
+  return ensureClosed(derivedRoof.roofPolygonOuter);
+}
+
 function deriveMultiPlaneRoofGeometries(
   derivedRoof: DerivedRoof,
   roof: MultiPlaneRoofSpec
@@ -514,7 +518,10 @@ function deriveMultiPlaneRoofGeometries(
   const verificationMode = getRoofOverlapVerificationMode();
   const thickness = roof.thickness ?? 0.2;
 
-  const fp: XZ[] = ensureClosed(derivedRoof.roofPolygonOuter);
+  // Multi-plane roof face clipping must use the same overhang-adjusted roof outline
+  // for every face. Mixing the architectural footprint with the derived roof boundary
+  // causes side/ridge patches to terminate inside the cap/corner faces.
+  const roofBoundaryOuter = getMultiPlaneRoofBoundaryOuter(derivedRoof);
 
   const geometries: THREE.BufferGeometry[] = [];
   const hipBases = new Map<string, { start?: [XZ, XZ]; end?: [XZ, XZ] }>();
@@ -550,11 +557,11 @@ function deriveMultiPlaneRoofGeometries(
       const ridge = roof.ridgeSegments.find((r) => r.id === region.ridgeId);
       if (!ridge) return;
 
-      regionPoly = capTriangleFromRidgeEndpoint(fp, ridge, region.end);
+      regionPoly = capTriangleFromRidgeEndpoint(roofBoundaryOuter, ridge, region.end);
     } else {
       const halfPlanes = resolveFaceRegionToHalfPlanes(region, roof);
       if (!halfPlanes) return;
-      regionPoly = clipPolyByRegion(fp, halfPlanes);
+      regionPoly = clipPolyByRegion(roofBoundaryOuter, halfPlanes);
     }
 
     if (regionPoly) {
@@ -686,11 +693,13 @@ function deriveMultiPlaneRoofGeometries(
 
           const basePoint = pickBaseForSide(ridge, seamPair, side);
           const sharedBoundary = adjacentPoly
-            ? findSharedCornerBoundaryFromAdjacentPatch(adjacentPoly, fp, basePoint)
+            ? findSharedCornerBoundaryFromAdjacentPatch(adjacentPoly, roofBoundaryOuter, basePoint)
             : null;
 
           const B = sharedBoundary?.base ?? snap(basePoint, findVertexReference(adjacentPoly, basePoint) ?? basePoint);
-          const fallbackCorner = sharedBoundary ? null : pickCornerFromEdgeContainingBase(fp, B, ridge, side);
+          const fallbackCorner = sharedBoundary
+            ? null
+            : pickCornerFromEdgeContainingBase(roofBoundaryOuter, B, ridge, side);
           const rawCorner = sharedBoundary?.corner ?? fallbackCorner?.corner ?? null;
           const candidates = sharedBoundary
             ? [sharedBoundary.base, sharedBoundary.corner]

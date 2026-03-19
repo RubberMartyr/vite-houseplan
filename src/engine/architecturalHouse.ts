@@ -41,25 +41,7 @@ function findEdgeIndexAtZ(ring: XZ[], zTarget: number, eps = EPS): number | null
   return null;
 }
 
-function getEdgeLength(ring: XZ[], edgeIndex: number): number {
-  const r = openRing(ring);
-  const a = r[edgeIndex];
-  const b = r[(edgeIndex + 1) % r.length];
-
-  return Math.hypot(b.x - a.x, b.z - a.z);
-}
-
-function getCenteredEdgeOffset(ring: XZ[], edgeIndex: number, width: number): number {
-  const edgeLength = getEdgeLength(ring, edgeIndex);
-
-  if (width > edgeLength + EPS) {
-    throw new Error(
-      `Opening width ${width} exceeds edge ${edgeIndex} length ${edgeLength.toFixed(3)}`
-    );
-  }
-
-  return (edgeLength - width) / 2;
-}
+const cm = (value: number) => value / 100;
 
 /**
  * Finds facade edge index at either minZ or maxZ.
@@ -168,14 +150,21 @@ const FIRST_REAR_LEFT_WINDOW_OFFSET = FIRST_REAR_COMPOSITION_PADDING + 1.7;
 const FIRST_REAR_RIGHT_WINDOW_OFFSET =
   FIRST_REAR_COMPOSITION_PADDING + 1.7 + FIRST_REAR_WINDOW_WIDTH + 2.0;
 
-const LEFT_FACADE_GROUND_OPENING_HEIGHT = 2.45;
-const LEFT_FACADE_FIRST_OPENING_HEIGHT = 1.95;
-const LEFT_FACADE_STACK_WIDTH = 1.1;
+const LEFT_FACADE_GROUND_OPENING_HEIGHT = cm(245);
+const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
+const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
+const LEFT_FACADE_STACK_WIDTH = cm(110);
 const LEFT_FACADE_STACK_STYLE = {
   variant: 'plain',
   hasSill: false,
   hasLintel: false,
-  grid: { cols: 1, rows: 1 },
+  grid: { cols: 1, rows: 2 },
+} as const;
+const LEFT_FACADE_SHORT_WINDOW_STYLE = {
+  variant: 'plain',
+  hasSill: false,
+  hasLintel: true,
+  grid: { cols: 1, rows: 2 },
 } as const;
 
 // These three stacks sit on the indented left facade's explicit vertical edge runs.
@@ -186,16 +175,28 @@ const LEFT_FACADE_STACKS = [
     id: 'LOW',
     groundEdgeIndex: 7,
     firstEdgeIndex: 4,
+    offset: cm(70),
+    fromEnd: true,
+    groundHeight: LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT,
+    includeFirst: false,
   },
   {
     id: 'MID',
     groundEdgeIndex: 5,
     firstEdgeIndex: 2,
+    offset: cm(100),
+    fromEnd: true,
+    groundHeight: LEFT_FACADE_GROUND_OPENING_HEIGHT,
+    includeFirst: true,
   },
   {
     id: 'HIGH',
     groundEdgeIndex: 3,
     firstEdgeIndex: 0,
+    offset: cm(130),
+    fromEnd: true,
+    groundHeight: LEFT_FACADE_GROUND_OPENING_HEIGHT,
+    includeFirst: true,
   },
 ] as const;
 
@@ -471,24 +472,36 @@ export const architecturalHouse: ArchitecturalHouse = {
         id: `LEFT_STACK_${stack.id}_G`,
         kind: 'window' as const,
         levelId: 'ground',
-        edge: { levelId: 'ground', ring: 'outer' as const, edgeIndex: stack.groundEdgeIndex },
-        offset: getCenteredEdgeOffset(levels[0].footprint.outer, stack.groundEdgeIndex, LEFT_FACADE_STACK_WIDTH),
+        edge: {
+          levelId: 'ground',
+          ring: 'outer' as const,
+          edgeIndex: stack.groundEdgeIndex,
+          fromEnd: stack.fromEnd,
+        },
+        offset: stack.offset,
         width: LEFT_FACADE_STACK_WIDTH,
         sillHeight: 0,
-        height: LEFT_FACADE_GROUND_OPENING_HEIGHT,
-        style: LEFT_FACADE_STACK_STYLE,
+        height: stack.groundHeight,
+        style: stack.includeFirst ? LEFT_FACADE_STACK_STYLE : LEFT_FACADE_SHORT_WINDOW_STYLE,
       },
-      {
-        id: `LEFT_STACK_${stack.id}_F`,
-        kind: 'window' as const,
-        levelId: 'first',
-        edge: { levelId: 'first', ring: 'outer' as const, edgeIndex: stack.firstEdgeIndex },
-        offset: getCenteredEdgeOffset(levels[1].footprint.outer, stack.firstEdgeIndex, LEFT_FACADE_STACK_WIDTH),
-        width: LEFT_FACADE_STACK_WIDTH,
-        sillHeight: 0,
-        height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
-        style: LEFT_FACADE_STACK_STYLE,
-      },
+      ...(stack.includeFirst
+        ? [{
+            id: `LEFT_STACK_${stack.id}_F`,
+            kind: 'window' as const,
+            levelId: 'first',
+            edge: {
+              levelId: 'first',
+              ring: 'outer' as const,
+              edgeIndex: stack.firstEdgeIndex,
+              fromEnd: stack.fromEnd,
+            },
+            offset: stack.offset,
+            width: LEFT_FACADE_STACK_WIDTH,
+            sillHeight: 0,
+            height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
+            style: LEFT_FACADE_STACK_STYLE,
+          }]
+        : []),
     ]),
   ],
 };

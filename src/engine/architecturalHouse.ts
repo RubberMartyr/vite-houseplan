@@ -132,8 +132,11 @@ const [FW1, FW2, FW3, FW4] = computeOpeningOffsetsFromChain(firstChain);
 
 // Rear elevations are authored against explicit edge indices because the current
 // rear facades are split and a generic "maxZ edge" helper can pick the short stub.
-const GROUND_REAR_OPENING_OFFSET = 1.0;
+const GROUND_REAR_FULL_WIDTH = 8.3;
+const GROUND_REAR_STUB_WIDTH = 0.7;
 const GROUND_REAR_OPENING_WIDTH = 5.6;
+const GROUND_REAR_OPENING_OFFSET =
+  (GROUND_REAR_FULL_WIDTH - GROUND_REAR_OPENING_WIDTH) / 2 - GROUND_REAR_STUB_WIDTH;
 
 // The first-floor rear wall is 8.3m wide, while the elevation drawing is a 7.6m
 // composition centered within it, so keep 0.35m of padding on both sides.

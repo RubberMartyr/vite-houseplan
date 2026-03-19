@@ -43,7 +43,7 @@ function edgeKey(start: { x: number; z: number }, end: { x: number; z: number })
 }
 
 type RoofWallCap = {
-  visibleTopY: number;
+  structuralTopY: number;
   edgeKeys: Set<string>;
 };
 
@@ -69,10 +69,10 @@ function buildRoofWallCaps(arch: ArchitecturalHouse): Map<string, RoofWallCap> {
     }
 
     const cap = caps.get(baseLevel.id);
-    const visibleTopY = baseLevel.elevation + baseLevel.height;
+    const structuralTopY = baseLevel.elevation + baseLevel.height;
     if (!cap) {
       caps.set(baseLevel.id, {
-        visibleTopY,
+        structuralTopY,
         edgeKeys,
       });
       continue;
@@ -105,10 +105,11 @@ export function deriveWallSegmentsFromLevels(
       const current = outer[i];
       const next = outer[(i + 1) % outer.length];
       const segmentLength = Math.hypot(next.x - current.x, next.z - current.z);
-      const cappedVisibleTopY = roofWallCap?.edgeKeys.has(edgeKey(current, next))
-        ? roofWallCap.visibleTopY
-        : undefined;
-      const visibleHeight = (cappedVisibleTopY ?? (level.elevation + level.height)) - visibleBaseY;
+      const structuralTopY = level.elevation + level.height;
+      const visibleTopY = roofWallCap?.edgeKeys.has(edgeKey(current, next))
+        ? roofWallCap.structuralTopY
+        : structuralTopY;
+      const visibleHeight = visibleTopY - visibleBaseY;
 
       segments.push({
         id: `wall-${level.id}-${i}`,

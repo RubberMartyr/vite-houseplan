@@ -8,6 +8,7 @@ export interface DerivedRoof {
     id: string
     elevation: number
     height: number
+    slabThickness: number
   }
   footprintOuter: XZ[]
   footprintHoles: XZ[][]

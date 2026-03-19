@@ -61,6 +61,7 @@ export function deriveRoofs(arch: ArchitecturalHouse, _context: DeriveRoofsConte
         id: baseLevel.id,
         elevation: baseLevel.elevation,
         height: baseLevel.height,
+        slabThickness: baseLevel.slab.thickness,
       },
       footprintOuter,
       footprintHoles,

@@ -50,7 +50,11 @@ export function deriveFlatRoofGeometries(roofs: DerivedRoof[]): THREE.BufferGeom
 
       geom.rotateX(-Math.PI / 2);
 
-      geom.translate(0, derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height, 0);
+      geom.translate(
+        0,
+        derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height + derivedRoof.baseLevel.slabThickness,
+        0
+      );
 
       geom.computeVertexNormals();
 

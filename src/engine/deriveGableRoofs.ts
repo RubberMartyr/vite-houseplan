@@ -562,7 +562,11 @@ export function deriveGableRoofGeometries(
 }
 
 function getRoofEaveTopAbs(derivedRoof: DerivedRoof): number {
-  return derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height;
+  return (
+    derivedRoof.baseLevel.elevation +
+    derivedRoof.baseLevel.height +
+    derivedRoof.baseLevel.slabThickness
+  );
 }
 
 function getMultiPlaneRoofBoundaryOuter(derivedRoof: DerivedRoof): XZ[] {
@@ -731,7 +735,7 @@ function deriveMultiPlaneRoofGeometries(
 
       const { baseLevel } = derivedRoof;
       const ridgeTopAbs = baseLevel.elevation + ridge.height;
-      const wallTop = baseLevel.elevation + baseLevel.height;
+      const wallTop = getRoofEaveTopAbs(derivedRoof);
 
       (["start", "end"] as const).forEach((endKey) => {
         (["left", "right"] as const).forEach((side) => {
@@ -825,7 +829,7 @@ function deriveMultiPlaneRoofGeometries(
 
     const { baseLevel } = derivedRoof;
     const ridgeTopAbs = baseLevel.elevation + ridge.height;
-    const wallTop = baseLevel.elevation + baseLevel.height;
+    const wallTop = getRoofEaveTopAbs(derivedRoof);
 
     const leftStart = pickBaseForSide(ridge, bases.start, "left");
     const leftEnd = pickBaseForSide(ridge, bases.end, "left");

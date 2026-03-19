@@ -154,36 +154,41 @@ const LEFT_FACADE_GROUND_OPENING_HEIGHT = cm(245);
 const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
 const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
 const LEFT_FACADE_STACK_WIDTH = cm(110);
-const LEFT_FACADE_TALL_TRANSOM_RATIO = 0.64;
-const LEFT_FACADE_SHORT_TRANSOM_RATIO = 0.68;
+// Elevation calibration: the left facade reads closer to a roughly 2/3 lower lite and
+// 1/3 transom than an even 50/50 split, so keep the whole family at a 0.66 lower-zone ratio.
+const LEFT_FACADE_TRANSOM_RATIO = 0.66;
+const LEFT_FACADE_FAMILY_FRAME_THICKNESS = 0.06;
+const LEFT_FACADE_FAMILY_MULLION_WIDTH = 0.052;
 const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
   variant: 'verticalTransom',
   hasSill: false,
   hasLintel: false,
   grid: { cols: 1, rows: 2 },
-  transomRatio: LEFT_FACADE_TALL_TRANSOM_RATIO,
-  frameThickness: 0.075,
+  transomRatio: LEFT_FACADE_TRANSOM_RATIO,
+  frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
   frameDepth: 0.1,
   glassInset: 0.012,
   glassThickness: 0.012,
-  mullionWidth: 0.07,
+  mullionWidth: LEFT_FACADE_FAMILY_MULLION_WIDTH,
+  frameEdges: { top: false },
 } as const;
 const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE = {
   ...LEFT_FACADE_TALL_LOWER_WINDOW_STYLE,
   hasSill: false,
   hasLintel: true,
+  frameEdges: { bottom: false },
 } as const;
 const LEFT_FACADE_SHORT_WINDOW_STYLE = {
   variant: 'verticalTransom',
   hasSill: false,
   hasLintel: true,
   grid: { cols: 1, rows: 2 },
-  transomRatio: LEFT_FACADE_SHORT_TRANSOM_RATIO,
-  frameThickness: 0.075,
+  transomRatio: LEFT_FACADE_TRANSOM_RATIO,
+  frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
   frameDepth: 0.1,
   glassInset: 0.012,
   glassThickness: 0.012,
-  mullionWidth: 0.07,
+  mullionWidth: LEFT_FACADE_FAMILY_MULLION_WIDTH,
 } as const;
 
 // These three stacks sit on the indented left facade's explicit vertical edge runs.

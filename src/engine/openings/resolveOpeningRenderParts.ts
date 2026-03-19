@@ -1,5 +1,5 @@
 import type { OpeningStyleSpec } from '../architecturalTypes';
-import { DEFAULT_OPENING_STYLE } from './openingDefaults';
+import { DEFAULT_FRAME_EDGES, DEFAULT_OPENING_STYLE } from './openingDefaults';
 
 export type OpeningRenderPart = {
   key: string;
@@ -66,8 +66,19 @@ export function resolveOpeningRenderParts(
   const maxInset = Math.max((frameDepth - glassThickness) / 2, 0);
   const glassInset = clamp(style?.glassInset ?? DEFAULT_OPENING_STYLE.glassInset, -maxInset, maxInset);
 
-  const glassWidth = Math.max(0.01, openingWidth - frameThickness * 2);
-  const glassHeight = Math.max(0.01, openingHeight - frameThickness * 2);
+  const frameEdges = {
+    ...DEFAULT_FRAME_EDGES,
+    ...(style?.frameEdges ?? {}),
+  };
+  const leftFrameThickness = frameEdges.left ? frameThickness : 0;
+  const rightFrameThickness = frameEdges.right ? frameThickness : 0;
+  const topFrameThickness = frameEdges.top ? frameThickness : 0;
+  const bottomFrameThickness = frameEdges.bottom ? frameThickness : 0;
+
+  const glassWidth = Math.max(0.01, openingWidth - leftFrameThickness - rightFrameThickness);
+  const glassHeight = Math.max(0.01, openingHeight - topFrameThickness - bottomFrameThickness);
+  const glassCenterX = (leftFrameThickness - rightFrameThickness) / 2;
+  const glassCenterY = (bottomFrameThickness - topFrameThickness) / 2;
   const mullionThickness = clamp(
     style?.mullionWidth ?? frameThickness * 0.9,
     0.01,
@@ -94,37 +105,49 @@ export function resolveOpeningRenderParts(
       material: 'glass',
       debugType: 'opening',
       size: [glassWidth, glassHeight, glassThickness],
-      position: [0, 0, glassInset],
+      position: [glassCenterX, glassCenterY, glassInset],
     },
-    {
+  ];
+
+  if (frameEdges.left) {
+    parts.push({
       key: 'frame-left',
       material: 'frame',
       debugType: 'opening',
       size: [frameThickness, openingHeight, frameDepth],
-      position: [-glassWidth / 2 - frameThickness / 2, 0, 0],
-    },
-    {
+      position: [-openingWidth / 2 + frameThickness / 2, 0, 0],
+    });
+  }
+
+  if (frameEdges.right) {
+    parts.push({
       key: 'frame-right',
       material: 'frame',
       debugType: 'opening',
       size: [frameThickness, openingHeight, frameDepth],
-      position: [glassWidth / 2 + frameThickness / 2, 0, 0],
-    },
-    {
+      position: [openingWidth / 2 - frameThickness / 2, 0, 0],
+    });
+  }
+
+  if (frameEdges.top) {
+    parts.push({
       key: 'frame-top',
       material: 'frame',
       debugType: 'opening',
-      size: [openingWidth, frameThickness, frameDepth],
-      position: [0, glassHeight / 2 + frameThickness / 2, 0],
-    },
-    {
+      size: [glassWidth, frameThickness, frameDepth],
+      position: [glassCenterX, openingHeight / 2 - frameThickness / 2, 0],
+    });
+  }
+
+  if (frameEdges.bottom) {
+    parts.push({
       key: 'frame-bottom',
       material: 'frame',
       debugType: 'opening',
-      size: [openingWidth, frameThickness, frameDepth],
-      position: [0, -glassHeight / 2 - frameThickness / 2, 0],
-    },
-  ];
+      size: [glassWidth, frameThickness, frameDepth],
+      position: [glassCenterX, -openingHeight / 2 + frameThickness / 2, 0],
+    });
+  }
 
   let cumulativeWidth = -glassWidth / 2;
   for (let index = 0; index < columnFractions.length - 1; index += 1) {
@@ -134,7 +157,7 @@ export function resolveOpeningRenderParts(
       material: 'frame',
       debugIgnore: true,
       size: [mullionThickness, glassHeight, mullionDepth],
-      position: [cumulativeWidth, 0, mullionOffset],
+      position: [glassCenterX + cumulativeWidth, glassCenterY, mullionOffset],
     });
   }
 
@@ -146,7 +169,7 @@ export function resolveOpeningRenderParts(
       material: 'frame',
       debugIgnore: true,
       size: [glassWidth, mullionThickness, mullionDepth],
-      position: [0, cumulativeHeight, mullionOffset],
+      position: [glassCenterX, glassCenterY + cumulativeHeight, mullionOffset],
     });
   }
 

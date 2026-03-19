@@ -399,6 +399,77 @@ function orientRoofFacePolygon(polyClosed: XZ[]): XZ[] {
   return ensureClosed(closed.slice(0, -1).reverse());
 }
 
+function shouldLogRoofFaceDebug(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  return params.get("debug") === "1";
+}
+
+function appendPitchedRoofShellIndices(indices: number[], triangles: number[][], bottomOffset: number) {
+  for (const tri of triangles) {
+    indices.push(tri[2], tri[1], tri[0]);
+  }
+
+  for (const tri of triangles) {
+    indices.push(bottomOffset + tri[0], bottomOffset + tri[1], bottomOffset + tri[2]);
+  }
+}
+
+function appendPitchedRoofSideIndices(indices: number[], vertexCount: number, bottomOffset: number) {
+  for (let i = 0; i < vertexCount; i++) {
+    const j = (i + 1) % vertexCount;
+    const ti = i;
+    const tj = j;
+    const bi = bottomOffset + i;
+    const bj = bottomOffset + j;
+
+    indices.push(ti, bj, tj);
+    indices.push(ti, bi, bj);
+  }
+}
+
+function logRoofFaceTopNormal(
+  faceId: string,
+  positions: Float32Array,
+  triangles: number[][]
+): void {
+  if (!shouldLogRoofFaceDebug() || triangles.length === 0) {
+    return;
+  }
+
+  const tri = triangles[0];
+  const ax = positions[tri[2] * 3];
+  const ay = positions[tri[2] * 3 + 1];
+  const az = positions[tri[2] * 3 + 2];
+  const bx = positions[tri[1] * 3];
+  const by = positions[tri[1] * 3 + 1];
+  const bz = positions[tri[1] * 3 + 2];
+  const cx = positions[tri[0] * 3];
+  const cy = positions[tri[0] * 3 + 1];
+  const cz = positions[tri[0] * 3 + 2];
+
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abz = bz - az;
+  const acx = cx - ax;
+  const acy = cy - ay;
+  const acz = cz - az;
+
+  const nx = aby * acz - abz * acy;
+  const ny = abz * acx - abx * acz;
+  const nz = abx * acy - aby * acx;
+  const upward = ny > 0;
+
+  console.debug("[roof] top-shell normal", {
+    faceId,
+    upward,
+    normal: { x: nx, y: ny, z: nz },
+  });
+}
+
 function planeFromArchPoints(
   p1: { x: number; z: number; y: number },
   p2: { x: number; z: number; y: number },
@@ -447,25 +518,12 @@ function buildRoofFaceGeometry(params: {
   if (hasInvalidHeight) return null;
 
   const indices: number[] = [];
-  for (const tri of triangles) indices.push(tri[0], tri[1], tri[2]);
-
   const bottomOffset = poly.length;
-  for (const tri of triangles) {
-    indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
-  }
-
-  const n = poly.length;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    const ti = i;
-    const tj = j;
-    const bi = bottomOffset + i;
-    const bj = bottomOffset + j;
-    indices.push(ti, tj, bj);
-    indices.push(ti, bj, bi);
-  }
+  appendPitchedRoofShellIndices(indices, triangles, bottomOffset);
+  appendPitchedRoofSideIndices(indices, poly.length, bottomOffset);
 
   const positions = new Float32Array([...topVerts, ...botVerts]);
+  logRoofFaceTopNormal(faceId, positions, triangles);
   return buildRoofGeometry(positions, indices);
 }
 
@@ -1355,29 +1413,12 @@ export function buildStructuralGableGeometry(
 
   const indices: number[] = [];
 
-  for (const tri of triangles) {
-    indices.push(tri[0], tri[1], tri[2]);
-  }
-
   const bottomOffset = fp.length;
-  for (const tri of triangles) {
-    indices.push(bottomOffset + tri[2], bottomOffset + tri[1], bottomOffset + tri[0]);
-  }
-
-  const n = fp.length;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-
-    const ti = i;
-    const tj = j;
-    const bi = bottomOffset + i;
-    const bj = bottomOffset + j;
-
-    indices.push(ti, tj, bj);
-    indices.push(ti, bj, bi);
-  }
+  appendPitchedRoofShellIndices(indices, triangles, bottomOffset);
+  appendPitchedRoofSideIndices(indices, fp.length, bottomOffset);
 
   const positions = new Float32Array([...topVerts, ...botVerts]);
+  logRoofFaceTopNormal(derivedRoof.id, positions, triangles);
 
   const geom = new THREE.BufferGeometry();
   geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));

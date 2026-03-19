@@ -696,7 +696,13 @@ function deriveMultiPlaneRoofGeometries(
 
           if (!rawCorner) return;
 
-          const C = sharedBoundary?.corner ?? snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
+          let C = sharedBoundary?.corner ?? snap(rawCorner, findVertexReference(adjacentPoly, rawCorner) ?? rawCorner);
+          const adjacentCornerCorrection = adjacentPoly
+            ? findAdjacentPolyPointSharingXClosestToEndpoint(adjacentPoly, C, E)
+            : null;
+          if (adjacentCornerCorrection && distanceXZ(C, adjacentCornerCorrection) > 1e-5) {
+            C = adjacentCornerCorrection;
+          }
           console.log("cornerPick", {
             endKey,
             side,
@@ -704,6 +710,10 @@ function deriveMultiPlaneRoofGeometries(
             pickedCorner: C,
             adjacentFaceId: adjacentFace?.id,
             reusedAdjacentBoundary: Boolean(sharedBoundary),
+            correctedCornerFromAdjacentPoly:
+              adjacentCornerCorrection && distanceXZ(C, adjacentCornerCorrection) < 1e-9
+                ? adjacentCornerCorrection
+                : null,
           });
 
           const area = (C.x - B.x) * (E.z - B.z) - (C.z - B.z) * (E.x - B.x);
@@ -999,6 +1009,28 @@ function findVertexReference(polyClosed: XZ[] | null | undefined, target: XZ, ep
   }
 
   return null;
+}
+
+function findAdjacentPolyPointSharingXClosestToEndpoint(
+  adjacentPolyClosed: XZ[],
+  corner: XZ,
+  endpoint: XZ,
+  eps = 1e-6
+): XZ | null {
+  let best: XZ | null = null;
+  let bestDistanceToEndpoint = Infinity;
+
+  for (const point of ensureClosed(adjacentPolyClosed).slice(0, -1)) {
+    if (Math.abs(point.x - corner.x) > eps) continue;
+
+    const distanceToEndpoint = Math.abs(point.z - endpoint.z);
+    if (distanceToEndpoint < bestDistanceToEndpoint) {
+      best = point;
+      bestDistanceToEndpoint = distanceToEndpoint;
+    }
+  }
+
+  return best;
 }
 
 function findAdjacentCornerFace(

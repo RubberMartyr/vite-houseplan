@@ -664,8 +664,9 @@ function deriveMultiPlaneRoofGeometries(
       const bases = hipBases.get(ridge.id);
       if (!bases?.start || !bases?.end) continue;
 
-      const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-      const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
+      const { baseLevel } = derivedRoof;
+      const ridgeTopAbs = baseLevel.elevation + ridge.height;
+      const wallTop = baseLevel.elevation + baseLevel.height;
 
       (["start", "end"] as const).forEach((endKey) => {
         (["left", "right"] as const).forEach((side) => {
@@ -728,8 +729,8 @@ function deriveMultiPlaneRoofGeometries(
 
           const plane = planeFromArchPoints(
             { x: E.x, z: E.z, y: ridgeTopAbs },
-            { x: C.x, z: C.z, y: eaveTopAbs },
-            { x: B.x, z: B.z, y: eaveTopAbs }
+            { x: C.x, z: C.z, y: wallTop },
+            { x: B.x, z: B.z, y: wallTop }
           );
           if (!plane) return;
 
@@ -755,8 +756,9 @@ function deriveMultiPlaneRoofGeometries(
     const bases = hipBases.get(ridge.id);
     if (!bases?.start || !bases?.end) continue;
 
-    const ridgeTopAbs = derivedRoof.baseLevel.elevation + ridge.height;
-    const eaveTopAbs = getRoofEaveTopAbs(derivedRoof);
+    const { baseLevel } = derivedRoof;
+    const ridgeTopAbs = baseLevel.elevation + ridge.height;
+    const wallTop = baseLevel.elevation + baseLevel.height;
 
     const leftStart = pickBaseForSide(ridge, bases.start, "left");
     const leftEnd = pickBaseForSide(ridge, bases.end, "left");
@@ -769,13 +771,13 @@ function deriveMultiPlaneRoofGeometries(
     const planeLeft = planeFromArchPoints(
       { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
       { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
-      { x: leftMid.x, z: leftMid.z, y: eaveTopAbs }
+      { x: leftMid.x, z: leftMid.z, y: wallTop }
     );
 
     const planeRight = planeFromArchPoints(
       { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
       { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
-      { x: rightMid.x, z: rightMid.z, y: eaveTopAbs }
+      { x: rightMid.x, z: rightMid.z, y: wallTop }
     );
 
     console.log("SIDE PLANES", {

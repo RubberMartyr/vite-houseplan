@@ -769,27 +769,40 @@ function deriveMultiPlaneRoofGeometries(
     const ridgeTopAbs = baseLevel.elevation + ridge.height;
     const wallTop = baseLevel.elevation + baseLevel.height;
 
-    const leftStart = pickBaseForSide(ridge, bases.start, "left");
-    const leftEnd = pickBaseForSide(ridge, bases.end, "left");
-    const leftMid = midXZ(leftStart, leftEnd);
-
-    const rightStart = pickBaseForSide(ridge, bases.start, "right");
-    const rightEnd = pickBaseForSide(ridge, bases.end, "right");
-    const rightMid = midXZ(rightStart, rightEnd);
-
-    const planeLeft = planeFromArchPoints(
-      { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
-      { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
-      { x: leftMid.x, z: leftMid.z, y: wallTop }
+    const leftOuterEavePoint = findRepresentativeOuterEavePoint(
+      ridge,
+      "left",
+      roof.faces,
+      roofBoundaryOuter,
+      resolveFaceRegionPoly
+    );
+    const rightOuterEavePoint = findRepresentativeOuterEavePoint(
+      ridge,
+      "right",
+      roof.faces,
+      roofBoundaryOuter,
+      resolveFaceRegionPoly
     );
 
-    const planeRight = planeFromArchPoints(
-      { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
-      { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
-      { x: rightMid.x, z: rightMid.z, y: wallTop }
-    );
+    const planeLeft = leftOuterEavePoint
+      ? planeFromArchPoints(
+          { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
+          { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
+          { x: leftOuterEavePoint.x, z: leftOuterEavePoint.z, y: wallTop }
+        )
+      : null;
+
+    const planeRight = rightOuterEavePoint
+      ? planeFromArchPoints(
+          { x: ridge.start.x, z: ridge.start.z, y: ridgeTopAbs },
+          { x: ridge.end.x, z: ridge.end.z, y: ridgeTopAbs },
+          { x: rightOuterEavePoint.x, z: rightOuterEavePoint.z, y: wallTop }
+        )
+      : null;
 
     console.log("SIDE PLANES", {
+      leftOuterEavePoint,
+      rightOuterEavePoint,
       leftNormal: planeLeft?.normal,
       rightNormal: planeRight?.normal,
     });
@@ -1001,8 +1014,64 @@ function pickFarthestPoint(polyClosed: XZ[], a: XZ, b: XZ): XZ | null {
   return best;
 }
 
-function midXZ(a: XZ, b: XZ): XZ {
-  return { x: (a.x + b.x) * 0.5, z: (a.z + b.z) * 0.5 };
+function findRepresentativeOuterEavePoint(
+  ridge: MultiPlaneRoofSpec["ridgeSegments"][number],
+  side: "left" | "right",
+  faces: MultiPlaneRoofSpec["faces"],
+  roofBoundaryOuter: XZ[],
+  resolveFaceRegionPoly: (face: MultiPlaneRoofSpec["faces"][number]) => XZ[] | undefined
+): XZ | null {
+  type BoundaryEdge = {
+    start: XZ;
+    end: XZ;
+    midpoint: XZ;
+    lengthSq: number;
+    distanceToRidge: number;
+  };
+
+  const desiredSide = side === "left" ? 1 : -1;
+  const candidateEdges: BoundaryEdge[] = [];
+
+  for (const face of faces) {
+    if (face.kind !== "ridgeSideSegment" || face.ridgeId !== ridge.id || face.side !== side) {
+      continue;
+    }
+
+    const regionPoly = resolveFaceRegionPoly(face);
+    if (!regionPoly || regionPoly.length < 4) continue;
+
+    const closedRegion = ensureClosed(regionPoly);
+    for (let i = 0; i < closedRegion.length - 1; i++) {
+      const start = closedRegion[i];
+      const end = closedRegion[i + 1];
+      if (!segmentLiesOnFootprintBoundary(start, end, roofBoundaryOuter)) continue;
+
+      const midpoint = { x: (start.x + end.x) * 0.5, z: (start.z + end.z) * 0.5 };
+      const sideScore = signedSide(midpoint, ridge.start, ridge.end);
+      if (desiredSide * sideScore < -1e-6) continue;
+
+      const dx = end.x - start.x;
+      const dz = end.z - start.z;
+      candidateEdges.push({
+        start,
+        end,
+        midpoint,
+        lengthSq: dx * dx + dz * dz,
+        distanceToRidge: absPerpDistanceToLineXZ(midpoint, ridge.start, ridge.end),
+      });
+    }
+  }
+
+  if (candidateEdges.length === 0) return null;
+
+  candidateEdges.sort((a, b) => {
+    if (Math.abs(b.lengthSq - a.lengthSq) > 1e-9) {
+      return b.lengthSq - a.lengthSq;
+    }
+    return b.distanceToRidge - a.distanceToRidge;
+  });
+
+  return candidateEdges[0]?.midpoint ?? null;
 }
 
 function distanceXZ(a: XZ, b: XZ): number {

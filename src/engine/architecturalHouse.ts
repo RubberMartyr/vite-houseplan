@@ -154,17 +154,36 @@ const LEFT_FACADE_GROUND_OPENING_HEIGHT = cm(245);
 const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
 const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
 const LEFT_FACADE_STACK_WIDTH = cm(110);
-const LEFT_FACADE_STACK_STYLE = {
-  variant: 'plain',
+const LEFT_FACADE_TALL_TRANSOM_RATIO = 0.64;
+const LEFT_FACADE_SHORT_TRANSOM_RATIO = 0.68;
+const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
+  variant: 'verticalTransom',
   hasSill: false,
   hasLintel: false,
   grid: { cols: 1, rows: 2 },
+  transomRatio: LEFT_FACADE_TALL_TRANSOM_RATIO,
+  frameThickness: 0.075,
+  frameDepth: 0.1,
+  glassInset: 0.012,
+  glassThickness: 0.012,
+  mullionWidth: 0.07,
+} as const;
+const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE = {
+  ...LEFT_FACADE_TALL_LOWER_WINDOW_STYLE,
+  hasSill: false,
+  hasLintel: true,
 } as const;
 const LEFT_FACADE_SHORT_WINDOW_STYLE = {
-  variant: 'plain',
+  variant: 'verticalTransom',
   hasSill: false,
   hasLintel: true,
   grid: { cols: 1, rows: 2 },
+  transomRatio: LEFT_FACADE_SHORT_TRANSOM_RATIO,
+  frameThickness: 0.075,
+  frameDepth: 0.1,
+  glassInset: 0.012,
+  glassThickness: 0.012,
+  mullionWidth: 0.07,
 } as const;
 
 // These three stacks sit on the indented left facade's explicit vertical edge runs.
@@ -482,7 +501,7 @@ export const architecturalHouse: ArchitecturalHouse = {
         width: LEFT_FACADE_STACK_WIDTH,
         sillHeight: 0,
         height: stack.groundHeight,
-        style: stack.includeFirst ? LEFT_FACADE_STACK_STYLE : LEFT_FACADE_SHORT_WINDOW_STYLE,
+        style: stack.includeFirst ? LEFT_FACADE_TALL_LOWER_WINDOW_STYLE : LEFT_FACADE_SHORT_WINDOW_STYLE,
       },
       ...(stack.includeFirst
         ? [{
@@ -499,7 +518,7 @@ export const architecturalHouse: ArchitecturalHouse = {
             width: LEFT_FACADE_STACK_WIDTH,
             sillHeight: 0,
             height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
-            style: LEFT_FACADE_STACK_STYLE,
+            style: LEFT_FACADE_TALL_UPPER_WINDOW_STYLE,
           }]
         : []),
     ]),

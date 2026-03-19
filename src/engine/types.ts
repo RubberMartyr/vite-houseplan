@@ -148,8 +148,10 @@ export interface OpeningStyleSpec {
   materialKey?: string;
   glassMaterialKey?: string;
 
-  variant?: 'plain' | 'classicTransom' | 'firstFloorTransom' | 'doorDetailed';
+  variant?: 'plain' | 'classicTransom' | 'firstFloorTransom' | 'doorDetailed' | 'verticalTransom';
   grid?: { cols: number; rows: number };
+  transomRatio?: number;
+  rowFractions?: number[];
   hasSill?: boolean;
   hasLintel?: boolean;
   surroundRing?: boolean;

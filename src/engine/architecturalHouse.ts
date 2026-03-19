@@ -41,6 +41,26 @@ function findEdgeIndexAtZ(ring: XZ[], zTarget: number, eps = EPS): number | null
   return null;
 }
 
+function getEdgeLength(ring: XZ[], edgeIndex: number): number {
+  const r = openRing(ring);
+  const a = r[edgeIndex];
+  const b = r[(edgeIndex + 1) % r.length];
+
+  return Math.hypot(b.x - a.x, b.z - a.z);
+}
+
+function getCenteredEdgeOffset(ring: XZ[], edgeIndex: number, width: number): number {
+  const edgeLength = getEdgeLength(ring, edgeIndex);
+
+  if (width > edgeLength + EPS) {
+    throw new Error(
+      `Opening width ${width} exceeds edge ${edgeIndex} length ${edgeLength.toFixed(3)}`
+    );
+  }
+
+  return (edgeLength - width) / 2;
+}
+
 /**
  * Finds facade edge index at either minZ or maxZ.
  * Throws if not found.
@@ -147,6 +167,37 @@ const FIRST_REAR_WINDOW_HEIGHT = 1.6;
 const FIRST_REAR_LEFT_WINDOW_OFFSET = FIRST_REAR_COMPOSITION_PADDING + 1.7;
 const FIRST_REAR_RIGHT_WINDOW_OFFSET =
   FIRST_REAR_COMPOSITION_PADDING + 1.7 + FIRST_REAR_WINDOW_WIDTH + 2.0;
+
+const LEFT_FACADE_GROUND_OPENING_HEIGHT = 2.45;
+const LEFT_FACADE_FIRST_OPENING_HEIGHT = 1.95;
+const LEFT_FACADE_STACK_WIDTH = 1.1;
+const LEFT_FACADE_STACK_STYLE = {
+  variant: 'plain',
+  hasSill: false,
+  hasLintel: false,
+  grid: { cols: 1, rows: 1 },
+} as const;
+
+// These three stacks sit on the indented left facade's explicit vertical edge runs.
+// Do not replace these with generic minX/left-facade helpers: each stack belongs to
+// a different footprint segment and must stay edge-addressed for deterministic derivation.
+const LEFT_FACADE_STACKS = [
+  {
+    id: 'LOW',
+    groundEdgeIndex: 7,
+    firstEdgeIndex: 4,
+  },
+  {
+    id: 'MID',
+    groundEdgeIndex: 5,
+    firstEdgeIndex: 2,
+  },
+  {
+    id: 'HIGH',
+    groundEdgeIndex: 3,
+    firstEdgeIndex: 0,
+  },
+] as const;
 
 console.log("FRONT EDGE CHECK", {
   frontFacade: FRONT_FACADE,
@@ -415,5 +466,29 @@ export const architecturalHouse: ArchitecturalHouse = {
       height: FIRST_REAR_WINDOW_HEIGHT,
       style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 1 }, hasSill: true, hasLintel: true },
     },
+    ...LEFT_FACADE_STACKS.flatMap((stack) => [
+      {
+        id: `LEFT_STACK_${stack.id}_G`,
+        kind: 'window' as const,
+        levelId: 'ground',
+        edge: { levelId: 'ground', ring: 'outer' as const, edgeIndex: stack.groundEdgeIndex },
+        offset: getCenteredEdgeOffset(levels[0].footprint.outer, stack.groundEdgeIndex, LEFT_FACADE_STACK_WIDTH),
+        width: LEFT_FACADE_STACK_WIDTH,
+        sillHeight: 0,
+        height: LEFT_FACADE_GROUND_OPENING_HEIGHT,
+        style: LEFT_FACADE_STACK_STYLE,
+      },
+      {
+        id: `LEFT_STACK_${stack.id}_F`,
+        kind: 'window' as const,
+        levelId: 'first',
+        edge: { levelId: 'first', ring: 'outer' as const, edgeIndex: stack.firstEdgeIndex },
+        offset: getCenteredEdgeOffset(levels[1].footprint.outer, stack.firstEdgeIndex, LEFT_FACADE_STACK_WIDTH),
+        width: LEFT_FACADE_STACK_WIDTH,
+        sillHeight: 0,
+        height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
+        style: LEFT_FACADE_STACK_STYLE,
+      },
+    ]),
   ],
 };

@@ -183,7 +183,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       baseLevelId: "first",
       eaveHeight: 2.8,
       thickness: 0.2,
-      overhang: 0.3,
+      overhang: 0,
       ridgeSegments: [
         {
           id: "main",

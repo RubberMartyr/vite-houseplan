@@ -12,6 +12,7 @@ export type StackedWindowRenderPart = {
 const POSITION_EPSILON = 1e-4;
 const DIRECTION_EPSILON = 1e-4;
 const GAP_EPSILON = 1e-4;
+const FACADE_OFFSET_EPSILON = 0.01;
 
 function areClose(a: number, b: number, epsilon = POSITION_EPSILON) {
   return Math.abs(a - b) <= epsilon;
@@ -101,8 +102,10 @@ export function resolveStackedWindowRenderParts(
         separatorBottom + separatorHeight / 2,
         centerXZ.z
       );
-      const inward = outward.clone().multiplyScalar(-wallThickness / 2);
-      center.add(inward);
+      const outwardOffset = outward
+        .clone()
+        .multiplyScalar(Math.max(wallThickness / 2 - FACADE_OFFSET_EPSILON, 0));
+      center.add(outwardOffset);
 
       const basis = new THREE.Matrix4().makeBasis(tangent, up, outward);
       const quaternion = new THREE.Quaternion().setFromRotationMatrix(basis);

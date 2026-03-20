@@ -154,6 +154,10 @@ const LEFT_FACADE_GROUND_OPENING_HEIGHT = cm(245);
 const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
 const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
 const LEFT_FACADE_STACK_WIDTH = cm(110);
+const LEFT_FACADE_FLAT_SMALL_WIDTH = cm(70);
+const LEFT_FACADE_FLAT_SMALL_HEIGHT = cm(80);
+const LEFT_FACADE_FLAT_SMALL_SILL_HEIGHT = cm(100);
+const LEFT_FACADE_FLAT_SMALL_OFFSET = cm(130);
 // Elevation calibration: the left facade reads closer to a roughly 2/3 lower lite and
 // 1/3 transom than an even 50/50 split, so keep the whole family at a 0.66 lower-zone ratio.
 const LEFT_FACADE_TRANSOM_RATIO = 0.66;
@@ -191,10 +195,20 @@ const LEFT_FACADE_SHORT_WINDOW_STYLE = {
   mullionWidth: LEFT_FACADE_FAMILY_MULLION_WIDTH,
 } as const;
 
+type LeftFacadeStack = {
+  id: 'LOW' | 'MID' | 'HIGH';
+  groundEdgeIndex: number;
+  firstEdgeIndex: number;
+  offset: number;
+  fromEnd: boolean;
+  groundHeight: number;
+  includeFirst: boolean;
+};
+
 // These three stacks sit on the indented left facade's explicit vertical edge runs.
 // Do not replace these with generic minX/left-facade helpers: each stack belongs to
 // a different footprint segment and must stay edge-addressed for deterministic derivation.
-const LEFT_FACADE_STACKS = [
+const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
   {
     id: 'LOW',
     groundEdgeIndex: 7,
@@ -202,7 +216,7 @@ const LEFT_FACADE_STACKS = [
     offset: cm(70),
     fromEnd: true,
     groundHeight: LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT,
-    includeFirst: true,
+    includeFirst: false,
   },
   {
     id: 'MID',
@@ -223,6 +237,50 @@ const LEFT_FACADE_STACKS = [
     includeFirst: true,
   },
 ] as const;
+
+function createLeftFacadeStackOpenings(stack: LeftFacadeStack) {
+  const openings = [
+    {
+      id: `LEFT_STACK_${stack.id}_G`,
+      kind: 'window' as const,
+      levelId: 'ground',
+      edge: {
+        levelId: 'ground',
+        ring: 'outer' as const,
+        edgeIndex: stack.groundEdgeIndex,
+        fromEnd: stack.fromEnd,
+      },
+      offset: stack.offset,
+      width: LEFT_FACADE_STACK_WIDTH,
+      sillHeight: 0,
+      height: stack.groundHeight,
+      style: stack.includeFirst ? LEFT_FACADE_TALL_LOWER_WINDOW_STYLE : LEFT_FACADE_SHORT_WINDOW_STYLE,
+    },
+  ];
+
+  if (!stack.includeFirst) {
+    return openings;
+  }
+
+  openings.push({
+    id: `LEFT_STACK_${stack.id}_F`,
+    kind: 'window' as const,
+    levelId: 'first',
+    edge: {
+      levelId: 'first',
+      ring: 'outer' as const,
+      edgeIndex: stack.firstEdgeIndex,
+      fromEnd: stack.fromEnd,
+    },
+    offset: stack.offset,
+    width: LEFT_FACADE_STACK_WIDTH,
+    sillHeight: 0,
+    height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
+    style: LEFT_FACADE_TALL_UPPER_WINDOW_STYLE,
+  });
+
+  return openings;
+}
 
 console.log("FRONT EDGE CHECK", {
   frontFacade: FRONT_FACADE,
@@ -491,41 +549,28 @@ export const architecturalHouse: ArchitecturalHouse = {
       height: FIRST_REAR_WINDOW_HEIGHT,
       style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 1 }, hasSill: true, hasLintel: true },
     },
-    ...LEFT_FACADE_STACKS.flatMap((stack) => [
-      {
-        id: `LEFT_STACK_${stack.id}_G`,
-        kind: 'window' as const,
-        levelId: 'ground',
-        edge: {
-          levelId: 'ground',
-          ring: 'outer' as const,
-          edgeIndex: stack.groundEdgeIndex,
-          fromEnd: stack.fromEnd,
-        },
-        offset: stack.offset,
-        width: LEFT_FACADE_STACK_WIDTH,
-        sillHeight: 0,
-        height: stack.groundHeight,
-        style: stack.includeFirst ? LEFT_FACADE_TALL_LOWER_WINDOW_STYLE : LEFT_FACADE_SHORT_WINDOW_STYLE,
+    {
+      id: 'LEFT_FLAT_SMALL_G',
+      kind: 'window',
+      levelId: 'ground',
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: 2, fromEnd: false },
+      offset: LEFT_FACADE_FLAT_SMALL_OFFSET,
+      width: LEFT_FACADE_FLAT_SMALL_WIDTH,
+      sillHeight: LEFT_FACADE_FLAT_SMALL_SILL_HEIGHT,
+      height: LEFT_FACADE_FLAT_SMALL_HEIGHT,
+      style: {
+        variant: 'verticalTransom',
+        hasSill: false,
+        hasLintel: true,
+        grid: { cols: 1, rows: 2 },
+        transomRatio: LEFT_FACADE_TRANSOM_RATIO,
+        frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
+        frameDepth: 0.1,
+        glassInset: 0.012,
+        glassThickness: 0.012,
+        mullionWidth: LEFT_FACADE_FAMILY_MULLION_WIDTH,
       },
-      ...(stack.includeFirst
-        ? [{
-            id: `LEFT_STACK_${stack.id}_F`,
-            kind: 'window' as const,
-            levelId: 'first',
-            edge: {
-              levelId: 'first',
-              ring: 'outer' as const,
-              edgeIndex: stack.firstEdgeIndex,
-              fromEnd: stack.fromEnd,
-            },
-            offset: stack.offset,
-            width: LEFT_FACADE_STACK_WIDTH,
-            sillHeight: 0,
-            height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
-            style: LEFT_FACADE_TALL_UPPER_WINDOW_STYLE,
-          }]
-        : []),
-    ]),
+    },
+    ...LEFT_FACADE_STACKS.flatMap(createLeftFacadeStackOpenings),
   ],
 };

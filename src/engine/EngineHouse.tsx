@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
 import type { ArchitecturalHouse } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
+import { EdgeVisualizer } from './debug/EdgeVisualizer';
 import { EngineDebugHUD } from './debug/EngineDebugHUD';
 import { DerivedGraphOverlay } from './debug/DerivedGraphOverlay';
+import { OpeningAnchorDebug } from './debug/OpeningAnchorDebug';
 import { RoofPlaneVisualizer } from './debug/RoofPlaneVisualizer';
+import { debugFlags } from './debug/debugFlags';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineOpenings } from './render/EngineOpenings';
 import { EngineRoofs } from './render/EngineRoofs';
@@ -46,6 +49,12 @@ export function EngineHouse({ architecturalHouse }: Props) {
         roofValidationEntries={[]}
         roofMaterialSpec={architecturalHouse.materials?.roof}
       />
+      {debugFlags.enabled && (
+        <>
+          <EdgeVisualizer walls={derived.walls} />
+          <OpeningAnchorDebug openings={derived.openings} />
+        </>
+      )}
       <EngineDebugHUD derived={derived} />
       <RoofPlaneVisualizer roofs={derived.roofs} />
       <DerivedGraphOverlay derived={derived} />

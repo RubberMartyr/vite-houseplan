@@ -3,7 +3,7 @@ import type { DerivedWallSegment } from '../deriveWalls';
 
 const EPSILON = 1e-6;
 const STACK_CONTACT_TOLERANCE = 0.01;
-const STACK_SEPARATOR_HEIGHT = 0.2;
+const SEPARATOR_HEIGHT = 0.2;
 
 export interface WallPieceRect {
   uMin: number;
@@ -18,6 +18,7 @@ interface StackSeparatorBand {
   uMax: number;
   vMin: number;
   vMax: number;
+  key: string;
 }
 
 function uniqueSorted(values: number[]) {
@@ -40,7 +41,7 @@ function clamp(value: number, min: number, max: number) {
 
 function addStackSeparatorCuts(vCuts: Set<number>, wallHeight: number, boundary: number) {
   const lowerCut = clamp(boundary, 0, wallHeight);
-  const upperCut = clamp(boundary + STACK_SEPARATOR_HEIGHT, 0, wallHeight);
+  const upperCut = clamp(boundary + SEPARATOR_HEIGHT, 0, wallHeight);
 
   vCuts.add(lowerCut);
   vCuts.add(upperCut);
@@ -70,7 +71,14 @@ function buildStackSeparatorBand(
     uMin: overlap.min,
     uMax: overlap.max,
     vMin: clamp(boundary, 0, wallHeight),
-    vMax: clamp(boundary + STACK_SEPARATOR_HEIGHT, 0, wallHeight),
+    vMax: clamp(boundary + SEPARATOR_HEIGHT, 0, wallHeight),
+    key: [
+      lowerOpening.id,
+      upperOpening.id,
+      overlap.min.toFixed(6),
+      overlap.max.toFixed(6),
+      boundary.toFixed(6),
+    ].join('|'),
   };
 }
 
@@ -108,7 +116,7 @@ export function splitWallByOpenings(
 
   const uCuts = new Set<number>([0, wallLength]);
   const vCuts = new Set<number>([0, wallHeight]);
-  const stackSeparators: StackSeparatorBand[] = [];
+  const stackSeparators = new Map<string, StackSeparatorBand>();
 
   openings.forEach((opening) => {
     uCuts.add(opening.uMin);
@@ -118,23 +126,17 @@ export function splitWallByOpenings(
   });
 
   for (let index = 0; index < openings.length; index += 1) {
-    for (let compareIndex = index + 1; compareIndex < openings.length; compareIndex += 1) {
-      const opening = openings[index];
-      const otherOpening = openings[compareIndex];
+    for (let compareIndex = 0; compareIndex < openings.length; compareIndex += 1) {
+      if (index === compareIndex) continue;
 
-      if (Math.abs(opening.vMax - otherOpening.vMin) < STACK_CONTACT_TOLERANCE) {
-        addStackSeparatorCuts(vCuts, wallHeight, opening.vMax);
-        const separator = buildStackSeparatorBand(wallHeight, opening, otherOpening);
-        if (separator) {
-          stackSeparators.push(separator);
-        }
-      }
+      const lowerOpening = openings[index];
+      const upperOpening = openings[compareIndex];
 
-      if (Math.abs(otherOpening.vMax - opening.vMin) < STACK_CONTACT_TOLERANCE) {
-        addStackSeparatorCuts(vCuts, wallHeight, otherOpening.vMax);
-        const separator = buildStackSeparatorBand(wallHeight, otherOpening, opening);
+      if (Math.abs(lowerOpening.vMax - upperOpening.vMin) < STACK_CONTACT_TOLERANCE) {
+        addStackSeparatorCuts(vCuts, wallHeight, lowerOpening.vMax);
+        const separator = buildStackSeparatorBand(wallHeight, lowerOpening, upperOpening);
         if (separator) {
-          stackSeparators.push(separator);
+          stackSeparators.set(separator.key, separator);
         }
       }
     }
@@ -142,6 +144,7 @@ export function splitWallByOpenings(
 
   const uSorted = uniqueSorted([...uCuts]);
   const vSorted = uniqueSorted([...vCuts]);
+  const separatorBands = [...stackSeparators.values()];
   const pieces: WallPieceRect[] = [];
 
   for (let ui = 0; ui < uSorted.length - 1; ui += 1) {
@@ -157,7 +160,7 @@ export function splitWallByOpenings(
       const area = (piece.uMax - piece.uMin) * (piece.vMax - piece.vMin);
       if (area <= EPSILON) continue;
 
-      const separator = stackSeparators.find((candidate) => cellFitsInsideSeparatorBand(cell, candidate));
+      const separator = separatorBands.find((candidate) => cellFitsInsideSeparatorBand(cell, candidate));
       const overlappingOpenings = openings.filter((opening) => {
         if (!cellOverlapsOpening(cell, opening)) {
           return false;

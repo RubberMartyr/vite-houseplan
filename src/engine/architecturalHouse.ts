@@ -202,7 +202,7 @@ const LEFT_FACADE_STACKS = [
     offset: cm(70),
     fromEnd: true,
     groundHeight: LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT,
-    includeFirst: false,
+    includeFirst: true,
   },
   {
     id: 'MID',

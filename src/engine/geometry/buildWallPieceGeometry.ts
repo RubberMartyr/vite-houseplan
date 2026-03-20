@@ -11,6 +11,23 @@ export function buildWallPieceGeometry(
   brickScale = 0.6,
   footprintOuter?: Vec2[]
 ): THREE.BufferGeometry {
+  const { vMin, vMax } = piece;
+  const height = vMax - vMin;
+
+  console.log('BUILD WALL PIECE', {
+    vMin,
+    vMax,
+    height,
+  });
+
+  if (height < 0.3) {
+    console.warn('SMALL WALL PIECE (separator?)', {
+      vMin,
+      vMax,
+      height,
+    });
+  }
+
   const wallBaseY = getWallVisibleBaseY(wall);
 
   return buildWallPrismGeometry(

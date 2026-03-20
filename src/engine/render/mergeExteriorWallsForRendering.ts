@@ -1,8 +1,11 @@
 import type { DerivedWallSegment } from '../deriveWalls';
 import { getWallVisibleBaseY, getWallVisibleTopY } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
+import { debugFlags } from '../debug/debugFlags';
 
 const EPSILON = 1e-6;
+const SEPARATOR_HEIGHT_MIN = 0.05;
+const SEPARATOR_HEIGHT_MAX = 0.4;
 
 type WallMergeGroup = {
   walls: DerivedWallSegment[];
@@ -89,8 +92,30 @@ export function mergeExteriorWallsForRendering(
   walls: DerivedWallSegment[],
   openings: DerivedOpening[]
 ): MergeResult {
+  const debugEnabled = debugFlags.enabled;
   const mergedWalls: DerivedWallSegment[] = [];
   const openingWallIdMap = new Map<string, { mergedWallId: string; renderedBaseY: number }>();
+
+  if (debugEnabled) {
+    const separatorCandidateOpenings = openings.filter((opening) => {
+      const height = opening.vMax - opening.vMin;
+      return height > SEPARATOR_HEIGHT_MIN && height < SEPARATOR_HEIGHT_MAX;
+    });
+
+    console.debug('[separator-debug]', {
+      stage: 'mergeExteriorWallsForRendering:start',
+      inputWallCount: walls.length,
+      inputOpeningCount: openings.length,
+      separatorCandidateOpeningCount: separatorCandidateOpenings.length,
+      separatorCandidateOpenings: separatorCandidateOpenings.map((opening) => ({
+        openingId: opening.id,
+        wallId: opening.wallId,
+        vMin: opening.vMin,
+        vMax: opening.vMax,
+        height: opening.vMax - opening.vMin,
+      })),
+    });
+  }
 
   for (const group of groupWallsByPlanEdge(walls)) {
     const runs = mergeVerticalRuns(group.walls);
@@ -120,6 +145,17 @@ export function mergeExteriorWallsForRendering(
           renderedBaseY,
         });
       }
+
+      if (debugEnabled) {
+        console.debug('[separator-debug]', {
+          stage: 'mergeExteriorWallsForRendering:run',
+          sourceWallIds: run.map((wall) => wall.id),
+          mergedWallId,
+          renderedBaseY,
+          renderedTopY,
+          sourceWallCount: run.length,
+        });
+      }
     }
   }
 
@@ -145,6 +181,21 @@ export function mergeExteriorWallsForRendering(
 
   mergedWalls.sort((a, b) => a.id.localeCompare(b.id));
   mergedOpenings.sort((a, b) => (a.wallId.localeCompare(b.wallId) || a.uMin - b.uMin || a.vMin - b.vMin));
+
+  if (debugEnabled) {
+    console.debug('[separator-debug]', {
+      stage: 'mergeExteriorWallsForRendering:end',
+      outputWallCount: mergedWalls.length,
+      outputOpeningCount: mergedOpenings.length,
+      mergedWallIds: mergedWalls.map((wall) => wall.id),
+      mergedOpeningWallIds: mergedOpenings.map((opening) => ({
+        openingId: opening.id,
+        wallId: opening.wallId,
+        vMin: opening.vMin,
+        vMax: opening.vMax,
+      })),
+    });
+  }
 
   return {
     walls: mergedWalls,

@@ -1,5 +1,11 @@
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { DerivedWallSegment } from '../deriveWalls';
+import {
+  createSeparatorDebugMetadata,
+  isSeparatorCandidatePiece,
+  logSeparatorDebug,
+} from '../debug/separatorDebug';
+import { debugFlags } from '../debug/debugFlags';
 
 const EPSILON = 1e-6;
 const STACK_CONTACT_TOLERANCE = 0.01;
@@ -110,6 +116,8 @@ export function splitWallByOpenings(
   openings: DerivedOpening[],
   wall?: Pick<DerivedWallSegment, 'id' | 'levelId'> & { edgeIndex?: number }
 ): WallPieceRect[] {
+  const debugEnabled = debugFlags.enabled;
+
   if (!openings.length) {
     return [{ uMin: 0, uMax: wallLength, vMin: 0, vMax: wallHeight }];
   }
@@ -174,10 +182,39 @@ export function splitWallByOpenings(
       });
       const isOpening = overlappingOpenings.length > 0;
 
+      if (isSeparatorCandidatePiece(piece)) {
+        logSeparatorDebug(
+          debugEnabled,
+          createSeparatorDebugMetadata('splitWallByOpenings:cell-evaluated', wall?.id ?? 'unknown-wall', piece, {
+            levelId: wall?.levelId,
+            edgeIndex: wall?.edgeIndex,
+            addedToReturnedPieces: !isOpening,
+            overlappingOpeningIds: overlappingOpenings.map((opening) => opening.id),
+            separatorBandMatched: Boolean(separator),
+          })
+        );
+      }
+
       if (isOpening) continue;
 
       pieces.push(piece);
     }
+  }
+
+  for (const [pieceIndex, piece] of pieces.entries()) {
+    if (!isSeparatorCandidatePiece(piece)) {
+      continue;
+    }
+
+    logSeparatorDebug(
+      debugEnabled,
+      createSeparatorDebugMetadata('splitWallByOpenings:return-piece', wall?.id ?? 'unknown-wall', piece, {
+        pieceId: wall ? `${wall.id}-piece-${pieceIndex}` : undefined,
+        levelId: wall?.levelId,
+        edgeIndex: wall?.edgeIndex,
+        returnedPieceCount: pieces.length,
+      })
+    );
   }
 
   return pieces;

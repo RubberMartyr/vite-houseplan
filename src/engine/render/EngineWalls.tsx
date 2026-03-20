@@ -70,7 +70,12 @@ export function EngineWalls({
         }
 
         const wallLength = Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z);
-        const pieces = splitWallByOpenings(wallLength, getWallVisibleHeight(wall), openingsOnWall);
+        const pieces = splitWallByOpenings(
+          wallLength,
+          getWallVisibleHeight(wall),
+          openingsOnWall,
+          wall
+        );
 
         return pieces.map((piece, pieceIndex) => ({
           id: `${wall.id}-piece-${pieceIndex}`,

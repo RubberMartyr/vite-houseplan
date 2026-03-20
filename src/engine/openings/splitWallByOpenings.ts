@@ -3,7 +3,7 @@ import type { DerivedWallSegment } from '../deriveWalls';
 
 const EPSILON = 1e-6;
 const STACK_CONTACT_TOLERANCE = 0.01;
-const STACK_SEPARATOR_HALF_GAP = 0.02;
+const STACK_SEPARATOR_HEIGHT = 0.2;
 
 export interface WallPieceRect {
   uMin: number;
@@ -39,8 +39,8 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function addStackSeparatorCuts(vCuts: Set<number>, wallHeight: number, boundary: number) {
-  const lowerCut = clamp(boundary - STACK_SEPARATOR_HALF_GAP, 0, wallHeight);
-  const upperCut = clamp(boundary + STACK_SEPARATOR_HALF_GAP, 0, wallHeight);
+  const lowerCut = clamp(boundary, 0, wallHeight);
+  const upperCut = clamp(boundary + STACK_SEPARATOR_HEIGHT, 0, wallHeight);
 
   vCuts.add(lowerCut);
   vCuts.add(upperCut);
@@ -69,8 +69,8 @@ function buildStackSeparatorBand(
     boundary,
     uMin: overlap.min,
     uMax: overlap.max,
-    vMin: clamp(boundary - STACK_SEPARATOR_HALF_GAP, 0, wallHeight),
-    vMax: clamp(boundary + STACK_SEPARATOR_HALF_GAP, 0, wallHeight),
+    vMin: clamp(boundary, 0, wallHeight),
+    vMax: clamp(boundary + STACK_SEPARATOR_HEIGHT, 0, wallHeight),
   };
 }
 

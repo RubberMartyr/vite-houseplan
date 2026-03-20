@@ -12,13 +12,14 @@ export function buildWallPieceGeometry(
   footprintOuter?: Vec2[]
 ): THREE.BufferGeometry {
   const { vMin, vMax } = piece;
-  const height = vMax - vMin;
 
   console.log('BUILD WALL PIECE', {
     vMin,
     vMax,
-    height,
+    height: vMax - vMin,
   });
+
+  const height = vMax - vMin;
 
   if (height < 0.3) {
     console.warn('SMALL WALL PIECE (separator?)', {

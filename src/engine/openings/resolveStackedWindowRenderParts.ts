@@ -102,9 +102,9 @@ export function resolveStackedWindowRenderParts(
         separatorBottom + separatorHeight / 2,
         centerXZ.z
       );
-      const outwardOffset = outward
-        .clone()
-        .multiplyScalar(Math.max(wallThickness / 2 - FACADE_OFFSET_EPSILON, 0));
+      const outwardOffset = outward.clone().multiplyScalar(
+        Math.max(wallThickness / 2 - separatorDepth / 2 - FACADE_OFFSET_EPSILON, 0)
+      );
       center.add(outwardOffset);
 
       const basis = new THREE.Matrix4().makeBasis(tangent, up, outward);

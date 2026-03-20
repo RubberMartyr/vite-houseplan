@@ -118,6 +118,14 @@ export function splitWallByOpenings(
 ): WallPieceRect[] {
   const debugEnabled = debugFlags.enabled;
 
+  console.log('STACKED SEPARATOR: splitWallByOpenings CALLED', {
+    wallId: wall?.id ?? 'unknown-wall',
+    wallLength,
+    wallHeight,
+    openingCount: openings.length,
+    openingIds: openings.map((opening) => opening.id),
+  });
+
   if (!openings.length) {
     return [{ uMin: 0, uMax: wallLength, vMin: 0, vMax: wallHeight }];
   }
@@ -154,6 +162,19 @@ export function splitWallByOpenings(
   const vSorted = uniqueSorted([...vCuts]);
   const separatorBands = [...stackSeparators.values()];
   const pieces: WallPieceRect[] = [];
+
+  console.log('STACKED SEPARATOR: separator bands generated', {
+    wallId: wall?.id ?? 'unknown-wall',
+    bandCount: separatorBands.length,
+    bands: separatorBands.map((separator) => ({
+      key: separator.key,
+      boundary: separator.boundary,
+      uMin: separator.uMin,
+      uMax: separator.uMax,
+      vMin: separator.vMin,
+      vMax: separator.vMax,
+    })),
+  });
 
   for (let ui = 0; ui < uSorted.length - 1; ui += 1) {
     for (let vi = 0; vi < vSorted.length - 1; vi += 1) {
@@ -216,6 +237,20 @@ export function splitWallByOpenings(
       })
     );
   }
+
+  console.log('STACKED SEPARATOR: pieces returned', {
+    wallId: wall?.id ?? 'unknown-wall',
+    pieceCount: pieces.length,
+    separatorCandidateCount: pieces.filter((piece) => isSeparatorCandidatePiece(piece)).length,
+    pieces: pieces.map((piece, pieceIndex) => ({
+      pieceId: wall ? `${wall.id}-piece-${pieceIndex}` : `piece-${pieceIndex}`,
+      uMin: piece.uMin,
+      uMax: piece.uMax,
+      vMin: piece.vMin,
+      vMax: piece.vMax,
+      separatorCandidate: isSeparatorCandidatePiece(piece),
+    })),
+  });
 
   return pieces;
 }

@@ -1,5 +1,11 @@
 import * as THREE from 'three';
 import type { Vec2 } from '../architecturalTypes';
+import { debugFlags } from '../debug/debugFlags';
+import {
+  createSeparatorDebugMetadata,
+  isSeparatorCandidatePiece,
+  logSeparatorDebug,
+} from '../debug/separatorDebug';
 import type { DerivedWallSegment } from '../deriveWalls';
 import { getWallVisibleBaseY } from '../deriveWalls';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
@@ -9,24 +15,22 @@ export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
   piece: WallPieceRect,
   brickScale = 0.6,
-  footprintOuter?: Vec2[]
+  footprintOuter?: Vec2[],
+  pieceId?: string
 ): THREE.BufferGeometry {
-  const { vMin, vMax } = piece;
+  const debugEnabled = debugFlags.enabled;
 
-  console.log('BUILD WALL PIECE', {
-    vMin,
-    vMax,
-    height: vMax - vMin,
-  });
-
-  const height = vMax - vMin;
-
-  if (height < 0.3) {
-    console.warn('SMALL WALL PIECE (separator?)', {
-      vMin,
-      vMax,
-      height,
-    });
+  if (isSeparatorCandidatePiece(piece)) {
+    logSeparatorDebug(
+      debugEnabled,
+      createSeparatorDebugMetadata('buildWallPieceGeometry:create', wall.id, piece, {
+        pieceId,
+        levelId: wall.levelId,
+        wallVisibleBaseY: getWallVisibleBaseY(wall),
+        worldVMin: getWallVisibleBaseY(wall) + piece.vMin,
+        worldVMax: getWallVisibleBaseY(wall) + piece.vMax,
+      })
+    );
   }
 
   const wallBaseY = getWallVisibleBaseY(wall);

@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Vec2 } from '../architecturalTypes';
@@ -8,6 +9,12 @@ import { extrudeWallSegment } from '../extrudeWallSegment';
 import { DebugWireframe } from '../debug/DebugWireframe';
 import { createGeometryCache } from '../cache/geometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
+import { debugFlags } from '../debug/debugFlags';
+import {
+  createSeparatorDebugMetadata,
+  isSeparatorCandidatePiece,
+  logSeparatorDebug,
+} from '../debug/separatorDebug';
 import { groupOpeningsByWall } from '../openings/groupOpeningsByWall';
 import { splitWallByOpenings } from '../openings/splitWallByOpenings';
 import { buildWallPieceGeometry } from '../geometry/buildWallPieceGeometry';
@@ -25,7 +32,11 @@ type EngineWallsProps = {
   wallMaterialSpec?: ArchitecturalMaterials['walls'];
 };
 
-const getGeometry = createGeometryCache<BuiltWall[]>();
+type BuiltWallPiece = BuiltWall & {
+  debugSeparatorCandidate?: boolean;
+};
+
+const getGeometry = createGeometryCache<BuiltWallPiece[]>();
 
 export function EngineWalls({
   walls,
@@ -37,13 +48,24 @@ export function EngineWalls({
   wallMaterialSpec,
 }: EngineWallsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
+  const debugEnabled = debugFlags.enabled;
   const wallMaterial = useMemo(() => createWallMaterial(wallMaterialSpec), [wallMaterialSpec]);
+  const separatorDebugMaterial = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#39ff14',
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
 
   useEffect(() => {
     if ('wireframe' in wallMaterial) {
       (wallMaterial as { wireframe?: boolean }).wireframe = debugWireframe;
     }
   }, [debugWireframe, wallMaterial]);
+
+  useEffect(() => () => separatorDebugMaterial.dispose(), [separatorDebugMaterial]);
 
   const builtWalls = useMemo(() => {
     if (!visible) {
@@ -56,11 +78,28 @@ export function EngineWalls({
       const { walls: visibleWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(walls, openings);
       const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
 
+      if (debugEnabled) {
+        console.debug('[separator-debug]', {
+          stage: 'EngineWalls:post-merge',
+          wallCountBeforeMerge: walls.length,
+          wallCountAfterMerge: visibleWalls.length,
+          openingCountBeforeMerge: openings.length,
+          openingCountAfterMerge: visibleOpenings.length,
+        });
+      }
+
       return visibleWalls.flatMap((wall) => {
         const openingsOnWall = openingsByWall.get(wall.id) ?? [];
         const footprintOuter = levelFootprintsById?.[wall.levelId];
 
         if (!openingsOnWall.length) {
+          if (debugEnabled) {
+            console.debug('[separator-debug]', {
+              stage: 'EngineWalls:no-openings-direct-render',
+              wallId: wall.id,
+            });
+          }
+
           return [
             {
               id: wall.id,
@@ -77,42 +116,121 @@ export function EngineWalls({
           wall
         );
 
-        return pieces.map((piece, pieceIndex) => ({
-          id: `${wall.id}-piece-${pieceIndex}`,
-          geometry: buildWallPieceGeometry(wall, piece, wallMaterialSpec?.scale ?? 0.6, footprintOuter),
-        }));
+        if (debugEnabled) {
+          console.debug('[separator-debug]', {
+            stage: 'EngineWalls:split-result',
+            wallId: wall.id,
+            openingsOnWall: openingsOnWall.map((opening) => ({
+              openingId: opening.id,
+              vMin: opening.vMin,
+              vMax: opening.vMax,
+            })),
+            pieceCount: pieces.length,
+          });
+        }
+
+        return pieces.map((piece, pieceIndex) => {
+          const pieceId = `${wall.id}-piece-${pieceIndex}`;
+          const debugSeparatorCandidate = isSeparatorCandidatePiece(piece);
+
+          if (debugSeparatorCandidate) {
+            logSeparatorDebug(
+              debugEnabled,
+              createSeparatorDebugMetadata('EngineWalls:piece-ready-for-geometry', wall.id, piece, {
+                pieceId,
+                renderedIntoMesh: true,
+              })
+            );
+          }
+
+          return {
+            id: pieceId,
+            debugSeparatorCandidate,
+            geometry: buildWallPieceGeometry(
+              wall,
+              piece,
+              wallMaterialSpec?.scale ?? 0.6,
+              footprintOuter,
+              pieceId
+            ),
+          };
+        });
       });
     });
-  }, [walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
+  }, [debugEnabled, walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
+
+  const normalBuiltWalls = useMemo(
+    () => (debugEnabled ? builtWalls.filter((wall) => !wall.debugSeparatorCandidate) : builtWalls),
+    [builtWalls, debugEnabled]
+  );
+
+  const separatorBuiltWalls = useMemo(
+    () => (debugEnabled ? builtWalls.filter((wall) => wall.debugSeparatorCandidate) : []),
+    [builtWalls, debugEnabled]
+  );
 
   const mergedGeometry = useMemo(() => {
-    if (!builtWalls.length) {
+    if (!normalBuiltWalls.length) {
       return null;
     }
 
     return mergeGeometries(
-      builtWalls.map(({ geometry }) => geometry),
+      normalBuiltWalls.map(({ geometry }) => geometry),
       false
     );
-  }, [builtWalls]);
+  }, [normalBuiltWalls]);
+
+  const separatorMergedGeometry = useMemo(() => {
+    if (!separatorBuiltWalls.length) {
+      return null;
+    }
+
+    if (debugEnabled) {
+      console.debug('[separator-debug]', {
+        stage: 'EngineWalls:separator-merged-geometry',
+        inputPieceCount: separatorBuiltWalls.length,
+        pieceIds: separatorBuiltWalls.map((wall) => wall.id),
+      });
+    }
+
+    return mergeGeometries(
+      separatorBuiltWalls.map(({ geometry }) => geometry),
+      false
+    );
+  }, [debugEnabled, separatorBuiltWalls]);
 
   if (!visible) {
     return null;
   }
 
-  if (!mergedGeometry) {
+  if (!mergedGeometry && !separatorMergedGeometry) {
     return null;
   }
 
   return (
-    <mesh
-      geometry={mergedGeometry}
-      material={wallMaterial}
-      castShadow
-      receiveShadow
-      userData={{ debugType: 'structure' }}
-    >
-      <DebugWireframe />
-    </mesh>
+    <>
+      {mergedGeometry ? (
+        <mesh
+          geometry={mergedGeometry}
+          material={wallMaterial}
+          castShadow
+          receiveShadow
+          userData={{ debugType: 'structure' }}
+        >
+          <DebugWireframe />
+        </mesh>
+      ) : null}
+      {debugEnabled && separatorMergedGeometry ? (
+        <mesh
+          geometry={separatorMergedGeometry}
+          material={separatorDebugMaterial}
+          castShadow
+          receiveShadow
+          userData={{ debugType: 'structure', debugSeparatorCandidate: true }}
+        >
+          <DebugWireframe />
+        </mesh>
+      ) : null}
+    </>
   );
 }

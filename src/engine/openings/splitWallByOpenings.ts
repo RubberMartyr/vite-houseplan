@@ -48,17 +48,35 @@ export function splitWallByOpenings(
 
   for (let ui = 0; ui < uSorted.length - 1; ui += 1) {
     for (let vi = 0; vi < vSorted.length - 1; vi += 1) {
-      const piece: WallPieceRect = {
+      const cell = {
         uMin: uSorted[ui],
         uMax: uSorted[ui + 1],
         vMin: vSorted[vi],
         vMax: vSorted[vi + 1],
       };
+      const piece: WallPieceRect = cell;
 
       const area = (piece.uMax - piece.uMin) * (piece.vMax - piece.vMin);
       if (area <= EPSILON) continue;
 
-      const isOpening = openings.some((opening) => cellOverlapsOpening(piece, opening));
+      const overlappingOpenings = openings.filter((opening) => cellOverlapsOpening(cell, opening));
+      const isOpening = overlappingOpenings.length > 0;
+      const isInterestingBand =
+        overlappingOpenings.length > 0 ||
+        openings.some(
+          (opening) =>
+            Math.abs(cell.vMin - opening.vMax) < 0.01 ||
+            Math.abs(cell.vMax - opening.vMin) < 0.01
+        );
+
+      if (isInterestingBand) {
+        console.log('WALL CELL DEBUG', {
+          cell,
+          isOpening,
+          overlappingIds: overlappingOpenings.map((opening) => opening.id),
+        });
+      }
+
       if (isOpening) continue;
 
       pieces.push(piece);

@@ -1,4 +1,5 @@
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
+import type { DerivedWallSegment } from '../deriveWalls';
 
 const EPSILON = 1e-6;
 
@@ -26,7 +27,8 @@ function cellOverlapsOpening(cell: WallPieceRect, opening: DerivedOpening) {
 export function splitWallByOpenings(
   wallLength: number,
   wallHeight: number,
-  openings: DerivedOpening[]
+  openings: DerivedOpening[],
+  wall?: Pick<DerivedWallSegment, 'id' | 'levelId'> & { edgeIndex?: number }
 ): WallPieceRect[] {
   if (!openings.length) {
     return [{ uMin: 0, uMax: wallLength, vMin: 0, vMax: wallHeight }];
@@ -59,21 +61,31 @@ export function splitWallByOpenings(
       const area = (piece.uMax - piece.uMin) * (piece.vMax - piece.vMin);
       if (area <= EPSILON) continue;
 
-      const overlappingOpenings = openings.filter((opening) => cellOverlapsOpening(cell, opening));
-      const isOpening = overlappingOpenings.length > 0;
-      const isInterestingBand =
-        overlappingOpenings.length > 0 ||
-        openings.some(
-          (opening) =>
-            Math.abs(cell.vMin - opening.vMax) < 0.01 ||
-            Math.abs(cell.vMax - opening.vMin) < 0.01
-        );
+      const wallLabel = wall?.id ?? `${wall?.levelId ?? '?'}-${wall?.edgeIndex ?? '?'}`;
 
-      if (isInterestingBand) {
-        console.log('WALL CELL DEBUG', {
-          cell,
+      const overlappingOpenings = openings.filter((o) => cellOverlapsOpening(cell, o));
+      const touchingOpenings = openings.filter(
+        (o) =>
+          Math.abs(cell.vMin - o.vMax) < 0.01 || Math.abs(cell.vMax - o.vMin) < 0.01
+      );
+      const isOpening = overlappingOpenings.length > 0;
+      const interesting =
+        wallLabel.includes('LEFT') ||
+        overlappingOpenings.some((o) => o.id.startsWith('LEFT_STACK')) ||
+        touchingOpenings.some((o) => o.id.startsWith('LEFT_STACK'));
+
+      if (interesting) {
+        console.log('LEFT STACK CELL DEBUG', {
+          wall: wallLabel,
+          cell: {
+            uMin: Number(cell.uMin.toFixed(3)),
+            uMax: Number(cell.uMax.toFixed(3)),
+            vMin: Number(cell.vMin.toFixed(3)),
+            vMax: Number(cell.vMax.toFixed(3)),
+          },
           isOpening,
-          overlappingIds: overlappingOpenings.map((opening) => opening.id),
+          overlappingIds: overlappingOpenings.map((o) => o.id),
+          touchingIds: touchingOpenings.map((o) => o.id),
         });
       }
 

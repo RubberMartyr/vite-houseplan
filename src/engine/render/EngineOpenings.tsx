@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { resolveOpeningRenderParts } from '../openings/resolveOpeningRenderParts';
-import { resolveStackedWindowRenderParts } from '../openings/resolveStackedWindowRenderParts';
 import { archToWorldXZ } from '../spaceMapping';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
@@ -40,25 +39,8 @@ export function EngineOpenings({
     receiveShadow: true,
   };
 
-  const stackedWindowParts = useMemo(
-    () => resolveStackedWindowRenderParts(openings, wallThickness),
-    [openings, wallThickness]
-  );
-
   return (
     <>
-      {stackedWindowParts.map((part) => (
-        <mesh
-          {...shadowProps}
-          key={part.key}
-          material={frameMaterial}
-          position={part.position}
-          quaternion={part.quaternion}
-          userData={{ debugIgnore: true }}
-        >
-          <boxGeometry args={part.size} />
-        </mesh>
-      ))}
       {openings.map((o) => {
         const width = o.uMax - o.uMin;
         const height = o.vMax - o.vMin;

@@ -153,30 +153,31 @@ const FIRST_REAR_RIGHT_WINDOW_OFFSET =
 const LEFT_FACADE_GROUND_OPENING_HEIGHT = cm(245);
 const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
 const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
-const LEFT_FACADE_STACK_WIDTH = cm(70);
-// The 4.45m indented side wall carries two narrower stacked bays; keep the offsets
-// edge-addressed so both floors stay aligned to that exact facade segment.
-const LEFT_FACADE_MID_SEGMENT_WINDOW_CHAIN = [cm(100), LEFT_FACADE_STACK_WIDTH, cm(105), LEFT_FACADE_STACK_WIDTH, cm(100)];
+const LEFT_FACADE_LOW_STACK_WIDTH = cm(70);
+const LEFT_FACADE_TALL_STACK_WIDTH = cm(80);
+// Drawing callouts show the lower return opening at 70cm wide and the taller
+// left-facade stacks at 80cm wide. Keep the long 4.45m side run edge-addressed so
+// both floors stay aligned to the explicit facade segment.
+const LEFT_FACADE_MID_SEGMENT_WINDOW_CHAIN = [
+  cm(100),
+  LEFT_FACADE_TALL_STACK_WIDTH,
+  cm(85),
+  LEFT_FACADE_TALL_STACK_WIDTH,
+  cm(100),
+];
 const [leftFacadeMidRearCenter, leftFacadeMidFrontCenter] =
   computeOpeningOffsetsFromChain(LEFT_FACADE_MID_SEGMENT_WINDOW_CHAIN);
-const LEFT_FACADE_MID_REAR_OFFSET = leftFacadeMidRearCenter - LEFT_FACADE_STACK_WIDTH / 2;
-const LEFT_FACADE_MID_FRONT_OFFSET = leftFacadeMidFrontCenter - LEFT_FACADE_STACK_WIDTH / 2;
-// Elevation calibration: the left facade reads closer to a roughly 2/3 lower lite and
-// 1/3 transom than an even 50/50 split, so keep the whole family at a 0.66 lower-zone ratio.
-const LEFT_FACADE_TRANSOM_RATIO = 0.66;
+const LEFT_FACADE_MID_REAR_OFFSET = leftFacadeMidRearCenter - LEFT_FACADE_TALL_STACK_WIDTH / 2;
+const LEFT_FACADE_MID_FRONT_OFFSET = leftFacadeMidFrontCenter - LEFT_FACADE_TALL_STACK_WIDTH / 2;
 const LEFT_FACADE_FAMILY_FRAME_THICKNESS = 0.06;
-const LEFT_FACADE_FAMILY_MULLION_WIDTH = 0.052;
 const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
-  variant: 'verticalTransom',
+  variant: 'plain',
   hasSill: false,
   hasLintel: false,
-  grid: { cols: 1, rows: 2 },
-  transomRatio: LEFT_FACADE_TRANSOM_RATIO,
   frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
   frameDepth: 0.1,
   glassInset: 0.012,
   glassThickness: 0.012,
-  mullionWidth: LEFT_FACADE_FAMILY_MULLION_WIDTH,
   frameEdges: { top: false },
 } as const;
 const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE = {
@@ -186,22 +187,20 @@ const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE = {
   frameEdges: { bottom: false },
 } as const;
 const LEFT_FACADE_SHORT_WINDOW_STYLE = {
-  variant: 'verticalTransom',
+  variant: 'plain',
   hasSill: false,
   hasLintel: true,
-  grid: { cols: 1, rows: 2 },
-  transomRatio: LEFT_FACADE_TRANSOM_RATIO,
   frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
   frameDepth: 0.1,
   glassInset: 0.012,
   glassThickness: 0.012,
-  mullionWidth: LEFT_FACADE_FAMILY_MULLION_WIDTH,
 } as const;
 
 type LeftFacadeStack = {
   id: 'LOW' | 'MID' | 'HIGH';
   groundEdgeIndex: number;
   firstEdgeIndex: number;
+  width: number;
   groundFromEnd: boolean;
   firstFromEnd?: boolean;
   groundHeight: number;
@@ -221,6 +220,7 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
     id: 'LOW',
     groundEdgeIndex: 2,
     firstEdgeIndex: 4,
+    width: LEFT_FACADE_LOW_STACK_WIDTH,
     groundFromEnd: false,
     groundHeight: LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT,
     positions: [
@@ -234,6 +234,7 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
     id: 'MID',
     groundEdgeIndex: 5,
     firstEdgeIndex: 2,
+    width: LEFT_FACADE_TALL_STACK_WIDTH,
     groundFromEnd: true,
     groundHeight: LEFT_FACADE_GROUND_OPENING_HEIGHT,
     positions: [
@@ -252,6 +253,7 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
     id: 'HIGH',
     groundEdgeIndex: 3,
     firstEdgeIndex: 0,
+    width: LEFT_FACADE_TALL_STACK_WIDTH,
     groundFromEnd: true,
     groundHeight: LEFT_FACADE_GROUND_OPENING_HEIGHT,
     positions: [
@@ -278,7 +280,7 @@ function createLeftFacadeStackOpenings(stack: LeftFacadeStack) {
           fromEnd: stack.groundFromEnd,
         },
         offset: position.groundOffset,
-        width: LEFT_FACADE_STACK_WIDTH,
+        width: stack.width,
         sillHeight: 0,
         height: stack.groundHeight,
         style: position.includeFirst ? LEFT_FACADE_TALL_LOWER_WINDOW_STYLE : LEFT_FACADE_SHORT_WINDOW_STYLE,
@@ -300,7 +302,7 @@ function createLeftFacadeStackOpenings(stack: LeftFacadeStack) {
         fromEnd: stack.firstFromEnd ?? stack.groundFromEnd,
       },
       offset: position.firstOffset ?? position.groundOffset,
-      width: LEFT_FACADE_STACK_WIDTH,
+      width: stack.width,
       sillHeight: 0,
       height: LEFT_FACADE_FIRST_OPENING_HEIGHT,
       style: LEFT_FACADE_TALL_UPPER_WINDOW_STYLE,

@@ -2,6 +2,8 @@ import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { DerivedWallSegment } from '../deriveWalls';
 
 const EPSILON = 1e-6;
+const STACK_CONTACT_TOLERANCE = 0.01;
+const STACK_SEPARATOR_HALF_GAP = 0.02;
 
 export interface WallPieceRect {
   uMin: number;
@@ -24,6 +26,18 @@ function cellOverlapsOpening(cell: WallPieceRect, opening: DerivedOpening) {
   );
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function addStackSeparatorCuts(vCuts: Set<number>, wallHeight: number, boundary: number) {
+  const lowerCut = clamp(boundary - STACK_SEPARATOR_HALF_GAP, 0, wallHeight);
+  const upperCut = clamp(boundary + STACK_SEPARATOR_HALF_GAP, 0, wallHeight);
+
+  vCuts.add(lowerCut);
+  vCuts.add(upperCut);
+}
+
 export function splitWallByOpenings(
   wallLength: number,
   wallHeight: number,
@@ -44,6 +58,21 @@ export function splitWallByOpenings(
     vCuts.add(opening.vMax);
   });
 
+  for (let index = 0; index < openings.length; index += 1) {
+    for (let compareIndex = index + 1; compareIndex < openings.length; compareIndex += 1) {
+      const opening = openings[index];
+      const otherOpening = openings[compareIndex];
+
+      if (Math.abs(opening.vMax - otherOpening.vMin) < STACK_CONTACT_TOLERANCE) {
+        addStackSeparatorCuts(vCuts, wallHeight, opening.vMax);
+      }
+
+      if (Math.abs(otherOpening.vMax - opening.vMin) < STACK_CONTACT_TOLERANCE) {
+        addStackSeparatorCuts(vCuts, wallHeight, otherOpening.vMax);
+      }
+    }
+  }
+
   const uSorted = uniqueSorted([...uCuts]);
   const vSorted = uniqueSorted([...vCuts]);
   const pieces: WallPieceRect[] = [];
@@ -61,33 +90,8 @@ export function splitWallByOpenings(
       const area = (piece.uMax - piece.uMin) * (piece.vMax - piece.vMin);
       if (area <= EPSILON) continue;
 
-      const wallLabel = wall?.id ?? `${wall?.levelId ?? '?'}-${wall?.edgeIndex ?? '?'}`;
-
       const overlappingOpenings = openings.filter((o) => cellOverlapsOpening(cell, o));
-      const touchingOpenings = openings.filter(
-        (o) =>
-          Math.abs(cell.vMin - o.vMax) < 0.01 || Math.abs(cell.vMax - o.vMin) < 0.01
-      );
       const isOpening = overlappingOpenings.length > 0;
-      const interesting =
-        wallLabel.includes('LEFT') ||
-        overlappingOpenings.some((o) => o.id.startsWith('LEFT_STACK')) ||
-        touchingOpenings.some((o) => o.id.startsWith('LEFT_STACK'));
-
-      if (interesting) {
-        console.log('LEFT STACK CELL DEBUG', {
-          wall: wallLabel,
-          cell: {
-            uMin: Number(cell.uMin.toFixed(3)),
-            uMax: Number(cell.uMax.toFixed(3)),
-            vMin: Number(cell.vMin.toFixed(3)),
-            vMax: Number(cell.vMax.toFixed(3)),
-          },
-          isOpening,
-          overlappingIds: overlappingOpenings.map((o) => o.id),
-          touchingIds: touchingOpenings.map((o) => o.id),
-        });
-      }
 
       if (isOpening) continue;
 

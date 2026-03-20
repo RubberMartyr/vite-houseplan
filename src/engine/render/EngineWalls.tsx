@@ -53,7 +53,7 @@ export function EngineWalls({
   const separatorDebugMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: '#39ff14',
+        color: 'magenta',
         side: THREE.DoubleSide,
       }),
     []
@@ -129,9 +129,31 @@ export function EngineWalls({
           });
         }
 
+        console.log('STACKED SEPARATOR: EngineWalls render path', {
+          wallId: wall.id,
+          partCount: pieces.length,
+          partIds: pieces.map((_, pieceIndex) => `${wall.id}-piece-${pieceIndex}`),
+          separatorCandidatePartIds: pieces
+            .map((piece, pieceIndex) =>
+              isSeparatorCandidatePiece(piece) ? `${wall.id}-piece-${pieceIndex}` : null
+            )
+            .filter((pieceId): pieceId is string => pieceId !== null),
+        });
+
         return pieces.map((piece, pieceIndex) => {
           const pieceId = `${wall.id}-piece-${pieceIndex}`;
           const debugSeparatorCandidate = isSeparatorCandidatePiece(piece);
+
+          if (debugSeparatorCandidate) {
+            console.log('STACKED SEPARATOR: rendering separator candidate piece', {
+              id: pieceId,
+              wallId: wall.id,
+              uMin: piece.uMin,
+              uMax: piece.uMax,
+              vMin: piece.vMin,
+              vMax: piece.vMax,
+            });
+          }
 
           if (debugSeparatorCandidate) {
             logSeparatorDebug(

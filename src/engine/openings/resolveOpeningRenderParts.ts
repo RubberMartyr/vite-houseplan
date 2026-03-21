@@ -16,12 +16,15 @@ export type OpeningRenderConfig = {
   frameDepth: number;
   glassInset: number;
   glassThickness: number;
+  originOffsetZ?: number;
   parts: OpeningRenderPart[];
 };
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
+
+const FRONT_PORTAL_STONE_PROJECTION = 0.04;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);

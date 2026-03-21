@@ -51,13 +51,17 @@ export function EngineOpenings({
         const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);
 
         const inward = outward.clone().multiplyScalar(-wallThickness / 2);
-        const glassPosition = center.clone().add(inward);
+        const defaultPosition = center.clone().add(inward);
+        const openingPosition =
+          renderConfig.originOffsetZ != null
+            ? center.clone().add(outward.clone().multiplyScalar(renderConfig.originOffsetZ))
+            : defaultPosition;
 
         const basis = new THREE.Matrix4().makeBasis(tangent, up, outward);
         const quaternion = new THREE.Quaternion().setFromRotationMatrix(basis);
 
         return (
-          <group key={o.id} position={glassPosition.toArray()} quaternion={quaternion.toArray()}>
+          <group key={o.id} position={openingPosition.toArray()} quaternion={quaternion.toArray()}>
             {renderConfig.parts.map((part) => (
               <mesh
                 {...shadowProps}

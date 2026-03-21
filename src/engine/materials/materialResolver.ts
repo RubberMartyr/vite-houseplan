@@ -106,13 +106,13 @@ export function createOpeningMaterials(materialSpec?: WindowMaterialSpec): Recor
       metalness: 0,
     }),
     wood: new THREE.MeshStandardMaterial({
-      color: '#8f4026',
-      roughness: 0.88,
-      metalness: 0.04,
+      color: '#dbc6a2',
+      roughness: 0.82,
+      metalness: 0.02,
     }),
     stone: new THREE.MeshStandardMaterial({
-      color: '#5f7486',
-      roughness: 0.96,
+      color: '#94aabd',
+      roughness: 0.94,
       metalness: 0,
     }),
   };

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Vec2 } from '../architecturalTypes';
 import { getWallVisibleHeight, type DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
@@ -18,7 +17,7 @@ import {
 import { groupOpeningsByWall } from '../openings/groupOpeningsByWall';
 import { splitWallByOpenings } from '../openings/splitWallByOpenings';
 import { buildWallPieceGeometry } from '../geometry/buildWallPieceGeometry';
-import { createWallMaterial } from '../materials/materialResolver';
+import { createWallMaterials } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import { mergeExteriorWallsForRendering } from './mergeExteriorWallsForRendering';
 
@@ -49,7 +48,7 @@ export function EngineWalls({
 }: EngineWallsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
-  const wallMaterial = useMemo(() => createWallMaterial(wallMaterialSpec), [wallMaterialSpec]);
+  const wallMaterials = useMemo(() => createWallMaterials(wallMaterialSpec), [wallMaterialSpec]);
   const separatorDebugMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -60,12 +59,15 @@ export function EngineWalls({
   );
 
   useEffect(() => {
-    if ('wireframe' in wallMaterial) {
-      (wallMaterial as { wireframe?: boolean }).wireframe = debugWireframe;
-    }
-  }, [debugWireframe, wallMaterial]);
+    wallMaterials.forEach((material) => {
+      if ('wireframe' in material) {
+        material.wireframe = debugWireframe;
+      }
+    });
+  }, [debugWireframe, wallMaterials]);
 
   useEffect(() => () => separatorDebugMaterial.dispose(), [separatorDebugMaterial]);
+  useEffect(() => () => wallMaterials.forEach((material) => material.dispose()), [wallMaterials]);
 
   const builtWalls = useMemo(() => {
     if (!visible) {
@@ -169,60 +171,33 @@ export function EngineWalls({
     [builtWalls, debugEnabled]
   );
 
-  const mergedGeometry = useMemo(() => {
-    if (!normalBuiltWalls.length) {
-      return null;
-    }
-
-    return mergeGeometries(
-      normalBuiltWalls.map(({ geometry }) => geometry),
-      false
-    );
-  }, [normalBuiltWalls]);
-
-  const separatorMergedGeometry = useMemo(() => {
-    if (!separatorBuiltWalls.length) {
-      return null;
-    }
-
-    if (debugEnabled) {
-      console.debug('[separator-debug]', {
-        stage: 'EngineWalls:separator-merged-geometry',
-        inputPieceCount: separatorBuiltWalls.length,
-        pieceIds: separatorBuiltWalls.map((wall) => wall.id),
-      });
-    }
-
-    return mergeGeometries(
-      separatorBuiltWalls.map(({ geometry }) => geometry),
-      false
-    );
-  }, [debugEnabled, separatorBuiltWalls]);
-
   if (!visible) {
     return null;
   }
 
-  if (!mergedGeometry && !separatorMergedGeometry) {
+  if (!normalBuiltWalls.length && !separatorBuiltWalls.length) {
     return null;
   }
 
   return (
     <>
-      {mergedGeometry ? (
+      {normalBuiltWalls.map(({ id, geometry }) => (
         <mesh
-          geometry={mergedGeometry}
-          material={wallMaterial}
+          key={id}
+          geometry={geometry}
+          material={wallMaterials}
           castShadow
           receiveShadow
           userData={{ debugType: 'structure' }}
         >
           <DebugWireframe />
         </mesh>
-      ) : null}
-      {debugEnabled && separatorMergedGeometry ? (
+      ))}
+      {debugEnabled &&
+        separatorBuiltWalls.map(({ id, geometry }) => (
         <mesh
-          geometry={separatorMergedGeometry}
+          key={id}
+          geometry={geometry}
           material={separatorDebugMaterial}
           castShadow
           receiveShadow
@@ -230,7 +205,7 @@ export function EngineWalls({
         >
           <DebugWireframe />
         </mesh>
-      ) : null}
+      ))}
     </>
   );
 }

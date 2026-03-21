@@ -28,6 +28,40 @@ export function createWallMaterial(materialSpec?: WallMaterialSpec): THREE.MeshS
   });
 }
 
+export function createWallMaterials(
+  materialSpec?: WallMaterialSpec
+): [THREE.MeshStandardMaterial, THREE.MeshStandardMaterial, THREE.MeshStandardMaterial] {
+  const exteriorColor = materialSpec?.exteriorColor ?? materialSpec?.color ?? '#cccccc';
+  const interiorColor = materialSpec?.interiorColor ?? exteriorColor;
+  const edgeColor = materialSpec?.edgeColor ?? exteriorColor;
+
+  const exteriorMaterial = materialSpec?.texture
+    ? new THREE.MeshStandardMaterial({
+        map: createTexture(materialSpec.texture),
+        roughness: 1,
+        side: THREE.DoubleSide,
+      })
+    : new THREE.MeshStandardMaterial({
+        color: exteriorColor,
+        roughness: 1,
+        side: THREE.DoubleSide,
+      });
+
+  const interiorMaterial = new THREE.MeshStandardMaterial({
+    color: interiorColor,
+    roughness: 1,
+    side: THREE.DoubleSide,
+  });
+
+  const edgeMaterial = new THREE.MeshStandardMaterial({
+    color: edgeColor,
+    roughness: 1,
+    side: THREE.DoubleSide,
+  });
+
+  return [exteriorMaterial, interiorMaterial, edgeMaterial];
+}
+
 export function createRoofMaterial(materialSpec?: RoofMaterialSpec): THREE.MeshStandardMaterial {
   if (materialSpec?.texture) {
     return new THREE.MeshStandardMaterial({

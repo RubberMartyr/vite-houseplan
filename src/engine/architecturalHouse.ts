@@ -5,6 +5,8 @@ type XZ = { x: number; z: number };
 const EPS = 1e-6;
 const WALL_THICKNESS = 0.3;
 const MAIN_ROOF_OVERHANG = 0;
+const WINDOW_FRAME_RAL_7016_COATEX = '#383e42';
+const INTERIOR_WALL_CREAMY_WHITE = '#f6f1e7';
 
 /**
  * Removes duplicated closing vertex if present.
@@ -344,10 +346,10 @@ export const architecturalHouse: ArchitecturalHouse = {
     walls: {
       texture: '/textures/brick1.jpg',
       scale: 1,
-      interiorColor: '#f4ecdf',
+      interiorColor: INTERIOR_WALL_CREAMY_WHITE,
     },
     windows: {
-      frameColor: '#383e42',
+      frameColor: WINDOW_FRAME_RAL_7016_COATEX,
       glassColor: '#a8d0ff',
       glassOpacity: 0.35,
     },

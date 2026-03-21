@@ -72,6 +72,8 @@ function createFrontPortalDoorParts(
   const leafY = -openingHeight / 2 + leafHeight / 2 + frameThickness * 0.75;
   const capY = openingHeight / 2 + capHeight / 2 - frameThickness * 0.15;
   const surroundOuterWidth = openingWidth + jambWidth * 2 - surroundOverlap * 2;
+  const pedimentHeight = 0.06;
+  const pedimentWidth = surroundOuterWidth + jambWidth * 0.5;
   const diagonalLength = Math.hypot(clearOpeningWidth, transomHeight);
   const diagonalThickness = Math.max(frameThickness * 0.24, 0.018);
   const diagonalDepth = Math.max(transomGlassDepth, woodDepth * 0.5);

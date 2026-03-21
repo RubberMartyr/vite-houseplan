@@ -61,19 +61,18 @@ function createFrontPortalDoorParts(
   const surroundDepth = Math.min(Math.max(frameDepth * 1.8, 0.2), 0.28);
   const capHeight = Math.min(Math.max(openingHeight * 0.09, 0.16), 0.24);
   const plinthHeight = 0.08;
-  const stoneRevealInset = jambWidth + frameThickness * 0.55;
-  const innerWidth = Math.max(0.18, openingWidth - stoneRevealInset * 2);
+  const surroundOverlap = Math.min(frameThickness * 0.4, jambWidth * 0.3);
+  const clearOpeningWidth = Math.max(0.18, openingWidth - frameThickness * 0.9);
   const transomHeight = Math.min(Math.max(openingHeight * 0.2, 0.34), 0.46);
   const leafHeight = Math.max(0.35, openingHeight - transomHeight - frameThickness * 1.35);
-  const leafWidth = Math.max(0.18, innerWidth - frameThickness * 0.85);
+  const leafWidth = Math.max(0.18, clearOpeningWidth - frameThickness * 0.45);
   const woodDepth = Math.max(frameDepth * 0.42, 0.05);
   const transomGlassDepth = Math.max(woodDepth * 0.45, 0.015);
-  const transomY = openingHeight / 2 - transomHeight / 2 - frameThickness * 0.8;
+  const transomY = openingHeight / 2 - transomHeight / 2;
   const leafY = -openingHeight / 2 + leafHeight / 2 + frameThickness * 0.75;
   const capY = openingHeight / 2 + capHeight / 2 - frameThickness * 0.15;
-  const pedimentHeight = 0.06;
-  const pedimentWidth = openingWidth + jambWidth * 1.4;
-  const diagonalLength = Math.hypot(innerWidth, transomHeight);
+  const surroundOuterWidth = openingWidth + jambWidth * 2 - surroundOverlap * 2;
+  const diagonalLength = Math.hypot(clearOpeningWidth, transomHeight);
   const diagonalThickness = Math.max(frameThickness * 0.24, 0.018);
   const diagonalDepth = Math.max(transomGlassDepth, woodDepth * 0.5);
 
@@ -83,51 +82,35 @@ function createFrontPortalDoorParts(
       material: 'stone',
       debugType: 'opening',
       size: [jambWidth, openingHeight + plinthHeight, surroundDepth],
-      position: [-openingWidth / 2 + jambWidth / 2, -plinthHeight / 2, 0],
+      position: [-openingWidth / 2 - jambWidth / 2 + surroundOverlap, -plinthHeight / 2, 0],
     },
     {
       key: 'stone-jamb-right',
       material: 'stone',
       debugType: 'opening',
       size: [jambWidth, openingHeight + plinthHeight, surroundDepth],
-      position: [openingWidth / 2 - jambWidth / 2, -plinthHeight / 2, 0],
+      position: [openingWidth / 2 + jambWidth / 2 - surroundOverlap, -plinthHeight / 2, 0],
     },
     {
       key: 'stone-cap',
       material: 'stone',
       debugType: 'opening',
-      size: [openingWidth + jambWidth * 0.9, capHeight, surroundDepth],
+      size: [surroundOuterWidth, capHeight, surroundDepth],
       position: [0, capY, 0],
     },
     {
       key: 'stone-threshold',
       material: 'stone',
       debugIgnore: true,
-      size: [openingWidth + jambWidth * 1.05, plinthHeight, surroundDepth * 0.9],
+      size: [surroundOuterWidth + surroundOverlap * 0.5, plinthHeight, surroundDepth * 0.9],
       position: [0, -openingHeight / 2 - plinthHeight / 2, surroundDepth * 0.05],
-    },
-    {
-      key: 'stone-pediment-left',
-      material: 'stone',
-      debugIgnore: true,
-      size: [pedimentWidth * 0.52, pedimentHeight, surroundDepth * 0.82],
-      position: [-pedimentWidth * 0.12, capY + capHeight / 2 + pedimentHeight * 0.55, 0],
-      rotation: [0, 0, Math.PI / 8],
-    },
-    {
-      key: 'stone-pediment-right',
-      material: 'stone',
-      debugIgnore: true,
-      size: [pedimentWidth * 0.52, pedimentHeight, surroundDepth * 0.82],
-      position: [pedimentWidth * 0.12, capY + capHeight / 2 + pedimentHeight * 0.55, 0],
-      rotation: [0, 0, -Math.PI / 8],
     },
     {
       key: 'wood-leaf',
       material: 'wood',
       debugType: 'opening',
       size: [leafWidth, leafHeight, woodDepth],
-      position: [0, leafY, frameThickness * 0.02],
+      position: [0, leafY, -frameThickness * 0.12],
     },
     {
       key: 'wood-panel-upper',
@@ -147,21 +130,21 @@ function createFrontPortalDoorParts(
       key: 'transom-glass',
       material: 'glass',
       debugType: 'opening',
-      size: [innerWidth, transomHeight, transomGlassDepth],
+      size: [clearOpeningWidth, transomHeight, transomGlassDepth],
       position: [0, transomY, -frameThickness * 0.06],
     },
     {
       key: 'transom-frame-top',
       material: 'frame',
       debugIgnore: true,
-      size: [innerWidth + frameThickness * 0.45, frameThickness, woodDepth],
+      size: [clearOpeningWidth + frameThickness * 0.2, frameThickness, woodDepth],
       position: [0, transomY + transomHeight / 2 - frameThickness / 2, 0],
     },
     {
       key: 'transom-frame-bottom',
       material: 'frame',
       debugIgnore: true,
-      size: [innerWidth + frameThickness * 0.45, frameThickness, woodDepth],
+      size: [clearOpeningWidth + frameThickness * 0.2, frameThickness, woodDepth],
       position: [0, transomY - transomHeight / 2 + frameThickness / 2, 0],
     },
     {
@@ -169,14 +152,14 @@ function createFrontPortalDoorParts(
       material: 'frame',
       debugIgnore: true,
       size: [frameThickness, transomHeight, woodDepth],
-      position: [-innerWidth / 2 + frameThickness / 2, transomY, 0],
+      position: [-clearOpeningWidth / 2 + frameThickness / 2, transomY, 0],
     },
     {
       key: 'transom-frame-right',
       material: 'frame',
       debugIgnore: true,
       size: [frameThickness, transomHeight, woodDepth],
-      position: [innerWidth / 2 - frameThickness / 2, transomY, 0],
+      position: [clearOpeningWidth / 2 - frameThickness / 2, transomY, 0],
     },
     {
       key: 'transom-cross-left',
@@ -184,7 +167,7 @@ function createFrontPortalDoorParts(
       debugIgnore: true,
       size: [diagonalLength, diagonalThickness, diagonalDepth],
       position: [0, transomY, woodDepth / 2 + 0.004],
-      rotation: [0, 0, Math.atan2(transomHeight, innerWidth)],
+      rotation: [0, 0, Math.atan2(transomHeight, clearOpeningWidth)],
     },
     {
       key: 'transom-cross-right',
@@ -192,7 +175,7 @@ function createFrontPortalDoorParts(
       debugIgnore: true,
       size: [diagonalLength, diagonalThickness, diagonalDepth],
       position: [0, transomY, woodDepth / 2 + 0.004],
-      rotation: [0, 0, -Math.atan2(transomHeight, innerWidth)],
+      rotation: [0, 0, -Math.atan2(transomHeight, clearOpeningWidth)],
     },
   ];
 }
@@ -255,6 +238,7 @@ export function resolveOpeningRenderParts(
       frameDepth,
       glassInset,
       glassThickness,
+      originOffsetZ: FRONT_PORTAL_STONE_PROJECTION,
       parts: createFrontPortalDoorParts(openingWidth, openingHeight, frameThickness, frameDepth),
     };
   }

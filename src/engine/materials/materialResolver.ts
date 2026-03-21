@@ -33,11 +33,11 @@ export function createWallMaterials(
 ): [THREE.MeshStandardMaterial, THREE.MeshStandardMaterial, THREE.MeshStandardMaterial] {
   const exteriorColor = materialSpec?.exteriorColor ?? materialSpec?.color ?? '#cccccc';
   const interiorColor = materialSpec?.interiorColor ?? exteriorColor;
-  const edgeColor = materialSpec?.edgeColor ?? exteriorColor;
+  const exteriorTexture = materialSpec?.texture ? createTexture(materialSpec.texture) : null;
 
-  const exteriorMaterial = materialSpec?.texture
+  const exteriorMaterial = exteriorTexture
     ? new THREE.MeshStandardMaterial({
-        map: createTexture(materialSpec.texture),
+        map: exteriorTexture,
         roughness: 1,
         side: THREE.DoubleSide,
       })
@@ -53,11 +53,23 @@ export function createWallMaterials(
     side: THREE.DoubleSide,
   });
 
-  const edgeMaterial = new THREE.MeshStandardMaterial({
-    color: edgeColor,
-    roughness: 1,
-    side: THREE.DoubleSide,
-  });
+  const edgeMaterial = materialSpec?.edgeColor
+    ? new THREE.MeshStandardMaterial({
+        color: materialSpec.edgeColor,
+        roughness: 1,
+        side: THREE.DoubleSide,
+      })
+    : exteriorTexture
+      ? new THREE.MeshStandardMaterial({
+          map: exteriorTexture,
+          roughness: 1,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshStandardMaterial({
+          color: exteriorColor,
+          roughness: 1,
+          side: THREE.DoubleSide,
+        });
 
   return [exteriorMaterial, interiorMaterial, edgeMaterial];
 }

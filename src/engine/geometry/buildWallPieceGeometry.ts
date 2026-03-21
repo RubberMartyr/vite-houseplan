@@ -11,8 +11,6 @@ import { getWallVisibleBaseY } from '../deriveWalls';
 import type { WallPieceRect } from '../openings/splitWallByOpenings';
 import { buildWallPrismGeometry } from './buildWallPrismGeometry';
 
-const STACK_SEPARATOR_DEPTH = 0.1;
-
 export function buildWallPieceGeometry(
   wall: DerivedWallSegment,
   piece: WallPieceRect,
@@ -31,17 +29,11 @@ export function buildWallPieceGeometry(
         wallVisibleBaseY: getWallVisibleBaseY(wall),
         worldVMin: getWallVisibleBaseY(wall) + piece.vMin,
         worldVMax: getWallVisibleBaseY(wall) + piece.vMax,
-        separatorDepth: Math.min(STACK_SEPARATOR_DEPTH, wall.thickness),
-        separatorNormalOffset: Math.max(wall.thickness - Math.min(STACK_SEPARATOR_DEPTH, wall.thickness), 0),
       })
     );
   }
 
   const wallBaseY = getWallVisibleBaseY(wall);
-
-  const separatorCandidate = isSeparatorCandidatePiece(piece);
-  const separatorDepth = Math.min(STACK_SEPARATOR_DEPTH, wall.thickness);
-  const separatorNormalOffset = Math.max(wall.thickness - separatorDepth, 0);
 
   return buildWallPrismGeometry(
     wall,
@@ -52,12 +44,6 @@ export function buildWallPieceGeometry(
       vMax: wallBaseY + piece.vMax,
     },
     brickScale,
-    footprintOuter,
-    separatorCandidate
-      ? {
-          depth: separatorDepth,
-          normalOffset: separatorNormalOffset,
-        }
-      : undefined
+    footprintOuter
   );
 }

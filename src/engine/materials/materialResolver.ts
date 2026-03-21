@@ -3,6 +3,7 @@ import type { ArchitecturalMaterials } from '../architecturalTypes';
 
 type WallMaterialSpec = ArchitecturalMaterials['walls'];
 type RoofMaterialSpec = ArchitecturalMaterials['roof'];
+type WindowMaterialSpec = ArchitecturalMaterials['windows'];
 
 function createTexture(path: string): THREE.Texture {
   const texture = new THREE.TextureLoader().load(path);
@@ -86,4 +87,33 @@ export function createRoofMaterial(materialSpec?: RoofMaterialSpec): THREE.MeshS
     color: materialSpec?.color ?? '#cccccc',
     roughness: 1,
   });
+}
+
+export function createOpeningMaterials(materialSpec?: WindowMaterialSpec): Record<
+  'frame' | 'glass' | 'wood' | 'stone',
+  THREE.MeshStandardMaterial
+> {
+  return {
+    frame: new THREE.MeshStandardMaterial({
+      color: materialSpec?.frameColor ?? '#f0f0f0',
+      roughness: 0.8,
+    }),
+    glass: new THREE.MeshStandardMaterial({
+      color: materialSpec?.glassColor ?? '#a8d0ff',
+      transparent: true,
+      opacity: materialSpec?.glassOpacity ?? 0.35,
+      roughness: 0.2,
+      metalness: 0,
+    }),
+    wood: new THREE.MeshStandardMaterial({
+      color: '#dbc6a2',
+      roughness: 0.82,
+      metalness: 0.02,
+    }),
+    stone: new THREE.MeshStandardMaterial({
+      color: '#94aabd',
+      roughness: 0.94,
+      metalness: 0,
+    }),
+  };
 }

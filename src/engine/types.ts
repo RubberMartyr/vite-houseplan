@@ -149,7 +149,13 @@ export interface OpeningStyleSpec {
   glassMaterialKey?: string;
   frameEdges?: Partial<Record<'left' | 'right' | 'top' | 'bottom', boolean>>;
 
-  variant?: 'plain' | 'classicTransom' | 'firstFloorTransom' | 'doorDetailed' | 'verticalTransom';
+  variant?:
+    | 'plain'
+    | 'classicTransom'
+    | 'firstFloorTransom'
+    | 'doorDetailed'
+    | 'verticalTransom'
+    | 'frontPortalDoor';
   grid?: { cols: number; rows: number };
   transomRatio?: number;
   rowFractions?: number[];

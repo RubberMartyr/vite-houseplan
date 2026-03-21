@@ -512,7 +512,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: 1,
       sillHeight: 0,
       height: 2.5,
-      style: { variant: 'doorDetailed', hasSill: false, hasLintel: true, surroundRing: true },
+      style: { variant: 'frontPortalDoor', hasSill: false, hasLintel: false, surroundRing: true },
     },
     {
       id: 'FRONT_G_W3',

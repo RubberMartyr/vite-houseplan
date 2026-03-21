@@ -28,14 +28,6 @@ export function createWallMaterial(materialSpec?: WallMaterialSpec): THREE.MeshS
   });
 }
 
-export function createInteriorWallMaterial(materialSpec?: WallMaterialSpec): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: materialSpec?.interiorColor ?? '#f3ede2',
-    roughness: 1,
-    side: THREE.DoubleSide,
-  });
-}
-
 export function createRoofMaterial(materialSpec?: RoofMaterialSpec): THREE.MeshStandardMaterial {
   if (materialSpec?.texture) {
     return new THREE.MeshStandardMaterial({

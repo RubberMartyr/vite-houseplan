@@ -120,7 +120,6 @@ export function buildWallPrismGeometry(
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
-  const faceGroups: Array<{ start: number; count: number; materialIndex: number }> = [];
 
   const faceDefinitions = [
     {
@@ -128,62 +127,49 @@ export function buildWallPrismGeometry(
       normalHint: outwardWorld,
       uSize: length * brickScale,
       vSize: height * brickScale,
-      materialIndex: 0,
     },
     {
       corners: [cornersWorld[4], cornersWorld[5], cornersWorld[6], cornersWorld[7]],
       normalHint: inwardWorld,
       uSize: length * brickScale,
       vSize: height * brickScale,
-      materialIndex: 1,
     },
     {
       corners: [cornersWorld[0], cornersWorld[4], cornersWorld[2], cornersWorld[6]],
       normalHint: tangentWorld.clone().multiplyScalar(-1),
       uSize: depth * brickScale,
       vSize: height * brickScale,
-      materialIndex: 2,
     },
     {
       corners: [cornersWorld[1], cornersWorld[5], cornersWorld[3], cornersWorld[7]],
       normalHint: tangentWorld,
       uSize: depth * brickScale,
       vSize: height * brickScale,
-      materialIndex: 2,
     },
     {
       corners: [cornersWorld[2], cornersWorld[3], cornersWorld[6], cornersWorld[7]],
       normalHint: upWorld,
       uSize: length * brickScale,
       vSize: depth * brickScale,
-      materialIndex: 2,
     },
     {
       corners: [cornersWorld[0], cornersWorld[1], cornersWorld[4], cornersWorld[5]],
       normalHint: downWorld,
       uSize: length * brickScale,
       vSize: depth * brickScale,
-      materialIndex: 2,
     },
   ] as const;
 
   faceDefinitions.forEach((face) => {
-    const faceIndices = appendFace(positions, uvs, face.corners, face.normalHint, face.uSize, face.vSize);
-    faceGroups.push({
-      start: indices.length,
-      count: faceIndices.length,
-      materialIndex: face.materialIndex,
-    });
-    indices.push(...faceIndices);
+    indices.push(
+      ...appendFace(positions, uvs, face.corners, face.normalHint, face.uSize, face.vSize)
+    );
   });
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
-  faceGroups.forEach((group) => {
-    geometry.addGroup(group.start, group.count, group.materialIndex);
-  });
   geometry.computeVertexNormals();
   return geometry;
 }

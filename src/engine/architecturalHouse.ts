@@ -344,10 +344,9 @@ export const architecturalHouse: ArchitecturalHouse = {
     walls: {
       texture: '/textures/brick1.jpg',
       scale: 1,
-      interiorColor: '#f4ecdf',
     },
     windows: {
-      frameColor: '#383e42',
+      frameColor: '#ffffff',
       glassColor: '#a8d0ff',
       glassOpacity: 0.35,
     },

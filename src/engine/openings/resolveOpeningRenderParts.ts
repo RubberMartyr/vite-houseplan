@@ -68,7 +68,7 @@ function createFrontPortalDoorParts(
   const leafWidth = Math.max(0.18, clearOpeningWidth - frameThickness * 0.45);
   const woodDepth = Math.max(frameDepth * 0.42, 0.05);
   const transomGlassDepth = Math.max(woodDepth * 0.45, 0.015);
-  const transomY = openingHeight / 2 - transomHeight / 2 - frameThickness * 0.8;
+  const transomY = openingHeight / 2 - transomHeight / 2;
   const leafY = -openingHeight / 2 + leafHeight / 2 + frameThickness * 0.75;
   const capY = openingHeight / 2 + capHeight / 2 - frameThickness * 0.15;
   const surroundOuterWidth = openingWidth + jambWidth * 2 - surroundOverlap * 2;
@@ -106,22 +106,6 @@ function createFrontPortalDoorParts(
       debugIgnore: true,
       size: [surroundOuterWidth + surroundOverlap * 0.5, plinthHeight, surroundDepth * 0.9],
       position: [0, -openingHeight / 2 - plinthHeight / 2, surroundDepth * 0.05],
-    },
-    {
-      key: 'stone-pediment-left',
-      material: 'stone',
-      debugIgnore: true,
-      size: [pedimentWidth * 0.52, pedimentHeight, surroundDepth * 0.82],
-      position: [-pedimentWidth * 0.12, capY + capHeight / 2 + pedimentHeight * 0.55, 0],
-      rotation: [0, 0, Math.PI / 8],
-    },
-    {
-      key: 'stone-pediment-right',
-      material: 'stone',
-      debugIgnore: true,
-      size: [pedimentWidth * 0.52, pedimentHeight, surroundDepth * 0.82],
-      position: [pedimentWidth * 0.12, capY + capHeight / 2 + pedimentHeight * 0.55, 0],
-      rotation: [0, 0, -Math.PI / 8],
     },
     {
       key: 'wood-leaf',

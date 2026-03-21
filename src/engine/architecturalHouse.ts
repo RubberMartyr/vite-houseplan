@@ -265,6 +265,28 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
   },
 ] as const;
 
+const RIGHT_FACADE_DOOR_WIDTH = cm(90);
+const RIGHT_FACADE_DOOR_HEIGHT = cm(215);
+const RIGHT_FACADE_WINDOW_WIDTH = cm(50);
+const RIGHT_FACADE_WINDOW_HEIGHT = cm(90);
+const RIGHT_FACADE_WINDOW_BOTTOM_Y = cm(410);
+const FIRST_FLOOR_ELEVATION = levels.find((level) => level.id === 'first')?.elevation ?? 0;
+const RIGHT_FACADE_WINDOW_SILL_HEIGHT = RIGHT_FACADE_WINDOW_BOTTOM_Y - FIRST_FLOOR_ELEVATION;
+
+// The side-elevation drawing calls out a 215cm-high ground-floor door and a
+// 50cm-wide first-floor window whose sill sits at +410cm above grade. The plan
+// snippets place both on the long, flat right facade run, centred at roughly
+// z=5.50m from the front edge, so derive both openings from that shared centre.
+const RIGHT_FACADE_SHARED_CENTER_Z = 5.5;
+const RIGHT_FACADE_DOOR_OFFSET =
+  RIGHT_FACADE_SHARED_CENTER_Z - RIGHT_FACADE_DOOR_WIDTH / 2;
+const RIGHT_FACADE_FIRST_WINDOW_EDGE_INDEX = 7;
+const RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z = levels[1].footprint.outer[7].z;
+const RIGHT_FACADE_WINDOW_OFFSET =
+  RIGHT_FACADE_SHARED_CENTER_Z -
+  RIGHT_FACADE_WINDOW_WIDTH / 2 -
+  RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z;
+
 function createLeftFacadeStackOpenings(stack: LeftFacadeStack) {
   return stack.positions.flatMap((position) => {
     const idSuffix = position.idSuffix ? `_${position.idSuffix}` : '';
@@ -579,6 +601,28 @@ export const architecturalHouse: ArchitecturalHouse = {
       sillHeight: FIRST_REAR_WINDOW_SILL_HEIGHT,
       height: FIRST_REAR_WINDOW_HEIGHT,
       style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 1 }, hasSill: true, hasLintel: true },
+    },
+    {
+      id: 'RIGHT_G_DOOR',
+      kind: 'door',
+      levelId: 'ground',
+      edge: { levelId: 'ground', ring: 'outer', edgeIndex: 9 },
+      offset: RIGHT_FACADE_DOOR_OFFSET,
+      width: RIGHT_FACADE_DOOR_WIDTH,
+      sillHeight: 0,
+      height: RIGHT_FACADE_DOOR_HEIGHT,
+      style: { variant: 'doorDetailed', hasSill: false, hasLintel: true, surroundRing: true },
+    },
+    {
+      id: 'RIGHT_F_WINDOW',
+      kind: 'window',
+      levelId: 'first',
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: RIGHT_FACADE_FIRST_WINDOW_EDGE_INDEX },
+      offset: RIGHT_FACADE_WINDOW_OFFSET,
+      width: RIGHT_FACADE_WINDOW_WIDTH,
+      sillHeight: RIGHT_FACADE_WINDOW_SILL_HEIGHT,
+      height: RIGHT_FACADE_WINDOW_HEIGHT,
+      style: { variant: 'plain', grid: { cols: 1, rows: 1 }, hasSill: true, hasLintel: true },
     },
     ...LEFT_FACADE_STACKS.flatMap(createLeftFacadeStackOpenings),
   ],

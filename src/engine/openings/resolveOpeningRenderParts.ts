@@ -5,7 +5,8 @@ export type OpeningRenderPart = {
   key: string;
   size: [number, number, number];
   position: [number, number, number];
-  material: 'frame' | 'glass';
+  material: 'frame' | 'glass' | 'wood' | 'stone';
+  rotation?: [number, number, number];
   debugType?: 'opening';
   debugIgnore?: boolean;
 };
@@ -15,12 +16,15 @@ export type OpeningRenderConfig = {
   frameDepth: number;
   glassInset: number;
   glassThickness: number;
+  originOffsetZ?: number;
   parts: OpeningRenderPart[];
 };
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
+
+const FRONT_PORTAL_STONE_PROJECTION = 0.04;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
@@ -45,6 +49,166 @@ function resolveRowFractions(style: OpeningStyleSpec | undefined, rows: number):
   }
 
   return normalizeFractions(style?.rowFractions, rows);
+}
+
+function createFrontPortalDoorParts(
+  openingWidth: number,
+  openingHeight: number,
+  frameThickness: number,
+  frameDepth: number,
+  wallThickness: number
+): OpeningRenderPart[] {
+  const surroundBand = Math.min(Math.max(openingWidth * 0.11, 0.09), 0.12);
+  const stoneDepth = Math.max(wallThickness + 0.08, 0.38);
+  const revealThickness = Math.max(surroundBand * 0.45, 0.045);
+  const revealDepth = Math.max(wallThickness * 0.9, 0.26);
+  const stoneCenterZ = stoneDepth / 2;
+  const revealCenterZ = revealDepth / 2 + FRONT_PORTAL_STONE_PROJECTION * 0.25;
+  const capHeight = Math.min(Math.max(openingHeight * 0.08, 0.13), 0.18);
+  const sillHeight = 0.035;
+  const clearWidth = Math.max(0.22, openingWidth);
+  const transomHeight = Math.min(Math.max(openingHeight * 0.2, 0.34), 0.42);
+  const transomBandHeight = Math.max(frameThickness * 0.65, 0.03);
+  const woodGap = 0.012;
+  const woodWidth = Math.max(0.2, clearWidth - woodGap * 2);
+  const leafHeight = Math.max(0.45, openingHeight - transomHeight - transomBandHeight);
+  const leafWidth = woodWidth;
+  const woodDepth = Math.max(frameDepth * 0.6, 0.07);
+  const woodReveal = 0.02;
+  const woodCenterZ = Math.max(woodDepth / 2 + woodReveal, stoneDepth * 0.24);
+  const transomGlassDepth = Math.max(woodDepth * 0.28, 0.018);
+  const transomY = openingHeight / 2 - transomHeight / 2;
+  const leafY = -openingHeight / 2 + leafHeight / 2;
+  const diagonalLength = Math.hypot(woodWidth, transomHeight);
+  const diagonalThickness = Math.max(frameThickness * 0.18, 0.014);
+  const panelDepth = Math.max(woodDepth * 0.18, 0.012);
+  const panelInset = Math.max(frameThickness * 0.28, 0.02);
+  const transomCrossZ = woodCenterZ + woodDepth / 2 + 0.002;
+  const panelZ = woodCenterZ + woodDepth / 2 + panelDepth / 2;
+
+  return [
+    {
+      key: 'stone-jamb-left',
+      material: 'stone',
+      debugType: 'opening',
+      size: [surroundBand, openingHeight + capHeight, stoneDepth],
+      position: [-openingWidth / 2 - surroundBand / 2, capHeight / 2, stoneCenterZ],
+    },
+    {
+      key: 'stone-jamb-right',
+      material: 'stone',
+      debugType: 'opening',
+      size: [surroundBand, openingHeight + capHeight, stoneDepth],
+      position: [openingWidth / 2 + surroundBand / 2, capHeight / 2, stoneCenterZ],
+    },
+    {
+      key: 'stone-cap',
+      material: 'stone',
+      debugType: 'opening',
+      size: [openingWidth + surroundBand * 2, capHeight, stoneDepth],
+      position: [0, openingHeight / 2 + capHeight / 2, stoneCenterZ],
+    },
+    {
+      key: 'stone-sill',
+      material: 'stone',
+      debugIgnore: true,
+      size: [openingWidth + surroundBand * 2, sillHeight, stoneDepth],
+      position: [0, -openingHeight / 2 - sillHeight / 2, stoneCenterZ],
+    },
+    {
+      key: 'stone-return-left',
+      material: 'stone',
+      debugIgnore: true,
+      size: [revealThickness, openingHeight, revealDepth],
+      position: [-openingWidth / 2 + revealThickness / 2, 0, revealCenterZ],
+    },
+    {
+      key: 'stone-return-right',
+      material: 'stone',
+      debugIgnore: true,
+      size: [revealThickness, openingHeight, revealDepth],
+      position: [openingWidth / 2 - revealThickness / 2, 0, revealCenterZ],
+    },
+    {
+      key: 'stone-return-top',
+      material: 'stone',
+      debugIgnore: true,
+      size: [openingWidth, revealThickness, revealDepth],
+      position: [0, openingHeight / 2 - revealThickness / 2, revealCenterZ],
+    },
+    {
+      key: 'wood-leaf',
+      material: 'wood',
+      debugType: 'opening',
+      size: [leafWidth, leafHeight, woodDepth],
+      position: [0, leafY, woodCenterZ],
+    },
+    {
+      key: 'wood-panel-upper',
+      material: 'wood',
+      debugIgnore: true,
+      size: [leafWidth - panelInset * 2, leafHeight * 0.34, panelDepth],
+      position: [0, leafY + leafHeight * 0.2, panelZ],
+    },
+    {
+      key: 'wood-panel-lower',
+      material: 'wood',
+      debugIgnore: true,
+      size: [leafWidth - panelInset * 2, leafHeight * 0.3, panelDepth],
+      position: [0, leafY - leafHeight * 0.24, panelZ],
+    },
+    {
+      key: 'transom-glass',
+      material: 'glass',
+      debugType: 'opening',
+      size: [woodWidth, transomHeight, transomGlassDepth],
+      position: [0, transomY, woodCenterZ + woodDepth / 2 - transomGlassDepth / 2],
+    },
+    {
+      key: 'transom-frame-top',
+      material: 'wood',
+      debugIgnore: true,
+      size: [woodWidth, transomBandHeight, woodDepth],
+      position: [0, transomY + transomHeight / 2 - transomBandHeight / 2, woodCenterZ],
+    },
+    {
+      key: 'transom-frame-bottom',
+      material: 'wood',
+      debugIgnore: true,
+      size: [woodWidth, transomBandHeight, woodDepth],
+      position: [0, transomY - transomHeight / 2 + transomBandHeight / 2, woodCenterZ],
+    },
+    {
+      key: 'transom-frame-left',
+      material: 'wood',
+      debugIgnore: true,
+      size: [transomBandHeight, transomHeight, woodDepth],
+      position: [-woodWidth / 2 + transomBandHeight / 2, transomY, woodCenterZ],
+    },
+    {
+      key: 'transom-frame-right',
+      material: 'wood',
+      debugIgnore: true,
+      size: [transomBandHeight, transomHeight, woodDepth],
+      position: [woodWidth / 2 - transomBandHeight / 2, transomY, woodCenterZ],
+    },
+    {
+      key: 'transom-cross-left',
+      material: 'wood',
+      debugIgnore: true,
+      size: [diagonalLength, diagonalThickness, diagonalThickness],
+      position: [0, transomY, transomCrossZ],
+      rotation: [0, 0, Math.atan2(transomHeight, woodWidth)],
+    },
+    {
+      key: 'transom-cross-right',
+      material: 'wood',
+      debugIgnore: true,
+      size: [diagonalLength, diagonalThickness, diagonalThickness],
+      position: [0, transomY, transomCrossZ],
+      rotation: [0, 0, -Math.atan2(transomHeight, woodWidth)],
+    },
+  ];
 }
 
 export function resolveOpeningRenderParts(
@@ -98,6 +262,23 @@ export function resolveOpeningRenderParts(
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
+
+  if (style?.variant === 'frontPortalDoor') {
+    return {
+      frameThickness,
+      frameDepth,
+      glassInset,
+      glassThickness,
+      originOffsetZ: wallThickness + FRONT_PORTAL_STONE_PROJECTION,
+      parts: createFrontPortalDoorParts(
+        openingWidth,
+        openingHeight,
+        frameThickness,
+        frameDepth,
+        wallThickness
+      ),
+    };
+  }
 
   const parts: OpeningRenderPart[] = [
     {

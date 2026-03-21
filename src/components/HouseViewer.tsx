@@ -59,6 +59,10 @@ export default function HouseViewer() {
   const [showEdges, setShowEdges] = useState(true);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
 
+  useEffect(() => {
+    setHouse(architecturalHouse);
+  }, [architecturalHouse]);
+
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
 
   return (

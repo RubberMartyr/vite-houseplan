@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { resolveOpeningRenderParts } from '../openings/resolveOpeningRenderParts';
 import { archToWorldXZ } from '../spaceMapping';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
+import { createOpeningMaterials } from '../materials/materialResolver';
 
 type Props = {
   openings: DerivedOpeningRect[];
@@ -16,22 +17,13 @@ export function EngineOpenings({
   wallThickness = 0.3,
   windowsMaterialSpec,
 }: Props) {
-  const frameMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: windowsMaterialSpec?.frameColor ?? '#f0f0f0',
-      }),
-    [windowsMaterialSpec?.frameColor]
-  );
+  const openingMaterials = useMemo(() => createOpeningMaterials(windowsMaterialSpec), [windowsMaterialSpec]);
 
-  const glassMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: windowsMaterialSpec?.glassColor ?? '#a8d0ff',
-        transparent: true,
-        opacity: windowsMaterialSpec?.glassOpacity ?? 0.35,
-      }),
-    [windowsMaterialSpec?.glassColor, windowsMaterialSpec?.glassOpacity]
+  useEffect(
+    () => () => {
+      Object.values(openingMaterials).forEach((material) => material.dispose());
+    },
+    [openingMaterials]
   );
 
   const shadowProps = {
@@ -59,19 +51,24 @@ export function EngineOpenings({
         const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);
 
         const inward = outward.clone().multiplyScalar(-wallThickness / 2);
-        const glassPosition = center.clone().add(inward);
+        const defaultPosition = center.clone().add(inward);
+        const openingPosition =
+          renderConfig.originOffsetZ != null
+            ? center.clone().add(outward.clone().multiplyScalar(renderConfig.originOffsetZ))
+            : defaultPosition;
 
         const basis = new THREE.Matrix4().makeBasis(tangent, up, outward);
         const quaternion = new THREE.Quaternion().setFromRotationMatrix(basis);
 
         return (
-          <group key={o.id} position={glassPosition.toArray()} quaternion={quaternion.toArray()}>
+          <group key={o.id} position={openingPosition.toArray()} quaternion={quaternion.toArray()}>
             {renderConfig.parts.map((part) => (
               <mesh
                 {...shadowProps}
                 key={`${o.id}-${part.key}`}
-                material={part.material === 'glass' ? glassMaterial : frameMaterial}
+                material={openingMaterials[part.material]}
                 position={part.position}
+                rotation={part.rotation}
                 userData={{
                   ...(part.debugType ? { debugType: part.debugType } : {}),
                   ...(part.debugIgnore ? { debugIgnore: true } : {}),

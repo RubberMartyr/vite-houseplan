@@ -11,11 +11,6 @@ type WallPrismRanges = {
   vMax: number;
 };
 
-type WallPrismOptions = {
-  depth?: number;
-  normalOffset?: number;
-};
-
 type LocalCorner = {
   u: number;
   v: number;
@@ -73,8 +68,7 @@ export function buildWallPrismGeometry(
   wall: DerivedWallSegment,
   { uMin, uMax, vMin, vMax }: WallPrismRanges,
   brickScale = 0.6,
-  footprintOuter?: Vec2[],
-  { depth: prismDepth = wall.thickness, normalOffset = 0 }: WallPrismOptions = {}
+  footprintOuter?: Vec2[]
 ): THREE.BufferGeometry {
   const direction = resolveWallExtrusionDirection(wall, footprintOuter);
 
@@ -84,17 +78,15 @@ export function buildWallPrismGeometry(
 
   const { tangent, outward, inward } = direction;
   const thickness = wall.thickness;
-  const clampedDepth = Math.min(Math.max(prismDepth, 0.01), thickness);
-  const clampedNormalOffset = Math.min(Math.max(normalOffset, 0), thickness - clampedDepth);
   const cornersLocal: LocalCorner[] = [
-    { u: uMin, v: vMin, n: clampedNormalOffset },
-    { u: uMax, v: vMin, n: clampedNormalOffset },
-    { u: uMin, v: vMax, n: clampedNormalOffset },
-    { u: uMax, v: vMax, n: clampedNormalOffset },
-    { u: uMin, v: vMin, n: clampedNormalOffset + clampedDepth },
-    { u: uMax, v: vMin, n: clampedNormalOffset + clampedDepth },
-    { u: uMin, v: vMax, n: clampedNormalOffset + clampedDepth },
-    { u: uMax, v: vMax, n: clampedNormalOffset + clampedDepth },
+    { u: uMin, v: vMin, n: 0 },
+    { u: uMax, v: vMin, n: 0 },
+    { u: uMin, v: vMax, n: 0 },
+    { u: uMax, v: vMax, n: 0 },
+    { u: uMin, v: vMin, n: thickness },
+    { u: uMax, v: vMin, n: thickness },
+    { u: uMin, v: vMax, n: thickness },
+    { u: uMax, v: vMax, n: thickness },
   ];
 
   const cornersWorld = cornersLocal.map(({ u, v, n }) =>
@@ -115,7 +107,7 @@ export function buildWallPrismGeometry(
 
   const length = uMax - uMin;
   const height = vMax - vMin;
-  const depth = clampedDepth;
+  const depth = thickness;
 
   const positions: number[] = [];
   const uvs: number[] = [];

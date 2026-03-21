@@ -55,7 +55,7 @@ export function EngineWalls({
     [wallMaterialSpec]
   );
   const wallMaterials = useMemo(
-    () => [wallMaterial, interiorWallMaterial, wallMaterial] as const,
+    () => [wallMaterial, interiorWallMaterial, wallMaterial],
     [interiorWallMaterial, wallMaterial]
   );
   const separatorDebugMaterial = useMemo(

@@ -18,7 +18,7 @@ import {
 import { groupOpeningsByWall } from '../openings/groupOpeningsByWall';
 import { splitWallByOpenings } from '../openings/splitWallByOpenings';
 import { buildWallPieceGeometry } from '../geometry/buildWallPieceGeometry';
-import { createWallMaterial } from '../materials/materialResolver';
+import { createInteriorWallMaterial, createWallMaterial } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import { mergeExteriorWallsForRendering } from './mergeExteriorWallsForRendering';
 
@@ -50,6 +50,14 @@ export function EngineWalls({
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
   const wallMaterial = useMemo(() => createWallMaterial(wallMaterialSpec), [wallMaterialSpec]);
+  const interiorWallMaterial = useMemo(
+    () => createInteriorWallMaterial(wallMaterialSpec),
+    [wallMaterialSpec]
+  );
+  const wallMaterials = useMemo(
+    () => [wallMaterial, interiorWallMaterial, wallMaterial] as const,
+    [interiorWallMaterial, wallMaterial]
+  );
   const separatorDebugMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -63,7 +71,10 @@ export function EngineWalls({
     if ('wireframe' in wallMaterial) {
       (wallMaterial as { wireframe?: boolean }).wireframe = debugWireframe;
     }
-  }, [debugWireframe, wallMaterial]);
+    if ('wireframe' in interiorWallMaterial) {
+      (interiorWallMaterial as { wireframe?: boolean }).wireframe = debugWireframe;
+    }
+  }, [debugWireframe, interiorWallMaterial, wallMaterial]);
 
   useEffect(() => () => separatorDebugMaterial.dispose(), [separatorDebugMaterial]);
 
@@ -212,7 +223,7 @@ export function EngineWalls({
       {mergedGeometry ? (
         <mesh
           geometry={mergedGeometry}
-          material={wallMaterial}
+          material={wallMaterials}
           castShadow
           receiveShadow
           userData={{ debugType: 'structure' }}

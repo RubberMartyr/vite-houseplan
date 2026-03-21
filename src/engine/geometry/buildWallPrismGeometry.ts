@@ -152,13 +152,18 @@ export function buildWallPrismGeometry(
     },
   ] as const;
 
-  faceDefinitions.forEach((face) => {
+  const geometry = new THREE.BufferGeometry();
+
+  faceDefinitions.forEach((face, faceIndex) => {
+    const startIndex = indices.length;
     indices.push(
       ...appendFace(positions, uvs, face.corners, face.normalHint, face.uSize, face.vSize)
     );
+    const count = indices.length - startIndex;
+    const materialIndex = faceIndex === 0 ? 0 : faceIndex === 1 ? 1 : 2;
+    geometry.addGroup(startIndex, count, materialIndex);
   });
 
-  const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);

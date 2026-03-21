@@ -182,6 +182,9 @@ export type ArchitecturalMaterials = {
     texture?: string;
     scale?: number;
     color?: string;
+    exteriorColor?: string;
+    interiorColor?: string;
+    edgeColor?: string;
   };
   roof?: {
     texture?: string;

@@ -1,5 +1,11 @@
 import type { OpeningStyleSpec } from '../architecturalTypes';
 import { DEFAULT_FRAME_EDGES, DEFAULT_OPENING_STYLE } from './openingDefaults';
+import {
+  SILL_DEPTH as DEFAULT_SILL_DEPTH,
+  SILL_HEIGHT as DEFAULT_SILL_HEIGHT,
+  SILL_OVERHANG as DEFAULT_SILL_PROJECTION,
+  SILL_WIDTH_OVERHANG as DEFAULT_SILL_WIDTH_OVERHANG,
+} from '../../model/constants/windowConstants';
 
 export type OpeningRenderPart = {
   key: string;
@@ -20,11 +26,17 @@ export type OpeningRenderConfig = {
   parts: OpeningRenderPart[];
 };
 
+type ResolveOpeningRenderOptions = {
+  kind?: 'window' | 'door';
+  sillHeight?: number;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
 const FRONT_PORTAL_STONE_PROJECTION = 0.04;
+const THRESHOLD_LIFT = 0.003;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
@@ -105,7 +117,7 @@ function createFrontPortalDoorParts(
       material: 'stone',
       debugIgnore: true,
       size: [surroundOuterWidth + surroundOverlap * 0.5, plinthHeight, surroundDepth * 0.9],
-      position: [0, -openingHeight / 2 - plinthHeight / 2, surroundDepth * 0.05],
+      position: [0, -openingHeight / 2 - plinthHeight / 2 + THRESHOLD_LIFT, surroundDepth * 0.05],
     },
     {
       key: 'wood-leaf',
@@ -186,7 +198,8 @@ export function resolveOpeningRenderParts(
   openingWidth: number,
   openingHeight: number,
   style: OpeningStyleSpec | undefined,
-  wallThickness: number
+  wallThickness: number,
+  options: ResolveOpeningRenderOptions = {}
 ): OpeningRenderConfig {
   const frameThickness = Math.max(style?.frameThickness ?? DEFAULT_OPENING_STYLE.frameThickness, 0.01);
   const frameDepth = Math.max(
@@ -227,9 +240,12 @@ export function resolveOpeningRenderParts(
   const columnFractions = normalizeFractions(undefined, cols);
   const rowFractions = resolveRowFractions(style, rows);
 
-  const sillThickness = Math.max(style?.sillThickness ?? 0.04, 0.01);
-  const sillDepth = Math.max(style?.sillDepth ?? 0.06, 0.01);
-  const sillOverhang = Math.max(frameThickness * 0.5, 0.02);
+  const sillThickness = Math.max(style?.sillThickness ?? DEFAULT_SILL_HEIGHT, 0.01);
+  const sillDepth = Math.max(style?.sillDepth ?? DEFAULT_SILL_DEPTH, 0.01);
+  const sillOverhang = Math.max(frameThickness * 0.5, DEFAULT_SILL_WIDTH_OVERHANG / 2);
+  const sillProjection = Math.max(DEFAULT_SILL_PROJECTION, 0);
+  const shouldRenderSill =
+    style?.hasSill === true || (options.kind === 'window' && (options.sillHeight ?? 1) <= 0.001);
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
@@ -319,13 +335,17 @@ export function resolveOpeningRenderParts(
     });
   }
 
-  if (style?.hasSill) {
+  if (shouldRenderSill) {
     parts.push({
       key: 'sill',
-      material: 'frame',
+      material: 'stone',
       debugIgnore: true,
       size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
-      position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2],
+      position: [
+        0,
+        -openingHeight / 2 - sillThickness / 2 + THRESHOLD_LIFT,
+        frameDepth / 2 + sillDepth / 2 + sillProjection,
+      ],
     });
   }
 

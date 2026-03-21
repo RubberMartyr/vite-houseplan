@@ -1,5 +1,11 @@
 import type { OpeningStyleSpec } from '../architecturalTypes';
 import { DEFAULT_FRAME_EDGES, DEFAULT_OPENING_STYLE } from './openingDefaults';
+import {
+  SILL_DEPTH as DEFAULT_SILL_DEPTH,
+  SILL_HEIGHT as DEFAULT_SILL_HEIGHT,
+  SILL_OVERHANG as DEFAULT_SILL_PROJECTION,
+  SILL_WIDTH_OVERHANG as DEFAULT_SILL_WIDTH_OVERHANG,
+} from '../../model/constants/windowConstants';
 
 export type OpeningRenderPart = {
   key: string;
@@ -227,9 +233,10 @@ export function resolveOpeningRenderParts(
   const columnFractions = normalizeFractions(undefined, cols);
   const rowFractions = resolveRowFractions(style, rows);
 
-  const sillThickness = Math.max(style?.sillThickness ?? 0.04, 0.01);
-  const sillDepth = Math.max(style?.sillDepth ?? 0.06, 0.01);
-  const sillOverhang = Math.max(frameThickness * 0.5, 0.02);
+  const sillThickness = Math.max(style?.sillThickness ?? DEFAULT_SILL_HEIGHT, 0.01);
+  const sillDepth = Math.max(style?.sillDepth ?? DEFAULT_SILL_DEPTH, 0.01);
+  const sillOverhang = Math.max(frameThickness * 0.5, DEFAULT_SILL_WIDTH_OVERHANG / 2);
+  const sillProjection = Math.max(DEFAULT_SILL_PROJECTION, 0);
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
@@ -325,7 +332,7 @@ export function resolveOpeningRenderParts(
       material: 'stone',
       debugIgnore: true,
       size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
-      position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2],
+      position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2 + sillProjection],
     });
   }
 

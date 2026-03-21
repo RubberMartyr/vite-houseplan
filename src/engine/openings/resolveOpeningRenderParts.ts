@@ -322,7 +322,7 @@ export function resolveOpeningRenderParts(
   if (style?.hasSill) {
     parts.push({
       key: 'sill',
-      material: 'frame',
+      material: 'stone',
       debugIgnore: true,
       size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
       position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2],

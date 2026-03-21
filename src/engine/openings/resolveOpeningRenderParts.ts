@@ -5,7 +5,8 @@ export type OpeningRenderPart = {
   key: string;
   size: [number, number, number];
   position: [number, number, number];
-  material: 'frame' | 'glass';
+  material: 'frame' | 'glass' | 'wood' | 'stone';
+  rotation?: [number, number, number];
   debugType?: 'opening';
   debugIgnore?: boolean;
 };
@@ -45,6 +46,152 @@ function resolveRowFractions(style: OpeningStyleSpec | undefined, rows: number):
   }
 
   return normalizeFractions(style?.rowFractions, rows);
+}
+
+function createFrontPortalDoorParts(
+  openingWidth: number,
+  openingHeight: number,
+  frameThickness: number,
+  frameDepth: number
+): OpeningRenderPart[] {
+  const jambWidth = Math.min(Math.max(openingWidth * 0.19, 0.16), openingWidth * 0.24);
+  const surroundDepth = Math.min(Math.max(frameDepth * 1.8, 0.2), 0.28);
+  const capHeight = Math.min(Math.max(openingHeight * 0.09, 0.16), 0.24);
+  const plinthHeight = 0.08;
+  const stoneRevealInset = jambWidth + frameThickness * 0.55;
+  const innerWidth = Math.max(0.18, openingWidth - stoneRevealInset * 2);
+  const transomHeight = Math.min(Math.max(openingHeight * 0.2, 0.34), 0.46);
+  const leafHeight = Math.max(0.35, openingHeight - transomHeight - frameThickness * 1.35);
+  const leafWidth = Math.max(0.18, innerWidth - frameThickness * 0.85);
+  const woodDepth = Math.max(frameDepth * 0.42, 0.05);
+  const transomGlassDepth = Math.max(woodDepth * 0.45, 0.015);
+  const transomY = openingHeight / 2 - transomHeight / 2 - frameThickness * 0.8;
+  const leafY = -openingHeight / 2 + leafHeight / 2 + frameThickness * 0.75;
+  const capY = openingHeight / 2 + capHeight / 2 - frameThickness * 0.15;
+  const pedimentHeight = 0.06;
+  const pedimentWidth = openingWidth + jambWidth * 1.4;
+  const diagonalLength = Math.hypot(innerWidth, transomHeight);
+  const diagonalThickness = Math.max(frameThickness * 0.24, 0.018);
+  const diagonalDepth = Math.max(transomGlassDepth, woodDepth * 0.5);
+
+  return [
+    {
+      key: 'stone-jamb-left',
+      material: 'stone',
+      debugType: 'opening',
+      size: [jambWidth, openingHeight + plinthHeight, surroundDepth],
+      position: [-openingWidth / 2 + jambWidth / 2, -plinthHeight / 2, 0],
+    },
+    {
+      key: 'stone-jamb-right',
+      material: 'stone',
+      debugType: 'opening',
+      size: [jambWidth, openingHeight + plinthHeight, surroundDepth],
+      position: [openingWidth / 2 - jambWidth / 2, -plinthHeight / 2, 0],
+    },
+    {
+      key: 'stone-cap',
+      material: 'stone',
+      debugType: 'opening',
+      size: [openingWidth + jambWidth * 0.9, capHeight, surroundDepth],
+      position: [0, capY, 0],
+    },
+    {
+      key: 'stone-threshold',
+      material: 'stone',
+      debugIgnore: true,
+      size: [openingWidth + jambWidth * 1.05, plinthHeight, surroundDepth * 0.9],
+      position: [0, -openingHeight / 2 - plinthHeight / 2, surroundDepth * 0.05],
+    },
+    {
+      key: 'stone-pediment-left',
+      material: 'stone',
+      debugIgnore: true,
+      size: [pedimentWidth * 0.52, pedimentHeight, surroundDepth * 0.82],
+      position: [-pedimentWidth * 0.12, capY + capHeight / 2 + pedimentHeight * 0.55, 0],
+      rotation: [0, 0, Math.PI / 8],
+    },
+    {
+      key: 'stone-pediment-right',
+      material: 'stone',
+      debugIgnore: true,
+      size: [pedimentWidth * 0.52, pedimentHeight, surroundDepth * 0.82],
+      position: [pedimentWidth * 0.12, capY + capHeight / 2 + pedimentHeight * 0.55, 0],
+      rotation: [0, 0, -Math.PI / 8],
+    },
+    {
+      key: 'wood-leaf',
+      material: 'wood',
+      debugType: 'opening',
+      size: [leafWidth, leafHeight, woodDepth],
+      position: [0, leafY, frameThickness * 0.02],
+    },
+    {
+      key: 'wood-panel-upper',
+      material: 'wood',
+      debugIgnore: true,
+      size: [leafWidth * 0.78, leafHeight * 0.35, woodDepth * 0.3],
+      position: [0, leafY + leafHeight * 0.2, woodDepth / 2 + 0.003],
+    },
+    {
+      key: 'wood-panel-lower',
+      material: 'wood',
+      debugIgnore: true,
+      size: [leafWidth * 0.78, leafHeight * 0.31, woodDepth * 0.3],
+      position: [0, leafY - leafHeight * 0.24, woodDepth / 2 + 0.003],
+    },
+    {
+      key: 'transom-glass',
+      material: 'glass',
+      debugType: 'opening',
+      size: [innerWidth, transomHeight, transomGlassDepth],
+      position: [0, transomY, -frameThickness * 0.06],
+    },
+    {
+      key: 'transom-frame-top',
+      material: 'frame',
+      debugIgnore: true,
+      size: [innerWidth + frameThickness * 0.45, frameThickness, woodDepth],
+      position: [0, transomY + transomHeight / 2 - frameThickness / 2, 0],
+    },
+    {
+      key: 'transom-frame-bottom',
+      material: 'frame',
+      debugIgnore: true,
+      size: [innerWidth + frameThickness * 0.45, frameThickness, woodDepth],
+      position: [0, transomY - transomHeight / 2 + frameThickness / 2, 0],
+    },
+    {
+      key: 'transom-frame-left',
+      material: 'frame',
+      debugIgnore: true,
+      size: [frameThickness, transomHeight, woodDepth],
+      position: [-innerWidth / 2 + frameThickness / 2, transomY, 0],
+    },
+    {
+      key: 'transom-frame-right',
+      material: 'frame',
+      debugIgnore: true,
+      size: [frameThickness, transomHeight, woodDepth],
+      position: [innerWidth / 2 - frameThickness / 2, transomY, 0],
+    },
+    {
+      key: 'transom-cross-left',
+      material: 'frame',
+      debugIgnore: true,
+      size: [diagonalLength, diagonalThickness, diagonalDepth],
+      position: [0, transomY, woodDepth / 2 + 0.004],
+      rotation: [0, 0, Math.atan2(transomHeight, innerWidth)],
+    },
+    {
+      key: 'transom-cross-right',
+      material: 'frame',
+      debugIgnore: true,
+      size: [diagonalLength, diagonalThickness, diagonalDepth],
+      position: [0, transomY, woodDepth / 2 + 0.004],
+      rotation: [0, 0, -Math.atan2(transomHeight, innerWidth)],
+    },
+  ];
 }
 
 export function resolveOpeningRenderParts(
@@ -98,6 +245,16 @@ export function resolveOpeningRenderParts(
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
+
+  if (style?.variant === 'frontPortalDoor') {
+    return {
+      frameThickness,
+      frameDepth,
+      glassInset,
+      glassThickness,
+      parts: createFrontPortalDoorParts(openingWidth, openingHeight, frameThickness, frameDepth),
+    };
+  }
 
   const parts: OpeningRenderPart[] = [
     {

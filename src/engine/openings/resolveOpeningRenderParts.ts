@@ -26,11 +26,17 @@ export type OpeningRenderConfig = {
   parts: OpeningRenderPart[];
 };
 
+type ResolveOpeningRenderOptions = {
+  kind?: 'window' | 'door';
+  sillHeight?: number;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
 const FRONT_PORTAL_STONE_PROJECTION = 0.04;
+const THRESHOLD_LIFT = 0.003;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
@@ -111,7 +117,7 @@ function createFrontPortalDoorParts(
       material: 'stone',
       debugIgnore: true,
       size: [surroundOuterWidth + surroundOverlap * 0.5, plinthHeight, surroundDepth * 0.9],
-      position: [0, -openingHeight / 2 - plinthHeight / 2, surroundDepth * 0.05],
+      position: [0, -openingHeight / 2 - plinthHeight / 2 + THRESHOLD_LIFT, surroundDepth * 0.05],
     },
     {
       key: 'wood-leaf',
@@ -192,7 +198,8 @@ export function resolveOpeningRenderParts(
   openingWidth: number,
   openingHeight: number,
   style: OpeningStyleSpec | undefined,
-  wallThickness: number
+  wallThickness: number,
+  options: ResolveOpeningRenderOptions = {}
 ): OpeningRenderConfig {
   const frameThickness = Math.max(style?.frameThickness ?? DEFAULT_OPENING_STYLE.frameThickness, 0.01);
   const frameDepth = Math.max(
@@ -326,7 +333,7 @@ export function resolveOpeningRenderParts(
     });
   }
 
-  if (style?.hasSill) {
+  if (shouldRenderSill) {
     parts.push({
       key: 'sill',
       material: 'stone',

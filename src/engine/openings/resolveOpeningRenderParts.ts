@@ -247,6 +247,10 @@ export function resolveOpeningRenderParts(
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
+  const shouldRenderSill =
+    options.kind !== 'door' &&
+    style?.hasSill !== false &&
+    (options.sillHeight == null || options.sillHeight > 0);
 
   if (style?.variant === 'frontPortalDoor') {
     return {

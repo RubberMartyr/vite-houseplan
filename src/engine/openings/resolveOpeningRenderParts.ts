@@ -314,6 +314,8 @@ export function resolveOpeningRenderParts(
   }
 
   if ((style?.separatorPanelHeight ?? 0) > 0) {
+    // Separator panels bridge stacked openings by covering the slab face below the
+    // upper opening, so their volume needs to hang below the opening baseline.
     const separatorPanelHeight = clamp(
       style?.separatorPanelHeight ?? 0,
       0.01,
@@ -329,7 +331,7 @@ export function resolveOpeningRenderParts(
       size: [separatorPanelWidth, separatorPanelHeight, separatorPanelDepth],
       position: [
         glassCenterX,
-        -openingHeight / 2 + separatorPanelHeight / 2,
+        -openingHeight / 2 - separatorPanelHeight / 2,
         frameDepth / 2 - separatorPanelDepth / 2 - SEPARATOR_PANEL_FRONT_INSET,
       ],
     });

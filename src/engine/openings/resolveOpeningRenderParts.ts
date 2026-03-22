@@ -38,8 +38,7 @@ function clamp(value: number, min: number, max: number) {
 const FRONT_PORTAL_STONE_PROJECTION = 0.04;
 const THRESHOLD_LIFT = 0.003;
 const SILL_FRAME_CONTACT_DEPTH = 0.002;
-const SEPARATOR_PANEL_FACE_DEPTH = 0.008;
-const SEPARATOR_PANEL_FRONT_OFFSET = 0.001;
+const SEPARATOR_PANEL_FRONT_INSET = 0.002;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
@@ -320,7 +319,7 @@ export function resolveOpeningRenderParts(
       0.01,
       Math.max(openingHeight - topFrameThickness, 0.01)
     );
-    const separatorPanelDepth = clamp(SEPARATOR_PANEL_FACE_DEPTH, 0.002, frameDepth);
+    const separatorPanelDepth = clamp(frameDepth * 0.45, 0.02, frameDepth);
     const separatorPanelWidth = Math.max(glassWidth, 0.01);
 
     parts.push({
@@ -331,7 +330,7 @@ export function resolveOpeningRenderParts(
       position: [
         glassCenterX,
         -openingHeight / 2 + separatorPanelHeight / 2,
-        frameDepth / 2 - separatorPanelDepth / 2 + SEPARATOR_PANEL_FRONT_OFFSET,
+        frameDepth / 2 - separatorPanelDepth / 2 - SEPARATOR_PANEL_FRONT_INSET,
       ],
     });
   }

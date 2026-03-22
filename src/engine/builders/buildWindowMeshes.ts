@@ -87,9 +87,9 @@ export function buildWindowMeshes(openings: DerivedOpeningRect[], constants: Win
 
     if (opening.style?.hasSill !== false) {
       const sillPos: [number, number, number] = [
-        opening.centerArch.x + forwardX * (panelOut + sillDepth / 2 - eps),
+        opening.centerArch.x + forwardX * (panelOut + sillDepth / 2 + eps),
         opening.centerArch.y - height / 2 - sillHeight / 2,
-        opening.centerArch.z + forwardZ * (panelOut + sillDepth / 2 - eps),
+        opening.centerArch.z + forwardZ * (panelOut + sillDepth / 2 + eps),
       ];
       meshes.push({
         id: `${opening.id}_sill`,

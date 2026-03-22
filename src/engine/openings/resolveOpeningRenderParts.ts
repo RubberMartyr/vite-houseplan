@@ -337,7 +337,7 @@ export function resolveOpeningRenderParts(
   if (shouldRenderSill) {
     const sillCenterY = -openingHeight / 2 + sillThickness / 2 + THRESHOLD_LIFT;
     const sillCenterZ =
-      frameDepth / 2 - sillDepth / 2 + Math.min(sillProjection, SILL_FRAME_CONTACT_DEPTH);
+      frameDepth / 2 + sillDepth / 2 - Math.min(sillProjection, SILL_FRAME_CONTACT_DEPTH);
 
     parts.push({
       key: 'sill',

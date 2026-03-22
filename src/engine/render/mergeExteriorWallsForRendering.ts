@@ -88,6 +88,41 @@ type MergeResult = {
   openings: DerivedOpening[];
 };
 
+function getOverlapLength(aMin: number, aMax: number, bMin: number, bMax: number): number {
+  return Math.max(0, Math.min(aMax, bMax) - Math.max(aMin, bMin));
+}
+
+function bridgeMergedStackOpenings(openings: DerivedOpening[]): DerivedOpening[] {
+  return openings.map((opening) => {
+    if (opening.style.mergeWithBelow !== true) {
+      return opening;
+    }
+
+    const closestBelow = openings
+      .filter((candidate) => {
+        if (candidate.id === opening.id) return false;
+        if (candidate.wallId !== opening.wallId) return false;
+        if (candidate.vMax > opening.vMin + EPSILON) return false;
+        return getOverlapLength(candidate.uMin, candidate.uMax, opening.uMin, opening.uMax) > EPSILON;
+      })
+      .sort((a, b) => b.vMax - a.vMax)[0];
+
+    if (!closestBelow) {
+      return opening;
+    }
+
+    return {
+      ...opening,
+      vMin: closestBelow.vMax,
+      height: opening.vMax - closestBelow.vMax,
+      centerArch: {
+        ...opening.centerArch,
+        y: opening.centerArch.y - (opening.vMin - closestBelow.vMax) / 2,
+      },
+    };
+  });
+}
+
 export function mergeExteriorWallsForRendering(
   walls: DerivedWallSegment[],
   openings: DerivedOpening[]
@@ -179,16 +214,18 @@ export function mergeExteriorWallsForRendering(
     ];
   });
 
+  const bridgedOpenings = bridgeMergedStackOpenings(mergedOpenings);
+
   mergedWalls.sort((a, b) => a.id.localeCompare(b.id));
-  mergedOpenings.sort((a, b) => (a.wallId.localeCompare(b.wallId) || a.uMin - b.uMin || a.vMin - b.vMin));
+  bridgedOpenings.sort((a, b) => (a.wallId.localeCompare(b.wallId) || a.uMin - b.uMin || a.vMin - b.vMin));
 
   if (debugEnabled) {
     console.debug('[separator-debug]', {
       stage: 'mergeExteriorWallsForRendering:end',
       outputWallCount: mergedWalls.length,
-      outputOpeningCount: mergedOpenings.length,
+      outputOpeningCount: bridgedOpenings.length,
       mergedWallIds: mergedWalls.map((wall) => wall.id),
-      mergedOpeningWallIds: mergedOpenings.map((opening) => ({
+      mergedOpeningWallIds: bridgedOpenings.map((opening) => ({
         openingId: opening.id,
         wallId: opening.wallId,
         vMin: opening.vMin,
@@ -199,6 +236,6 @@ export function mergeExteriorWallsForRendering(
 
   return {
     walls: mergedWalls,
-    openings: mergedOpenings,
+    openings: bridgedOpenings,
   };
 }

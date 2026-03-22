@@ -52,8 +52,11 @@ export function EngineOpenings({
 
         const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);
 
-        const inward = outward.clone().multiplyScalar(-wallThickness / 2);
-        const defaultPosition = center.clone().add(inward);
+        // Derived opening centers are resolved on the architectural facade plane (the wall's
+        // exterior face), so render parts should stay anchored there. Pushing the whole opening
+        // group half a wall thickness inward hides outward-projecting sills/thresholds inside the
+        // wall prism instead of letting them project beyond the facade.
+        const defaultPosition = center;
         const openingPosition =
           renderConfig.originOffsetZ != null
             ? center.clone().add(outward.clone().multiplyScalar(renderConfig.originOffsetZ))

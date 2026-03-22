@@ -1,3 +1,4 @@
+import type { OpeningStyleSpec } from './architecturalTypes';
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 
@@ -170,7 +171,7 @@ const [leftFacadeMidRearCenter, leftFacadeMidFrontCenter] =
 const LEFT_FACADE_MID_REAR_OFFSET = leftFacadeMidRearCenter - LEFT_FACADE_TALL_STACK_WIDTH / 2;
 const LEFT_FACADE_MID_FRONT_OFFSET = leftFacadeMidFrontCenter - LEFT_FACADE_TALL_STACK_WIDTH / 2;
 const LEFT_FACADE_FAMILY_FRAME_THICKNESS = 0.06;
-const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
+const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE: OpeningStyleSpec = {
   variant: 'plain',
   hasSill: true,
   hasLintel: false,
@@ -179,14 +180,15 @@ const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
   glassInset: 0.012,
   glassThickness: 0.012,
   frameEdges: { top: false },
-} as const;
-const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE = {
+};
+const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE: OpeningStyleSpec = {
   ...LEFT_FACADE_TALL_LOWER_WINDOW_STYLE,
-  hasSill: true,
+  hasSill: false,
   hasLintel: true,
+  mergeWithBelow: true,
   frameEdges: { bottom: false },
-} as const;
-const LEFT_FACADE_SHORT_WINDOW_STYLE = {
+};
+const LEFT_FACADE_SHORT_WINDOW_STYLE: OpeningStyleSpec = {
   variant: 'plain',
   hasSill: true,
   hasLintel: true,
@@ -194,7 +196,7 @@ const LEFT_FACADE_SHORT_WINDOW_STYLE = {
   frameDepth: 0.1,
   glassInset: 0.012,
   glassThickness: 0.012,
-} as const;
+};
 
 type LeftFacadeStack = {
   id: 'LOW' | 'MID' | 'HIGH';

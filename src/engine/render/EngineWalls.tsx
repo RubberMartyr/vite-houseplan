@@ -33,6 +33,7 @@ type EngineWallsProps = {
 
 type BuiltWallPiece = BuiltWall & {
   debugSeparatorCandidate?: boolean;
+  debugThinBand?: boolean;
 };
 
 const getGeometry = createGeometryCache<BuiltWallPiece[]>();
@@ -52,7 +53,7 @@ export function EngineWalls({
   const separatorDebugMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: '#39ff14',
+        color: 0xff0000,
         side: THREE.DoubleSide,
       }),
     []
@@ -134,6 +135,7 @@ export function EngineWalls({
         return pieces.map((piece, pieceIndex) => {
           const pieceId = `${wall.id}-piece-${pieceIndex}`;
           const debugSeparatorCandidate = isSeparatorCandidatePiece(piece);
+          const debugThinBand = piece.vMax - piece.vMin < 0.8;
 
           if (debugSeparatorCandidate) {
             logSeparatorDebug(
@@ -148,6 +150,7 @@ export function EngineWalls({
           return {
             id: pieceId,
             debugSeparatorCandidate,
+            debugThinBand,
             geometry: buildWallPieceGeometry(
               wall,
               piece,
@@ -162,12 +165,12 @@ export function EngineWalls({
   }, [debugEnabled, walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
 
   const normalBuiltWalls = useMemo(
-    () => (debugEnabled ? builtWalls.filter((wall) => !wall.debugSeparatorCandidate) : builtWalls),
+    () => (debugEnabled ? builtWalls.filter((wall) => !wall.debugThinBand) : builtWalls),
     [builtWalls, debugEnabled]
   );
 
   const separatorBuiltWalls = useMemo(
-    () => (debugEnabled ? builtWalls.filter((wall) => wall.debugSeparatorCandidate) : []),
+    () => (debugEnabled ? builtWalls.filter((wall) => wall.debugThinBand) : []),
     [builtWalls, debugEnabled]
   );
 
@@ -199,9 +202,10 @@ export function EngineWalls({
           key={id}
           geometry={geometry}
           material={separatorDebugMaterial}
+          position={[0, 0, 0.01]}
           castShadow
           receiveShadow
-          userData={{ debugType: 'structure', debugSeparatorCandidate: true }}
+          userData={{ debugType: 'structure', debugSeparatorCandidate: true, debugThinBand: true }}
         >
           <DebugWireframe />
         </mesh>

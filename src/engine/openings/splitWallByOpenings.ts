@@ -8,8 +8,12 @@ import {
 import { debugFlags } from '../debug/debugFlags';
 
 const EPSILON = 1e-6;
+const CUT_EPSILON = 0.002;
 const STACK_CONTACT_TOLERANCE = 0.01;
 const SEPARATOR_HEIGHT = 0.2;
+const DEBUG_CELL_MIN_HEIGHT = 0.05;
+const SPANDREL_DEBUG_MIN = 2.45;
+const SPANDREL_DEBUG_MAX = 3.05;
 
 export interface WallPieceRect {
   uMin: number;
@@ -30,6 +34,10 @@ interface StackSeparatorBand {
 function uniqueSorted(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted.filter((v, idx) => idx === 0 || Math.abs(v - sorted[idx - 1]) > EPSILON);
+}
+
+function dedupeCuts(values: number[]) {
+  return values.filter((value, index, arr) => index === 0 || Math.abs(value - arr[index - 1]) > CUT_EPSILON);
 }
 
 function cellOverlapsOpening(cell: WallPieceRect, opening: DerivedOpening) {
@@ -151,7 +159,7 @@ export function splitWallByOpenings(
   }
 
   const uSorted = uniqueSorted([...uCuts]);
-  const vSorted = uniqueSorted([...vCuts]);
+  const vSorted = dedupeCuts(uniqueSorted([...vCuts]));
   const separatorBands = [...stackSeparators.values()];
   const pieces: WallPieceRect[] = [];
 
@@ -164,9 +172,28 @@ export function splitWallByOpenings(
         vMax: vSorted[vi + 1],
       };
       const piece: WallPieceRect = cell;
+      const height = piece.vMax - piece.vMin;
 
       const area = (piece.uMax - piece.uMin) * (piece.vMax - piece.vMin);
       if (area <= EPSILON) continue;
+
+      if (debugEnabled && height > DEBUG_CELL_MIN_HEIGHT) {
+        console.log('[WALL CELL]', {
+          wallId: wall?.id,
+          vMin: piece.vMin,
+          vMax: piece.vMax,
+          height,
+          isBetweenOpenings: true,
+        });
+      }
+
+      if (debugEnabled && piece.vMin < SPANDREL_DEBUG_MAX && piece.vMax > SPANDREL_DEBUG_MIN) {
+        console.log('[SPANDREL DETECTED]', {
+          wallId: wall?.id,
+          vMin: piece.vMin,
+          vMax: piece.vMax,
+        });
+      }
 
       const separator = separatorBands.find((candidate) => cellFitsInsideSeparatorBand(cell, candidate));
       const overlappingOpenings = openings.filter((opening) => {

@@ -163,6 +163,7 @@ export interface OpeningStyleSpec {
   hasLintel?: boolean;
   surroundRing?: boolean;
   mergeWithBelow?: boolean;
+  separatorPanelHeight?: number;
 }
 
 export interface OpeningEdgeRef {

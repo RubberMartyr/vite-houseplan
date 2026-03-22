@@ -31,14 +31,6 @@ interface StackSeparatorBand {
   key: string;
 }
 
-interface VerticalMergeBand {
-  uMin: number;
-  uMax: number;
-  vMin: number;
-  vMax: number;
-  key: string;
-}
-
 function uniqueSorted(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted.filter((v, idx) => idx === 0 || Math.abs(v - sorted[idx - 1]) > EPSILON);
@@ -130,15 +122,6 @@ function openingTouchesSeparatorBoundary(opening: DerivedOpening, separator: Sta
   return overlap.max - overlap.min > EPSILON;
 }
 
-function cellFitsInsideMergeBand(cell: WallPieceRect, mergeBand: VerticalMergeBand) {
-  return (
-    cell.uMin >= mergeBand.uMin - EPSILON &&
-    cell.uMax <= mergeBand.uMax + EPSILON &&
-    cell.vMin >= mergeBand.vMin - EPSILON &&
-    cell.vMax <= mergeBand.vMax + EPSILON
-  );
-}
-
 export function splitWallByOpenings(
   wallLength: number,
   wallHeight: number,
@@ -154,7 +137,6 @@ export function splitWallByOpenings(
   const uCuts = new Set<number>([0, wallLength]);
   const vCuts = new Set<number>([0, wallHeight]);
   const stackSeparators = new Map<string, StackSeparatorBand>();
-  const verticalMergeBands = new Map<string, VerticalMergeBand>();
 
   openings.forEach((opening) => {
     uCuts.add(opening.uMin);
@@ -169,12 +151,6 @@ export function splitWallByOpenings(
 
       const lowerOpening = openings[index];
       const upperOpening = openings[compareIndex];
-      const mergeBand = buildVerticalMergeBand(lowerOpening, upperOpening);
-      if (mergeBand) {
-        verticalMergeBands.set(mergeBand.key, mergeBand);
-        uCuts.add(mergeBand.uMin);
-        uCuts.add(mergeBand.uMax);
-      }
 
       if (Math.abs(lowerOpening.vMax - upperOpening.vMin) < STACK_CONTACT_TOLERANCE) {
         if (!shouldKeepStackSeparator(lowerOpening, upperOpening)) {
@@ -193,7 +169,6 @@ export function splitWallByOpenings(
   const uSorted = uniqueSorted([...uCuts]);
   const vSorted = dedupeCuts(uniqueSorted([...vCuts]));
   const separatorBands = [...stackSeparators.values()];
-  const mergeBands = [...verticalMergeBands.values()];
   const pieces: WallPieceRect[] = [];
 
   for (let ui = 0; ui < uSorted.length - 1; ui += 1) {
@@ -229,7 +204,6 @@ export function splitWallByOpenings(
       }
 
       const separator = separatorBands.find((candidate) => cellFitsInsideSeparatorBand(cell, candidate));
-      const mergeBand = mergeBands.find((candidate) => cellFitsInsideMergeBand(cell, candidate));
       const overlappingOpenings = openings.filter((opening) => {
         if (!cellOverlapsOpening(cell, opening)) {
           return false;
@@ -241,7 +215,7 @@ export function splitWallByOpenings(
 
         return true;
       });
-      const isOpening = overlappingOpenings.length > 0 || Boolean(mergeBand);
+      const isOpening = overlappingOpenings.length > 0;
 
       if (isSeparatorCandidatePiece(piece)) {
         logSeparatorDebug(
@@ -252,7 +226,6 @@ export function splitWallByOpenings(
             addedToReturnedPieces: !isOpening,
             overlappingOpeningIds: overlappingOpenings.map((opening) => opening.id),
             separatorBandMatched: Boolean(separator),
-            mergeBandMatched: Boolean(mergeBand),
           })
         );
       }

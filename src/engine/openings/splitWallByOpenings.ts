@@ -96,6 +96,10 @@ function buildStackSeparatorBand(
   };
 }
 
+function shouldKeepStackSeparator(lowerOpening: DerivedOpening, upperOpening: DerivedOpening) {
+  return upperOpening.style.mergeWithBelow !== true;
+}
+
 function cellFitsInsideSeparatorBand(cell: WallPieceRect, separator: StackSeparatorBand) {
   return (
     cell.uMin >= separator.uMin - EPSILON &&
@@ -149,6 +153,10 @@ export function splitWallByOpenings(
       const upperOpening = openings[compareIndex];
 
       if (Math.abs(lowerOpening.vMax - upperOpening.vMin) < STACK_CONTACT_TOLERANCE) {
+        if (!shouldKeepStackSeparator(lowerOpening, upperOpening)) {
+          continue;
+        }
+
         addStackSeparatorCuts(vCuts, wallHeight, lowerOpening.vMax);
         const separator = buildStackSeparatorBand(wallHeight, lowerOpening, upperOpening);
         if (separator) {

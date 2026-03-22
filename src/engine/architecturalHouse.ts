@@ -189,6 +189,7 @@ const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE: OpeningStyleSpec = {
   hasSill: false,
   hasLintel: true,
   mergeWithBelow: true,
+  separatorPanelHeight: levels[1].slab.thickness,
   frameEdges: { bottom: false },
 };
 const LEFT_FACADE_SHORT_WINDOW_STYLE: OpeningStyleSpec = {

@@ -162,6 +162,7 @@ export interface OpeningStyleSpec {
   hasSill?: boolean;
   hasLintel?: boolean;
   surroundRing?: boolean;
+  mergeWithBelow?: boolean;
 }
 
 export interface OpeningEdgeRef {

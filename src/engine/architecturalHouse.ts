@@ -172,7 +172,7 @@ const LEFT_FACADE_MID_FRONT_OFFSET = leftFacadeMidFrontCenter - LEFT_FACADE_TALL
 const LEFT_FACADE_FAMILY_FRAME_THICKNESS = 0.06;
 const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
   variant: 'plain',
-  hasSill: false,
+  hasSill: true,
   hasLintel: false,
   frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
   frameDepth: 0.1,
@@ -182,13 +182,13 @@ const LEFT_FACADE_TALL_LOWER_WINDOW_STYLE = {
 } as const;
 const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE = {
   ...LEFT_FACADE_TALL_LOWER_WINDOW_STYLE,
-  hasSill: false,
+  hasSill: true,
   hasLintel: true,
   frameEdges: { bottom: false },
 } as const;
 const LEFT_FACADE_SHORT_WINDOW_STYLE = {
   variant: 'plain',
-  hasSill: false,
+  hasSill: true,
   hasLintel: true,
   frameThickness: LEFT_FACADE_FAMILY_FRAME_THICKNESS,
   frameDepth: 0.1,

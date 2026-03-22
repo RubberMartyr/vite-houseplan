@@ -28,7 +28,6 @@ export type OpeningRenderConfig = {
 
 type ResolveOpeningRenderOptions = {
   kind?: 'window' | 'door';
-  sillHeight?: number;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -37,6 +36,7 @@ function clamp(value: number, min: number, max: number) {
 
 const FRONT_PORTAL_STONE_PROJECTION = 0.04;
 const THRESHOLD_LIFT = 0.003;
+const SILL_FRAME_CONTACT_DEPTH = 0.002;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
@@ -247,10 +247,7 @@ export function resolveOpeningRenderParts(
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
-  const shouldRenderSill =
-    options.kind !== 'door' &&
-    style?.hasSill !== false &&
-    (options.sillHeight == null || options.sillHeight > 0);
+  const shouldRenderSill = options.kind !== 'door' && style?.hasSill !== false;
 
   if (style?.variant === 'frontPortalDoor') {
     return {
@@ -338,12 +335,16 @@ export function resolveOpeningRenderParts(
   }
 
   if (shouldRenderSill) {
+    const sillCenterY = -openingHeight / 2 + sillThickness / 2 + THRESHOLD_LIFT;
+    const sillCenterZ =
+      frameDepth / 2 - sillDepth / 2 + Math.min(sillProjection, SILL_FRAME_CONTACT_DEPTH);
+
     parts.push({
       key: 'sill',
       material: 'stone',
       debugIgnore: true,
       size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
-      position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2 + sillProjection],
+      position: [0, sillCenterY, sillCenterZ],
     });
   }
 

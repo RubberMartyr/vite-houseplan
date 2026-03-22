@@ -36,7 +36,7 @@ function clamp(value: number, min: number, max: number) {
 
 const FRONT_PORTAL_STONE_PROJECTION = 0.04;
 const THRESHOLD_LIFT = 0.003;
-const SILL_FRAME_CONTACT_OVERLAP = 0.002;
+const SILL_FRAME_CONTACT_DEPTH = 0.002;
 
 function normalizeFractions(fractions: number[] | undefined, fallbackCount: number): number[] {
   const cleaned = (fractions ?? []).filter((value) => Number.isFinite(value) && value > 0);
@@ -337,7 +337,7 @@ export function resolveOpeningRenderParts(
   if (shouldRenderSill) {
     const sillCenterY = -openingHeight / 2 + sillThickness / 2 + THRESHOLD_LIFT;
     const sillCenterZ =
-      frameDepth / 2 + sillDepth / 2 + sillProjection - SILL_FRAME_CONTACT_OVERLAP;
+      frameDepth / 2 - sillDepth / 2 + Math.min(sillProjection, SILL_FRAME_CONTACT_DEPTH);
 
     parts.push({
       key: 'sill',

@@ -36,7 +36,10 @@ export function EngineOpenings({
       {openings.map((o) => {
         const width = o.uMax - o.uMin;
         const height = o.vMax - o.vMin;
-        const renderConfig = resolveOpeningRenderParts(width, height, o.style, wallThickness);
+        const renderConfig = resolveOpeningRenderParts(width, height, o.style, wallThickness, {
+          kind: o.kind,
+          sillHeight: o.vMin,
+        });
 
         const tangentXZ = archToWorldXZ({ x: o.tangentXZ.x, z: o.tangentXZ.z });
         const outwardXZ = archToWorldXZ({ x: o.outwardXZ.x, z: o.outwardXZ.z });

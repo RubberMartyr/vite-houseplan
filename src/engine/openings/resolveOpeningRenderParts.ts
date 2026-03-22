@@ -244,8 +244,6 @@ export function resolveOpeningRenderParts(
   const sillDepth = Math.max(style?.sillDepth ?? DEFAULT_SILL_DEPTH, 0.01);
   const sillOverhang = Math.max(frameThickness * 0.5, DEFAULT_SILL_WIDTH_OVERHANG / 2);
   const sillProjection = Math.max(DEFAULT_SILL_PROJECTION, 0);
-  const renderSill =
-    style?.hasSill === true || (options.kind === 'window' && (options.sillHeight ?? 1) <= 0.001);
   const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
   const lintelDepth = frameDepth;
   const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
@@ -335,17 +333,13 @@ export function resolveOpeningRenderParts(
     });
   }
 
-  if (renderSill) {
+  if (shouldRenderSill) {
     parts.push({
       key: 'sill',
       material: 'stone',
       debugIgnore: true,
       size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
-      position: [
-        0,
-        -openingHeight / 2 - sillThickness / 2 + THRESHOLD_LIFT,
-        frameDepth / 2 + sillDepth / 2 + sillProjection,
-      ],
+      position: [0, -openingHeight / 2 - sillThickness / 2, frameDepth / 2 + sillDepth / 2 + sillProjection],
     });
   }
 

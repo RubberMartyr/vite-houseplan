@@ -108,38 +108,6 @@ function shouldKeepStackSeparator(lowerOpening: DerivedOpening, upperOpening: De
   return upperOpening.style.mergeWithBelow !== true;
 }
 
-function buildVerticalMergeBand(lowerOpening: DerivedOpening, upperOpening: DerivedOpening): VerticalMergeBand | null {
-  if (upperOpening.style.mergeWithBelow !== true) {
-    return null;
-  }
-
-  const overlap = getOverlapRange(lowerOpening.uMin, lowerOpening.uMax, upperOpening.uMin, upperOpening.uMax);
-  if (overlap.max - overlap.min <= EPSILON) {
-    return null;
-  }
-
-  const vMin = lowerOpening.vMax;
-  const vMax = upperOpening.vMin;
-  if (vMax - vMin <= EPSILON) {
-    return null;
-  }
-
-  return {
-    uMin: overlap.min,
-    uMax: overlap.max,
-    vMin,
-    vMax,
-    key: [
-      lowerOpening.id,
-      upperOpening.id,
-      overlap.min.toFixed(6),
-      overlap.max.toFixed(6),
-      vMin.toFixed(6),
-      vMax.toFixed(6),
-    ].join('|'),
-  };
-}
-
 function cellFitsInsideSeparatorBand(cell: WallPieceRect, separator: StackSeparatorBand) {
   return (
     cell.uMin >= separator.uMin - EPSILON &&

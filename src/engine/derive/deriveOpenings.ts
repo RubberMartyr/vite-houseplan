@@ -4,6 +4,7 @@ import type { DerivedWallSegment } from '../deriveWalls';
 import { normalizeOpeningStyle } from './openings/normalizeOpeningStyle';
 import type { DerivedOpening } from './types/DerivedOpening';
 import { validateWallOpenings } from '../validation/validateWallOpenings';
+import { debugFlags } from '../debug/debugFlags';
 
 type Vec2XZ = { x: number; z: number };
 
@@ -102,6 +103,7 @@ export function deriveOpenings(
   context: DeriveOpeningsContext
 ): DerivedOpening[] {
   void context.slabs;
+  const debugEnabled = debugFlags.enabled;
 
   const levelIndexById = new Map(house.levels.map((level, index) => [level.id, index]));
   const wallById = new Map(context.walls.map((wall) => [wall.id, wall]));
@@ -153,6 +155,18 @@ export function deriveOpenings(
     const style = normalizeOpeningStyle(opening.style);
     const ownerWall = wallById.get(wallId);
     const frameDepth = Math.min(style.frameDepth, ownerWall?.thickness ?? house.wallThickness);
+    const levelElevation = level.elevation;
+
+    if (debugEnabled) {
+      console.log('[OPENING]', {
+        id: opening.id,
+        level: opening.levelId,
+        sillHeight: opening.sillHeight,
+        height: opening.height,
+        bottom: levelElevation + opening.sillHeight,
+        top: levelElevation + opening.sillHeight + opening.height,
+      });
+    }
 
     out.push({
       id: opening.id,
@@ -168,7 +182,7 @@ export function deriveOpenings(
       height,
       centerArch: {
         x: edgeMid.x,
-        y: level.elevation + (vMin + vMax) / 2,
+        y: levelElevation + (vMin + vMax) / 2,
         z: edgeMid.z,
       },
       tangentXZ: { x: tx, z: tz },

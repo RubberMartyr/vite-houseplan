@@ -1,4 +1,5 @@
 import type { OpeningStyleSpec } from '../architecturalTypes';
+import { debugFlags } from '../debug/debugFlags';
 import { DEFAULT_FRAME_EDGES, DEFAULT_OPENING_STYLE } from './openingDefaults';
 import {
   SILL_DEPTH as DEFAULT_SILL_DEPTH,
@@ -217,6 +218,7 @@ export function resolveOpeningRenderParts(
   const frameEdges = {
     ...DEFAULT_FRAME_EDGES,
     ...(style?.frameEdges ?? {}),
+    ...(debugFlags.enabled ? { top: true, bottom: true } : {}),
   };
   const leftFrameThickness = frameEdges.left ? frameThickness : 0;
   const rightFrameThickness = frameEdges.right ? frameThickness : 0;

@@ -38,7 +38,6 @@ export function EngineOpenings({
         const height = o.vMax - o.vMin;
         const renderConfig = resolveOpeningRenderParts(width, height, o.style, wallThickness, {
           kind: o.kind,
-          sillHeight: o.vMin,
         });
 
         const tangentXZ = archToWorldXZ({ x: o.tangentXZ.x, z: o.tangentXZ.z });

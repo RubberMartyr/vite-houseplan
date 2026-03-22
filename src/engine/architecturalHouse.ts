@@ -151,7 +151,10 @@ const FIRST_REAR_LEFT_WINDOW_OFFSET = FIRST_REAR_COMPOSITION_PADDING + 1.7;
 const FIRST_REAR_RIGHT_WINDOW_OFFSET =
   FIRST_REAR_COMPOSITION_PADDING + 1.7 + FIRST_REAR_WINDOW_WIDTH + 2.0;
 
-const LEFT_FACADE_GROUND_OPENING_HEIGHT = cm(245);
+// Keep the stacked left-facade ground-floor glazing running all the way up to
+// the underside of the first-floor slab so the lower opening meets the slab
+// line instead of stopping short with an exterior wall strip above it.
+const LEFT_FACADE_GROUND_OPENING_HEIGHT = levels[1].elevation - levels[1].slab.thickness;
 const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
 const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
 const LEFT_FACADE_LOW_STACK_WIDTH = cm(70);
@@ -186,6 +189,7 @@ const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE: OpeningStyleSpec = {
   hasSill: false,
   hasLintel: true,
   mergeWithBelow: true,
+  separatorPanelHeight: levels[1].slab.thickness,
   frameEdges: { bottom: false },
 };
 const LEFT_FACADE_SHORT_WINDOW_STYLE: OpeningStyleSpec = {

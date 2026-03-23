@@ -14,7 +14,7 @@ type EngineSiteProps = {
 
 export function EngineSite({ site, cutouts = [], visible = true }: EngineSiteProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const mesh = useMemo(() => (site ? buildSiteMesh(site) : null), [site]);
+  const mesh = useMemo(() => (site ? buildSiteMesh(site, cutouts) : null), [site, cutouts]);
   const boundaryPoints = useMemo(() => (site ? buildSiteBoundaryPoints(site) : []), [site]);
 
   useEffect(() => {

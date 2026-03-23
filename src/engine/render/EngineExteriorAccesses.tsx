@@ -71,11 +71,6 @@ export function EngineExteriorAccesses({
         const up = new THREE.Vector3(0, 1, 0);
         const basis = new THREE.Matrix4().makeBasis(tangent, up, outward);
         const quaternion = new THREE.Quaternion().setFromRotationMatrix(basis);
-        const geometry = geometryByPartId.get(part.id);
-
-        if (!geometry) {
-          return null;
-        }
 
         return (
           <mesh

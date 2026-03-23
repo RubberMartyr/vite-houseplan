@@ -102,7 +102,11 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
 
   return (
     <>
-      <EngineSite site={architecturalHouse.site} visible={showEnvelope} />
+      <EngineSite
+        site={architecturalHouse.site}
+        cutouts={derived.exteriorAccessCutouts.map((cutout) => cutout.polygon)}
+        visible={showEnvelope}
+      />
       <EngineWalls
         walls={clippedAboveGradeWalls}
         openings={aboveGradeOpenings}

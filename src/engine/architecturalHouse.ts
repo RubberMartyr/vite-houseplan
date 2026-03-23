@@ -134,6 +134,23 @@ const firstLevel: ArchitecturalHouse['levels'][number] = {
 
 const levels: ArchitecturalHouse['levels'] = [basementLevel, groundLevel, firstLevel];
 
+const site: ArchitecturalHouse['site'] = {
+  elevation: -0.001,
+  color: '#d8d8d8',
+  footprint: {
+    outer: [
+      // Approximated from the supplied cadastral sketch using the known house
+      // envelope as a scale reference. This polygon lands very close to the
+      // labeled 7a61ca lot area while matching the tapered plot silhouette.
+      { x: -11.0, z: -2.0 },
+      { x: 11.0, z: -0.5 },
+      { x: 7.0, z: 28.0 },
+      { x: -1.0, z: 30.0 },
+      { x: -21.5, z: 26.0 },
+    ],
+  },
+};
+
 // Current envelope orientation has the front facade at z = 0.
 const FRONT_FACADE: "minZ" | "maxZ" = "minZ";
 const groundFrontEdgeIndex = findFacadeEdgeIndex(groundLevel.footprint.outer, FRONT_FACADE);
@@ -441,6 +458,7 @@ export const architecturalHouse: ArchitecturalHouse = {
   wallThickness: WALL_THICKNESS, // match current
 
   levels,
+  site,
 
   materials: {
     walls: {

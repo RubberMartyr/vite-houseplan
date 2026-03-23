@@ -115,13 +115,6 @@ export default function HouseViewer() {
         />
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
-        {showEnvelope && (
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} castShadow receiveShadow>
-            <planeGeometry args={[160, 160]} />
-            <meshStandardMaterial color="#d8d8d8" />
-          </mesh>
-        )}
-
         <group>
           <EngineHouse architecturalHouse={house} showEnvelope={showEnvelope} />
           <DebugAxes />

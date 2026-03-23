@@ -2,6 +2,7 @@ import type { OpeningStyleSpec } from './architecturalTypes';
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
+import { buildLot1aSiteSurfaces } from './site/lot1aSurfaces';
 
 type XZ = { x: number; z: number };
 const EPS = 1e-6;
@@ -135,11 +136,6 @@ const firstLevel: ArchitecturalHouse['levels'][number] = {
 
 const levels: ArchitecturalHouse['levels'] = [basementLevel, groundLevel, firstLevel];
 
-const site: ArchitecturalHouse['site'] = {
-  elevation: -0.001,
-  footprint: LOT_1A_FOOTPRINT,
-};
-
 // Current envelope orientation has the front facade at z = 0.
 const FRONT_FACADE: "minZ" | "maxZ" = "minZ";
 const groundFrontEdgeIndex = findFacadeEdgeIndex(groundLevel.footprint.outer, FRONT_FACADE);
@@ -149,6 +145,18 @@ const FIRST_REAR_EDGE = 9;
 
 const groundChain = [1.15, 1.1, 0.7, 1.1, 0.95, 1.0, 1.15, 0.7, 1.75];
 const [W1, W2, DOOR, W3] = computeOpeningOffsetsFromChain(groundChain);
+
+const site: ArchitecturalHouse['site'] = {
+  elevation: -0.001,
+  color: '#6DAA2C',
+  footprint: LOT_1A_FOOTPRINT,
+  surfaces: buildLot1aSiteSurfaces({
+    houseFootprint: groundLevel.footprint,
+    lotFootprint: LOT_1A_FOOTPRINT,
+    doorCenterOffset: DOOR,
+    doorWidth: 1,
+  }),
+};
 
 const firstChain = [1.25, 0.9, 0.9, 0.9, 1.1, 0.9, 1.2, 0.7, 1.75];
 const [FW1, FW2, FW3, FW4] = computeOpeningOffsetsFromChain(firstChain);

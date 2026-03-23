@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import type { DerivedExteriorAccessPart } from '../derive/types/DerivedExteriorAccess';
-import { buildExteriorAccessPartGeometry } from '../geometry/buildExteriorAccessPartGeometry';
 import { createWallMaterial } from '../materials/materialResolver';
 import { archToWorldXZ } from '../spaceMapping';
 
@@ -23,7 +22,6 @@ export function EngineExteriorAccesses({
   visible = true,
   wallMaterialSpec,
 }: EngineExteriorAccessesProps) {
-  const wallTextureScale = wallMaterialSpec?.scale ?? 0.6;
   const materialsByKind = useMemo<Record<DerivedExteriorAccessPart['kind'], THREE.Material>>(
     () => ({
       floor: new THREE.MeshStandardMaterial(MATERIAL_BY_KIND.floor),
@@ -39,27 +37,6 @@ export function EngineExteriorAccesses({
       Object.values(materialsByKind).forEach((material) => material.dispose());
     },
     [materialsByKind]
-  );
-
-  const geometryByPartId = useMemo(
-    () =>
-      new Map(
-        parts.map((part) => [
-          part.id,
-          buildExteriorAccessPartGeometry(
-            part.size,
-            part.kind === 'guard-wall' ? wallTextureScale : 1
-          ),
-        ])
-      ),
-    [parts, wallTextureScale]
-  );
-
-  useEffect(
-    () => () => {
-      geometryByPartId.forEach((geometry) => geometry.dispose());
-    },
-    [geometryByPartId]
   );
 
   if (!visible || !parts.length) {
@@ -94,6 +71,7 @@ export function EngineExteriorAccesses({
             quaternion={quaternion.toArray()}
             userData={{ debugType: 'structure' }}
           >
+            <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
             <primitive object={materialsByKind[part.kind]} attach="material" />
           </mesh>
         );

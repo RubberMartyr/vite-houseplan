@@ -323,6 +323,7 @@ export function resolveOpeningRenderParts(
     );
     const separatorPanelDepth = clamp(frameDepth * 0.45, 0.02, frameDepth);
     const separatorPanelWidth = Math.max(glassWidth, 0.01);
+    const separatorPanelCenterY = -openingHeight / 2 - separatorPanelHeight / 2;
 
     parts.push({
       key: 'separator-panel',
@@ -335,6 +336,26 @@ export function resolveOpeningRenderParts(
         frameDepth / 2 - separatorPanelDepth / 2 - SEPARATOR_PANEL_FRONT_INSET,
       ],
     });
+
+    if (frameEdges.left) {
+      parts.push({
+        key: 'separator-frame-left',
+        material: 'frame',
+        debugIgnore: true,
+        size: [frameThickness, separatorPanelHeight, frameDepth],
+        position: [-openingWidth / 2 + frameThickness / 2, separatorPanelCenterY, 0],
+      });
+    }
+
+    if (frameEdges.right) {
+      parts.push({
+        key: 'separator-frame-right',
+        material: 'frame',
+        debugIgnore: true,
+        size: [frameThickness, separatorPanelHeight, frameDepth],
+        position: [openingWidth / 2 - frameThickness / 2, separatorPanelCenterY, 0],
+      });
+    }
   }
 
   let cumulativeWidth = -glassWidth / 2;

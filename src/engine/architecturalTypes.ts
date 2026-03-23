@@ -1,6 +1,7 @@
 export type {
   ArchitecturalHouse,
   ArchitecturalMaterials,
+  ExteriorAccessSpec,
   Footprint,
   LevelSpec,
   OpeningEdgeRef,
@@ -10,4 +11,5 @@ export type {
   RoofSpec,
   SlabSpec,
   Vec2,
+  Vec3,
 } from './types';

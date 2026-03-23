@@ -14,6 +14,12 @@ export type Footprint = {
   holes?: Vec2[][];
 };
 
+export interface SiteSpec {
+  footprint: Footprint;
+  elevation?: number;
+  color?: string;
+}
+
 export interface SlabSpec {
   thickness: number;
   inset: number;
@@ -226,6 +232,7 @@ export interface ArchitecturalHouse {
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
   exteriorAccesses?: ExteriorAccessSpec[];
+  site?: SiteSpec;
   materials?: ArchitecturalMaterials;
 }
 

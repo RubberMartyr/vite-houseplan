@@ -31,12 +31,23 @@ export function EngineExteriorAccesses({
     }),
     [wallMaterialSpec]
   );
+  const geometryByPartId = useMemo<Record<string, THREE.BoxGeometry>>(
+    () =>
+      Object.fromEntries(
+        parts.map((part) => [
+          part.id,
+          new THREE.BoxGeometry(part.size.x, part.size.y, part.size.z),
+        ])
+      ),
+    [parts]
+  );
 
   useEffect(
     () => () => {
       Object.values(materialsByKind).forEach((material) => material.dispose());
+      Object.values(geometryByPartId).forEach((geometry) => geometry.dispose());
     },
-    [materialsByKind]
+    [geometryByPartId, materialsByKind]
   );
 
   if (!visible || !parts.length) {
@@ -49,6 +60,11 @@ export function EngineExteriorAccesses({
         const tangentXZ = archToWorldXZ(part.tangentXZ);
         const outwardXZ = archToWorldXZ(part.outwardXZ);
         const centerXZ = archToWorldXZ({ x: part.centerArch.x, z: part.centerArch.z });
+        const geometry = geometryByPartId[part.id];
+
+        if (!geometry) {
+          return null;
+        }
 
         const tangent = new THREE.Vector3(tangentXZ.x, 0, tangentXZ.z).normalize();
         const outward = new THREE.Vector3(outwardXZ.x, 0, outwardXZ.z).normalize();
@@ -61,11 +77,11 @@ export function EngineExteriorAccesses({
             castShadow
             receiveShadow
             key={part.id}
+            geometry={geometry}
             position={[centerXZ.x, part.centerArch.y, centerXZ.z]}
             quaternion={quaternion.toArray()}
             userData={{ debugType: 'structure' }}
           >
-            <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
             <primitive object={materialsByKind[part.kind]} attach="material" />
           </mesh>
         );

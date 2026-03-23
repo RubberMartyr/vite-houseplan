@@ -1,5 +1,5 @@
 import { DoubleSide, Mesh, MeshStandardMaterial, Path, Shape, ShapeGeometry } from 'three';
-import type { SiteSpec, Vec2 } from '../architecturalTypes';
+import type { SiteSpec, SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
 import { archToWorldXZ } from '../spaceMapping';
 
 function ensureClosedPolygon(points: Array<{ x: number; z: number }>) {
@@ -42,6 +42,30 @@ function addPolygonPath(shape: Shape | Path, points: Array<{ x: number; z: numbe
   shape.closePath();
 }
 
+function createFlatPolygonMesh(
+  polygon: Vec2[],
+  color: string,
+  elevation: number,
+  roughness: number,
+): Mesh {
+  const shape = new Shape();
+  addPolygonPath(shape, ensureClosedPolygon(polygon));
+
+  const geometry = new ShapeGeometry(shape);
+  geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, elevation, 0);
+  geometry.computeVertexNormals();
+
+  const material = new MeshStandardMaterial({
+    color,
+    roughness,
+    metalness: 0,
+    side: DoubleSide,
+  });
+
+  return new Mesh(geometry, material);
+}
+
 export function buildSiteMesh(site: SiteSpec, cutouts: Vec2[][] = []): Mesh {
   const shape = new Shape();
   addPolygonPath(shape, ensureClosedPolygon(site.footprint.outer));
@@ -61,11 +85,29 @@ export function buildSiteMesh(site: SiteSpec, cutouts: Vec2[][] = []): Mesh {
   geometry.computeVertexNormals();
 
   const material = new MeshStandardMaterial({
-    color: '#6DAA2C',
+    color: site.color ?? '#6DAA2C',
     roughness: 0.9,
     metalness: 0,
     side: DoubleSide,
   });
 
   return new Mesh(geometry, material);
+}
+
+export function buildSiteSurfaceMeshes(site: SiteSpec): Mesh[] {
+  const baseElevation = site.elevation ?? -0.001;
+
+  return (site.surfaces ?? []).map((surface: SiteSurfaceSpec, index) => {
+    const mesh = createFlatPolygonMesh(
+      surface.polygon,
+      surface.color ?? '#94a3b8',
+      surface.elevation ?? baseElevation + 0.002 + index * 0.0005,
+      1,
+    );
+    mesh.userData = {
+      ...mesh.userData,
+      siteSurfaceId: surface.id,
+    };
+    return mesh;
+  });
 }

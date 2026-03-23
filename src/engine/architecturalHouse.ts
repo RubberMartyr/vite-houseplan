@@ -351,6 +351,22 @@ const RIGHT_FACADE_WINDOW_OFFSET =
   RIGHT_FACADE_WINDOW_WIDTH / 2 -
   RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z;
 
+// Model the rear-right exterior basement stair as a deterministic add-on that
+// stays edge-addressed to the long right facade run. The lower landing aligns
+// with a new basement door, while the stair and retaining wall extend beyond the
+// house footprint without changing the main heated-space envelope.
+const BASEMENT_RIGHT_ACCESS_OFFSET = 10.8;
+const BASEMENT_RIGHT_ACCESS_LANDING_LENGTH = 1.2;
+const BASEMENT_RIGHT_ACCESS_STAIR_RUN = 3.0;
+const BASEMENT_RIGHT_ACCESS_WELL_WIDTH = 1.55;
+const BASEMENT_RIGHT_ACCESS_STEP_COUNT = 14;
+const BASEMENT_RIGHT_ACCESS_WALL_HEIGHT = groundLevel.elevation - basementLevel.elevation;
+const BASEMENT_RIGHT_ACCESS_DOOR_WIDTH = cm(95);
+const BASEMENT_RIGHT_ACCESS_DOOR_HEIGHT = cm(215);
+const BASEMENT_RIGHT_ACCESS_DOOR_OFFSET =
+  BASEMENT_RIGHT_ACCESS_OFFSET +
+  (BASEMENT_RIGHT_ACCESS_LANDING_LENGTH - BASEMENT_RIGHT_ACCESS_DOOR_WIDTH) / 2;
+
 function createLeftFacadeStackOpenings(stack: LeftFacadeStack) {
   return stack.positions.flatMap((position) => {
     const idSuffix = position.idSuffix ? `_${position.idSuffix}` : '';
@@ -685,6 +701,17 @@ export const architecturalHouse: ArchitecturalHouse = {
       style: { variant: 'doorDetailed', hasSill: false, hasLintel: true, surroundRing: true },
     },
     {
+      id: 'RIGHT_B_BASEMENT_DOOR',
+      kind: 'door',
+      levelId: 'basement',
+      edge: { levelId: 'basement', ring: 'outer', edgeIndex: 9 },
+      offset: BASEMENT_RIGHT_ACCESS_DOOR_OFFSET,
+      width: BASEMENT_RIGHT_ACCESS_DOOR_WIDTH,
+      sillHeight: 0,
+      height: BASEMENT_RIGHT_ACCESS_DOOR_HEIGHT,
+      style: { variant: 'doorDetailed', hasSill: false, hasLintel: true, surroundRing: true },
+    },
+    {
       id: 'RIGHT_F_WINDOW',
       kind: 'window',
       levelId: 'first',
@@ -696,5 +723,22 @@ export const architecturalHouse: ArchitecturalHouse = {
       style: { variant: 'plain', grid: { cols: 1, rows: 1 }, hasSill: true, hasLintel: true },
     },
     ...LEFT_FACADE_STACKS.flatMap(createLeftFacadeStackOpenings),
+  ],
+
+  exteriorAccesses: [
+    {
+      id: 'BASEMENT_RIGHT_REAR_ACCESS',
+      levelId: 'basement',
+      edge: { levelId: 'basement', ring: 'outer', edgeIndex: 9 },
+      offset: BASEMENT_RIGHT_ACCESS_OFFSET,
+      wellWidth: BASEMENT_RIGHT_ACCESS_WELL_WIDTH,
+      landingLength: BASEMENT_RIGHT_ACCESS_LANDING_LENGTH,
+      stairRun: BASEMENT_RIGHT_ACCESS_STAIR_RUN,
+      stairRise: BASEMENT_RIGHT_ACCESS_WALL_HEIGHT,
+      stepCount: BASEMENT_RIGHT_ACCESS_STEP_COUNT,
+      floorThickness: 0.18,
+      wallThickness: 0.2,
+      wallHeight: BASEMENT_RIGHT_ACCESS_WALL_HEIGHT,
+    },
   ],
 };

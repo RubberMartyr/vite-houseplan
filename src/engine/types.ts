@@ -185,6 +185,21 @@ export interface OpeningSpec {
   style?: OpeningStyleSpec;
 }
 
+export interface ExteriorAccessSpec {
+  id: string;
+  levelId: string;
+  edge: OpeningEdgeRef;
+  offset: number;
+  wellWidth: number;
+  landingLength: number;
+  stairRun: number;
+  stairRise: number;
+  stepCount: number;
+  floorThickness?: number;
+  wallThickness?: number;
+  wallHeight?: number;
+}
+
 export type ArchitecturalMaterials = {
   walls?: {
     texture?: string;
@@ -210,6 +225,7 @@ export interface ArchitecturalHouse {
   levels: LevelSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
+  exteriorAccesses?: ExteriorAccessSpec[];
   materials?: ArchitecturalMaterials;
 }
 

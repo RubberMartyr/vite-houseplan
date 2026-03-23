@@ -221,7 +221,7 @@ const LEFT_FACADE_SHORT_WINDOW_STYLE: OpeningStyleSpec = {
 };
 
 const FRONT_GROUND_TALL_WINDOW_STYLE: OpeningStyleSpec = {
-  variant: 'classicTransom',
+  variant: 'planFrontWindow',
   grid: { cols: 2, rows: 4 },
   rowFractions: [0.2, 0.266, 0.266, 0.268],
   hasSill: true,

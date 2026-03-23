@@ -332,6 +332,142 @@ function createDetailedDoorParts(
   ];
 }
 
+function createPlanFrontWindowParts(
+  openingWidth: number,
+  openingHeight: number,
+  frameThickness: number,
+  frameDepth: number,
+  glassInset: number,
+  glassThickness: number,
+  style: OpeningStyleSpec | undefined
+): OpeningRenderPart[] {
+  const glassWidth = Math.max(0.01, openingWidth - frameThickness * 2);
+  const glassHeight = Math.max(0.01, openingHeight - frameThickness * 2);
+  const mullionThickness = clamp(
+    style?.mullionWidth ?? frameThickness * 0.9,
+    0.012,
+    Math.min(glassWidth, glassHeight) * 0.18
+  );
+  const mullionDepth = clamp(frameDepth * 0.65, glassThickness, frameDepth);
+  const mullionOffset = glassInset + glassThickness / 2 + 0.002;
+  const transomRatio = clamp(style?.transomRatio ?? 0.3, 0.18, 0.4);
+  const transomHeight = Math.max(0.12, glassHeight * transomRatio);
+  const lowerHeight = Math.max(0.12, glassHeight - transomHeight - mullionThickness);
+  const lowerPaneWidth = Math.max(0.1, (glassWidth - mullionThickness) / 2);
+  const lowerCenterY = -glassHeight / 2 + lowerHeight / 2;
+  const transomCenterY = glassHeight / 2 - transomHeight / 2;
+  const transomCols = Math.max(style?.grid?.cols ?? 5, 3) + 3;
+  const transomRows = 2;
+  const transomCellWidth = Math.max(
+    0.04,
+    (glassWidth - mullionThickness * (transomCols - 1)) / transomCols
+  );
+  const transomCellHeight = Math.max(
+    0.04,
+    (transomHeight - mullionThickness * (transomRows - 1)) / transomRows
+  );
+
+  const parts: OpeningRenderPart[] = [
+    {
+      key: 'frame-left',
+      material: 'frame',
+      debugType: 'opening',
+      size: [frameThickness, openingHeight, frameDepth],
+      position: [-openingWidth / 2 + frameThickness / 2, 0, 0],
+    },
+    {
+      key: 'frame-right',
+      material: 'frame',
+      debugType: 'opening',
+      size: [frameThickness, openingHeight, frameDepth],
+      position: [openingWidth / 2 - frameThickness / 2, 0, 0],
+    },
+    {
+      key: 'frame-top',
+      material: 'frame',
+      debugType: 'opening',
+      size: [glassWidth, frameThickness, frameDepth],
+      position: [0, openingHeight / 2 - frameThickness / 2, 0],
+    },
+    {
+      key: 'frame-bottom',
+      material: 'frame',
+      debugType: 'opening',
+      size: [glassWidth, frameThickness, frameDepth],
+      position: [0, -openingHeight / 2 + frameThickness / 2, 0],
+    },
+    {
+      key: 'lower-glass-left',
+      material: 'glass',
+      debugType: 'opening',
+      size: [lowerPaneWidth, lowerHeight, glassThickness],
+      position: [-(mullionThickness + lowerPaneWidth) / 2, lowerCenterY, glassInset],
+    },
+    {
+      key: 'lower-glass-right',
+      material: 'glass',
+      debugType: 'opening',
+      size: [lowerPaneWidth, lowerHeight, glassThickness],
+      position: [(mullionThickness + lowerPaneWidth) / 2, lowerCenterY, glassInset],
+    },
+    {
+      key: 'lower-center-mullion',
+      material: 'frame',
+      debugIgnore: true,
+      size: [mullionThickness, lowerHeight, mullionDepth],
+      position: [0, lowerCenterY, mullionOffset],
+    },
+    {
+      key: 'transom-divider',
+      material: 'frame',
+      debugIgnore: true,
+      size: [glassWidth, mullionThickness, mullionDepth],
+      position: [0, lowerCenterY + lowerHeight / 2 + mullionThickness / 2, mullionOffset],
+    },
+  ];
+
+  for (let row = 0; row < transomRows; row += 1) {
+    for (let col = 0; col < transomCols; col += 1) {
+      const x =
+        -glassWidth / 2 +
+        transomCellWidth / 2 +
+        col * (transomCellWidth + mullionThickness);
+      const y =
+        transomCenterY +
+        (row === 0 ? transomCellHeight / 2 + mullionThickness / 2 : -transomCellHeight / 2 - mullionThickness / 2);
+
+      parts.push({
+        key: `transom-glass-${row}-${col}`,
+        material: 'glass',
+        debugType: 'opening',
+        size: [transomCellWidth, transomCellHeight, glassThickness],
+        position: [x, y, glassInset],
+      });
+    }
+  }
+
+  for (let col = 1; col < transomCols; col += 1) {
+    const x = -glassWidth / 2 + col * transomCellWidth + (col - 0.5) * mullionThickness;
+    parts.push({
+      key: `transom-mullion-v-${col - 1}`,
+      material: 'frame',
+      debugIgnore: true,
+      size: [mullionThickness, transomHeight, mullionDepth],
+      position: [x, transomCenterY, mullionOffset],
+    });
+  }
+
+  parts.push({
+    key: 'transom-mullion-h-0',
+    material: 'frame',
+    debugIgnore: true,
+    size: [glassWidth, mullionThickness, mullionDepth],
+    position: [0, transomCenterY, mullionOffset],
+  });
+
+  return parts;
+}
+
 export function resolveOpeningRenderParts(
   openingWidth: number,
   openingHeight: number,
@@ -419,6 +555,54 @@ export function resolveOpeningRenderParts(
         glassInset,
         glassThickness
       ),
+    };
+  }
+
+  if (style?.variant === 'planFrontWindow') {
+    const parts = createPlanFrontWindowParts(
+      openingWidth,
+      openingHeight,
+      frameThickness,
+      frameDepth,
+      glassInset,
+      glassThickness,
+      style
+    );
+
+    if (shouldRenderSill) {
+      const sillCenterY = -openingHeight / 2 + sillThickness / 2 + THRESHOLD_LIFT;
+      const sillCenterZ =
+        frameDepth / 2 + sillDepth / 2 - Math.min(sillProjection, SILL_FRAME_CONTACT_DEPTH);
+
+      parts.push({
+        key: 'sill',
+        material: 'stone',
+        debugIgnore: true,
+        size: [openingWidth + sillOverhang * 2, sillThickness, sillDepth],
+        position: [0, sillCenterY, sillCenterZ],
+      });
+    }
+
+    if (style?.hasLintel) {
+      const lintelThickness = Math.max(frameThickness * 1.15, 0.02);
+      const lintelDepth = frameDepth;
+      const lintelOverhang = Math.max(frameThickness * 0.35, 0.02);
+
+      parts.push({
+        key: 'lintel',
+        material: 'frame',
+        debugIgnore: true,
+        size: [openingWidth + lintelOverhang * 2, lintelThickness, lintelDepth],
+        position: [0, openingHeight / 2 + lintelThickness / 2, 0],
+      });
+    }
+
+    return {
+      frameThickness,
+      frameDepth,
+      glassInset,
+      glassThickness,
+      parts,
     };
   }
 

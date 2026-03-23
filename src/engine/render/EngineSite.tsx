@@ -1,6 +1,6 @@
 import { Line } from '@react-three/drei';
 import { useEffect, useMemo } from 'react';
-import type { SiteSpec } from '../architecturalTypes';
+import type { SiteSpec, Vec2 } from '../architecturalTypes';
 import { buildSiteBoundaryPoints } from '../geometry/buildSiteBoundary';
 import { buildSiteMesh } from '../geometry/buildSiteMesh';
 import { DebugWireframe } from '../debug/DebugWireframe';

@@ -196,6 +196,135 @@ function createFrontPortalDoorParts(
   ];
 }
 
+function createDetailedDoorParts(
+  openingWidth: number,
+  openingHeight: number,
+  frameThickness: number,
+  frameDepth: number,
+  glassInset: number,
+  glassThickness: number
+): OpeningRenderPart[] {
+  const thresholdThickness = Math.max(frameThickness * 0.7, 0.025);
+  const thresholdDepth = Math.min(Math.max(frameDepth * 1.1, 0.08), frameDepth + 0.04);
+  const thresholdWidth = openingWidth + frameThickness * 0.6;
+  const panelGap = Math.max(frameThickness * 0.18, 0.012);
+  const topSectionHeight = Math.max(
+    0.01,
+    openingHeight * 0.5 - frameThickness - panelGap / 2
+  );
+  const bottomSectionHeight = Math.max(
+    0.01,
+    openingHeight * 0.5 - frameThickness - panelGap / 2
+  );
+  const sectionWidth = Math.max(0.01, openingWidth - frameThickness * 2);
+  const topSectionCenterY = openingHeight / 4 + panelGap / 2;
+  const bottomSectionCenterY = -openingHeight / 4 - panelGap / 2;
+  const midRailDepth = frameDepth;
+  const midRailWidth = sectionWidth;
+  const panelDepth = Math.max(frameDepth * 0.72, glassThickness * 2);
+  const panelZ = 0;
+  const glazingFrameDepth = Math.max(frameDepth * 0.82, glassThickness);
+  const innerTopFrameThickness = clamp(frameThickness * 0.72, 0.018, topSectionHeight / 3);
+  const topGlassWidth = Math.max(0.01, sectionWidth - innerTopFrameThickness * 2);
+  const topGlassHeight = Math.max(0.01, topSectionHeight - innerTopFrameThickness * 2);
+  const topGlassZ = clamp(
+    glassInset,
+    -(glazingFrameDepth - glassThickness) / 2,
+    (glazingFrameDepth - glassThickness) / 2
+  );
+
+  return [
+    {
+      key: 'glass',
+      material: 'glass',
+      debugType: 'opening',
+      size: [topGlassWidth, topGlassHeight, glassThickness],
+      position: [0, topSectionCenterY, topGlassZ],
+    },
+    {
+      key: 'frame-left',
+      material: 'frame',
+      debugType: 'opening',
+      size: [frameThickness, openingHeight, frameDepth],
+      position: [-openingWidth / 2 + frameThickness / 2, 0, 0],
+    },
+    {
+      key: 'frame-right',
+      material: 'frame',
+      debugType: 'opening',
+      size: [frameThickness, openingHeight, frameDepth],
+      position: [openingWidth / 2 - frameThickness / 2, 0, 0],
+    },
+    {
+      key: 'frame-top',
+      material: 'frame',
+      debugType: 'opening',
+      size: [sectionWidth, frameThickness, frameDepth],
+      position: [0, openingHeight / 2 - frameThickness / 2, 0],
+    },
+    {
+      key: 'frame-bottom',
+      material: 'frame',
+      debugType: 'opening',
+      size: [sectionWidth, frameThickness, frameDepth],
+      position: [0, -openingHeight / 2 + frameThickness / 2, 0],
+    },
+    {
+      key: 'mid-rail',
+      material: 'frame',
+      debugIgnore: true,
+      size: [midRailWidth, frameThickness, midRailDepth],
+      position: [0, 0, 0],
+    },
+    {
+      key: 'top-frame-left',
+      material: 'frame',
+      debugIgnore: true,
+      size: [innerTopFrameThickness, topSectionHeight, glazingFrameDepth],
+      position: [-sectionWidth / 2 + innerTopFrameThickness / 2, topSectionCenterY, 0],
+    },
+    {
+      key: 'top-frame-right',
+      material: 'frame',
+      debugIgnore: true,
+      size: [innerTopFrameThickness, topSectionHeight, glazingFrameDepth],
+      position: [sectionWidth / 2 - innerTopFrameThickness / 2, topSectionCenterY, 0],
+    },
+    {
+      key: 'top-frame-top',
+      material: 'frame',
+      debugIgnore: true,
+      size: [topGlassWidth, innerTopFrameThickness, glazingFrameDepth],
+      position: [0, topSectionCenterY + topSectionHeight / 2 - innerTopFrameThickness / 2, 0],
+    },
+    {
+      key: 'top-frame-bottom',
+      material: 'frame',
+      debugIgnore: true,
+      size: [topGlassWidth, innerTopFrameThickness, glazingFrameDepth],
+      position: [0, topSectionCenterY - topSectionHeight / 2 + innerTopFrameThickness / 2, 0],
+    },
+    {
+      key: 'bottom-panel',
+      material: 'frame',
+      debugType: 'opening',
+      size: [sectionWidth, bottomSectionHeight, panelDepth],
+      position: [0, bottomSectionCenterY, panelZ],
+    },
+    {
+      key: 'threshold',
+      material: 'frame',
+      debugIgnore: true,
+      size: [thresholdWidth, thresholdThickness, thresholdDepth],
+      position: [
+        0,
+        -openingHeight / 2 - thresholdThickness / 2 + THRESHOLD_LIFT,
+        frameDepth / 2 + thresholdDepth / 2 - SILL_FRAME_CONTACT_DEPTH,
+      ],
+    },
+  ];
+}
+
 export function resolveOpeningRenderParts(
   openingWidth: number,
   openingHeight: number,
@@ -260,6 +389,23 @@ export function resolveOpeningRenderParts(
       glassThickness,
       originOffsetZ: FRONT_PORTAL_STONE_PROJECTION,
       parts: createFrontPortalDoorParts(openingWidth, openingHeight, frameThickness, frameDepth),
+    };
+  }
+
+  if (style?.variant === 'doorDetailed') {
+    return {
+      frameThickness,
+      frameDepth,
+      glassInset,
+      glassThickness,
+      parts: createDetailedDoorParts(
+        openingWidth,
+        openingHeight,
+        frameThickness,
+        frameDepth,
+        glassInset,
+        glassThickness
+      ),
     };
   }
 

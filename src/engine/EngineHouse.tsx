@@ -13,6 +13,7 @@ import { EngineGroundPlane } from './render/EngineGroundPlane';
 import { EngineOpenings } from './render/EngineOpenings';
 import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
+import { EngineSite } from './render/EngineSite';
 import { EngineWalls } from './render/EngineWalls';
 
 type Props = {
@@ -41,32 +42,9 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
     () => derived.walls.filter((wall) => basementLevelIds.has(wall.levelId)),
     [basementLevelIds, derived.walls]
   );
-  const groundLevelSlabThickness = architecturalHouse.levels.find((level) => level.id === 'ground')?.slab.thickness ?? 0;
-  const foundationBandWalls = useMemo(
-    () =>
-      derived.walls
-        .filter((wall) => wall.levelId === 'ground' && groundLevelSlabThickness > 0)
-        .map((wall) => ({
-          ...wall,
-          visibleBaseY: wall.start.y - groundLevelSlabThickness,
-          visibleHeight: groundLevelSlabThickness,
-        })),
-    [derived.walls, groundLevelSlabThickness]
-  );
   const aboveGradeWalls = useMemo(
-    () =>
-      derived.walls
-        .filter((wall) => !basementLevelIds.has(wall.levelId))
-        .map((wall) =>
-          wall.levelId === 'ground' && groundLevelSlabThickness > 0
-            ? {
-                ...wall,
-                visibleBaseY: wall.start.y,
-                visibleHeight: Math.max(wall.height, 0),
-              }
-            : wall
-        ),
-    [basementLevelIds, derived.walls, groundLevelSlabThickness]
+    () => derived.walls.filter((wall) => !basementLevelIds.has(wall.levelId)),
+    [basementLevelIds, derived.walls]
   );
   const basementOpenings = useMemo(
     () => derived.openings.filter((opening) => architecturalHouse.levels[opening.levelIndex]?.id === 'basement'),
@@ -79,7 +57,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
 
   return (
     <>
-      <EngineGroundPlane visible={showEnvelope} cutouts={derived.exteriorAccessCutouts} />
+      <EngineSite site={architecturalHouse.site} visible={showEnvelope} />
       <EngineWalls
         walls={aboveGradeWalls}
         openings={aboveGradeOpenings}
@@ -97,18 +75,17 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
         visible={showEnvelope}
-        wallMaterialSpec={FOUNDATION_WALL_MATERIAL}
+        wallMaterialSpec={{ color: '#9b9b9b', exteriorColor: '#9b9b9b', interiorColor: '#9b9b9b', edgeColor: '#9b9b9b' }}
         cacheKey="basement"
       />
       <EngineWalls
-        walls={foundationBandWalls}
-        openings={[]}
+        walls={basementWalls}
+        openings={basementOpenings}
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
         visible={showEnvelope}
-        wallMaterialSpec={FOUNDATION_WALL_MATERIAL}
-        cacheKey="foundation-band"
+        wallMaterialSpec={{ color: '#9b9b9b', exteriorColor: '#9b9b9b', interiorColor: '#9b9b9b', edgeColor: '#9b9b9b' }}
       />
       <EngineOpenings
         openings={derived.openings}

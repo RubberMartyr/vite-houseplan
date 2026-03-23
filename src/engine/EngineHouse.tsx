@@ -143,7 +143,11 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         visible={showEnvelope}
         windowsMaterialSpec={architecturalHouse.materials?.windows}
       />
-      <EngineExteriorAccesses parts={derived.exteriorAccesses} visible={showEnvelope} />
+      <EngineExteriorAccesses
+        parts={derived.exteriorAccesses}
+        visible={showEnvelope}
+        wallMaterialSpec={architecturalHouse.materials?.walls}
+      />
       <EngineSlabs slabs={derived.slabs} />
       <EngineRoofs
         roofs={derived.roofs}

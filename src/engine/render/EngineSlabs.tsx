@@ -12,9 +12,13 @@ type EngineSlabsProps = {
 
 export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const slabMeshes = useMemo(
-    () => slabs.map((slab) => buildSlabMesh(slab, renderStyleConfig)),
+  const renderableSlabs = useMemo(
+    () => slabs.filter((slab) => slab.kind === 'floor'),
     [slabs],
+  );
+  const slabMeshes = useMemo(
+    () => renderableSlabs.map((slab) => buildSlabMesh(slab, renderStyleConfig)),
+    [renderableSlabs],
   );
 
   useEffect(() => {
@@ -47,7 +51,11 @@ export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
   return (
     <>
       {slabMeshes.map((mesh, index) => (
-        <primitive key={slabs[index]?.id ?? `slab-${index}`} object={mesh} userData={{ debugType: 'structure' }}>
+        <primitive
+          key={renderableSlabs[index]?.id ?? `slab-${index}`}
+          object={mesh}
+          userData={{ debugType: 'structure' }}
+        >
           <DebugWireframe />
         </primitive>
       ))}

@@ -150,20 +150,12 @@ const site: ArchitecturalHouse['site'] = {
   elevation: -0.001,
   color: '#6DAA2C',
   footprint: LOT_1A_FOOTPRINT,
-  surfaces: [
-    {
-      id: 'lot1a-cobblestone',
-      color: '#3b82f6',
-      polygon: [
-        { x: -11, z: -6 },
-        { x: 2.2, z: -6 },
-        { x: 2.2, z: 7.2 },
-        { x: 0.8, z: 7.2 },
-        { x: 0.8, z: 14.8 },
-        { x: -8.4, z: 14.8 },
-      ],
-    },
-  ],
+  surfaces: buildLot1aSiteSurfaces({
+    houseFootprint: groundLevel.footprint,
+    lotFootprint: LOT_1A_FOOTPRINT,
+    doorCenterOffset: DOOR,
+    doorWidth: 1,
+  }),
 };
 
 const firstChain = [1.25, 0.9, 0.9, 0.9, 1.1, 0.9, 1.2, 0.7, 1.75];

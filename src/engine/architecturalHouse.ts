@@ -206,6 +206,38 @@ const LEFT_FACADE_SHORT_WINDOW_STYLE: OpeningStyleSpec = {
   glassThickness: 0.012,
 };
 
+const FRONT_GROUND_TALL_WINDOW_STYLE: OpeningStyleSpec = {
+  variant: 'classicTransom',
+  grid: { cols: 2, rows: 4 },
+  rowFractions: [0.2, 0.266, 0.266, 0.268],
+  hasSill: true,
+  hasLintel: true,
+};
+
+const FRONT_FIRST_TALL_WINDOW_STYLE: OpeningStyleSpec = {
+  variant: 'firstFloorTransom',
+  grid: { cols: 2, rows: 4 },
+  rowFractions: [0.2, 0.266, 0.266, 0.268],
+  hasSill: true,
+  hasLintel: true,
+};
+
+const FRONT_DORMER_WINDOW_STYLE: OpeningStyleSpec = {
+  variant: 'plain',
+  grid: { cols: 2, rows: 3 },
+  rowFractions: [0.28, 0.36, 0.36],
+  hasSill: true,
+  hasLintel: true,
+};
+
+const FRONT_SMALL_WINDOW_STYLE: OpeningStyleSpec = {
+  variant: 'plain',
+  grid: { cols: 2, rows: 3 },
+  rowFractions: [0.28, 0.36, 0.36],
+  hasSill: true,
+  hasLintel: true,
+};
+
 type LeftFacadeStack = {
   id: 'LOW' | 'MID' | 'HIGH';
   groundEdgeIndex: number;
@@ -500,7 +532,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: 1.1,
       sillHeight: 0.7,
       height: 1.6,
-      style: { variant: 'classicTransom', grid: { cols: 2, rows: 3 }, hasSill: true, hasLintel: true },
+      style: FRONT_GROUND_TALL_WINDOW_STYLE,
     },
     {
       id: 'FRONT_G_W2',
@@ -511,7 +543,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: 1.1,
       sillHeight: 0.7,
       height: 1.6,
-      style: { variant: 'classicTransom', grid: { cols: 2, rows: 3 }, hasSill: true, hasLintel: true },
+      style: FRONT_GROUND_TALL_WINDOW_STYLE,
     },
     {
       id: 'FRONT_G_DOOR',
@@ -533,7 +565,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: 0.7,
       sillHeight: 1.65,
       height: 0.5,
-      style: { variant: 'plain', grid: { cols: 3, rows: 3 }, hasSill: true, hasLintel: true },
+      style: FRONT_SMALL_WINDOW_STYLE,
     },
     {
       id: 'FRONT_F_W1',
@@ -544,7 +576,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: 0.9,
       sillHeight: 0.35,
       height: 1.6,
-      style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 3 }, hasSill: true, hasLintel: true },
+      style: FRONT_FIRST_TALL_WINDOW_STYLE,
     },
     {
       id: 'FRONT_F_W2',
@@ -555,7 +587,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: 0.9,
       sillHeight: 0.35,
       height: 1.6,
-      style: { variant: 'firstFloorTransom', grid: { cols: 2, rows: 3 }, hasSill: true, hasLintel: true },
+      style: FRONT_FIRST_TALL_WINDOW_STYLE,
     },
     {
       id: 'FRONT_F_W3',
@@ -564,9 +596,9 @@ export const architecturalHouse: ArchitecturalHouse = {
       edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: FW3,
       width: 0.9,
-      sillHeight: 1.1,
+      sillHeight: 1.45,
       height: 1,
-      style: { variant: 'plain', grid: { cols: 3, rows: 3 }, hasSill: true, hasLintel: true },
+      style: FRONT_DORMER_WINDOW_STYLE,
     },
     {
       id: 'FRONT_F_W4',
@@ -575,9 +607,9 @@ export const architecturalHouse: ArchitecturalHouse = {
       edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: FW4,
       width: 0.7,
-      sillHeight: 1.05,
+      sillHeight: 1.3,
       height: 0.9,
-      style: { variant: 'plain', grid: { cols: 2, rows: 2 }, hasSill: true, hasLintel: true },
+      style: FRONT_SMALL_WINDOW_STYLE,
     },
     {
       id: 'REAR_G_GLAZED',

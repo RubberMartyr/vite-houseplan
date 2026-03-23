@@ -14,10 +14,18 @@ export type Footprint = {
   holes?: Vec2[][];
 };
 
+export interface SiteSurfaceSpec {
+  id: string;
+  polygon: Vec2[];
+  color?: string;
+  elevation?: number;
+}
+
 export interface SiteSpec {
   footprint: Footprint;
   elevation?: number;
   color?: string;
+  surfaces?: SiteSurfaceSpec[];
 }
 
 export interface SlabSpec {

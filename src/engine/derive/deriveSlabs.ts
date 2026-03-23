@@ -23,8 +23,19 @@ function buildSlabFootprint(level: ArchitecturalHouse['levels'][number], inset: 
   };
 }
 
+function supportsRoofBearingSlab(roof: NonNullable<ArchitecturalHouse['roofs']>[number]): boolean {
+  // Flat roofs already render their own structural deck at the wall cap.
+  // Emitting an additional roof-bearing slab for the same level duplicates that
+  // structure and lifts a magenta slab above the flat-roof parapet line.
+  return roof.type !== 'flat';
+}
+
 export function deriveSlabs(house: ArchitecturalHouse): DerivedSlab[] {
-  const roofBearingLevelIds = new Set((house.roofs ?? []).map((roof) => roof.baseLevelId));
+  const roofBearingLevelIds = new Set(
+    (house.roofs ?? [])
+      .filter(supportsRoofBearingSlab)
+      .map((roof) => roof.baseLevelId)
+  );
 
   return house.levels.flatMap((level, index) => {
     const requestedInset = level.slab?.inset ?? 0;

@@ -69,20 +69,27 @@ function createFrontPortalDoorParts(
   openingWidth: number,
   openingHeight: number,
   frameThickness: number,
-  frameDepth: number
+  frameDepth: number,
+  style: OpeningStyleSpec | undefined
 ): OpeningRenderPart[] {
   const jambWidth = Math.min(Math.max(openingWidth * 0.19, 0.16), openingWidth * 0.24);
   const surroundDepth = Math.min(Math.max(frameDepth * 1.8, 0.2), 0.28);
   const capHeight = Math.min(Math.max(openingHeight * 0.09, 0.16), 0.24);
   const plinthHeight = 0.08;
   const surroundOverlap = Math.min(frameThickness * 0.4, jambWidth * 0.3);
-  const clearOpeningWidth = Math.max(0.18, openingWidth - frameThickness * 0.9);
-  const transomHeight = Math.min(Math.max(openingHeight * 0.2, 0.34), 0.46);
-  const leafHeight = Math.max(0.35, openingHeight - transomHeight - frameThickness * 1.35);
+  const portalFrameThickness = clamp(frameThickness * 1.55, 0.075, 0.14);
+  const clearOpeningWidth = Math.max(0.18, openingWidth - portalFrameThickness * 1.1);
+  const transomSectionHeight = clamp(
+    openingHeight * (style?.transomRatio ?? 0.24),
+    0.46,
+    0.62
+  );
+  const transomHeight = Math.max(0.16, transomSectionHeight - portalFrameThickness * 2);
+  const leafHeight = Math.max(0.35, openingHeight - transomSectionHeight - frameThickness * 1.05);
   const leafWidth = Math.max(0.18, clearOpeningWidth - frameThickness * 0.45);
   const woodDepth = Math.max(frameDepth * 0.42, 0.05);
   const transomGlassDepth = Math.max(woodDepth * 0.45, 0.015);
-  const transomY = openingHeight / 2 - transomHeight / 2;
+  const transomY = openingHeight / 2 - transomSectionHeight / 2 - frameThickness * 0.1;
   const leafY = -openingHeight / 2 + leafHeight / 2 + frameThickness * 0.75;
   const capY = openingHeight / 2 + capHeight / 2 - frameThickness * 0.15;
   const surroundOuterWidth = openingWidth + jambWidth * 2 - surroundOverlap * 2;
@@ -147,35 +154,35 @@ function createFrontPortalDoorParts(
       material: 'glass',
       debugType: 'opening',
       size: [clearOpeningWidth, transomHeight, transomGlassDepth],
-      position: [0, transomY, -frameThickness * 0.06],
+      position: [0, transomY, -portalFrameThickness * 0.05],
     },
     {
       key: 'transom-frame-top',
       material: 'frame',
       debugIgnore: true,
-      size: [clearOpeningWidth + frameThickness * 0.2, frameThickness, woodDepth],
-      position: [0, transomY + transomHeight / 2 - frameThickness / 2, 0],
+      size: [clearOpeningWidth + portalFrameThickness * 2, portalFrameThickness, woodDepth],
+      position: [0, transomY + transomHeight / 2 + portalFrameThickness / 2, 0],
     },
     {
       key: 'transom-frame-bottom',
       material: 'frame',
       debugIgnore: true,
-      size: [clearOpeningWidth + frameThickness * 0.2, frameThickness, woodDepth],
-      position: [0, transomY - transomHeight / 2 + frameThickness / 2, 0],
+      size: [clearOpeningWidth + portalFrameThickness * 2, portalFrameThickness, woodDepth],
+      position: [0, transomY - transomHeight / 2 - portalFrameThickness / 2, 0],
     },
     {
       key: 'transom-frame-left',
       material: 'frame',
       debugIgnore: true,
-      size: [frameThickness, transomHeight, woodDepth],
-      position: [-clearOpeningWidth / 2 + frameThickness / 2, transomY, 0],
+      size: [portalFrameThickness, transomSectionHeight, woodDepth],
+      position: [-clearOpeningWidth / 2 - portalFrameThickness / 2, transomY, 0],
     },
     {
       key: 'transom-frame-right',
       material: 'frame',
       debugIgnore: true,
-      size: [frameThickness, transomHeight, woodDepth],
-      position: [clearOpeningWidth / 2 - frameThickness / 2, transomY, 0],
+      size: [portalFrameThickness, transomSectionHeight, woodDepth],
+      position: [clearOpeningWidth / 2 + portalFrameThickness / 2, transomY, 0],
     },
     {
       key: 'transom-cross-left',
@@ -388,7 +395,13 @@ export function resolveOpeningRenderParts(
       glassInset,
       glassThickness,
       originOffsetZ: FRONT_PORTAL_STONE_PROJECTION,
-      parts: createFrontPortalDoorParts(openingWidth, openingHeight, frameThickness, frameDepth),
+      parts: createFrontPortalDoorParts(
+        openingWidth,
+        openingHeight,
+        frameThickness,
+        frameDepth,
+        style
+      ),
     };
   }
 

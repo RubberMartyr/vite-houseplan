@@ -332,7 +332,7 @@ export function resolveOpeningRenderParts(
       size: [separatorPanelWidth, separatorPanelHeight, separatorPanelDepth],
       position: [
         glassCenterX,
-        separatorPanelCenterY,
+        -openingHeight / 2 - separatorPanelHeight / 2,
         frameDepth / 2 - separatorPanelDepth / 2 - SEPARATOR_PANEL_FRONT_INSET,
       ],
     });

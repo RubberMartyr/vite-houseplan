@@ -135,11 +135,13 @@ const [FW1, FW2, FW3, FW4] = computeOpeningOffsetsFromChain(firstChain);
 
 // Rear elevations are authored against explicit edge indices because the current
 // rear facades are split and a generic "maxZ edge" helper can pick the short stub.
-const GROUND_REAR_FULL_WIDTH = 8.3;
-const GROUND_REAR_STUB_WIDTH = 0.7;
+// The ground-floor plan dimensions the glazed rear opening on the 7.60m main rear
+// wall with 1.00m side returns on both sides, so center it on that wall segment
+// instead of across the full 8.30m stepped outline.
+const GROUND_REAR_MAIN_EDGE_WIDTH = 7.6;
 const GROUND_REAR_OPENING_WIDTH = 5.6;
 const GROUND_REAR_OPENING_OFFSET =
-  (GROUND_REAR_FULL_WIDTH - GROUND_REAR_OPENING_WIDTH) / 2 - GROUND_REAR_STUB_WIDTH;
+  (GROUND_REAR_MAIN_EDGE_WIDTH - GROUND_REAR_OPENING_WIDTH) / 2;
 
 // The first-floor rear wall is 8.3m wide, while the elevation drawing is a 7.6m
 // composition centered within it, so keep 0.35m of padding on both sides.

@@ -21,6 +21,13 @@ type Props = {
   showEnvelope?: boolean;
 };
 
+const FOUNDATION_WALL_MATERIAL = {
+  color: '#c8c8c8',
+  exteriorColor: '#c8c8c8',
+  interiorColor: '#c8c8c8',
+  edgeColor: '#c8c8c8',
+} as const;
+
 export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) {
   const derived: DerivedHouse = useMemo(
     () => deriveHouse(architecturalHouse),

@@ -2,17 +2,15 @@ import type { Footprint, Vec2 } from '../architecturalTypes';
 
 const LOT_1A_REFERENCE_ORIGIN: Vec2 = {
   x: -11,
-  z: -2,
+  z: -6,
 };
 
 const LOT_1A_LOCAL_OUTER: Vec2[] = [
-  { x: 0.0, z: 0.0 },
-  { x: 19.61, z: 0.0 },
-  { x: 26.8, z: 50.76 },
-  { x: 18.2, z: 52.2 },
-  { x: 10.0, z: 51.4 },
-  { x: 4.2, z: 49.8 },
-  { x: 0.0, z: 50.0 },
+  { x: 0.0,   z: 0.0 },    // front-left
+  { x: 19.61, z: 0.0 },    // front-right
+
+  { x: 17.10, z: 50.0 },   // back-right  (flatter side)
+  { x: 6.25,  z: 50.0 },   // back-left   (more tapered side)
 ];
 
 function translateRing(points: Vec2[], offset: Vec2): Vec2[] {

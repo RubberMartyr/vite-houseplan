@@ -9,12 +9,14 @@ import { createOpeningMaterials } from '../materials/materialResolver';
 type Props = {
   openings: DerivedOpeningRect[];
   wallThickness?: number;
+  visible?: boolean;
   windowsMaterialSpec?: ArchitecturalMaterials['windows'];
 };
 
 export function EngineOpenings({
   openings,
   wallThickness = 0.3,
+  visible = true,
   windowsMaterialSpec,
 }: Props) {
   const openingMaterials = useMemo(() => createOpeningMaterials(windowsMaterialSpec), [windowsMaterialSpec]);
@@ -30,6 +32,10 @@ export function EngineOpenings({
     castShadow: true,
     receiveShadow: true,
   };
+
+  if (!visible) {
+    return null;
+  }
 
   return (
     <>

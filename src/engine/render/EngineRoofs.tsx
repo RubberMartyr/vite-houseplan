@@ -10,10 +10,11 @@ type EngineRoofsProps = {
   roofs: DerivedRoof[];
   roofRevision: number;
   roofValidationEntries: Array<{ roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult }>;
+  visible?: boolean;
   roofMaterialSpec?: ArchitecturalMaterials['roof'];
 };
 
-export function EngineRoofs({ roofs, roofRevision, roofValidationEntries, roofMaterialSpec }: EngineRoofsProps) {
+export function EngineRoofs({ roofs, roofRevision, roofValidationEntries, visible = true, roofMaterialSpec }: EngineRoofsProps) {
   const invalidRoofIds = useMemo(
     () => new Set(roofValidationEntries.filter((entry) => entry.validation.errors.length > 0).map((entry) => entry.roof.id)),
     [roofValidationEntries]
@@ -21,11 +22,17 @@ export function EngineRoofs({ roofs, roofRevision, roofValidationEntries, roofMa
 
   return (
     <>
-      <EngineFlatRoofs roofs={roofs} roofRevision={roofRevision} roofMaterialSpec={roofMaterialSpec} />
+      <EngineFlatRoofs
+        roofs={roofs}
+        roofRevision={roofRevision}
+        visible={visible}
+        roofMaterialSpec={roofMaterialSpec}
+      />
       <EngineGableRoofs
         roofs={roofs}
         roofRevision={roofRevision}
         invalidRoofIds={invalidRoofIds}
+        visible={visible}
         roofMaterialSpec={roofMaterialSpec}
       />
     </>

@@ -1,6 +1,7 @@
 import type { OpeningStyleSpec } from './architecturalTypes';
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
+import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
 
 type XZ = { x: number; z: number };
 const EPS = 1e-6;
@@ -137,18 +138,7 @@ const levels: ArchitecturalHouse['levels'] = [basementLevel, groundLevel, firstL
 const site: ArchitecturalHouse['site'] = {
   elevation: -0.001,
   color: '#d8d8d8',
-  footprint: {
-    outer: [
-      // Approximated from the supplied cadastral sketch using the known house
-      // envelope as a scale reference. This polygon lands very close to the
-      // labeled 7a61ca lot area while matching the tapered plot silhouette.
-      { x: -11.0, z: -2.0 },
-      { x: 11.0, z: -0.5 },
-      { x: 7.0, z: 28.0 },
-      { x: -1.0, z: 30.0 },
-      { x: -21.5, z: 26.0 },
-    ],
-  },
+  footprint: LOT_1A_FOOTPRINT,
 };
 
 // Current envelope orientation has the front facade at z = 0.

@@ -2,6 +2,7 @@ import type { OpeningStyleSpec } from './architecturalTypes';
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
+import { buildLot1aSiteSurfaces } from './site/lot1aSurfaces';
 
 type XZ = { x: number; z: number };
 const EPS = 1e-6;

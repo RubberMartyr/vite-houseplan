@@ -161,7 +161,8 @@ export interface OpeningStyleSpec {
     | 'firstFloorTransom'
     | 'doorDetailed'
     | 'verticalTransom'
-    | 'frontPortalDoor';
+    | 'frontPortalDoor'
+    | 'planFrontWindow';
   grid?: { cols: number; rows: number };
   transomRatio?: number;
   rowFractions?: number[];

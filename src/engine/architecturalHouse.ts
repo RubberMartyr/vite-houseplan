@@ -275,16 +275,16 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
 
 const RIGHT_FACADE_DOOR_WIDTH = cm(90);
 const RIGHT_FACADE_DOOR_HEIGHT = cm(215);
-const RIGHT_FACADE_WINDOW_WIDTH = cm(50);
+const RIGHT_FACADE_WINDOW_WIDTH = cm(80);
 const RIGHT_FACADE_WINDOW_HEIGHT = cm(90);
 const RIGHT_FACADE_WINDOW_BOTTOM_Y = cm(410);
 const FIRST_FLOOR_ELEVATION = levels.find((level) => level.id === 'first')?.elevation ?? 0;
 const RIGHT_FACADE_WINDOW_SILL_HEIGHT = RIGHT_FACADE_WINDOW_BOTTOM_Y - FIRST_FLOOR_ELEVATION;
 
-// The side-elevation drawing calls out a 215cm-high ground-floor door and a
-// 50cm-wide first-floor window whose sill sits at +410cm above grade. The plan
-// snippets place both on the long, flat right facade run, centred at roughly
-// z=5.50m from the front edge, so derive both openings from that shared centre.
+// The ground-floor side-elevation drawing calls out a 215cm-high door, while the
+// first-floor plan dimensions the right-side window at 80cm wide with its sill at
+// +410cm above grade. Keep both openings on the long, flat right facade run and
+// aligned to the same approximate z=5.50m centreline from the front edge.
 const RIGHT_FACADE_SHARED_CENTER_Z = 5.5;
 const RIGHT_FACADE_DOOR_OFFSET =
   RIGHT_FACADE_SHARED_CENTER_Z - RIGHT_FACADE_DOOR_WIDTH / 2;

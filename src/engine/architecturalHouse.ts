@@ -137,7 +137,6 @@ const levels: ArchitecturalHouse['levels'] = [basementLevel, groundLevel, firstL
 
 const site: ArchitecturalHouse['site'] = {
   elevation: -0.001,
-  color: '#d8d8d8',
   footprint: LOT_1A_FOOTPRINT,
 };
 

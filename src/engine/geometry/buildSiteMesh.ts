@@ -61,7 +61,9 @@ export function buildSiteMesh(site: SiteSpec, cutouts: Vec2[][] = []): Mesh {
   geometry.computeVertexNormals();
 
   const material = new MeshStandardMaterial({
-    color: site.color ?? '#d8d8d8',
+    color: '#6DAA2C',
+    roughness: 0.9,
+    metalness: 0,
     side: DoubleSide,
   });
 

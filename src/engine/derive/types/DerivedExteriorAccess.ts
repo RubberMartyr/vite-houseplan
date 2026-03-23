@@ -2,6 +2,12 @@ import type { Vec2, Vec3 } from '../../architecturalTypes';
 
 export type DerivedExteriorAccessPartKind = 'floor' | 'retaining-wall' | 'stair-step';
 
+export interface DerivedExteriorAccessCutout {
+  id: string;
+  accessId: string;
+  polygon: Vec2[];
+}
+
 export interface DerivedExteriorAccessPart {
   id: string;
   accessId: string;

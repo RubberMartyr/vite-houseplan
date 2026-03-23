@@ -9,6 +9,7 @@ import { RoofPlaneVisualizer } from './debug/RoofPlaneVisualizer';
 import { debugFlags } from './debug/debugFlags';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineExteriorAccesses } from './render/EngineExteriorAccesses';
+import { EngineGroundPlane } from './render/EngineGroundPlane';
 import { EngineOpenings } from './render/EngineOpenings';
 import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
@@ -28,17 +29,44 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
     () => Object.fromEntries(architecturalHouse.levels.map((level) => [level.id, level.footprint.outer])),
     [architecturalHouse]
   );
+  const basementLevelIds = useMemo(() => new Set(['basement']), []);
+  const basementWalls = useMemo(
+    () => derived.walls.filter((wall) => basementLevelIds.has(wall.levelId)),
+    [basementLevelIds, derived.walls]
+  );
+  const aboveGradeWalls = useMemo(
+    () => derived.walls.filter((wall) => !basementLevelIds.has(wall.levelId)),
+    [basementLevelIds, derived.walls]
+  );
+  const basementOpenings = useMemo(
+    () => derived.openings.filter((opening) => architecturalHouse.levels[opening.levelIndex]?.id === 'basement'),
+    [architecturalHouse.levels, derived.openings]
+  );
+  const aboveGradeOpenings = useMemo(
+    () => derived.openings.filter((opening) => architecturalHouse.levels[opening.levelIndex]?.id !== 'basement'),
+    [architecturalHouse.levels, derived.openings]
+  );
 
   return (
     <>
+      <EngineGroundPlane visible={showEnvelope} cutouts={derived.exteriorAccessCutouts} />
       <EngineWalls
-        walls={derived.walls}
-        openings={derived.openings}
+        walls={aboveGradeWalls}
+        openings={aboveGradeOpenings}
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
         visible={showEnvelope}
         wallMaterialSpec={architecturalHouse.materials?.walls}
+      />
+      <EngineWalls
+        walls={basementWalls}
+        openings={basementOpenings}
+        wallRevision={derived.revisions.walls}
+        openingsRevision={derived.revisions.openings}
+        levelFootprintsById={levelFootprintsById}
+        visible={showEnvelope}
+        wallMaterialSpec={{ color: '#9b9b9b', exteriorColor: '#9b9b9b', interiorColor: '#9b9b9b', edgeColor: '#9b9b9b' }}
       />
       <EngineOpenings
         openings={derived.openings}

@@ -8,10 +8,11 @@ import { useDebugUIState } from '../debug/debugUIState';
 
 type EngineSiteProps = {
   site?: SiteSpec;
+  cutouts?: Vec2[][];
   visible?: boolean;
 };
 
-export function EngineSite({ site, visible = true }: EngineSiteProps) {
+export function EngineSite({ site, cutouts = [], visible = true }: EngineSiteProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const mesh = useMemo(() => (site ? buildSiteMesh(site) : null), [site]);
   const boundaryPoints = useMemo(() => (site ? buildSiteBoundaryPoints(site) : []), [site]);

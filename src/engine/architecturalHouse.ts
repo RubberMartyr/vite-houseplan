@@ -359,14 +359,16 @@ const RIGHT_FACADE_WINDOW_OFFSET =
   RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z;
 
 // Model the rear-right exterior basement stair as a deterministic add-on that
-// stays edge-addressed to the long right facade run. The lower landing aligns
-// with a new basement door, while the stair and retaining wall extend beyond the
-// house footprint without changing the main heated-space envelope.
-const BASEMENT_RIGHT_ACCESS_OFFSET = 10.8;
+// stays edge-addressed to the long right facade run. The plan shows a much
+// longer, roomier exterior stair court than the initial placeholder block, so
+// keep the lower landing aligned to the new basement door while extending the
+// full access well to roughly 6.75m along the facade and widening it slightly.
+const BASEMENT_RIGHT_ACCESS_LENGTH = 6.75;
+const BASEMENT_RIGHT_ACCESS_OFFSET = 15 - BASEMENT_RIGHT_ACCESS_LENGTH;
 const BASEMENT_RIGHT_ACCESS_LANDING_LENGTH = 1.2;
-const BASEMENT_RIGHT_ACCESS_STAIR_RUN = 3.0;
-const BASEMENT_RIGHT_ACCESS_WELL_WIDTH = 1.55;
-const BASEMENT_RIGHT_ACCESS_STEP_COUNT = 14;
+const BASEMENT_RIGHT_ACCESS_STAIR_RUN = BASEMENT_RIGHT_ACCESS_LENGTH - BASEMENT_RIGHT_ACCESS_LANDING_LENGTH;
+const BASEMENT_RIGHT_ACCESS_WELL_WIDTH = 1.8;
+const BASEMENT_RIGHT_ACCESS_STEP_COUNT = 17;
 const BASEMENT_RIGHT_ACCESS_WALL_HEIGHT = groundLevel.elevation - basementLevel.elevation;
 const BASEMENT_RIGHT_ACCESS_DOOR_WIDTH = cm(95);
 const BASEMENT_RIGHT_ACCESS_DOOR_HEIGHT = cm(215);

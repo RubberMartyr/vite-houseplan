@@ -28,8 +28,12 @@ export function deriveSlabs(house: ArchitecturalHouse): DerivedSlab[] {
 
   return house.levels.flatMap((level, index) => {
     const requestedInset = level.slab?.inset ?? 0;
-    const defaultInset = house.wallThickness / 2;
-    const effectiveInset = Math.max(requestedInset, defaultInset);
+    // Wall geometry is extruded inward from the footprint boundary, so the slab
+    // needs to sit behind the full exterior wall thickness to keep slab edges
+    // hidden in elevation views. Treat any authored slab inset as an additional
+    // setback inside that wall line.
+    const defaultInset = house.wallThickness;
+    const effectiveInset = defaultInset + requestedInset;
     const footprint = buildSlabFootprint(level, effectiveInset);
 
     const floorSlab: DerivedSlab = {

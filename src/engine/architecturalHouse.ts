@@ -135,11 +135,13 @@ const [FW1, FW2, FW3, FW4] = computeOpeningOffsetsFromChain(firstChain);
 
 // Rear elevations are authored against explicit edge indices because the current
 // rear facades are split and a generic "maxZ edge" helper can pick the short stub.
-const GROUND_REAR_FULL_WIDTH = 8.3;
-const GROUND_REAR_STUB_WIDTH = 0.7;
+// The ground-floor plan dimensions the glazed rear opening on the 7.60m main rear
+// wall with 1.00m side returns on both sides, so center it on that wall segment
+// instead of across the full 8.30m stepped outline.
+const GROUND_REAR_MAIN_EDGE_WIDTH = 7.6;
 const GROUND_REAR_OPENING_WIDTH = 5.6;
 const GROUND_REAR_OPENING_OFFSET =
-  (GROUND_REAR_FULL_WIDTH - GROUND_REAR_OPENING_WIDTH) / 2 - GROUND_REAR_STUB_WIDTH;
+  (GROUND_REAR_MAIN_EDGE_WIDTH - GROUND_REAR_OPENING_WIDTH) / 2;
 
 // The first-floor rear wall is 8.3m wide, while the elevation drawing is a 7.6m
 // composition centered within it, so keep 0.35m of padding on both sides.
@@ -273,16 +275,16 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
 
 const RIGHT_FACADE_DOOR_WIDTH = cm(90);
 const RIGHT_FACADE_DOOR_HEIGHT = cm(215);
-const RIGHT_FACADE_WINDOW_WIDTH = cm(50);
+const RIGHT_FACADE_WINDOW_WIDTH = cm(80);
 const RIGHT_FACADE_WINDOW_HEIGHT = cm(90);
 const RIGHT_FACADE_WINDOW_BOTTOM_Y = cm(410);
 const FIRST_FLOOR_ELEVATION = levels.find((level) => level.id === 'first')?.elevation ?? 0;
 const RIGHT_FACADE_WINDOW_SILL_HEIGHT = RIGHT_FACADE_WINDOW_BOTTOM_Y - FIRST_FLOOR_ELEVATION;
 
-// The side-elevation drawing calls out a 215cm-high ground-floor door and a
-// 50cm-wide first-floor window whose sill sits at +410cm above grade. The plan
-// snippets place both on the long, flat right facade run, centred at roughly
-// z=5.50m from the front edge, so derive both openings from that shared centre.
+// The ground-floor side-elevation drawing calls out a 215cm-high door, while the
+// first-floor plan dimensions the right-side window at 80cm wide with its sill at
+// +410cm above grade. Keep both openings on the long, flat right facade run and
+// aligned to the same approximate z=5.50m centreline from the front edge.
 const RIGHT_FACADE_SHARED_CENTER_Z = 5.5;
 const RIGHT_FACADE_DOOR_OFFSET =
   RIGHT_FACADE_SHARED_CENTER_Z - RIGHT_FACADE_DOOR_WIDTH / 2;

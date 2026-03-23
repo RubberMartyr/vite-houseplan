@@ -12,10 +12,9 @@ type EngineSlabsProps = {
 
 export function EngineSlabs({ slabs, visible = true }: EngineSlabsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const renderableSlabs = useMemo(
-    () => slabs.filter((slab) => slab.kind === 'floor'),
-    [slabs],
-  );
+  // Both floor slabs and roof-bearing slabs are structural elements that should
+  // remain visible; hiding roof-bearing slabs removes the roof deck above upper levels.
+  const renderableSlabs = useMemo(() => slabs, [slabs]);
   const slabMeshes = useMemo(
     () => renderableSlabs.map((slab) => buildSlabMesh(slab, renderStyleConfig)),
     [renderableSlabs],

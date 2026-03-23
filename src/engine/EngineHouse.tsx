@@ -15,9 +15,10 @@ import { EngineWalls } from './render/EngineWalls';
 
 type Props = {
   architecturalHouse: ArchitecturalHouse;
+  showEnvelope?: boolean;
 };
 
-export function EngineHouse({ architecturalHouse }: Props) {
+export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) {
   const derived: DerivedHouse = useMemo(
     () => deriveHouse(architecturalHouse),
     [architecturalHouse]
@@ -35,11 +36,13 @@ export function EngineHouse({ architecturalHouse }: Props) {
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
+        visible={showEnvelope}
         wallMaterialSpec={architecturalHouse.materials?.walls}
       />
       <EngineOpenings
         openings={derived.openings}
         wallThickness={architecturalHouse.wallThickness}
+        visible={showEnvelope}
         windowsMaterialSpec={architecturalHouse.materials?.windows}
       />
       <EngineSlabs slabs={derived.slabs} />
@@ -47,6 +50,7 @@ export function EngineHouse({ architecturalHouse }: Props) {
         roofs={derived.roofs}
         roofRevision={derived.revisions.roofs}
         roofValidationEntries={[]}
+        visible={showEnvelope}
         roofMaterialSpec={architecturalHouse.materials?.roof}
       />
       {debugFlags.enabled && (

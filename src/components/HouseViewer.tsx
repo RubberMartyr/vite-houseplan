@@ -51,6 +51,28 @@ function DebugAxes() {
   return null;
 }
 
+type SceneVisibility = {
+  showEnvelope: boolean;
+};
+
+const overlayButtonStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 16,
+  left: 16,
+  zIndex: 10,
+  padding: '10px 14px',
+  borderRadius: 999,
+  border: '1px solid rgba(15, 23, 42, 0.15)',
+  background: 'rgba(255, 255, 255, 0.92)',
+  color: '#0f172a',
+  fontSize: 14,
+  fontWeight: 600,
+  lineHeight: 1.2,
+  boxShadow: '0 10px 24px rgba(15, 23, 42, 0.12)',
+  cursor: 'pointer',
+  backdropFilter: 'blur(6px)',
+};
+
 export default function HouseViewer() {
   const debugEnabled = isDebugEnabled();
   const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
@@ -58,6 +80,9 @@ export default function HouseViewer() {
   const [showWireframe, setShowWireframe] = useState(false);
   const [showEdges, setShowEdges] = useState(true);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
+  const [{ showEnvelope }, setSceneVisibility] = useState<SceneVisibility>({
+    showEnvelope: true,
+  });
 
   useEffect(() => {
     setHouse(architecturalHouse);
@@ -90,13 +115,15 @@ export default function HouseViewer() {
         />
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} castShadow receiveShadow>
-          <planeGeometry args={[160, 160]} />
-          <meshStandardMaterial color="#d8d8d8" />
-        </mesh>
+        {showEnvelope && (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} castShadow receiveShadow>
+            <planeGeometry args={[160, 160]} />
+            <meshStandardMaterial color="#d8d8d8" />
+          </mesh>
+        )}
 
         <group>
-          <EngineHouse architecturalHouse={house} />
+          <EngineHouse architecturalHouse={house} showEnvelope={showEnvelope} />
           <DebugAxes />
           {debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
         </group>
@@ -106,6 +133,15 @@ export default function HouseViewer() {
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
       </Canvas>
+
+      <button
+        type="button"
+        style={overlayButtonStyle}
+        onClick={() => setSceneVisibility((current) => ({ showEnvelope: !current.showEnvelope }))}
+      >
+        {showEnvelope ? 'Hide walls, roof, windows & ground' : 'Show walls, roof, windows & ground'}
+      </button>
+
       {debugEnabled && (
         <>
           <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />

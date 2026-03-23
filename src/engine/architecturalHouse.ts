@@ -240,9 +240,17 @@ const FRONT_DORMER_WINDOW_STYLE: OpeningStyleSpec = {
   variant: 'plain',
   grid: { cols: 2, rows: 3 },
   rowFractions: [0.28, 0.36, 0.36],
-  hasSill: true,
-  hasLintel: true,
+  frameThickness: 0.09,
+  frameDepth: 0.14,
+  glassInset: 0.01,
+  glassThickness: 0.012,
+  mullionWidth: 0.055,
+  hasSill: false,
+  hasLintel: false,
 };
+
+const FRONT_DORMER_WINDOW_HEIGHT = 1;
+const FRONT_DORMER_WINDOW_SILL_HEIGHT = firstLevel.height - FRONT_DORMER_WINDOW_HEIGHT;
 
 const FRONT_SMALL_WINDOW_STYLE: OpeningStyleSpec = {
   variant: 'plain',
@@ -610,8 +618,8 @@ export const architecturalHouse: ArchitecturalHouse = {
       edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
       offset: FW3,
       width: 0.9,
-      sillHeight: 1.45,
-      height: 1,
+      sillHeight: FRONT_DORMER_WINDOW_SILL_HEIGHT,
+      height: FRONT_DORMER_WINDOW_HEIGHT,
       style: FRONT_DORMER_WINDOW_STYLE,
     },
     {

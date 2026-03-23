@@ -1,17 +1,18 @@
 import { useEffect, useMemo } from 'react';
-import type { SiteSpec } from '../architecturalTypes';
+import type { SiteSpec, Vec2 } from '../architecturalTypes';
 import { buildSiteMesh } from '../geometry/buildSiteMesh';
 import { DebugWireframe } from '../debug/DebugWireframe';
 import { useDebugUIState } from '../debug/debugUIState';
 
 type EngineSiteProps = {
   site?: SiteSpec;
+  cutouts?: Vec2[][];
   visible?: boolean;
 };
 
-export function EngineSite({ site, visible = true }: EngineSiteProps) {
+export function EngineSite({ site, cutouts = [], visible = true }: EngineSiteProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
-  const mesh = useMemo(() => (site ? buildSiteMesh(site) : null), [site]);
+  const mesh = useMemo(() => (site ? buildSiteMesh(site, cutouts) : null), [cutouts, site]);
 
   useEffect(() => {
     if (!mesh) {

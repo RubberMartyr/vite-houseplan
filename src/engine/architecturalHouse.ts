@@ -142,6 +142,8 @@ const GROUND_REAR_MAIN_EDGE_WIDTH = 7.6;
 const GROUND_REAR_OPENING_WIDTH = 5.6;
 const GROUND_REAR_OPENING_OFFSET =
   (GROUND_REAR_MAIN_EDGE_WIDTH - GROUND_REAR_OPENING_WIDTH) / 2;
+const GROUND_REAR_THRESHOLD_DEPTH = 0.12;
+const GROUND_REAR_THRESHOLD_THICKNESS = 0.03;
 
 // The first-floor rear wall is 8.3m wide, while the elevation drawing is a 7.6m
 // composition centered within it, so keep 0.35m of padding on both sides.
@@ -586,7 +588,14 @@ export const architecturalHouse: ArchitecturalHouse = {
       width: GROUND_REAR_OPENING_WIDTH,
       sillHeight: 0,
       height: 2.45,
-      style: { variant: 'plain', grid: { cols: 3, rows: 1 }, hasSill: false, hasLintel: true },
+      style: {
+        variant: 'plain',
+        grid: { cols: 3, rows: 1 },
+        hasSill: true,
+        sillDepth: GROUND_REAR_THRESHOLD_DEPTH,
+        sillThickness: GROUND_REAR_THRESHOLD_THICKNESS,
+        hasLintel: true,
+      },
     },
     {
       id: 'REAR_F_W_LEFT',

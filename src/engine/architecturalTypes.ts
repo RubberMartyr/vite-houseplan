@@ -9,6 +9,7 @@ export type {
   OpeningSpec,
   OpeningStyleSpec,
   RoofSpec,
+  SiteSpec,
   SlabSpec,
   Vec2,
   Vec3,

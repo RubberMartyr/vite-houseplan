@@ -50,9 +50,12 @@ export function deriveFlatRoofGeometries(roofs: DerivedRoof[]): THREE.BufferGeom
 
       geom.rotateX(-Math.PI / 2);
 
+      // Flat roofs should bear directly on the top of the supporting walls.
+      // Adding the level slab thickness lifts the roof above the wall cap and
+      // creates an artificial shadow gap once roof-bearing slabs are hidden.
       geom.translate(
         0,
-        derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height + derivedRoof.baseLevel.slabThickness,
+        derivedRoof.baseLevel.elevation + derivedRoof.baseLevel.height,
         0
       );
 

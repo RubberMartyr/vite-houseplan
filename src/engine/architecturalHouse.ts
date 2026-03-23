@@ -71,59 +71,73 @@ export function findFacadeEdgeIndex(ring: XZ[], which: "minZ" | "maxZ"): number 
  * This mirrors the current house geometry but expressed
  * as architectural intent instead of derived geometry.
  */
-const levels: ArchitecturalHouse['levels'] = [
-  {
-    id: "ground",
-    elevation: 0,
-    height: 2.8,
-    slab: {
-      thickness: 0.3,
-      inset: 0,
-    },
-    footprint: {
-      outer: [
-        { x: 4.8, z: 15 },
-        { x: 4.1, z: 15 },
-        { x: -3.5, z: 15 },
-        { x: -3.5, z: 12 },
-        { x: -3.5, z: 8.45 },
-        { x: -4.1, z: 8.45 },
-        { x: -4.1, z: 4 },
-        { x: -4.8, z: 4 },
-        { x: -4.8, z: 0 },
-        { x: 4.8, z: 0 },
-      ],
-    },
+const groundLevel: ArchitecturalHouse['levels'][number] = {
+  id: "ground",
+  elevation: 0,
+  height: 2.8,
+  slab: {
+    thickness: 0.3,
+    inset: 0,
   },
-  {
-    id: "first",
-    elevation: 3.05,
-    height: 2.8,
-    slab: {
-      thickness: 0.25,
-      inset: 0,
-    },
-    footprint: {
-      outer: [
-        { x: -3.5, z: 12 },
-        { x: -3.5, z: 8.45 },
-        { x: -4.1, z: 8.45 },
-        { x: -4.1, z: 4 },
-        { x: -4.8, z: 4 },
-        { x: -4.8, z: 0 },
-        { x: 4.8, z: 0 },
-        { x: 4.8, z: 4 },
-        { x: 4.8, z: 8.45 },
-        { x: 4.8, z: 12 },
-      ],
-    },
+  footprint: {
+    outer: [
+      { x: 4.8, z: 15 },
+      { x: 4.1, z: 15 },
+      { x: -3.5, z: 15 },
+      { x: -3.5, z: 12 },
+      { x: -3.5, z: 8.45 },
+      { x: -4.1, z: 8.45 },
+      { x: -4.1, z: 4 },
+      { x: -4.8, z: 4 },
+      { x: -4.8, z: 0 },
+      { x: 4.8, z: 0 },
+    ],
   },
-];
+};
+
+const basementLevel: ArchitecturalHouse['levels'][number] = {
+  id: "basement",
+  elevation: groundLevel.elevation - groundLevel.slab.thickness - groundLevel.height,
+  height: groundLevel.height,
+  slab: {
+    thickness: groundLevel.slab.thickness,
+    inset: groundLevel.slab.inset,
+  },
+  footprint: {
+    outer: groundLevel.footprint.outer.map((point) => ({ ...point })),
+  },
+};
+
+const firstLevel: ArchitecturalHouse['levels'][number] = {
+  id: "first",
+  elevation: 3.05,
+  height: 2.8,
+  slab: {
+    thickness: 0.25,
+    inset: 0,
+  },
+  footprint: {
+    outer: [
+      { x: -3.5, z: 12 },
+      { x: -3.5, z: 8.45 },
+      { x: -4.1, z: 8.45 },
+      { x: -4.1, z: 4 },
+      { x: -4.8, z: 4 },
+      { x: -4.8, z: 0 },
+      { x: 4.8, z: 0 },
+      { x: 4.8, z: 4 },
+      { x: 4.8, z: 8.45 },
+      { x: 4.8, z: 12 },
+    ],
+  },
+};
+
+const levels: ArchitecturalHouse['levels'] = [basementLevel, groundLevel, firstLevel];
 
 // Current envelope orientation has the front facade at z = 0.
 const FRONT_FACADE: "minZ" | "maxZ" = "minZ";
-const groundFrontEdgeIndex = findFacadeEdgeIndex(levels[0].footprint.outer, FRONT_FACADE);
-const firstFrontEdgeIndex = findFacadeEdgeIndex(levels[1].footprint.outer, FRONT_FACADE);
+const groundFrontEdgeIndex = findFacadeEdgeIndex(groundLevel.footprint.outer, FRONT_FACADE);
+const firstFrontEdgeIndex = findFacadeEdgeIndex(firstLevel.footprint.outer, FRONT_FACADE);
 const GROUND_REAR_MAIN_EDGE = 1;
 const FIRST_REAR_EDGE = 9;
 
@@ -158,7 +172,7 @@ const FIRST_REAR_RIGHT_WINDOW_OFFSET =
 // Keep the stacked left-facade ground-floor glazing running all the way up to
 // the underside of the first-floor slab so the lower opening meets the slab
 // line instead of stopping short with an exterior wall strip above it.
-const LEFT_FACADE_GROUND_OPENING_HEIGHT = levels[1].elevation - levels[1].slab.thickness;
+const LEFT_FACADE_GROUND_OPENING_HEIGHT = firstLevel.elevation - firstLevel.slab.thickness;
 const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
 const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
 const LEFT_FACADE_LOW_STACK_WIDTH = cm(70);
@@ -193,7 +207,7 @@ const LEFT_FACADE_TALL_UPPER_WINDOW_STYLE: OpeningStyleSpec = {
   hasSill: false,
   hasLintel: true,
   mergeWithBelow: true,
-  separatorPanelHeight: levels[1].slab.thickness,
+  separatorPanelHeight: firstLevel.slab.thickness,
   frameEdges: { bottom: false },
 };
 const LEFT_FACADE_SHORT_WINDOW_STYLE: OpeningStyleSpec = {
@@ -323,7 +337,7 @@ const RIGHT_FACADE_SHARED_CENTER_Z = 5.5;
 const RIGHT_FACADE_DOOR_OFFSET =
   RIGHT_FACADE_SHARED_CENTER_Z - RIGHT_FACADE_DOOR_WIDTH / 2;
 const RIGHT_FACADE_FIRST_WINDOW_EDGE_INDEX = 7;
-const RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z = levels[1].footprint.outer[7].z;
+const RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z = firstLevel.footprint.outer[7].z;
 const RIGHT_FACADE_WINDOW_OFFSET =
   RIGHT_FACADE_SHARED_CENTER_Z -
   RIGHT_FACADE_WINDOW_WIDTH / 2 -
@@ -380,18 +394,18 @@ console.log("FRONT EDGE CHECK", {
   frontFacade: FRONT_FACADE,
   ground: {
     edgeIndex: groundFrontEdgeIndex,
-    start: levels[0].footprint.outer[groundFrontEdgeIndex],
-    end: levels[0].footprint.outer[(groundFrontEdgeIndex + 1) % levels[0].footprint.outer.length],
+    start: groundLevel.footprint.outer[groundFrontEdgeIndex],
+    end: groundLevel.footprint.outer[(groundFrontEdgeIndex + 1) % groundLevel.footprint.outer.length],
   },
   first: {
     edgeIndex: firstFrontEdgeIndex,
-    start: levels[1].footprint.outer[firstFrontEdgeIndex],
-    end: levels[1].footprint.outer[(firstFrontEdgeIndex + 1) % levels[1].footprint.outer.length],
+    start: firstLevel.footprint.outer[firstFrontEdgeIndex],
+    end: firstLevel.footprint.outer[(firstFrontEdgeIndex + 1) % firstLevel.footprint.outer.length],
   },
 });
 
-const a = levels[0].footprint.outer[groundFrontEdgeIndex];
-const b = levels[0].footprint.outer[(groundFrontEdgeIndex + 1) % levels[0].footprint.outer.length];
+const a = groundLevel.footprint.outer[groundFrontEdgeIndex];
+const b = groundLevel.footprint.outer[(groundFrontEdgeIndex + 1) % groundLevel.footprint.outer.length];
 
 console.log("FRONT EDGE DIRECTION", {
   start: a,

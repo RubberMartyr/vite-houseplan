@@ -59,6 +59,17 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         levelFootprintsById={levelFootprintsById}
         visible={showEnvelope}
         wallMaterialSpec={architecturalHouse.materials?.walls}
+        cacheKey="above-grade"
+      />
+      <EngineWalls
+        walls={basementWalls}
+        openings={basementOpenings}
+        wallRevision={derived.revisions.walls}
+        openingsRevision={derived.revisions.openings}
+        levelFootprintsById={levelFootprintsById}
+        visible={showEnvelope}
+        wallMaterialSpec={{ color: '#9b9b9b', exteriorColor: '#9b9b9b', interiorColor: '#9b9b9b', edgeColor: '#9b9b9b' }}
+        cacheKey="basement"
       />
       <EngineWalls
         walls={basementWalls}

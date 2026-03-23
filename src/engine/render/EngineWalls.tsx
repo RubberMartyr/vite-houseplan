@@ -29,6 +29,7 @@ type EngineWallsProps = {
   levelFootprintsById?: Record<string, Vec2[]>;
   visible?: boolean;
   wallMaterialSpec?: ArchitecturalMaterials['walls'];
+  cacheKey?: string;
 };
 
 type BuiltWallPiece = BuiltWall & {
@@ -46,6 +47,7 @@ export function EngineWalls({
   levelFootprintsById,
   visible = true,
   wallMaterialSpec,
+  cacheKey = 'default',
 }: EngineWallsProps) {
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
@@ -75,7 +77,7 @@ export function EngineWalls({
       return [];
     }
 
-    const revision = wallRevision * 1_000_000 + openingsRevision;
+    const revision = `${cacheKey}:${wallRevision}:${openingsRevision}`;
 
     return getGeometry(revision, () => {
       const { walls: visibleWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(walls, openings);
@@ -162,7 +164,7 @@ export function EngineWalls({
         });
       });
     });
-  }, [debugEnabled, walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
+  }, [cacheKey, debugEnabled, walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
 
   const normalBuiltWalls = useMemo(
     () => (debugEnabled ? builtWalls.filter((wall) => !wall.debugThinBand) : builtWalls),

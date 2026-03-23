@@ -1,12 +1,14 @@
+type CacheKey = string | number;
+
 type CacheEntry<T> = {
-  revision: number;
+  revision: CacheKey;
   geometry: T;
 };
 
 export function createGeometryCache<T>() {
   let cache: CacheEntry<T> | null = null;
 
-  return function getOrBuild(revision: number, builder: () => T): T {
+  return function getOrBuild(revision: CacheKey, builder: () => T): T {
     if (cache && cache.revision === revision) {
       return cache.geometry;
     }

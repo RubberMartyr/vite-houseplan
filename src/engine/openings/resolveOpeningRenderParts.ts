@@ -314,6 +314,8 @@ export function resolveOpeningRenderParts(
   }
 
   if ((style?.separatorPanelHeight ?? 0) > 0) {
+    // Separator panels bridge stacked openings by covering the slab face below the
+    // upper opening, so their volume needs to hang below the opening baseline.
     const separatorPanelHeight = clamp(
       style?.separatorPanelHeight ?? 0,
       0.01,
@@ -321,6 +323,7 @@ export function resolveOpeningRenderParts(
     );
     const separatorPanelDepth = clamp(frameDepth * 0.45, 0.02, frameDepth);
     const separatorPanelWidth = Math.max(glassWidth, 0.01);
+    const separatorPanelCenterY = -openingHeight / 2 - separatorPanelHeight / 2;
 
     parts.push({
       key: 'separator-panel',
@@ -329,10 +332,30 @@ export function resolveOpeningRenderParts(
       size: [separatorPanelWidth, separatorPanelHeight, separatorPanelDepth],
       position: [
         glassCenterX,
-        -openingHeight / 2 + separatorPanelHeight / 2,
+        separatorPanelCenterY,
         frameDepth / 2 - separatorPanelDepth / 2 - SEPARATOR_PANEL_FRONT_INSET,
       ],
     });
+
+    if (frameEdges.left) {
+      parts.push({
+        key: 'separator-frame-left',
+        material: 'frame',
+        debugIgnore: true,
+        size: [frameThickness, separatorPanelHeight, frameDepth],
+        position: [-openingWidth / 2 + frameThickness / 2, separatorPanelCenterY, 0],
+      });
+    }
+
+    if (frameEdges.right) {
+      parts.push({
+        key: 'separator-frame-right',
+        material: 'frame',
+        debugIgnore: true,
+        size: [frameThickness, separatorPanelHeight, frameDepth],
+        position: [openingWidth / 2 - frameThickness / 2, separatorPanelCenterY, 0],
+      });
+    }
   }
 
   let cumulativeWidth = -glassWidth / 2;

@@ -143,6 +143,7 @@ export function deriveExteriorAccesses(
     const floorThickness = spec.floorThickness ?? DEFAULT_FLOOR_THICKNESS;
     const wallThickness = spec.wallThickness ?? DEFAULT_WALL_THICKNESS;
     const wallHeight = spec.wallHeight ?? Math.abs(level.elevation);
+    const guardWallHeight = spec.guardWallHeight ?? 0;
     const floorTopY = level.elevation;
     const clearWidth = Math.max(spec.wellWidth - wallThickness, 0.6);
     const clearOutCenter = clearWidth / 2;
@@ -200,6 +201,44 @@ export function deriveExteriorAccesses(
         }
       ),
     ];
+
+    if (guardWallHeight > 0) {
+      const guardWallCenterY = floorTopY + wallHeight + guardWallHeight / 2;
+      parts.push(
+        createPart(
+          spec.id,
+          'outer-guard-wall',
+          'guard-wall',
+          start,
+          tangentXZ,
+          outwardXZ,
+          uMin + wellLength / 2,
+          guardWallCenterY,
+          spec.wellWidth - wallThickness / 2,
+          {
+            x: wellLength,
+            y: guardWallHeight,
+            z: wallThickness,
+          }
+        ),
+        createPart(
+          spec.id,
+          'front-guard-wall',
+          'guard-wall',
+          start,
+          tangentXZ,
+          outwardXZ,
+          uMin + wallThickness / 2,
+          guardWallCenterY,
+          spec.wellWidth / 2,
+          {
+            x: wallThickness,
+            y: guardWallHeight,
+            z: spec.wellWidth,
+          }
+        )
+      );
+    }
 
     const cutout: DerivedExteriorAccessCutout = {
       id: `${spec.id}-cutout`,

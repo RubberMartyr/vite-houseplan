@@ -371,6 +371,7 @@ const BASEMENT_RIGHT_ACCESS_STEP_COUNT = 17;
 const BASEMENT_RIGHT_ACCESS_WALL_HEIGHT = groundLevel.elevation - basementLevel.elevation;
 const BASEMENT_RIGHT_ACCESS_DOOR_WIDTH = cm(95);
 const BASEMENT_RIGHT_ACCESS_DOOR_HEIGHT = cm(215);
+const BASEMENT_RIGHT_ACCESS_GUARD_WALL_HEIGHT = 1;
 const BASEMENT_RIGHT_ACCESS_DOOR_OFFSET =
   BASEMENT_RIGHT_ACCESS_OFFSET +
   (BASEMENT_RIGHT_ACCESS_LANDING_LENGTH - BASEMENT_RIGHT_ACCESS_DOOR_WIDTH) / 2;
@@ -756,6 +757,7 @@ export const architecturalHouse: ArchitecturalHouse = {
       floorThickness: 0.18,
       wallThickness: 0.2,
       wallHeight: BASEMENT_RIGHT_ACCESS_WALL_HEIGHT,
+      guardWallHeight: BASEMENT_RIGHT_ACCESS_GUARD_WALL_HEIGHT,
     },
   ],
 };

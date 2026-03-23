@@ -205,6 +205,7 @@ export interface ExteriorAccessSpec {
   floorThickness?: number;
   wallThickness?: number;
   wallHeight?: number;
+  guardWallHeight?: number;
 }
 
 export type ArchitecturalMaterials = {

@@ -13,6 +13,7 @@ import { EngineGroundPlane } from './render/EngineGroundPlane';
 import { EngineOpenings } from './render/EngineOpenings';
 import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
+import { EngineSite } from './render/EngineSite';
 import { EngineWalls } from './render/EngineWalls';
 
 type Props = {
@@ -49,7 +50,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
 
   return (
     <>
-      <EngineGroundPlane visible={showEnvelope} cutouts={derived.exteriorAccessCutouts} />
+      <EngineSite site={architecturalHouse.site} visible={showEnvelope} />
       <EngineWalls
         walls={aboveGradeWalls}
         openings={aboveGradeOpenings}

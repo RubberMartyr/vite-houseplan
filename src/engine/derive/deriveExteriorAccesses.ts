@@ -1,6 +1,6 @@
 import type { ArchitecturalHouse, ExteriorAccessSpec, Vec2, Vec3 } from '../architecturalTypes';
 import type { DerivedWallSegment } from '../deriveWalls';
-import type { DerivedExteriorAccessPart } from './types/DerivedExteriorAccess';
+import type { DerivedExteriorAccessCutout, DerivedExteriorAccessPart } from './types/DerivedExteriorAccess';
 import { isPointInsidePolygonXZ } from './deriveOpenings';
 
 const OUTWARD_PROBE_DISTANCE = 0.05;
@@ -122,13 +122,18 @@ function createPart(
   };
 }
 
+type DerivedExteriorAccessesResult = {
+  parts: DerivedExteriorAccessPart[];
+  cutouts: DerivedExteriorAccessCutout[];
+};
+
 export function deriveExteriorAccesses(
   house: ArchitecturalHouse,
   context: DeriveExteriorAccessesContext
-): DerivedExteriorAccessPart[] {
+): DerivedExteriorAccessesResult {
   void context.walls;
 
-  return (house.exteriorAccesses ?? []).flatMap((spec) => {
+  return (house.exteriorAccesses ?? []).reduce<DerivedExteriorAccessesResult>((result, spec) => {
     const level = house.levels.find((entry) => entry.id === spec.levelId);
     if (!level) {
       throw new Error(`Exterior access ${spec.id}: level ${spec.levelId} was not found.`);
@@ -196,6 +201,17 @@ export function deriveExteriorAccesses(
       ),
     ];
 
+    const cutout: DerivedExteriorAccessCutout = {
+      id: `${spec.id}-cutout`,
+      accessId: spec.id,
+      polygon: [
+        localToArch(start, tangentXZ, outwardXZ, uMin, 0, 0),
+        localToArch(start, tangentXZ, outwardXZ, uMin + wellLength, 0, 0),
+        localToArch(start, tangentXZ, outwardXZ, uMin + wellLength, 0, spec.wellWidth),
+        localToArch(start, tangentXZ, outwardXZ, uMin, 0, spec.wellWidth),
+      ].map(({ x, z }) => ({ x, z })),
+    };
+
     for (let stepIndex = 0; stepIndex < spec.stepCount; stepIndex += 1) {
       const height = risePerStep * (stepIndex + 1);
       parts.push(
@@ -218,6 +234,8 @@ export function deriveExteriorAccesses(
       );
     }
 
-    return parts;
-  });
+    result.parts.push(...parts);
+    result.cutouts.push(cutout);
+    return result;
+  }, { parts: [], cutouts: [] });
 }

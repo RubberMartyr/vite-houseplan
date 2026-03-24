@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { SiteSpec, SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
 import { archToWorldXZ } from '../spaceMapping';
+import { buildFenceFromSurface } from './buildFenceFromSurface';
 
 const textureCache = new Map<string, THREE.Texture>();
 
@@ -37,10 +38,28 @@ function createMaterialFromSpec(materialSpec?: SiteSurfaceSpec['material']): THR
   }
 
   if (materialSpec.type === 'standard') {
-    const map = materialSpec.texture ? getTextureWithRepeat(materialSpec.texture, materialSpec.repeat) : undefined;
+    const repeat = materialSpec.repeat ?? (materialSpec.scale ? [materialSpec.scale.x, materialSpec.scale.y] as [number, number] : undefined);
+    const map = materialSpec.texture ? getTextureWithRepeat(materialSpec.texture, repeat) : undefined;
+    const normalMap = materialSpec.normalMap ? getTextureWithRepeat(materialSpec.normalMap, repeat) : undefined;
 
     return new THREE.MeshStandardMaterial({
       map,
+      normalMap,
+      color: materialSpec.color,
+      roughness: materialSpec.roughness ?? 0.8,
+      metalness: materialSpec.metalness ?? 0,
+      side: THREE.DoubleSide,
+    });
+  }
+
+  if (materialSpec.type === 'wood_vertical_slats') {
+    const repeat = materialSpec.scale ? [materialSpec.scale.x, materialSpec.scale.y] as [number, number] : undefined;
+    const map = materialSpec.texture ? getTextureWithRepeat(materialSpec.texture, repeat) : undefined;
+    const normalMap = materialSpec.normalMap ? getTextureWithRepeat(materialSpec.normalMap, repeat) : undefined;
+
+    return new THREE.MeshStandardMaterial({
+      map,
+      normalMap,
       color: materialSpec.color,
       roughness: materialSpec.roughness ?? 0.8,
       metalness: materialSpec.metalness ?? 0,
@@ -138,16 +157,21 @@ export function buildSiteMesh(site: SiteSpec, cutouts: Vec2[][] = []): THREE.Mes
 export function buildSiteSurfaceMeshes(site: SiteSpec): THREE.Mesh[] {
   const baseElevation = site.elevation ?? -0.001;
 
-  return (site.surfaces ?? []).map((surface: SiteSurfaceSpec, index) => {
-    const mesh = createFlatPolygonMesh(
-      surface.polygon,
-      surface.material,
-      surface.elevation ?? baseElevation + 0.002 + index * 0.0005,
-    );
+  return (site.surfaces ?? []).flatMap((surface: SiteSurfaceSpec, index) => {
+    const surfaceElevation = surface.elevation ?? baseElevation + 0.002 + index * 0.0005;
+    const mesh =
+      surface.type === 'fence'
+        ? buildFenceFromSurface(surface, surfaceElevation)
+        : createFlatPolygonMesh(surface.polygon, surface.material, surfaceElevation);
+
+    if (!mesh) {
+      return [];
+    }
+
     mesh.userData = {
       ...mesh.userData,
       siteSurfaceId: surface.id,
     };
-    return mesh;
+    return [mesh];
   });
 }

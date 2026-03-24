@@ -9,9 +9,8 @@ type SiteAccessPathSpec = {
 
 const COBBLESTONE_COLOR = '#3b82f6';
 const PATH_WIDTH = 1;
-const RIGHT_AREA_FRONT_START_X = 1.7;
-const FRONT_BOUNDARY_Z = -6;
 const RIGHT_AREA_REAR_EXTENSION = 1;
+const HOUSE_CLEARANCE_X = 0.5;
 
 function findPoint(points: Vec2[], predicate: (point: Vec2) => boolean, label: string): Vec2 {
   const point = points.find(predicate);
@@ -48,14 +47,16 @@ export function buildLot1aSiteSurfaces({
   const lowerLeftIndentStart = findPoint(houseOuter, (point) => point.x === -4.8 && point.z === 4, 'lower left indentation');
   const midLeftIndentStart = findPoint(houseOuter, (point) => point.x === -4.1 && point.z === 4, 'mid left path start');
   const midLeftIndentEnd = findPoint(houseOuter, (point) => point.x === -4.1 && point.z === 8.45, 'mid left path end');
-  const houseRightRear = findPoint(houseOuter, (point) => point.x === 4.8 && point.z === 15, 'house right rear corner');
-  const lotFrontRight = findPoint(lotOuter, (point) => point.z === FRONT_BOUNDARY_Z, 'lot front-right corner');
+  const lotFrontLeft = lotOuter[0];
+  const lotFrontRight = lotOuter[1];
   const lotRearRight = lotOuter[2];
+  const frontBoundaryZ = lotFrontLeft.z;
 
   const frontDoorCenterX = frontLeft.x + doorCenterOffset;
   const doorPathMinX = frontDoorCenterX - doorWidth / 2;
   const doorPathMaxX = frontDoorCenterX + doorWidth / 2;
-  const rightAreaRearZ = houseRightRear.z + RIGHT_AREA_REAR_EXTENSION;
+  const rightAreaFrontStartX = frontRight.x + HOUSE_CLEARANCE_X;
+  const rightAreaRearZ = frontRight.z - 0.001 + RIGHT_AREA_REAR_EXTENSION;
   const rightAreaRearX = interpolateXAtZ(lotFrontRight, lotRearRight, rightAreaRearZ);
 
   return [
@@ -63,10 +64,10 @@ export function buildLot1aSiteSurfaces({
       id: 'lot1a-right-cobblestone-field',
       color: COBBLESTONE_COLOR,
       polygon: [
-        { x: RIGHT_AREA_FRONT_START_X, z: FRONT_BOUNDARY_Z },
-        { x: lotFrontRight.x, z: FRONT_BOUNDARY_Z },
+        { x: rightAreaFrontStartX, z: frontBoundaryZ },
+        { x: lotFrontRight.x, z: frontBoundaryZ },
         { x: rightAreaRearX, z: rightAreaRearZ },
-        { x: RIGHT_AREA_FRONT_START_X, z: rightAreaRearZ },
+        { x: rightAreaFrontStartX, z: rightAreaRearZ },
       ],
     },
     {
@@ -103,8 +104,8 @@ export function buildLot1aSiteSurfaces({
       id: 'lot1a-front-door-path',
       color: COBBLESTONE_COLOR,
       polygon: [
-        { x: doorPathMinX, z: FRONT_BOUNDARY_Z },
-        { x: doorPathMaxX, z: FRONT_BOUNDARY_Z },
+        { x: doorPathMinX, z: frontBoundaryZ },
+        { x: doorPathMaxX, z: frontBoundaryZ },
         { x: doorPathMaxX, z: frontLeft.z },
         { x: doorPathMinX, z: frontLeft.z },
       ],

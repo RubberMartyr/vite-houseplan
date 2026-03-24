@@ -7,20 +7,25 @@ type SiteLayoutSurface = {
   id: string;
   type: SiteSurfaceType;
   polygon: Vec2[];
+  material?: SiteSurfaceSpec['material'];
 };
 
 type SiteLayout = {
   surfaces: SiteLayoutSurface[];
 };
 
-const SURFACE_TYPE_COLOR: Record<SiteSurfaceType, string> = {
-  cobblestone: '#3b82f6',
-};
 export const LOT_1A_SITE_LAYOUT: SiteLayout = {
   surfaces: [
     {
       id: 'lot1a-cobblestone-main',
       type: 'cobblestone',
+      material: {
+        type: 'standard',
+        texture: '/textures/Marshalls_Rustic.jpg',
+        repeat: [6, 6],
+        roughness: 0.9,
+        metalness: 0,
+      },
       polygon: [
         // front strip
         { x: -5.6, z: -1.0 },
@@ -41,6 +46,12 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
     {
       id: 'lot1a-driveway',
       type: 'cobblestone',
+      material: {
+        type: 'standard',
+        texture: '/textures/Marshalls_Rustic.jpg',
+        repeat: [6, 6],
+        roughness: 0.9,
+      },
       polygon: [
         { x: 0.5, z: -6.0 },
         { x: 1.8, z: -6.0 },
@@ -52,6 +63,11 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
     {
       id: 'lot1a-front-right-driveway',
       type: 'cobblestone',
+      material: {
+        type: 'standard',
+        texture: '/textures/Marshalls_Rustic.jpg',
+        repeat: [6, 6],
+      },
       polygon: [
         { x: 2.6, z: -6.0 },
         { x: 8.6, z: -6.0 },
@@ -63,6 +79,11 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
     {
       id: 'lot1a-left-indent-strip',
       type: 'cobblestone',
+      material: {
+        type: 'standard',
+        texture: '/textures/Marshalls_Rustic.jpg',
+        repeat: [4, 4],
+      },
       polygon: [
         // indentation fill
         { x: -5.0, z: 4.0 },
@@ -75,6 +96,11 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
     {
       id: 'lot1a-basement-strip',
       type: 'cobblestone',
+      material: {
+        type: 'standard',
+        texture: '/textures/Marshalls_Rustic.jpg',
+        repeat: [8, 2],
+      },
       polygon: [
         // reordered for clean winding (no twisted edge)
         { x: 6.6, z: -0.5 },
@@ -87,6 +113,11 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
     {
       id: 'lot1a-basement-stair-landing',
       type: 'cobblestone',
+      material: {
+        type: 'standard',
+        texture: '/textures/Marshalls_Rustic.jpg',
+        repeat: [2, 2],
+      },
       polygon: [
         { x: 4.8, z: 15.0 },
         { x: 7.5, z: 15.0 },
@@ -125,7 +156,8 @@ export function mapSiteLayoutToSurfaces(layout: SiteLayout, houseFootprint: Vec2
 
     return clippedPolygons.map((polygon, index) => ({
       id: `${surface.id}-${index}`,
-      color: SURFACE_TYPE_COLOR[surface.type],
+      color: surface.type === 'cobblestone' ? '#3b82f6' : undefined,
+      material: surface.material,
       polygon,
     }));
   });

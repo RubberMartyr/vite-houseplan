@@ -154,7 +154,7 @@ export function buildSiteMesh(site: SiteSpec, cutouts: Vec2[][] = []): THREE.Mes
   return new THREE.Mesh(geometry, material);
 }
 
-export function buildSiteSurfaceMeshes(site: SiteSpec): THREE.Mesh[] {
+export function buildSiteSurfaceMeshes(site: SiteSpec): THREE.Object3D[] {
   const baseElevation = site.elevation ?? -0.001;
 
   return (site.surfaces ?? []).flatMap((surface: SiteSurfaceSpec, index) => {

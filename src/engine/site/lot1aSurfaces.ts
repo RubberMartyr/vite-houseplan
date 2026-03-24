@@ -9,6 +9,7 @@ type SiteLayoutSurface = {
   polygon: Vec2[];
   height?: number;
   thickness?: number;
+  fence?: SiteSurfaceSpec['fence'];
   material?: SiteSurfaceSpec['material'];
 };
 
@@ -22,22 +23,25 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       id: 'lot1a-fence-front',
       type: 'fence',
       height: 2.0,
-      thickness: 0.08,
       polygon: [
-        { x: -5.6, z: -1.0 },
-        { x: 2.6, z: -1.0 },
-        { x: 2.6, z: -1.08 },
-        { x: -5.6, z: -1.08 },
+        { x: -10.2, z: -0.2 },
+        { x: -4.7, z: -0.2 },
+        { x: -4.7, z: -0.28 },
+        { x: -10.2, z: -0.28 },
       ],
+      fence: {
+        baseWidth: 0.04,
+        gap: 0.02,
+        thickness: 0.02,
+        pattern: [1, 2, 3, 4, 3, 2],
+      },
       material: {
         type: 'wood_vertical_slats',
-        texture: '/textures/fence/wood_slats_diffuse.jpg',
-        normalMap: '/textures/fence/wood_slats_normal.jpg',
+        texture: '/textures/fence/wood.jpg',
         scale: {
-          x: 2.0,
+          x: 1.0,
           y: 1.0,
         },
-        color: '#caa472',
         roughness: 0.8,
         metalness: 0.0,
       },
@@ -186,6 +190,7 @@ export function mapSiteLayoutToSurfaces(layout: SiteLayout, houseFootprint: Vec2
         material: surface.material,
         height: surface.height,
         thickness: surface.thickness,
+        fence: surface.fence,
       }];
     }
 

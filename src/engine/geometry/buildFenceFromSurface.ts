@@ -49,36 +49,65 @@ function createFenceMaterial(material?: SiteSurfaceSpec['material']): THREE.Mesh
     color: material.color,
     roughness: material.roughness ?? 0.8,
     metalness: material.metalness ?? 0,
-    side: THREE.DoubleSide,
   });
 }
 
-export function buildFenceFromSurface(surface: SiteSurfaceSpec, elevation = 0): THREE.Mesh | null {
-  const { polygon, height, material } = surface;
+export function buildFenceFromSurface(surface: SiteSurfaceSpec, elevation = 0): THREE.Group | null {
+  const { polygon, height, material, fence } = surface;
 
-  if (!height || polygon.length < 3) {
+  if (!height || !fence || polygon.length < 2) {
     return null;
   }
 
-  const shape = new THREE.Shape();
+  const [p0, p1] = polygon;
+  const dx = p1.x - p0.x;
+  const dz = p1.z - p0.z;
+  const length = Math.hypot(dx, dz);
 
-  polygon.forEach((point, index) => {
-    const mapped = archToWorldXZ(point);
-    if (index === 0) {
-      shape.moveTo(mapped.x, mapped.z);
-      return;
+  if (length <= 0 || fence.baseWidth <= 0 || fence.thickness <= 0) {
+    return null;
+  }
+
+  const stepPattern = fence.pattern.filter((value) => value > 0);
+  if (stepPattern.length === 0) {
+    return null;
+  }
+
+  const gap = Math.max(0, fence.gap);
+  const dirX = dx / length;
+  const dirZ = dz / length;
+  const angle = Math.atan2(dirZ, dirX);
+  const group = new THREE.Group();
+  const sharedMaterial = createFenceMaterial(material);
+  const patternLength = stepPattern.length;
+
+  let cursor = 0;
+  let index = 0;
+
+  while (cursor < length) {
+    const multiplier = stepPattern[index % patternLength];
+    const slatWidth = fence.baseWidth * multiplier;
+    if (slatWidth <= 0 || cursor + slatWidth > length) {
+      break;
     }
-    shape.lineTo(mapped.x, mapped.z);
-  });
-  shape.closePath();
 
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: height,
-    bevelEnabled: false,
-  });
-  geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, elevation, 0);
-  geometry.computeVertexNormals();
+    const baseX = p0.x + dirX * cursor;
+    const baseZ = p0.z + dirZ * cursor;
+    const centerX = baseX + dirX * (slatWidth / 2);
+    const centerZ = baseZ + dirZ * (slatWidth / 2);
+    const world = archToWorldXZ({ x: centerX, z: centerZ });
 
-  return new THREE.Mesh(geometry, createFenceMaterial(material));
+    const geometry = new THREE.BoxGeometry(slatWidth, height, fence.thickness);
+    const mesh = new THREE.Mesh(geometry, sharedMaterial);
+    mesh.position.set(world.x, elevation + height / 2, world.z);
+    mesh.rotation.y = -angle;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+
+    cursor += slatWidth + gap;
+    index += 1;
+  }
+
+  return group;
 }

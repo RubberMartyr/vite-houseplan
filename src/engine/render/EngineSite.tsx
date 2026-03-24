@@ -1,6 +1,7 @@
 import { Line } from '@react-three/drei';
 import { useEffect, useMemo } from 'react';
-import type { Mesh } from 'three';
+import { Mesh } from 'three';
+import type { Material, Object3D } from 'three';
 import type { SiteSpec, Vec2 } from '../architecturalTypes';
 import { DebugWireframe } from '../debug/DebugWireframe';
 import { useDebugUIState } from '../debug/debugUIState';
@@ -13,15 +14,22 @@ type EngineSiteProps = {
   visible?: boolean;
 };
 
-function syncMeshWireframe(meshes: Mesh[], enabled: boolean) {
-  meshes.forEach((mesh) => {
-    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+function applyWireframe(material: Material, enabled: boolean) {
+  if ('wireframe' in material) {
+    material.wireframe = enabled;
+    material.needsUpdate = true;
+  }
+}
 
-    materials.forEach((material) => {
-      if ('wireframe' in material) {
-        material.wireframe = enabled;
-        material.needsUpdate = true;
+function syncMeshWireframe(objects: Object3D[], enabled: boolean) {
+  objects.forEach((object) => {
+    object.traverse((child) => {
+      if (!(child instanceof Mesh)) {
+        return;
       }
+
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => applyWireframe(material, enabled));
     });
   });
 }
@@ -40,7 +48,11 @@ export function EngineSite({ site, cutouts = [], visible = true }: EngineSitePro
     mesh.receiveShadow = true;
     syncMeshWireframe([mesh, ...surfaceMeshes], debugWireframe);
     surfaceMeshes.forEach((surfaceMesh) => {
-      surfaceMesh.receiveShadow = true;
+      surfaceMesh.traverse((child) => {
+        if (child instanceof Mesh) {
+          child.receiveShadow = true;
+        }
+      });
     });
   }, [mesh, surfaceMeshes, debugWireframe]);
 

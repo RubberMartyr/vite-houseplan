@@ -19,6 +19,14 @@ export interface SiteSurfaceSpec {
   polygon: Vec2[];
   color?: string;
   elevation?: number;
+  material?: {
+    type: 'standard';
+    texture?: string;
+    repeat?: [number, number];
+    color?: string;
+    roughness?: number;
+    metalness?: number;
+  };
 }
 
 export interface SiteSpec {

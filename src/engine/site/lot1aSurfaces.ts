@@ -23,17 +23,17 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       id: 'lot1a-fence-front',
       type: 'fence',
       height: 2.0,
-      thickness: 0.2,
       polygon: [
         { x: -10.2, z: -0.2 },
-        { x: -4.7,  z: -0.2 },
-        { x: -4.7,  z: -0.28 },
+        { x: -4.7, z: -0.2 },
+        { x: -4.7, z: -0.28 },
         { x: -10.2, z: -0.28 },
       ],
       fence: {
-        slatWidth: 0.04,
+        baseWidth: 0.04,
         gap: 0.02,
         thickness: 0.02,
+        pattern: [1, 2, 3, 4, 3, 2],
       },
       material: {
         type: 'wood_vertical_slats',

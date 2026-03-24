@@ -64,39 +64,49 @@ export function buildFenceFromSurface(surface: SiteSurfaceSpec, elevation = 0): 
   const dz = p1.z - p0.z;
   const length = Math.hypot(dx, dz);
 
-  if (length <= 0 || fence.slatWidth <= 0 || fence.thickness <= 0) {
+  if (length <= 0 || fence.baseWidth <= 0 || fence.thickness <= 0) {
     return null;
   }
 
-  const step = fence.slatWidth + Math.max(0, fence.gap);
-  if (step <= 0) {
+  const stepPattern = fence.pattern.filter((value) => value > 0);
+  if (stepPattern.length === 0) {
     return null;
   }
 
+  const gap = Math.max(0, fence.gap);
   const dirX = dx / length;
   const dirZ = dz / length;
   const angle = Math.atan2(dirZ, dirX);
-  const count = Math.floor(length / step);
   const group = new THREE.Group();
   const sharedMaterial = createFenceMaterial(material);
+  const patternLength = stepPattern.length;
 
-  for (let index = 0; index < count; index += 1) {
-    const t = index * step + fence.slatWidth / 2;
-    if (t + fence.slatWidth / 2 > length) {
+  let cursor = 0;
+  let index = 0;
+
+  while (cursor < length) {
+    const multiplier = stepPattern[index % patternLength];
+    const slatWidth = fence.baseWidth * multiplier;
+    if (slatWidth <= 0 || cursor + slatWidth > length) {
       break;
     }
 
-    const baseX = p0.x + dirX * t;
-    const baseZ = p0.z + dirZ * t;
-    const world = archToWorldXZ({ x: baseX, z: baseZ });
+    const baseX = p0.x + dirX * cursor;
+    const baseZ = p0.z + dirZ * cursor;
+    const centerX = baseX + dirX * (slatWidth / 2);
+    const centerZ = baseZ + dirZ * (slatWidth / 2);
+    const world = archToWorldXZ({ x: centerX, z: centerZ });
 
-    const geometry = new THREE.BoxGeometry(fence.slatWidth, height, fence.thickness);
+    const geometry = new THREE.BoxGeometry(slatWidth, height, fence.thickness);
     const mesh = new THREE.Mesh(geometry, sharedMaterial);
     mesh.position.set(world.x, elevation + height / 2, world.z);
     mesh.rotation.y = -angle;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
+
+    cursor += slatWidth + gap;
+    index += 1;
   }
 
   return group;

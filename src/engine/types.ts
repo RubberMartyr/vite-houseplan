@@ -23,9 +23,10 @@ export interface SiteSurfaceSpec {
   height?: number;
   thickness?: number;
   fence?: {
-    slatWidth: number;
+    baseWidth: number;
     gap: number;
     thickness: number;
+    pattern: number[];
   };
   material?: {
     type: 'standard';

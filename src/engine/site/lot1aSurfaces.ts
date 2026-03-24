@@ -1,4 +1,5 @@
 import type { SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
+import polygonClipping from 'polygon-clipping';
 
 type SiteSurfaceType = 'cobblestone';
 
@@ -49,10 +50,36 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
   ],
 };
 
-export function mapSiteLayoutToSurfaces(layout: SiteLayout): SiteSurfaceSpec[] {
-  return layout.surfaces.map((surface) => ({
-    id: surface.id,
-    color: SURFACE_TYPE_COLOR[surface.type],
-    polygon: surface.polygon,
-  }));
+function toPolygonClippingFormat(polygon: Vec2[]): polygonClipping.Polygon {
+  return [polygon.map((point) => [point.x, point.z])];
+}
+
+function fromPolygonClippingFormat(result: polygonClipping.MultiPolygon): Vec2[][] {
+  return result.flatMap((polygon) =>
+    polygon.map((ring) => ring.map(([x, z]) => ({ x, z }))),
+  );
+}
+
+function subtractHouseFromSurface(surfacePolygon: Vec2[], housePolygon: Vec2[]): Vec2[][] {
+  const subject = toPolygonClippingFormat(surfacePolygon);
+  const clip = toPolygonClippingFormat(housePolygon);
+  const result = polygonClipping.difference(subject, clip);
+
+  if (!result || result.length === 0) {
+    return [];
+  }
+
+  return fromPolygonClippingFormat(result);
+}
+
+export function mapSiteLayoutToSurfaces(layout: SiteLayout, houseFootprint: Vec2[]): SiteSurfaceSpec[] {
+  return layout.surfaces.flatMap((surface) => {
+    const clippedPolygons = subtractHouseFromSurface(surface.polygon, houseFootprint);
+
+    return clippedPolygons.map((polygon, index) => ({
+      id: `${surface.id}-${index}`,
+      color: SURFACE_TYPE_COLOR[surface.type],
+      polygon,
+    }));
+  });
 }

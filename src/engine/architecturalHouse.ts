@@ -150,7 +150,7 @@ const site: ArchitecturalHouse['site'] = {
   elevation: -0.001,
   color: '#6DAA2C',
   footprint: LOT_1A_FOOTPRINT,
-  surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT),
+  surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT, groundLevel.footprint.outer),
 };
 
 const firstChain = [1.25, 0.9, 0.9, 0.9, 1.1, 0.9, 1.2, 0.7, 1.75];

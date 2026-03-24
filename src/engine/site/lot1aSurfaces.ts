@@ -1,12 +1,14 @@
 import type { SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
 import polygonClipping from 'polygon-clipping';
 
-type SiteSurfaceType = 'cobblestone';
+type SiteSurfaceType = 'cobblestone' | 'fence';
 
 type SiteLayoutSurface = {
   id: string;
   type: SiteSurfaceType;
   polygon: Vec2[];
+  height?: number;
+  thickness?: number;
   material?: SiteSurfaceSpec['material'];
 };
 
@@ -16,6 +18,30 @@ type SiteLayout = {
 
 export const LOT_1A_SITE_LAYOUT: SiteLayout = {
   surfaces: [
+    {
+      id: 'lot1a-fence-front',
+      type: 'fence',
+      height: 2.0,
+      thickness: 0.08,
+      polygon: [
+        { x: -5.6, z: -1.0 },
+        { x: 2.6, z: -1.0 },
+        { x: 2.6, z: -1.08 },
+        { x: -5.6, z: -1.08 },
+      ],
+      material: {
+        type: 'wood_vertical_slats',
+        texture: '/textures/fence/wood_slats_diffuse.jpg',
+        normalMap: '/textures/fence/wood_slats_normal.jpg',
+        scale: {
+          x: 2.0,
+          y: 1.0,
+        },
+        color: '#caa472',
+        roughness: 0.8,
+        metalness: 0.0,
+      },
+    },
     {
       id: 'lot1a-cobblestone-main',
       type: 'cobblestone',
@@ -152,10 +178,22 @@ function subtractHouseFromSurface(surfacePolygon: Vec2[], housePolygon: Vec2[]):
 
 export function mapSiteLayoutToSurfaces(layout: SiteLayout, houseFootprint: Vec2[]): SiteSurfaceSpec[] {
   return layout.surfaces.flatMap((surface) => {
+    if (surface.type === 'fence') {
+      return [{
+        id: surface.id,
+        type: surface.type,
+        polygon: surface.polygon,
+        material: surface.material,
+        height: surface.height,
+        thickness: surface.thickness,
+      }];
+    }
+
     const clippedPolygons = subtractHouseFromSurface(surface.polygon, houseFootprint);
 
     return clippedPolygons.map((polygon, index) => ({
       id: `${surface.id}-${index}`,
+      type: surface.type,
       color: surface.type === 'cobblestone' ? '#3b82f6' : undefined,
       material: surface.material,
       polygon,

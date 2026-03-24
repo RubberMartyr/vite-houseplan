@@ -16,13 +16,26 @@ export type Footprint = {
 
 export interface SiteSurfaceSpec {
   id: string;
+  type?: 'cobblestone' | 'fence';
   polygon: Vec2[];
   color?: string;
   elevation?: number;
+  height?: number;
+  thickness?: number;
   material?: {
     type: 'standard';
     texture?: string;
+    normalMap?: string;
     repeat?: [number, number];
+    scale?: { x: number; y: number };
+    color?: string;
+    roughness?: number;
+    metalness?: number;
+  } | {
+    type: 'wood_vertical_slats';
+    texture?: string;
+    normalMap?: string;
+    scale?: { x: number; y: number };
     color?: string;
     roughness?: number;
     metalness?: number;

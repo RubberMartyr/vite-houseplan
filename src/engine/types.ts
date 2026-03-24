@@ -22,6 +22,11 @@ export interface SiteSurfaceSpec {
   elevation?: number;
   height?: number;
   thickness?: number;
+  fence?: {
+    slatWidth: number;
+    gap: number;
+    thickness: number;
+  };
   material?: {
     type: 'standard';
     texture?: string;

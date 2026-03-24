@@ -16,35 +16,82 @@ type SiteLayout = {
 const SURFACE_TYPE_COLOR: Record<SiteSurfaceType, string> = {
   cobblestone: '#3b82f6',
 };
-
 export const LOT_1A_SITE_LAYOUT: SiteLayout = {
   surfaces: [
     {
       id: 'lot1a-cobblestone-main',
       type: 'cobblestone',
       polygon: [
-        { x: -5.8, z: 0.0 },
-        { x: 5.8, z: 0.0 },
-        { x: 5.8, z: 2.0 },
-        { x: -5.8, z: 2.0 },
-        { x: 5.8, z: 2.0 },
-        { x: 7.2, z: 2.0 },
-        { x: 6.6, z: 26.0 },
-        { x: 4.8, z: 26.0 },
-        { x: -2.0, z: 26.0 },
-        { x: -4.8, z: 26.0 },
-        { x: -5.8, z: 10.0 },
-        { x: -5.8, z: 2.0 },
+        // front strip
+        { x: -5.6, z: -1.0 },
+        { x: 2.6,  z: -1.0 },
+        { x: 2.6,  z: 2.0 },
+
+        // vertical connection toward right area
+        { x: 2.6,  z: 5.0 },
+
+        // back-left edge
+        { x: -5.6, z: 5.0 },
+
+        // close shape
+        { x: -5.6, z: 2.0 },
       ],
     },
+
     {
       id: 'lot1a-driveway',
       type: 'cobblestone',
       polygon: [
-        { x: -1.0, z: 0.0 },
-        { x: 1.0, z: 0.0 },
-        { x: 1.0, z: -6.0 },
-        { x: -1.0, z: -6.0 },
+        { x: 0.5, z: -6.0 },
+        { x: 1.8, z: -6.0 },
+        { x: 1.8, z: 0.0 },
+        { x: 0.5, z: 0.0 },
+      ],
+    },
+
+    {
+      id: 'lot1a-front-right-driveway',
+      type: 'cobblestone',
+      polygon: [
+        { x: 2.6, z: -6.0 },
+        { x: 8.6, z: -6.0 },
+        { x: 7.9, z: 8.2 },
+        { x: 2.6, z: 8.2 },
+      ],
+    },
+
+    {
+      id: 'lot1a-left-indent-strip',
+      type: 'cobblestone',
+      polygon: [
+        // indentation fill
+        { x: -5.0, z: 4.0 },
+        { x: -3.5, z: 4.0 },
+        { x: -3.5, z: 8.45 },
+        { x: -5.0, z: 8.45 },
+      ],
+    },
+
+    {
+      id: 'lot1a-basement-strip',
+      type: 'cobblestone',
+      polygon: [
+        // reordered for clean winding (no twisted edge)
+        { x: 6.6, z: -0.5 },
+        { x: 8.2, z: 0.5 },
+        { x: 7.5, z: 16.1 },
+        { x: 6.6, z: 16.1 },
+      ],
+    },
+
+    {
+      id: 'lot1a-basement-stair-landing',
+      type: 'cobblestone',
+      polygon: [
+        { x: 4.8, z: 15.0 },
+        { x: 7.5, z: 15.0 },
+        { x: 7.5, z: 16.1 },
+        { x: 4.8, z: 16.1 },
       ],
     },
   ],

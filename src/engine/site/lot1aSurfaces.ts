@@ -1,114 +1,80 @@
-import type { Footprint, SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
+import type { SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
 
-type SiteAccessPathSpec = {
-  houseFootprint: Footprint;
-  lotFootprint: Footprint;
-  doorCenterOffset: number;
-  doorWidth: number;
+type SiteSurfaceType = 'cobblestone';
+
+type SiteLayoutSurface = {
+  id: string;
+  type: SiteSurfaceType;
+  polygon: Vec2[];
 };
 
-const COBBLESTONE_COLOR = '#3b82f6';
-const PATH_WIDTH = 1;
-const RIGHT_AREA_REAR_EXTENSION = 1;
-const HOUSE_CLEARANCE_X = 0.5;
+type SiteLayout = {
+  surfaces: SiteLayoutSurface[];
+};
 
-function findPoint(points: Vec2[], predicate: (point: Vec2) => boolean, label: string): Vec2 {
-  const point = points.find(predicate);
+const SURFACE_TYPE_COLOR: Record<SiteSurfaceType, string> = {
+  cobblestone: '#3b82f6',
+};
 
-  if (!point) {
-    throw new Error(`Unable to locate ${label} in lot/site footprint.`);
-  }
-
-  return point;
-}
-
-function interpolateXAtZ(start: Vec2, end: Vec2, z: number): number {
-  const deltaZ = end.z - start.z;
-
-  if (Math.abs(deltaZ) < 1e-9) {
-    return start.x;
-  }
-
-  const t = (z - start.z) / deltaZ;
-  return start.x + (end.x - start.x) * t;
-}
-
-export function buildLot1aSiteSurfaces({
-  houseFootprint,
-  lotFootprint,
-  doorCenterOffset,
-  doorWidth,
-}: SiteAccessPathSpec): SiteSurfaceSpec[] {
-  const houseOuter = houseFootprint.outer;
-  const lotOuter = lotFootprint.outer;
-
-  const frontLeft = findPoint(houseOuter, (point) => point.x === -4.8 && point.z === 0, 'house front-left corner');
-  const frontRight = findPoint(houseOuter, (point) => point.x === 4.8 && point.z === 0, 'house front-right corner');
-  const lowerLeftIndentStart = findPoint(houseOuter, (point) => point.x === -4.8 && point.z === 4, 'lower left indentation');
-  const midLeftIndentStart = findPoint(houseOuter, (point) => point.x === -4.1 && point.z === 4, 'mid left path start');
-  const midLeftIndentEnd = findPoint(houseOuter, (point) => point.x === -4.1 && point.z === 8.45, 'mid left path end');
-  const lotFrontLeft = lotOuter[0];
-  const lotFrontRight = lotOuter[1];
-  const lotRearRight = lotOuter[2];
-  const frontBoundaryZ = lotFrontLeft.z;
-
-  const frontDoorCenterX = frontLeft.x + doorCenterOffset;
-  const doorPathMinX = frontDoorCenterX - doorWidth / 2;
-  const doorPathMaxX = frontDoorCenterX + doorWidth / 2;
-  const rightAreaFrontStartX = frontRight.x + HOUSE_CLEARANCE_X;
-  const rightAreaRearZ = frontRight.z - 0.001 + RIGHT_AREA_REAR_EXTENSION;
-  const rightAreaRearX = interpolateXAtZ(lotFrontRight, lotRearRight, rightAreaRearZ);
-
-  return [
+export const LOT_1A_SITE_LAYOUT: SiteLayout = {
+  surfaces: [
     {
       id: 'lot1a-right-cobblestone-field',
-      color: COBBLESTONE_COLOR,
+      type: 'cobblestone',
       polygon: [
-        { x: rightAreaFrontStartX, z: frontBoundaryZ },
-        { x: lotFrontRight.x, z: frontBoundaryZ },
-        { x: rightAreaRearX, z: rightAreaRearZ },
-        { x: rightAreaFrontStartX, z: rightAreaRearZ },
+        { x: 5.3, z: -2.8 },
+        { x: 6, z: -2.8 },
+        { x: 5.5, z: 5 },
+        { x: 5.3, z: 5 },
       ],
     },
     {
       id: 'lot1a-front-perimeter-path',
-      color: COBBLESTONE_COLOR,
+      type: 'cobblestone',
       polygon: [
-        { x: frontLeft.x, z: frontLeft.z - PATH_WIDTH },
-        { x: frontRight.x, z: frontRight.z - PATH_WIDTH },
-        { x: frontRight.x, z: frontRight.z },
-        { x: frontLeft.x, z: frontLeft.z },
+        { x: -4.8, z: -1 },
+        { x: 4.8, z: -1 },
+        { x: 4.8, z: 0 },
+        { x: -4.8, z: 0 },
       ],
     },
     {
       id: 'lot1a-left-lower-path',
-      color: COBBLESTONE_COLOR,
+      type: 'cobblestone',
       polygon: [
-        { x: frontLeft.x - PATH_WIDTH, z: frontLeft.z },
-        { x: frontLeft.x, z: frontLeft.z },
-        { x: lowerLeftIndentStart.x, z: lowerLeftIndentStart.z },
-        { x: lowerLeftIndentStart.x - PATH_WIDTH, z: lowerLeftIndentStart.z },
+        { x: -5.8, z: 0 },
+        { x: -4.8, z: 0 },
+        { x: -4.8, z: 4 },
+        { x: -5.8, z: 4 },
       ],
     },
     {
       id: 'lot1a-left-mid-path',
-      color: COBBLESTONE_COLOR,
+      type: 'cobblestone',
       polygon: [
-        { x: midLeftIndentStart.x - PATH_WIDTH, z: midLeftIndentStart.z },
-        { x: midLeftIndentStart.x, z: midLeftIndentStart.z },
-        { x: midLeftIndentEnd.x, z: midLeftIndentEnd.z },
-        { x: midLeftIndentEnd.x - PATH_WIDTH, z: midLeftIndentEnd.z },
+        { x: -5.1, z: 4 },
+        { x: -4.1, z: 4 },
+        { x: -4.1, z: 8.45 },
+        { x: -5.1, z: 8.45 },
       ],
     },
     {
       id: 'lot1a-front-door-path',
-      color: COBBLESTONE_COLOR,
+      type: 'cobblestone',
       polygon: [
-        { x: doorPathMinX, z: frontBoundaryZ },
-        { x: doorPathMaxX, z: frontBoundaryZ },
-        { x: doorPathMaxX, z: frontLeft.z },
-        { x: doorPathMinX, z: frontLeft.z },
+        { x: -0.2, z: -2.8 },
+        { x: 0.8, z: -2.8 },
+        { x: 0.8, z: 0 },
+        { x: -0.2, z: 0 },
       ],
     },
-  ];
+  ],
+};
+
+export function mapSiteLayoutToSurfaces(layout: SiteLayout): SiteSurfaceSpec[] {
+  return layout.surfaces.map((surface) => ({
+    id: surface.id,
+    color: SURFACE_TYPE_COLOR[surface.type],
+    polygon: surface.polygon,
+  }));
 }

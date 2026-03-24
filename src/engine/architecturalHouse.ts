@@ -2,7 +2,7 @@ import type { OpeningStyleSpec } from './architecturalTypes';
 import { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
-import { buildLot1aSiteSurfaces } from './site/lot1aSurfaces';
+import { LOT_1A_SITE_LAYOUT, mapSiteLayoutToSurfaces } from './site/lot1aSurfaces';
 
 type XZ = { x: number; z: number };
 const EPS = 1e-6;
@@ -150,12 +150,7 @@ const site: ArchitecturalHouse['site'] = {
   elevation: -0.001,
   color: '#6DAA2C',
   footprint: LOT_1A_FOOTPRINT,
-  surfaces: buildLot1aSiteSurfaces({
-    houseFootprint: groundLevel.footprint,
-    lotFootprint: LOT_1A_FOOTPRINT,
-    doorCenterOffset: DOOR,
-    doorWidth: 1,
-  }),
+  surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT),
 };
 
 const firstChain = [1.25, 0.9, 0.9, 0.9, 1.1, 0.9, 1.2, 0.7, 1.75];

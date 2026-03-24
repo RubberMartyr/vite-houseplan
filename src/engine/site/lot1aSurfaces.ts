@@ -22,7 +22,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
-        repeat: [6, 6],
+        repeat: [1, 1],
         roughness: 0.9,
         metalness: 0,
       },
@@ -49,7 +49,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
-        repeat: [6, 6],
+        repeat: [1, 1],
         roughness: 0.9,
       },
       polygon: [
@@ -66,7 +66,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
-        repeat: [6, 6],
+        repeat: [1, 1],
       },
       polygon: [
         { x: 2.6, z: -6.0 },
@@ -82,7 +82,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
-        repeat: [4, 4],
+        repeat:  [1, 1],
       },
       polygon: [
         // indentation fill
@@ -99,7 +99,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
-        repeat: [8, 2],
+        repeat:  [1, 1],
       },
       polygon: [
         // reordered for clean winding (no twisted edge)
@@ -116,7 +116,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
-        repeat: [2, 2],
+        repeat:  [1, 1],
       },
       polygon: [
         { x: 4.8, z: 15.0 },

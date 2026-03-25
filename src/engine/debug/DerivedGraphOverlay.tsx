@@ -17,6 +17,7 @@ export function DerivedGraphOverlay({ derived }: Props) {
     walls: prev.current.walls !== derived.revisions.walls,
     openings: prev.current.openings !== derived.revisions.openings,
     roofs: prev.current.roofs !== derived.revisions.roofs,
+    carports: prev.current.carports !== derived.revisions.carports,
   };
 
   prev.current = derived.revisions;
@@ -51,6 +52,7 @@ export function DerivedGraphOverlay({ derived }: Props) {
 
         <div>├──► openings (rev {derived.revisions.openings})</div>
         <div>└──► roofs (rev {derived.revisions.roofs})</div>
+        <div style={style(changed.carports)}>    └──► carports (rev {derived.revisions.carports})</div>
       </div>
     </Html>
   );

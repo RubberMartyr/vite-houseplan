@@ -9,6 +9,7 @@ import { RoofPlaneVisualizer } from './debug/RoofPlaneVisualizer';
 import { debugFlags } from './debug/debugFlags';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineExteriorAccesses } from './render/EngineExteriorAccesses';
+import { EngineCarports } from './render/EngineCarports';
 import { EngineOpenings } from './render/EngineOpenings';
 import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
@@ -155,6 +156,11 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         roofValidationEntries={[]}
         visible={showEnvelope}
         roofMaterialSpec={architecturalHouse.materials?.roof}
+      />
+      <EngineCarports
+        carports={derived.carports}
+        columnColor={architecturalHouse.materials?.windows?.frameColor}
+        visible={showEnvelope}
       />
       {debugFlags.enabled && (
         <>

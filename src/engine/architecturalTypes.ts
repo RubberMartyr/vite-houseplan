@@ -1,6 +1,8 @@
 export type {
+  AuxiliaryStructure,
   ArchitecturalHouse,
   ArchitecturalMaterials,
+  CarportSpec,
   ExteriorAccessSpec,
   Footprint,
   LevelSpec,

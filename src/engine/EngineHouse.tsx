@@ -157,7 +157,11 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         visible={showEnvelope}
         roofMaterialSpec={architecturalHouse.materials?.roof}
       />
-      <EngineCarports carports={derived.carports} visible={showEnvelope} />
+      <EngineCarports
+        carports={derived.carports}
+        columnColor={architecturalHouse.materials?.windows?.frameColor}
+        visible={showEnvelope}
+      />
       {debugFlags.enabled && (
         <>
           <EdgeVisualizer walls={derived.walls} />

@@ -155,6 +155,24 @@ function deriveCarportColumns(carport: CarportSpec): XZ[] {
   return dedupeColumns(rawColumns);
 }
 
+function buildCarportRoofPolygon(footprint: XZ[]): XZ[] {
+  const points = uniquePoints(footprint);
+  const xs = points.map((point) => point.x);
+  const zs = points.map((point) => point.z);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minZ = Math.min(...zs);
+  const maxZ = Math.max(...zs);
+  const frontBackOverhang = 0.5;
+
+  return [
+    { x: minX, z: minZ - frontBackOverhang },
+    { x: maxX, z: minZ - frontBackOverhang },
+    { x: maxX, z: maxZ + frontBackOverhang },
+    { x: minX, z: maxZ + frontBackOverhang },
+  ];
+}
+
 export function deriveAuxiliaryStructures(
   arch: ArchitecturalHouse,
   context: DeriveAuxiliaryStructuresContext
@@ -172,7 +190,7 @@ export function deriveAuxiliaryStructures(
 
     return {
       id: structure.id,
-      roofPolygon: uniquePoints(structure.footprint.outer),
+      roofPolygon: buildCarportRoofPolygon(structure.footprint.outer),
       elevation: carportElevation,
       thickness: structure.thickness,
       columns,

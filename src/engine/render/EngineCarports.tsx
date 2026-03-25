@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import * as THREE from 'three';
 import type { DerivedCarport } from '../derive/types/DerivedCarport';
 import { DebugWireframe } from '../debug/DebugWireframe';
@@ -6,6 +6,7 @@ import { archToWorldVec3 } from '../spaceMapping';
 
 type Props = {
   carports: DerivedCarport[];
+  columnColor?: string;
   visible?: boolean;
 };
 
@@ -50,14 +51,23 @@ function createColumnGeometry(column: DerivedCarport['columns'][number]): THREE.
   return geometry;
 }
 
-export function EngineCarports({ carports, visible = true }: Props) {
+export function EngineCarports({ carports, columnColor = '#383e42', visible = true }: Props) {
   const roofGeometries = useMemo(
     () =>
       carports.map((carport) => ({
         id: carport.id,
-        geometry: createRoofGeometry(carport),
-        material: new THREE.MeshStandardMaterial({
-          color: resolveColor(carport.material.roof, '#3a3a3a'),
+        topGeometry: createRoofGeometry(carport),
+        lowerGeometry: createRoofGeometry({
+          ...carport,
+          thickness: carport.thickness * 2,
+          elevation: carport.elevation - carport.thickness * 2,
+        }),
+        topMaterial: new THREE.MeshStandardMaterial({
+          color: resolveColor(carport.material.roof, '#0f0f0f'),
+          roughness: 1,
+        }),
+        lowerMaterial: new THREE.MeshStandardMaterial({
+          color: '#1f1f1f',
           roughness: 1,
         }),
       })),
@@ -71,12 +81,12 @@ export function EngineCarports({ carports, visible = true }: Props) {
           id: `${carport.id}-column-${index}`,
           geometry: createColumnGeometry(column),
           material: new THREE.MeshStandardMaterial({
-            color: resolveColor(carport.material.columns, '#c9a574'),
+            color: columnColor,
             roughness: 0.85,
           }),
         }))
       ),
-    [carports]
+    [carports, columnColor]
   );
 
   if (!visible) return null;
@@ -84,9 +94,14 @@ export function EngineCarports({ carports, visible = true }: Props) {
   return (
     <>
       {roofGeometries.map((entry) => (
-        <mesh key={entry.id} geometry={entry.geometry} material={entry.material} castShadow receiveShadow>
-          <DebugWireframe />
-        </mesh>
+        <Fragment key={entry.id}>
+          <mesh key={`${entry.id}-lower`} geometry={entry.lowerGeometry} material={entry.lowerMaterial} castShadow receiveShadow>
+            <DebugWireframe />
+          </mesh>
+          <mesh key={`${entry.id}-top`} geometry={entry.topGeometry} material={entry.topMaterial} castShadow receiveShadow>
+            <DebugWireframe />
+          </mesh>
+        </Fragment>
       ))}
       {columnGeometries.map((entry) => (
         <mesh key={entry.id} geometry={entry.geometry} material={entry.material} castShadow receiveShadow>

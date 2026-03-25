@@ -482,6 +482,7 @@ export const LOT_1A_CARPORT: ArchitecturalHouse['auxiliary'][number] = {
   material: {
     roof: 'flat_roof_dark',
     columns: 'wood_oak_light',
+    underside: '/textures/fence/wood.jpg',
   },
 };
 

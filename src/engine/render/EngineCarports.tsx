@@ -15,8 +15,22 @@ const MATERIAL_COLORS: Record<string, string> = {
   wood_oak_light: '#c9a574',
 };
 
-function resolveColor(materialKey: string, fallback: string): string {
-  return MATERIAL_COLORS[materialKey] ?? fallback;
+function createMaterialFromSpec(materialSpec: string, fallbackColor: string): THREE.MeshStandardMaterial {
+  if (materialSpec.startsWith('/')) {
+    const texture = new THREE.TextureLoader().load(materialSpec);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 2);
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      roughness: 0.9,
+    });
+  }
+
+  return new THREE.MeshStandardMaterial({
+    color: MATERIAL_COLORS[materialSpec] ?? fallbackColor,
+    roughness: 1,
+  });
 }
 
 function createRoofGeometry(carport: DerivedCarport): THREE.BufferGeometry {
@@ -62,14 +76,8 @@ export function EngineCarports({ carports, columnColor = '#383e42', visible = tr
           thickness: carport.thickness * 2,
           elevation: carport.elevation - carport.thickness * 2,
         }),
-        topMaterial: new THREE.MeshStandardMaterial({
-          color: resolveColor(carport.material.roof, '#0f0f0f'),
-          roughness: 1,
-        }),
-        lowerMaterial: new THREE.MeshStandardMaterial({
-          color: '#1f1f1f',
-          roughness: 1,
-        }),
+        topMaterial: createMaterialFromSpec(carport.material.roof, '#0f0f0f'),
+        lowerMaterial: createMaterialFromSpec(carport.material.underside, '#1f1f1f'),
       })),
     [carports]
   );

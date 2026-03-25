@@ -15,5 +15,6 @@ export interface DerivedCarport {
   material: {
     roof: string;
     columns: string;
+    underside: string;
   };
 }

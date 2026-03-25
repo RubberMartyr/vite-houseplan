@@ -200,6 +200,7 @@ export interface CarportSpec {
   material: {
     roof: string;
     columns: string;
+    underside: string;
   };
 }
 

@@ -142,28 +142,31 @@ export function deriveWallSegmentsFromLevels(
   // INTERIOR WALLS
   // =========================
 
+  console.log('INTERIOR WALLS INPUT:', arch.interiorWalls ?? []);
+
   if (arch.interiorWalls) {
     for (const wall of arch.interiorWalls) {
       const level = arch.levels.find((l) => l.id === wall.levelId);
       if (!level) continue;
 
-      const baseY = level.elevation;
       const visibleBaseY = level.elevation - level.slab.thickness;
       const height = wall.height ?? level.height;
+      const wallLength = Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z);
+      console.log('INTERIOR WALL LENGTH:', wallLength);
 
-      segments.push({
+      const segment: DerivedWallSegment = {
         id: wall.id,
         levelId: wall.levelId,
         kind: 'interior',
 
         start: {
           x: wall.start.x,
-          y: baseY,
+          y: visibleBaseY,
           z: wall.start.z,
         },
         end: {
           x: wall.end.x,
-          y: baseY,
+          y: visibleBaseY,
           z: wall.end.z,
         },
 
@@ -176,7 +179,10 @@ export function deriveWallSegmentsFromLevels(
         uOffset: 0,
         visibleBaseY,
         visibleHeight: height,
-      });
+      };
+
+      segments.push(segment);
+      console.log('DERIVED INTERIOR SEGMENT:', segment.id);
     }
   }
 

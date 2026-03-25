@@ -91,6 +91,7 @@ export function deriveWallSegmentsFromLevels(
 ): DerivedWallSegment[] {
   const segments: DerivedWallSegment[] = [];
   const roofWallCaps = buildRoofWallCaps(arch);
+  const levelById = new Map(arch.levels.map((level) => [level.id, level]));
 
   for (const level of arch.levels) {
     const outer = level.footprint.outer;
@@ -134,6 +135,37 @@ export function deriveWallSegmentsFromLevels(
 
       uOffset += segmentLength;
     }
+  }
+
+  for (const interiorWall of arch.interiorWalls ?? []) {
+    const level = levelById.get(interiorWall.levelId);
+    if (!level) continue;
+
+    const dx = interiorWall.end.x - interiorWall.start.x;
+    const dz = interiorWall.end.z - interiorWall.start.z;
+    const length = Math.hypot(dx, dz);
+    if (length <= 1e-9) continue;
+
+    segments.push({
+      id: interiorWall.id,
+      levelId: interiorWall.levelId,
+      start: {
+        x: interiorWall.start.x,
+        y: level.elevation,
+        z: interiorWall.start.z,
+      },
+      end: {
+        x: interiorWall.end.x,
+        y: level.elevation,
+        z: interiorWall.end.z,
+      },
+      height: interiorWall.height ?? level.height,
+      thickness: interiorWall.thickness ?? arch.wallThickness * 0.5,
+      outwardSign: 1,
+      uOffset: 0,
+      visibleBaseY: level.elevation - level.slab.thickness,
+      visibleHeight: interiorWall.height ?? level.height,
+    });
   }
 
   return segments;

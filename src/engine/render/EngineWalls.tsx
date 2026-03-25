@@ -49,6 +49,7 @@ export function EngineWalls({
   wallMaterialSpec,
   cacheKey = 'default',
 }: EngineWallsProps) {
+  console.log('ALL WALLS:', walls);
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
   const wallMaterials = useMemo(() => createWallMaterials(wallMaterialSpec), [wallMaterialSpec]);

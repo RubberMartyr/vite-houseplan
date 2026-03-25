@@ -460,10 +460,10 @@ export const LOT_1A_CARPORT: ArchitecturalHouse['auxiliary'][number] = {
   },
   footprint: {
     outer: [
-      { x: 4.8, z: -1.0 },
-      { x: 8.55, z: -1.0 },
-      { x: 8.55, z: 5.0 },
-      { x: 4.8, z: 5.0 },
+      { x: 4.8, z: 0.0 },
+      { x: 8.55, z: 0.0 },
+      { x: 8.55, z: 15.0 },
+      { x: 4.8, z: 15.0 },
     ],
   },
   heightOffsetFromRoof: -0.5,
@@ -473,8 +473,8 @@ export const LOT_1A_CARPORT: ArchitecturalHouse['auxiliary'][number] = {
     size: 0.15,
     insetFromEdge: 0.1,
     sides: {
-      front: true,
-      back: true,
+      front: false,
+      back: false,
       houseSide: false,
       outerSide: true,
     },

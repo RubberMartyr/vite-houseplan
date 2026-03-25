@@ -66,32 +66,37 @@ function classifyEdge(edge: { start: XZ; end: XZ }, minX: number, maxX: number, 
   return null;
 }
 
-function insetPoint(point: XZ, centroid: XZ, insetDistance: number): XZ {
-  const dx = centroid.x - point.x;
-  const dz = centroid.z - point.z;
-  const length = Math.hypot(dx, dz);
-  if (length < EPSILON) return point;
-
-  return {
-    x: point.x + (dx / length) * insetDistance,
-    z: point.z + (dz / length) * insetDistance,
-  };
-}
-
 function placeColumnsOnEdge(edge: PolygonEdge, spacing: number, insetDistance: number, centroid: XZ): XZ[] {
-  const length = Math.hypot(edge.end.x - edge.start.x, edge.end.z - edge.start.z);
+  const dx = edge.end.x - edge.start.x;
+  const dz = edge.end.z - edge.start.z;
+  const length = Math.hypot(dx, dz);
   if (length < EPSILON) {
-    return [insetPoint(edge.start, centroid, insetDistance)];
+    return [edge.start];
   }
+
+  const edgeMidpoint = {
+    x: (edge.start.x + edge.end.x) / 2,
+    z: (edge.start.z + edge.end.z) / 2,
+  };
+  const normalA = { x: -dz / length, z: dx / length };
+  const normalB = { x: -normalA.x, z: -normalA.z };
+  const toCentroid = { x: centroid.x - edgeMidpoint.x, z: centroid.z - edgeMidpoint.z };
+  const normal =
+    normalA.x * toCentroid.x + normalA.z * toCentroid.z >= 0
+      ? normalA
+      : normalB;
 
   const count = Math.max(1, Math.floor(length / spacing));
   const points: XZ[] = [];
 
   for (let i = 0; i <= count; i++) {
     const t = i / count;
-    const x = edge.start.x + (edge.end.x - edge.start.x) * t;
-    const z = edge.start.z + (edge.end.z - edge.start.z) * t;
-    points.push(insetPoint({ x, z }, centroid, insetDistance));
+    const x = edge.start.x + dx * t;
+    const z = edge.start.z + dz * t;
+    points.push({
+      x: x + normal.x * insetDistance,
+      z: z + normal.z * insetDistance,
+    });
   }
 
   return points;

@@ -24,10 +24,10 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       type: 'fence',
       height: 2.0,
       polygon: [
-        { x: -10.2, z: -0.2 },
-        { x: -4.7, z: -0.2 },
+        { x: -10.2, z: 0.5 },
+        { x: -4.7, z: 0.5 },
         { x: -4.7, z: -0.28 },
-        { x: -10.2, z: -0.28 },
+        { x: -9.4, z: -0.28 },
       ],
       fence: {
         baseWidth: 0.04,
@@ -150,8 +150,8 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       },
       polygon: [
         { x: 4.8, z: 15.0 },
-        { x: 8.6, z: 15.0 },
-        { x: 8.6, z: 16.1 },
+        { x: 7.5, z: 15.0 },
+        { x: 7.5, z: 16.1 },
         { x: 4.8, z: 16.1 },
       ],
     },

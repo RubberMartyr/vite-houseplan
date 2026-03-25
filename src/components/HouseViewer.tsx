@@ -88,6 +88,23 @@ export default function HouseViewer() {
     setHouse(architecturalHouse);
   }, [architecturalHouse]);
 
+  const houseWithInjectedInteriorWall = useMemo<ArchitecturalHouse>(() => {
+    const arch: ArchitecturalHouse = {
+      ...house,
+      interiorWalls: [
+        {
+          id: 'test-wall',
+          levelId: 'ground',
+          start: { x: 0, z: 0 },
+          end: { x: 5, z: 0 },
+          thickness: 0.1,
+        },
+      ],
+    };
+
+    return arch;
+  }, [house]);
+
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
 
   return (
@@ -116,7 +133,7 @@ export default function HouseViewer() {
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
         <group>
-          <EngineHouse architecturalHouse={house} showEnvelope={showEnvelope} />
+          <EngineHouse architecturalHouse={houseWithInjectedInteriorWall} showEnvelope={showEnvelope} />
           <DebugAxes />
           {debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
         </group>

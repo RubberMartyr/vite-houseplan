@@ -49,9 +49,21 @@ export function EngineWalls({
   wallMaterialSpec,
   cacheKey = 'default',
 }: EngineWallsProps) {
+  console.log('ALL WALLS:', walls);
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
   const wallMaterials = useMemo(() => createWallMaterials(wallMaterialSpec), [wallMaterialSpec]);
+  const interiorWallMaterials = useMemo(
+    () =>
+      wallMaterials.map((material) => {
+        const clone = material.clone();
+        if ('color' in clone && wallMaterialSpec?.interiorColor) {
+          clone.color.set(wallMaterialSpec.interiorColor);
+        }
+        return clone;
+      }),
+    [wallMaterialSpec?.interiorColor, wallMaterials]
+  );
   const separatorDebugMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -71,6 +83,10 @@ export function EngineWalls({
 
   useEffect(() => () => separatorDebugMaterial.dispose(), [separatorDebugMaterial]);
   useEffect(() => () => wallMaterials.forEach((material) => material.dispose()), [wallMaterials]);
+  useEffect(
+    () => () => interiorWallMaterials.forEach((material) => material.dispose()),
+    [interiorWallMaterials]
+  );
 
   const builtWalls = useMemo(() => {
     if (!visible) {
@@ -80,7 +96,12 @@ export function EngineWalls({
     const revision = `${cacheKey}:${wallRevision}:${openingsRevision}`;
 
     return getGeometry(revision, () => {
-      const { walls: visibleWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(walls, openings);
+      console.log('WALLS BEFORE MERGE:', walls.length);
+      const exteriorWalls = walls.filter((wall) => wall.kind !== 'interior');
+      const interiorWalls = walls.filter((wall) => wall.kind === 'interior');
+      const { walls: mergedExteriorWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(exteriorWalls, openings);
+      const visibleWalls = [...mergedExteriorWalls, ...interiorWalls];
+      console.log('WALLS AFTER MERGE:', visibleWalls.length);
       const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
 
       if (debugEnabled) {
@@ -186,18 +207,21 @@ export function EngineWalls({
 
   return (
     <>
-      {normalBuiltWalls.map(({ id, geometry }) => (
-        <mesh
-          key={id}
-          geometry={geometry}
-          material={wallMaterials}
-          castShadow
-          receiveShadow
-          userData={{ debugType: 'structure' }}
-        >
-          <DebugWireframe />
-        </mesh>
-      ))}
+      {normalBuiltWalls.map(({ id, geometry }) => {
+        const wall = walls.find((candidate) => id.startsWith(candidate.id));
+        return (
+          <mesh
+            key={id}
+            geometry={geometry}
+            material={wall?.kind === 'interior' ? interiorWallMaterials : wallMaterials}
+            castShadow
+            receiveShadow
+            userData={{ debugType: 'structure' }}
+          >
+            <DebugWireframe />
+          </mesh>
+        );
+      })}
       {debugEnabled &&
         separatorBuiltWalls.map(({ id, geometry }) => (
         <mesh

@@ -31,7 +31,11 @@ const FOUNDATION_WALL_MATERIAL = {
 
 export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) {
   const derived: DerivedHouse = useMemo(
-    () => deriveHouse(architecturalHouse),
+    () => {
+      const arch = architecturalHouse;
+      console.log('ARCH PASSED INTO ENGINE:', arch);
+      return deriveHouse(arch);
+    },
     [architecturalHouse]
   );
   const siteElevation = architecturalHouse.site?.elevation ?? 0;

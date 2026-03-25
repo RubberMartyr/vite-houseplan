@@ -28,6 +28,7 @@ export function EngineDebugHUD({ derived }: Props) {
         <div>slabs: {derived.slabs.length}</div>
         <div>walls: {derived.walls.length}</div>
         <div>roofs: {derived.roofs.length}</div>
+        <div>carports: {derived.carports.length}</div>
         <div>openings: {derived.openings.length}</div>
       </div>
     </Html>

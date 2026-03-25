@@ -9,7 +9,8 @@ const LOT_1A_LOCAL_OUTER: Vec2[] = [
   { x: 0.0,   z: 0.0 },    // front-left
   { x: 19.61, z: 0.0 },    // front-right
 
-  { x: 17.10, z: 50.0 },   // back-right  (flatter side)
+  // Keep right parcel edge parallel to the house's long right facade run.
+  { x: 19.61, z: 50.0 },   // back-right
   { x: 6.25,  z: 50.0 },   // back-left   (more tapered side)
 ];
 

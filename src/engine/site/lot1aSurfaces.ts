@@ -101,7 +101,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       polygon: [
         { x: 2.6, z: -6.0 },
         { x: 8.6, z: -6.0 },
-        { x: 7.9, z: 8.2 },
+        { x: 8.6, z: 8.2 },
         { x: 2.6, z: 8.2 },
       ],
     },
@@ -134,8 +134,8 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       polygon: [
         // reordered for clean winding (no twisted edge)
         { x: 6.6, z: -0.5 },
-        { x: 8.2, z: 0.5 },
-        { x: 7.5, z: 16.1 },
+        { x: 8.6, z: 0.5 },
+        { x: 8.6, z: 16.1 },
         { x: 6.6, z: 16.1 },
       ],
     },
@@ -150,8 +150,8 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
       },
       polygon: [
         { x: 4.8, z: 15.0 },
-        { x: 7.5, z: 15.0 },
-        { x: 7.5, z: 16.1 },
+        { x: 8.6, z: 15.0 },
+        { x: 8.6, z: 16.1 },
         { x: 4.8, z: 16.1 },
       ],
     },

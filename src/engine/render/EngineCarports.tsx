@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import type { DerivedCarport } from '../derive/types/DerivedCarport';
 import { DebugWireframe } from '../debug/DebugWireframe';
+import { archToWorldVec3 } from '../spaceMapping';
 
 type Props = {
   carports: DerivedCarport[];
@@ -43,7 +44,8 @@ function createRoofGeometry(carport: DerivedCarport): THREE.BufferGeometry {
 
 function createColumnGeometry(column: DerivedCarport['columns'][number]): THREE.BufferGeometry {
   const geometry = new THREE.BoxGeometry(column.size, column.height, column.size);
-  geometry.translate(column.position.x, column.height / 2, column.position.z);
+  const worldCenter = archToWorldVec3(column.position.x, column.height / 2, column.position.z);
+  geometry.translate(worldCenter.x, worldCenter.y, worldCenter.z);
   geometry.computeVertexNormals();
   return geometry;
 }

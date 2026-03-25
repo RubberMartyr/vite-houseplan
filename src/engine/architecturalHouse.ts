@@ -452,6 +452,40 @@ console.log("FRONT EDGE DIRECTION", {
   direction: { x: b.x - a.x, z: b.z - a.z },
 });
 
+export const LOT_1A_CARPORT: ArchitecturalHouse['auxiliary'][number] = {
+  id: 'carport-main',
+  type: 'flat',
+  attachedTo: {
+    side: 'right',
+  },
+  footprint: {
+    outer: [
+      { x: 4.8, z: 0.0 },
+      { x: 8.55, z: 0.0 },
+      { x: 8.55, z: 15.0 },
+      { x: 4.8, z: 15.0 },
+    ],
+  },
+  heightOffsetFromRoof: -0.5,
+  thickness: 0.2,
+  columns: {
+    spacing: 3.0,
+    size: 0.15,
+    insetFromEdge: 0.1,
+    sides: {
+      front: false,
+      back: false,
+      houseSide: false,
+      outerSide: true,
+    },
+  },
+  material: {
+    roof: 'flat_roof_dark',
+    columns: 'wood_oak_light',
+    underside: '/textures/fence/wood.jpg',
+  },
+};
+
 export const architecturalHouse: ArchitecturalHouse = {
   wallThickness: WALL_THICKNESS, // match current
 
@@ -575,6 +609,8 @@ export const architecturalHouse: ArchitecturalHouse = {
       ],
     },
   ],
+
+  auxiliary: [LOT_1A_CARPORT],
 
   openings: [
     {

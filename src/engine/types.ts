@@ -175,6 +175,36 @@ export type RoofSpec =
     }
   | MultiPlaneRoofSpec;
 
+export interface CarportSpec {
+  id: string;
+  type: 'flat';
+  attachedTo: {
+    side: 'left' | 'right' | 'front' | 'back';
+  };
+  footprint: {
+    outer: XZ[];
+  };
+  heightOffsetFromRoof: number;
+  thickness: number;
+  columns: {
+    spacing: number;
+    size: number;
+    insetFromEdge: number;
+    sides: {
+      front: boolean;
+      back: boolean;
+      houseSide: boolean;
+      outerSide: boolean;
+    };
+  };
+  material: {
+    roof: string;
+    columns: string;
+  };
+}
+
+export type AuxiliaryStructure = CarportSpec;
+
 export type OpeningKind = 'window' | 'door';
 
 export interface OpeningStyleSpec {
@@ -268,6 +298,7 @@ export interface ArchitecturalHouse {
   levels: LevelSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
+  auxiliary?: AuxiliaryStructure[];
   exteriorAccesses?: ExteriorAccessSpec[];
   site?: SiteSpec;
   materials?: ArchitecturalMaterials;

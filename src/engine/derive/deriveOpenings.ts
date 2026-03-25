@@ -114,13 +114,27 @@ export function deriveOpenings(
     if (levelIndex == null) continue;
 
     const level = house.levels[levelIndex];
-    const outer = level.footprint.outer;
-    const edgeIndex = opening.edge.edgeIndex;
+    const edgeIndex = opening.edge.ring === 'outer' ? opening.edge.edgeIndex : -1;
+    let a: Vec2 | undefined;
+    let b: Vec2 | undefined;
+    let wallId: string | undefined;
+    let outward: Vec2XZ | undefined;
 
-    if (!outer.length) continue;
+    if (opening.edge.ring === 'outer') {
+      const outer = level.footprint.outer;
+      if (!outer.length) continue;
 
-    const a = outer[edgeIndex];
-    const b = outer[(edgeIndex + 1) % outer.length];
+      a = outer[opening.edge.edgeIndex];
+      b = outer[(opening.edge.edgeIndex + 1) % outer.length];
+    } else {
+      const wall = wallById.get(opening.edge.wallId);
+      if (!wall) continue;
+      a = { x: wall.start.x, z: wall.start.z };
+      b = { x: wall.end.x, z: wall.end.z };
+      wallId = wall.id;
+    }
+
+    if (!a || !b) continue;
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const edgeLength = Math.hypot(dx, dz);
@@ -147,10 +161,15 @@ export function deriveOpenings(
       z: a.z + tz * edgeMidU,
     };
 
-    const n1 = { x: -tz, z: tx };
-    const n2 = { x: tz, z: -tx };
-    const outward = pickOutwardNormalXZ(outer, edgeMid, n1, n2);
-    const wallId = `wall-${opening.levelId}-${edgeIndex}`;
+    if (!outward) {
+      const n1 = { x: -tz, z: tx };
+      const n2 = { x: tz, z: -tx };
+      outward =
+        opening.edge.ring === 'outer'
+          ? pickOutwardNormalXZ(level.footprint.outer, edgeMid, n1, n2)
+          : n1;
+    }
+    wallId ??= `wall-${opening.levelId}-${edgeIndex}`;
 
     const style = normalizeOpeningStyle(opening.style);
     const ownerWall = wallById.get(wallId);

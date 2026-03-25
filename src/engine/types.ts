@@ -68,6 +68,15 @@ export interface LevelSpec {
   slab: SlabSpec;
 }
 
+export interface InteriorWallSpec {
+  id: string;
+  levelId: string;
+  start: Vec2;
+  end: Vec2;
+  height?: number;
+  thickness?: number;
+}
+
 export type RidgeSegmentSpec = {
   id: string;
   start: { x: number; z: number };
@@ -239,12 +248,19 @@ export interface OpeningStyleSpec {
   separatorPanelHeight?: number;
 }
 
-export interface OpeningEdgeRef {
-  levelId: string;
-  ring: 'outer';
-  edgeIndex: number;
-  fromEnd?: boolean;
-}
+export type OpeningEdgeRef =
+  | {
+      levelId: string;
+      ring: 'outer';
+      edgeIndex: number;
+      fromEnd?: boolean;
+    }
+  | {
+      levelId: string;
+      ring: 'interior';
+      wallId: string;
+      fromEnd?: boolean;
+    };
 
 export interface OpeningSpec {
   id: string;
@@ -297,6 +313,7 @@ export type ArchitecturalMaterials = {
 export interface ArchitecturalHouse {
   wallThickness: number;
   levels: LevelSpec[];
+  interiorWalls?: InteriorWallSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
   auxiliary?: AuxiliaryStructure[];

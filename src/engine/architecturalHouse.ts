@@ -494,9 +494,10 @@ export const architecturalHouse: ArchitecturalHouse = {
 
   materials: {
     walls: {
-      texture: '/textures/brick1.jpg',
-      scale: 1,
-      interiorColor: '#f6f1e7',
+      color: '#ffffff',
+      exteriorColor: '#ffffff',
+      interiorColor: '#ffffff',
+      edgeColor: '#ffffff',
     },
     windows: {
       frameColor: '#383e42',
@@ -507,6 +508,17 @@ export const architecturalHouse: ArchitecturalHouse = {
       color: '#333333',
     },
   },
+
+  interiorWalls: [
+    {
+      id: 'wall-ground-hall-partition-east',
+      levelId: 'ground',
+      start: { x: 1.5, z: 0.95 },
+      end: { x: 1.5, z: 3.05 },
+      thickness: 0.12,
+      height: 2.8,
+    },
+  ],
 
   roofs: [
     {
@@ -759,6 +771,17 @@ export const architecturalHouse: ArchitecturalHouse = {
       sillHeight: 0,
       height: RIGHT_FACADE_DOOR_HEIGHT,
       style: { variant: 'doorDetailed', hasSill: false, hasLintel: true, surroundRing: true },
+    },
+    {
+      id: 'GROUND_HALL_INNER_DOOR',
+      kind: 'door',
+      levelId: 'ground',
+      edge: { levelId: 'ground', ring: 'interior', wallId: 'wall-ground-hall-partition-east' },
+      offset: 0.2,
+      width: 0.9,
+      sillHeight: 0,
+      height: 2.15,
+      style: { variant: 'doorDetailed', hasSill: false, hasLintel: true, surroundRing: false },
     },
     {
       id: 'RIGHT_B_BASEMENT_DOOR',

@@ -5,7 +5,6 @@ export type {
   CarportSpec,
   ExteriorAccessSpec,
   Footprint,
-  InteriorWallSpec,
   LevelSpec,
   OpeningEdgeRef,
   OpeningKind,

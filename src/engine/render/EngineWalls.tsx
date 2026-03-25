@@ -53,6 +53,17 @@ export function EngineWalls({
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
   const wallMaterials = useMemo(() => createWallMaterials(wallMaterialSpec), [wallMaterialSpec]);
+  const interiorWallMaterials = useMemo(
+    () =>
+      wallMaterials.map((material) => {
+        const clone = material.clone();
+        if ('color' in clone && wallMaterialSpec?.interiorColor) {
+          clone.color.set(wallMaterialSpec.interiorColor);
+        }
+        return clone;
+      }),
+    [wallMaterialSpec?.interiorColor, wallMaterials]
+  );
   const separatorDebugMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -72,6 +83,10 @@ export function EngineWalls({
 
   useEffect(() => () => separatorDebugMaterial.dispose(), [separatorDebugMaterial]);
   useEffect(() => () => wallMaterials.forEach((material) => material.dispose()), [wallMaterials]);
+  useEffect(
+    () => () => interiorWallMaterials.forEach((material) => material.dispose()),
+    [interiorWallMaterials]
+  );
 
   const builtWalls = useMemo(() => {
     if (!visible) {
@@ -192,18 +207,21 @@ export function EngineWalls({
 
   return (
     <>
-      {normalBuiltWalls.map(({ id, geometry }) => (
-        <mesh
-          key={id}
-          geometry={geometry}
-          material={wallMaterials}
-          castShadow
-          receiveShadow
-          userData={{ debugType: 'structure' }}
-        >
-          <DebugWireframe />
-        </mesh>
-      ))}
+      {normalBuiltWalls.map(({ id, geometry }) => {
+        const wall = walls.find((candidate) => id.startsWith(candidate.id));
+        return (
+          <mesh
+            key={id}
+            geometry={geometry}
+            material={wall?.kind === 'interior' ? interiorWallMaterials : wallMaterials}
+            castShadow
+            receiveShadow
+            userData={{ debugType: 'structure' }}
+          >
+            <DebugWireframe />
+          </mesh>
+        );
+      })}
       {debugEnabled &&
         separatorBuiltWalls.map(({ id, geometry }) => (
         <mesh

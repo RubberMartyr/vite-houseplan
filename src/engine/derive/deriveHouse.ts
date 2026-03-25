@@ -39,7 +39,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
   // Stage 3
   const roofs = deriveRoofs(arch, { slabs, walls, openings });
   const roofsRev = revisionCounter++;
-  const carports = deriveAuxiliaryStructures(arch, { slabs, roofs });
+  const carports = deriveAuxiliaryStructures(arch, { roofs });
   const carportsRev = revisionCounter++;
 
   const { parts: exteriorAccesses, cutouts: exteriorAccessCutouts } = deriveExteriorAccesses(arch, { walls });

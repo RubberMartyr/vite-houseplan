@@ -1,10 +1,8 @@
 import type { ArchitecturalHouse, CarportSpec, XZ } from '../architecturalTypes';
 import type { DerivedRoof } from './types/DerivedRoof';
-import type { DerivedSlab } from './deriveSlabs';
 import type { DerivedCarport } from './types/DerivedCarport';
 
 type DeriveAuxiliaryStructuresContext = {
-  slabs: DerivedSlab[];
   roofs: DerivedRoof[];
 };
 
@@ -157,7 +155,7 @@ export function deriveAuxiliaryStructures(
   context: DeriveAuxiliaryStructuresContext
 ): DerivedCarport[] {
   const { auxiliary = [] } = arch;
-  const groundElevation = Math.min(...context.slabs.map((slab) => slab.elevationTop));
+  const groundElevation = arch.site?.elevation ?? 0;
 
   return auxiliary.map((structure) => {
     const carportElevation = deriveCarportElevation(structure, context.roofs);

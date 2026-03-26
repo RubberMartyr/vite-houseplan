@@ -90,16 +90,7 @@ export default function HouseViewer() {
 
   const houseWithInjectedInteriorWall = useMemo<ArchitecturalHouse>(() => {
     const arch: ArchitecturalHouse = {
-      ...house,
-      interiorWalls: [
-        {
-          id: 'test-wall',
-          levelId: 'ground',
-          start: { x: 0, z: 0 },
-          end: { x: 5, z: 0 },
-          thickness: 0.1,
-        },
-      ],
+      ...house
     };
 
     return arch;

@@ -80,7 +80,10 @@ export function EngineWalls({
     const revision = `${cacheKey}:${wallRevision}:${openingsRevision}`;
 
     return getGeometry(revision, () => {
-      const { walls: visibleWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(walls, openings);
+      const exteriorWalls = walls.filter((wall) => wall.kind !== 'interior');
+      const interiorWalls = walls.filter((wall) => wall.kind === 'interior');
+      const { walls: mergedExteriorWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(exteriorWalls, openings);
+      const visibleWalls = [...mergedExteriorWalls, ...interiorWalls];
       const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
 
       if (debugEnabled) {

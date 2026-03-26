@@ -10,6 +10,8 @@ export type {
   OpeningKind,
   OpeningSpec,
   OpeningStyleSpec,
+  RoomEdgeSpec,
+  RoomSpec,
   RoofSpec,
   SiteSpec,
   SiteSurfaceSpec,

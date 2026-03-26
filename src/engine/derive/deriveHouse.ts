@@ -1,5 +1,6 @@
 import type { ArchitecturalHouse, LevelSpec } from '../architecturalTypes';
 import { validateStructure } from '../validation/validateStructure';
+import { validateRooms } from '../validation/validateRooms';
 import { deriveExteriorAccesses } from './deriveExteriorAccesses';
 import { deriveOpenings } from './deriveOpenings';
 import { deriveRoofs } from './deriveRoofs';
@@ -24,6 +25,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
     },
     { mode: 'throw' }
   );
+  validateRooms(arch);
 
   // Stage 1
   const slabs = deriveSlabs(arch);

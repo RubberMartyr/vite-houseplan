@@ -283,6 +283,20 @@ export interface InteriorWallSpec {
   height?: number;
 }
 
+export interface RoomEdgeSpec {
+  type: 'wall' | 'open';
+}
+
+export interface RoomSpec {
+  id: string;
+  levelId: string;
+  polygon: Vec2[];
+  /**
+   * Must contain one entry per polygon edge in the same order.
+   */
+  edges: RoomEdgeSpec[];
+}
+
 export type ArchitecturalMaterials = {
   walls?: {
     texture?: string;
@@ -308,6 +322,7 @@ export interface ArchitecturalHouse {
   levels: LevelSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
+  rooms?: RoomSpec[];
   interiorWalls?: InteriorWallSpec[];
   auxiliary?: AuxiliaryStructure[];
   exteriorAccesses?: ExteriorAccessSpec[];

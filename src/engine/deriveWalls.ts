@@ -144,11 +144,14 @@ export function deriveWallSegmentsFromLevels(
 
   if (arch.interiorWalls) {
     for (const wall of arch.interiorWalls) {
-      const level = arch.levels.find((l) => l.id === wall.levelId);
+      const levelIndex = arch.levels.findIndex((l) => l.id === wall.levelId);
+      const level = arch.levels[levelIndex];
+      const nextLevel = arch.levels[levelIndex + 1];
       if (!level) continue;
 
       const visibleBaseY = level.elevation - level.slab.thickness;
-      const height = wall.height ?? level.height;
+      const topY = nextLevel ? nextLevel.elevation : level.elevation + level.height;
+      const visibleHeight = topY - visibleBaseY;
 
       const segment: DerivedWallSegment = {
         id: wall.id,
@@ -166,7 +169,7 @@ export function deriveWallSegmentsFromLevels(
           z: wall.end.z,
         },
 
-        height,
+        height: visibleHeight,
         thickness: wall.thickness,
 
         // interior walls don't have footprint orientation
@@ -174,7 +177,7 @@ export function deriveWallSegmentsFromLevels(
 
         uOffset: 0,
         visibleBaseY,
-        visibleHeight: height,
+        visibleHeight,
       };
 
       segments.push(segment);

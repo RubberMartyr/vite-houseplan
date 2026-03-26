@@ -70,6 +70,7 @@ export function buildWallPrismGeometry(
   brickScale = 0.6,
   footprintOuter?: Vec2[]
 ): THREE.BufferGeometry {
+  console.log('WALL KIND:', wall.kind);
   const direction = resolveWallExtrusionDirection(wall, footprintOuter);
 
   if (!direction) {

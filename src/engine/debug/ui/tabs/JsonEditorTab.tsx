@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ArchitecturalHouse, LevelSpec, RoofSpec } from '../../../architecturalTypes';
 import { deriveHouse } from '../../../derive/deriveHouse';
 import { validateOpenings } from '../../../validation/validateOpenings';
+import { validateRooms } from '../../../validation/validateRooms';
 import { validateStructure } from '../../../validation/validateStructure';
 import { validateMultiPlaneRoof } from '../../../validation/validateMultiPlaneRoof';
 
@@ -59,6 +60,7 @@ function validateArchitecturalHouse(jsonText: string): ValidationResult {
       });
     }
 
+    validateRooms(candidate);
     validateOpenings(candidate);
 
     for (const roof of candidate.roofs ?? []) {

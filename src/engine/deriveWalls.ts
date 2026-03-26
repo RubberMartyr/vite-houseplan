@@ -150,7 +150,9 @@ export function deriveWallSegmentsFromLevels(
       if (!level) continue;
 
       const visibleBaseY = level.elevation - level.slab.thickness;
-      const topY = nextLevel ? nextLevel.elevation : level.elevation + level.height;
+      const topY = nextLevel
+        ? nextLevel.elevation - nextLevel.slab.thickness
+        : level.elevation + level.height;
       const visibleHeight = topY - visibleBaseY;
 
       const segment: DerivedWallSegment = {

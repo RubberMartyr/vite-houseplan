@@ -1,6 +1,8 @@
 import { ArchitecturalHouse, RoofSpec } from "./architecturalTypes";
 import { Vec3 } from "./types";
 
+const USE_ROOM_DERIVED_INTERIOR_WALLS = false;
+
 function signedAreaXZ(pts: { x: number; z: number }[]): number {
   let a = 0;
 
@@ -142,49 +144,133 @@ export function deriveWallSegmentsFromLevels(
   // INTERIOR WALLS
   // =========================
 
-  if (arch.interiorWalls) {
-    for (const wall of arch.interiorWalls) {
-      const levelIndex = arch.levels.findIndex((l) => l.id === wall.levelId);
-      const level = arch.levels[levelIndex];
-      const nextLevel = arch.levels[levelIndex + 1];
-      if (!level) continue;
+  const manualInteriorWalls = arch.interiorWalls ?? [];
+  const derivedRoomInteriorWalls = USE_ROOM_DERIVED_INTERIOR_WALLS
+    ? deriveInteriorWallsFromRooms(arch)
+    : [];
 
-      const visibleBaseY = level.elevation - level.slab.thickness;
-      const topY = nextLevel
-        ? nextLevel.elevation - nextLevel.slab.thickness
-        : level.elevation + level.height;
-      const visibleHeight = topY - visibleBaseY;
+  // Temporary migration mode:
+  // - false => existing manual interior wall behavior only (no change).
+  // - true => include room-derived interior wall candidates in addition to manual walls.
+  const interiorWallsToUse = USE_ROOM_DERIVED_INTERIOR_WALLS
+    ? [...manualInteriorWalls, ...derivedRoomInteriorWalls]
+    : manualInteriorWalls;
 
-      const segment: DerivedWallSegment = {
-        id: wall.id,
-        levelId: wall.levelId,
-        kind: 'interior',
+  for (const wall of interiorWallsToUse) {
+    const levelIndex = arch.levels.findIndex((l) => l.id === wall.levelId);
+    const level = arch.levels[levelIndex];
+    const nextLevel = arch.levels[levelIndex + 1];
+    if (!level) continue;
 
-        start: {
-          x: wall.start.x,
-          y: visibleBaseY,
-          z: wall.start.z,
-        },
-        end: {
-          x: wall.end.x,
-          y: visibleBaseY,
-          z: wall.end.z,
-        },
+    const visibleBaseY = level.elevation - level.slab.thickness;
+    const topY = nextLevel
+      ? nextLevel.elevation - nextLevel.slab.thickness
+      : level.elevation + level.height;
+    const visibleHeight = topY - visibleBaseY;
 
-        height: visibleHeight,
-        thickness: wall.thickness,
+    const segment: DerivedWallSegment = {
+      id: wall.id,
+      levelId: wall.levelId,
+      kind: 'interior',
 
-        // interior walls don't have footprint orientation
-        outwardSign: 1,
+      start: {
+        x: wall.start.x,
+        y: visibleBaseY,
+        z: wall.start.z,
+      },
+      end: {
+        x: wall.end.x,
+        y: visibleBaseY,
+        z: wall.end.z,
+      },
 
-        uOffset: 0,
-        visibleBaseY,
-        visibleHeight,
-      };
+      height: visibleHeight,
+      thickness: wall.thickness,
 
-      segments.push(segment);
-    }
+      // interior walls don't have footprint orientation
+      outwardSign: 1,
+
+      uOffset: 0,
+      visibleBaseY,
+      visibleHeight,
+    };
+
+    segments.push(segment);
   }
 
   return segments;
+}
+
+type InteriorWallLike = {
+  id: string;
+  levelId: string;
+  start: { x: number; z: number };
+  end: { x: number; z: number };
+  thickness: number;
+};
+
+function canonicalUndirectedEdgeKey(
+  a: { x: number; z: number },
+  b: { x: number; z: number }
+): string {
+  const aKey = `${a.x},${a.z}`;
+  const bKey = `${b.x},${b.z}`;
+  return aKey <= bKey ? `${aKey}|${bKey}` : `${bKey}|${aKey}`;
+}
+
+function deriveInteriorWallsFromRooms(arch: ArchitecturalHouse): InteriorWallLike[] {
+  if (!arch.rooms || arch.rooms.length === 0) {
+    return [];
+  }
+
+  const levelById = new Map(arch.levels.map((level) => [level.id, level]));
+  const exteriorEdgeKeysByLevelId = new Map<string, Set<string>>();
+
+  for (const level of arch.levels) {
+    const keys = new Set<string>();
+    const outer = level.footprint.outer;
+    for (let i = 0; i < outer.length; i += 1) {
+      const a = outer[i];
+      const b = outer[(i + 1) % outer.length];
+      keys.add(canonicalUndirectedEdgeKey(a, b));
+    }
+    exteriorEdgeKeysByLevelId.set(level.id, keys);
+  }
+
+  const deduped = new Map<string, InteriorWallLike>();
+
+  for (const room of arch.rooms) {
+    const level = levelById.get(room.levelId);
+    if (!level) continue;
+
+    const levelExteriorEdgeKeys = exteriorEdgeKeysByLevelId.get(room.levelId);
+    if (!levelExteriorEdgeKeys) continue;
+
+    for (let i = 0; i < room.polygon.length; i += 1) {
+      if (room.edges[i]?.type !== 'wall') {
+        continue;
+      }
+
+      const start = room.polygon[i];
+      const end = room.polygon[(i + 1) % room.polygon.length];
+      const key = canonicalUndirectedEdgeKey(start, end);
+
+      // Preserve exterior shell derivation from level footprints only.
+      if (levelExteriorEdgeKeys.has(key)) {
+        continue;
+      }
+
+      if (!deduped.has(key)) {
+        deduped.set(key, {
+          id: `room-wall-${room.levelId}-${deduped.size}`,
+          levelId: room.levelId,
+          start: { x: start.x, z: start.z },
+          end: { x: end.x, z: end.z },
+          thickness: arch.wallThickness,
+        });
+      }
+    }
+  }
+
+  return [...deduped.values()];
 }

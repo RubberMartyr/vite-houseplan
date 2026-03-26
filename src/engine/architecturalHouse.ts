@@ -491,6 +491,15 @@ export const architecturalHouse: ArchitecturalHouse = {
 
   levels,
   site,
+  interiorWalls: [
+    {
+      id: 'wall-ground-hall-partition-east',
+      levelId: 'ground',
+      start: { x: 1.5, z: 3.2 },
+      end: { x: 1.5, z: 8.4 },
+      thickness: 0.12,
+    },
+  ],
 
   materials: {
     walls: {

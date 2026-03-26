@@ -289,6 +289,7 @@ export interface RoomEdgeSpec {
 
 export interface RoomSpec {
   id: string;
+  name: string;
   levelId: string;
   polygon: Vec2[];
   /**

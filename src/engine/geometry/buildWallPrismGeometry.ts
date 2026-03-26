@@ -169,7 +169,9 @@ export function buildWallPrismGeometry(
           : 0
         : faceIndex === 1
           ? 1
-          : 2;
+          : isInterior
+            ? 1
+            : 2;
     geometry.addGroup(startIndex, count, materialIndex);
   });
 

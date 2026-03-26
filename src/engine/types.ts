@@ -274,6 +274,15 @@ export interface ExteriorAccessSpec {
   guardWallHeight?: number;
 }
 
+export interface InteriorWallSpec {
+  id: string;
+  levelId: string;
+  start: { x: number; z: number };
+  end: { x: number; z: number };
+  thickness: number;
+  height?: number;
+}
+
 export type ArchitecturalMaterials = {
   walls?: {
     texture?: string;
@@ -299,6 +308,7 @@ export interface ArchitecturalHouse {
   levels: LevelSpec[];
   roofs?: RoofSpec[];
   openings?: OpeningSpec[];
+  interiorWalls?: InteriorWallSpec[];
   auxiliary?: AuxiliaryStructure[];
   exteriorAccesses?: ExteriorAccessSpec[];
   site?: SiteSpec;

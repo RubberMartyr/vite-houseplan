@@ -16,6 +16,7 @@ function signedAreaXZ(pts: { x: number; z: number }[]): number {
 export type DerivedWallSegment = {
   id: string;
   levelId: string;
+  kind?: 'interior' | 'exterior';
   start: Vec3;
   end: Vec3;
   height: number;
@@ -114,6 +115,7 @@ export function deriveWallSegmentsFromLevels(
       segments.push({
         id: `wall-${level.id}-${i}`,
         levelId: level.id,
+        kind: 'exterior',
         start: {
           x: current.x,
           y: level.elevation,
@@ -133,6 +135,49 @@ export function deriveWallSegmentsFromLevels(
       });
 
       uOffset += segmentLength;
+    }
+  }
+
+  // =========================
+  // INTERIOR WALLS
+  // =========================
+
+  if (arch.interiorWalls) {
+    for (const wall of arch.interiorWalls) {
+      const level = arch.levels.find((l) => l.id === wall.levelId);
+      if (!level) continue;
+
+      const visibleBaseY = level.elevation - level.slab.thickness;
+      const height = wall.height ?? level.height;
+
+      const segment: DerivedWallSegment = {
+        id: wall.id,
+        levelId: wall.levelId,
+        kind: 'interior',
+
+        start: {
+          x: wall.start.x,
+          y: visibleBaseY,
+          z: wall.start.z,
+        },
+        end: {
+          x: wall.end.x,
+          y: visibleBaseY,
+          z: wall.end.z,
+        },
+
+        height,
+        thickness: wall.thickness,
+
+        // interior walls don't have footprint orientation
+        outwardSign: 1,
+
+        uOffset: 0,
+        visibleBaseY,
+        visibleHeight: height,
+      };
+
+      segments.push(segment);
     }
   }
 

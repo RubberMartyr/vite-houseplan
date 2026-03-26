@@ -153,6 +153,7 @@ export function buildWallPrismGeometry(
   ] as const;
 
   const geometry = new THREE.BufferGeometry();
+  const isInterior = wall.kind === 'interior';
 
   faceDefinitions.forEach((face, faceIndex) => {
     const startIndex = indices.length;
@@ -160,7 +161,16 @@ export function buildWallPrismGeometry(
       ...appendFace(positions, uvs, face.corners, face.normalHint, face.uSize, face.vSize)
     );
     const count = indices.length - startIndex;
-    const materialIndex = faceIndex === 0 ? 0 : faceIndex === 1 ? 1 : 2;
+    const materialIndex =
+      faceIndex === 0
+        ? isInterior
+          ? 1
+          : 0
+        : faceIndex === 1
+          ? 1
+          : isInterior
+            ? 1
+            : 2;
     geometry.addGroup(startIndex, count, materialIndex);
   });
 

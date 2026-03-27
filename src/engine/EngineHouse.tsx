@@ -36,7 +36,11 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
     () => {
       const arch = architecturalHouse;
       console.log('ARCH PASSED INTO ENGINE:', arch);
-      validateFloorplan(arch);
+      try {
+        validateFloorplan(arch);
+      } catch (error) {
+        console.warn('[EngineHouse] Floorplan validation failed; continuing with derive/render.', error);
+      }
       return deriveHouse(arch);
     },
     [architecturalHouse]

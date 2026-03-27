@@ -4,6 +4,7 @@ import type { DerivedSlab } from '../deriveSlabs';
 import type { DerivedRoof } from './DerivedRoof';
 import type { DerivedExteriorAccessCutout, DerivedExteriorAccessPart } from './DerivedExteriorAccess';
 import type { DerivedCarport } from './DerivedCarport';
+import type { DerivedRoom } from './DerivedRoom';
 
 export interface DerivedRevisions {
   slabs: number;
@@ -18,6 +19,7 @@ export interface DerivedHouse {
   walls: DerivedWallSegment[];
   roofs: DerivedRoof[];
   openings: DerivedOpening[];
+  rooms: DerivedRoom[];
   carports: DerivedCarport[];
   exteriorAccesses: DerivedExteriorAccessPart[];
   exteriorAccessCutouts: DerivedExteriorAccessCutout[];

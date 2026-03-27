@@ -18,6 +18,177 @@ type RoomEdge = {
 };
 
 
+type BoundingBox = {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+};
+
+function getRingBoundingBox(ring: Pair[]): BoundingBox {
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+
+  for (const [x, z] of ring) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+
+  return { minX, maxX, minZ, maxZ };
+}
+
+function round2(value: number): string {
+  return value.toFixed(2);
+}
+
+function describeMissingRegions(missing: MultiPolygon, maxRegions = 4): string {
+  const pieces: string[] = [];
+
+  for (let i = 0; i < missing.length && i < maxRegions; i += 1) {
+    const polygon = missing[i];
+    if (polygon.length === 0) {
+      continue;
+    }
+
+    const outer = polygon[0];
+    const bbox = getRingBoundingBox(outer);
+    const area = polygonsArea([polygon]);
+
+    pieces.push(
+      `#${i + 1} area=${round2(area)} bbox=(${round2(bbox.minX)},${round2(bbox.minZ)})→(${round2(bbox.maxX)},${round2(bbox.maxZ)})`
+    );
+  }
+
+  if (missing.length > maxRegions) {
+    pieces.push(`... +${missing.length - maxRegions} more region(s)`);
+  }
+
+  return pieces.join('; ');
+}
+
+
+
+
+function dot2(ax: number, az: number, bx: number, bz: number): number {
+  return ax * bx + az * bz;
+}
+
+function getParallelDistanceToEdge(point: Vec2, edgeStart: Vec2, edgeEnd: Vec2): number {
+  const ex = edgeEnd.x - edgeStart.x;
+  const ez = edgeEnd.z - edgeStart.z;
+  const edgeLength = Math.hypot(ex, ez);
+
+  if (edgeLength <= EPSILON) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.abs(cross2(ex, ez, point.x - edgeStart.x, point.z - edgeStart.z)) / edgeLength;
+}
+
+function getProjectedIntervalOnEdge(segmentStart: Vec2, segmentEnd: Vec2, edgeStart: Vec2, edgeEnd: Vec2): [number, number] {
+  const ex = edgeEnd.x - edgeStart.x;
+  const ez = edgeEnd.z - edgeStart.z;
+  const edgeLength = Math.hypot(ex, ez);
+
+  if (edgeLength <= EPSILON) {
+    return [0, 0];
+  }
+
+  const ux = ex / edgeLength;
+  const uz = ez / edgeLength;
+
+  const t1 = dot2(segmentStart.x - edgeStart.x, segmentStart.z - edgeStart.z, ux, uz);
+  const t2 = dot2(segmentEnd.x - edgeStart.x, segmentEnd.z - edgeStart.z, ux, uz);
+
+  return [Math.min(t1, t2), Math.max(t1, t2)];
+}
+
+function intervalOverlapLength(aMin: number, aMax: number, bMin: number, bMax: number): number {
+  return Math.max(0, Math.min(aMax, bMax) - Math.max(aMin, bMin));
+}
+
+function collectInteriorWallExteriorWindowConflicts(
+  arch: ArchitecturalHouse,
+  level: LevelSpec
+): FloorplanValidationIssue[] {
+  const issues: FloorplanValidationIssue[] = [];
+  const interiorWalls = (arch.interiorWalls ?? []).filter((wall) => wall.levelId === level.id);
+  const openings = (arch.openings ?? []).filter(
+    (opening) => opening.levelId === level.id && opening.edge.ring === 'outer'
+  );
+
+  if (interiorWalls.length === 0 || openings.length === 0) {
+    return issues;
+  }
+
+  const nearThreshold = Math.max(0.15, arch.wallThickness * 0.9);
+
+  for (const wall of interiorWalls) {
+    const wallDx = wall.end.x - wall.start.x;
+    const wallDz = wall.end.z - wall.start.z;
+    const wallLength = Math.hypot(wallDx, wallDz);
+
+    if (wallLength <= EPSILON) {
+      continue;
+    }
+
+    for (let edgeIndex = 0; edgeIndex < level.footprint.outer.length; edgeIndex += 1) {
+      const edgeStart = level.footprint.outer[edgeIndex];
+      const edgeEnd = level.footprint.outer[(edgeIndex + 1) % level.footprint.outer.length];
+      const edgeDx = edgeEnd.x - edgeStart.x;
+      const edgeDz = edgeEnd.z - edgeStart.z;
+      const edgeLength = Math.hypot(edgeDx, edgeDz);
+
+      if (edgeLength <= EPSILON) {
+        continue;
+      }
+
+      const parallelness = Math.abs(cross2(wallDx, wallDz, edgeDx, edgeDz)) / (wallLength * edgeLength);
+      if (parallelness > 0.02) {
+        continue;
+      }
+
+      const [wallProjMin, wallProjMax] = getProjectedIntervalOnEdge(wall.start, wall.end, edgeStart, edgeEnd);
+      const clampedWallMin = Math.max(0, Math.min(edgeLength, wallProjMin));
+      const clampedWallMax = Math.max(0, Math.min(edgeLength, wallProjMax));
+
+      if (intervalOverlapLength(clampedWallMin, clampedWallMax, 0, edgeLength) <= EPSILON) {
+        continue;
+      }
+
+      const distance = Math.min(
+        getParallelDistanceToEdge(wall.start, edgeStart, edgeEnd),
+        getParallelDistanceToEdge(wall.end, edgeStart, edgeEnd)
+      );
+
+      if (distance > nearThreshold) {
+        continue;
+      }
+
+      const edgeOpenings = openings.filter((opening) => opening.edge.edgeIndex === edgeIndex);
+
+      for (const opening of edgeOpenings) {
+        const openingMin = opening.offset;
+        const openingMax = opening.offset + opening.width;
+        const overlap = intervalOverlapLength(clampedWallMin, clampedWallMax, openingMin, openingMax);
+
+        if (overlap > EPSILON) {
+          issues.push({
+            message:
+              `Interior wall ${wall.id} sits next to exterior wall with opening ${opening.id} ` +
+              `on level ${level.id} edge ${edgeIndex} (distance ${round2(distance)}m, overlap ${round2(overlap)}m).`,
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
 export type FloorplanValidationIssue = {
   message: string;
 };
@@ -242,12 +413,22 @@ function validateFullCoverage(levelId: string, footprint: Vec2[], rooms: RoomSpe
 
   const union = polygonClipping.union(firstPolygon, ...restPolygons);
   const footprintPoly: Polygon = [toRing(footprint)];
+  const footprintArea = polygonsArea([footprintPoly]);
 
   const missing = polygonClipping.difference(footprintPoly, union);
   const missingArea = polygonsArea(missing);
 
   if (missingArea > AREA_EPSILON) {
-    throw new Error(`Rooms do not fully cover footprint on level ${levelId}`);
+    const coveredArea = Math.max(0, footprintArea - missingArea);
+    const coveragePercent = footprintArea <= AREA_EPSILON ? 0 : (coveredArea / footprintArea) * 100;
+    const missingSummary = describeMissingRegions(missing);
+
+    throw new Error(
+      `Rooms do not fully cover footprint on level ${levelId}. ` +
+      `Covered ${round2(coveredArea)} / ${round2(footprintArea)} (${round2(coveragePercent)}%). ` +
+      `Missing ${round2(missingArea)} area. ` +
+      `Missing regions: ${missingSummary}`
+    );
   }
 }
 
@@ -364,6 +545,7 @@ export function validateFloorplanReport(architecturalHouse: ArchitecturalHouse):
     }
 
     issues.push(...collectLevelValidationIssues(level, rooms));
+    issues.push(...collectInteriorWallExteriorWindowConflicts(architecturalHouse, level));
   }
 
   return issues;

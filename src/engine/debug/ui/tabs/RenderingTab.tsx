@@ -10,8 +10,8 @@ type Props = {
   onShowEdgesChange: (enabled: boolean) => void;
   showOpeningEdges: boolean;
   onShowOpeningEdgesChange: (enabled: boolean) => void;
-  onValidateFloorplan: () => void;
-  validationLog: ValidationLogEntry[];
+  onValidateFloorplan?: () => void;
+  validationLog?: ValidationLogEntry[];
 };
 
 function ToggleRow({
@@ -48,8 +48,8 @@ export function RenderingTab({
   onShowEdgesChange,
   showOpeningEdges,
   onShowOpeningEdgesChange,
-  onValidateFloorplan,
-  validationLog,
+  onValidateFloorplan = () => undefined,
+  validationLog = [],
 }: Props) {
   return (
     <div>

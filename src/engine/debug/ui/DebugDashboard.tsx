@@ -16,8 +16,8 @@ type Props = {
   onShowOpeningEdgesChange: (enabled: boolean) => void;
   initialJson: string;
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
-  onValidateFloorplan: () => void;
-  validationLog: ValidationLogEntry[];
+  onValidateFloorplan?: () => void;
+  validationLog?: ValidationLogEntry[];
 };
 
 type DebugBoundaryProps = {
@@ -74,8 +74,8 @@ export function DebugDashboard({
   onShowOpeningEdgesChange,
   initialJson,
   onApplyArchitecturalHouse,
-  onValidateFloorplan,
-  validationLog,
+  onValidateFloorplan = () => undefined,
+  validationLog = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('rendering');
 

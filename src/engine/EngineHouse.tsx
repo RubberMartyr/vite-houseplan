@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { ArchitecturalHouse } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
+import { validateFloorplan } from './validation/validateFloorplan';
 import { EdgeVisualizer } from './debug/EdgeVisualizer';
 import { EngineDebugHUD } from './debug/EngineDebugHUD';
 import { DerivedGraphOverlay } from './debug/DerivedGraphOverlay';
@@ -35,6 +36,11 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
     () => {
       const arch = architecturalHouse;
       console.log('ARCH PASSED INTO ENGINE:', arch);
+      try {
+        validateFloorplan(arch);
+      } catch (error) {
+        console.warn('[EngineHouse] Floorplan validation failed; continuing with derive/render.', error);
+      }
       return deriveHouse(arch);
     },
     [architecturalHouse]

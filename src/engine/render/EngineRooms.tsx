@@ -1,17 +1,16 @@
 import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
-import type { LevelSpec, RoomSpec } from '../architecturalTypes';
+import type { DerivedRoom } from '../derive/types/DerivedRoom';
 import { archToWorldXZ } from '../spaceMapping';
 
 type EngineRoomsProps = {
-  rooms?: RoomSpec[];
-  levels: LevelSpec[];
+  rooms?: DerivedRoom[];
   visible?: boolean;
   yOffset?: number;
 };
 
 type RoomMeshData = {
-  room: RoomSpec;
+  room: DerivedRoom;
   geometry: THREE.ShapeGeometry;
   y: number;
   color: string;
@@ -22,11 +21,8 @@ function roomColor(index: number): string {
   return `hsl(${hue} 70% 55%)`;
 }
 
-export function EngineRooms({ rooms = [], levels, visible = true, yOffset = 0.01 }: EngineRoomsProps) {
-  const levelElevationById = useMemo(
-    () => new Map(levels.map((level) => [level.id, level.elevation])),
-    [levels]
-  );
+export function EngineRooms({ rooms = [], visible = true, yOffset = 0.01 }: EngineRoomsProps) {
+  console.log('ROOMS IN ENGINE:', rooms);
 
   const roomMeshData = useMemo<RoomMeshData[]>(() => {
     return rooms
@@ -40,22 +36,16 @@ export function EngineRooms({ rooms = [], levels, visible = true, yOffset = 0.01
           worldPolygon.map((point) => new THREE.Vector2(point.x, point.z))
         );
         const geometry = new THREE.ShapeGeometry(shape);
-        const baseY = levelElevationById.get(room.levelId);
-
-        if (baseY == null) {
-          geometry.dispose();
-          return null;
-        }
 
         return {
           room,
           geometry,
-          y: baseY + yOffset,
+          y: room.elevation + yOffset,
           color: roomColor(index),
         };
       })
       .filter((entry): entry is RoomMeshData => entry !== null);
-  }, [rooms, levelElevationById, yOffset]);
+  }, [rooms, yOffset]);
 
   useEffect(() => {
     return () => {

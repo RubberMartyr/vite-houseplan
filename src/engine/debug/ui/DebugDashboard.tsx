@@ -16,7 +16,7 @@ type Props = {
   onShowOpeningEdgesChange: (enabled: boolean) => void;
   initialJson: string;
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
-  onValidateFloorplan?: () => void;
+  onValidateFloorplan: () => void;
   validationLog?: ValidationLogEntry[];
 };
 
@@ -74,7 +74,7 @@ export function DebugDashboard({
   onShowOpeningEdgesChange,
   initialJson,
   onApplyArchitecturalHouse,
-  onValidateFloorplan = () => undefined,
+  onValidateFloorplan,
   validationLog = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('rendering');

@@ -10,7 +10,7 @@ type Props = {
   onShowEdgesChange: (enabled: boolean) => void;
   showOpeningEdges: boolean;
   onShowOpeningEdgesChange: (enabled: boolean) => void;
-  onValidateFloorplan?: () => void;
+  onValidateFloorplan: () => void;
   validationLog?: ValidationLogEntry[];
 };
 
@@ -48,7 +48,7 @@ export function RenderingTab({
   onShowEdgesChange,
   showOpeningEdges,
   onShowOpeningEdgesChange,
-  onValidateFloorplan = () => undefined,
+  onValidateFloorplan,
   validationLog = [],
 }: Props) {
   return (
@@ -93,7 +93,7 @@ export function RenderingTab({
             overflowY: 'auto',
           }}
         >
-          {validationLog.map((entry, index) => {
+          {(validationLog.length === 0 ? [{ level: 'info', message: 'No validation runs yet.' }] : validationLog).map((entry, index) => {
             const tone = entry.level === 'error' ? '#fca5a5' : '#86efac';
             const label = entry.level === 'error' ? 'Error' : 'OK';
 

@@ -143,7 +143,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         wallMaterialSpec={FOUNDATION_WALL_MATERIAL}
         cacheKey="basement"
       />
-      <EngineRooms rooms={derived.rooms} visible={showEnvelope} />
+      <EngineRooms rooms={architecturalHouse.rooms ?? []} levels={architecturalHouse.levels} />
       <EngineOpenings
         openings={derived.openings}
         wallThickness={architecturalHouse.wallThickness}

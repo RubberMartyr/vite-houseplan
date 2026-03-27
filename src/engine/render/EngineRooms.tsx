@@ -1,33 +1,37 @@
 import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
-import type { DerivedRoom } from '../derive/types/DerivedRoom';
+import type { LevelSpec, RoomSpec } from '../architecturalTypes';
 import { archToWorldXZ } from '../spaceMapping';
 
 type EngineRoomsProps = {
-  rooms?: DerivedRoom[];
-  visible?: boolean;
-  yOffset?: number;
+  rooms: RoomSpec[];
+  levels: LevelSpec[];
 };
 
 type RoomMeshData = {
-  room: DerivedRoom;
+  room: RoomSpec;
   geometry: THREE.ShapeGeometry;
   y: number;
-  color: string;
 };
 
-function roomColor(index: number): string {
-  const hue = (index * 67) % 360;
-  return `hsl(${hue} 70% 55%)`;
-}
+const ROOM_Y_OFFSET = 0.02;
 
-export function EngineRooms({ rooms = [], visible = true, yOffset = 0.01 }: EngineRoomsProps) {
+export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
   console.log('ROOMS IN ENGINE:', rooms);
+  console.log('EngineRooms rooms:', rooms.length);
+  const levelById = useMemo(
+    () => new Map(levels.map((level) => [level.id, level])),
+    [levels]
+  );
 
   const roomMeshData = useMemo<RoomMeshData[]>(() => {
     return rooms
-      .map((room, index) => {
+      .map((room) => {
         if (room.polygon.length < 3) {
+          return null;
+        }
+        const level = levelById.get(room.levelId);
+        if (!level) {
           return null;
         }
 
@@ -40,12 +44,11 @@ export function EngineRooms({ rooms = [], visible = true, yOffset = 0.01 }: Engi
         return {
           room,
           geometry,
-          y: room.elevation + yOffset,
-          color: roomColor(index),
+          y: level.elevation + ROOM_Y_OFFSET,
         };
       })
       .filter((entry): entry is RoomMeshData => entry !== null);
-  }, [rooms, yOffset]);
+  }, [rooms, levelById]);
 
   useEffect(() => {
     return () => {
@@ -53,24 +56,30 @@ export function EngineRooms({ rooms = [], visible = true, yOffset = 0.01 }: Engi
     };
   }, [roomMeshData]);
 
-  if (!visible || roomMeshData.length === 0) {
+  if (roomMeshData.length === 0) {
     return null;
   }
 
   return (
     <group userData={{ debugType: 'rooms' }}>
-      {roomMeshData.map(({ room, geometry, y, color }) => (
+      {roomMeshData.map(({ room, geometry, y }) => (
         <mesh
           key={room.id}
           geometry={geometry}
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, y, 0]}
           onClick={() => {
-            console.log('[EngineRooms] clicked room', { id: room.id, name: room.name });
+            console.log('ROOM CLICKED:', room.id, room.name);
           }}
-          userData={{ roomId: room.id, roomName: room.name }}
+          userData={{ type: 'room', roomId: room.id, roomName: room.name }}
         >
-          <meshStandardMaterial color={color} transparent opacity={0.2} depthWrite={false} />
+          <meshBasicMaterial
+            color={0xff0000}
+            transparent
+            opacity={0.3}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
         </mesh>
       ))}
     </group>

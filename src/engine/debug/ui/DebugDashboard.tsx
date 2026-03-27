@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState, type ReactNode } from 'react';
 import type { ArchitecturalHouse } from '../../architecturalTypes';
 import { JsonEditorTab } from './tabs/JsonEditorTab';
-import { RenderingTab } from './tabs/RenderingTab';
+import { RenderingTab, type ValidationLogEntry } from './tabs/RenderingTab';
 
 type TabId = 'rendering' | 'json';
 
@@ -16,7 +16,52 @@ type Props = {
   onShowOpeningEdgesChange: (enabled: boolean) => void;
   initialJson: string;
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
+  onValidateFloorplan: () => void;
+  validationLog?: ValidationLogEntry[];
 };
+
+type DebugBoundaryProps = {
+  children: ReactNode;
+};
+
+type DebugBoundaryState = {
+  errorMessage: string | null;
+};
+
+class DebugContentBoundary extends React.Component<DebugBoundaryProps, DebugBoundaryState> {
+  state: DebugBoundaryState = {
+    errorMessage: null,
+  };
+
+  static getDerivedStateFromError(error: unknown): DebugBoundaryState {
+    const message = error instanceof Error ? error.message : 'Unknown debug panel error.';
+    return { errorMessage: message };
+  }
+
+  componentDidCatch() {
+    // Keep failure visible in-panel instead of blanking the overlay.
+  }
+
+  render() {
+    if (this.state.errorMessage) {
+      return (
+        <div
+          style={{
+            borderRadius: 10,
+            border: '1px solid rgba(252, 165, 165, 0.55)',
+            background: 'rgba(127, 29, 29, 0.2)',
+            color: '#fecaca',
+            padding: 12,
+          }}
+        >
+          Debug panel failed to render: {this.state.errorMessage}
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export function DebugDashboard({
   isOpen,
@@ -29,6 +74,8 @@ export function DebugDashboard({
   onShowOpeningEdgesChange,
   initialJson,
   onApplyArchitecturalHouse,
+  onValidateFloorplan,
+  validationLog = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('rendering');
 
@@ -46,33 +93,6 @@ export function DebugDashboard({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, onClose]);
-
-  const content = useMemo(() => {
-    if (activeTab === 'json') {
-      return <JsonEditorTab initialJson={initialJson} onApplyArchitecturalHouse={onApplyArchitecturalHouse} />;
-    }
-
-    return (
-      <RenderingTab
-        showWireframe={showWireframe}
-        onShowWireframeChange={onShowWireframeChange}
-        showEdges={showEdges}
-        onShowEdgesChange={onShowEdgesChange}
-        showOpeningEdges={showOpeningEdges}
-        onShowOpeningEdgesChange={onShowOpeningEdgesChange}
-      />
-    );
-  }, [
-    activeTab,
-    initialJson,
-    onApplyArchitecturalHouse,
-    onShowEdgesChange,
-    onShowOpeningEdgesChange,
-    onShowWireframeChange,
-    showEdges,
-    showOpeningEdges,
-    showWireframe,
-  ]);
 
   if (!isOpen) {
     return null;
@@ -135,7 +155,24 @@ export function DebugDashboard({
           })}
         </div>
 
-        <div style={{ padding: 14, minHeight: 0 }}>{content}</div>
+        <div style={{ padding: 14, minHeight: 0 }}>
+          <DebugContentBoundary>
+            {activeTab === 'json' ? (
+              <JsonEditorTab initialJson={initialJson} onApplyArchitecturalHouse={onApplyArchitecturalHouse} />
+            ) : (
+              <RenderingTab
+                showWireframe={showWireframe}
+                onShowWireframeChange={onShowWireframeChange}
+                showEdges={showEdges}
+                onShowEdgesChange={onShowEdgesChange}
+                showOpeningEdges={showOpeningEdges}
+                onShowOpeningEdgesChange={onShowOpeningEdgesChange}
+                onValidateFloorplan={onValidateFloorplan}
+                validationLog={validationLog}
+              />
+            )}
+          </DebugContentBoundary>
+        </div>
       </section>
     </div>
   );

@@ -1,5 +1,9 @@
-import * as polygonClipping from 'polygon-clipping';
+import * as polygonClippingNamespace from 'polygon-clipping';
 import type { MultiPolygon, Pair, Polygon } from 'polygon-clipping';
+
+const polygonClipping =
+  (polygonClippingNamespace as typeof polygonClippingNamespace & { default?: typeof polygonClippingNamespace })
+    .default ?? polygonClippingNamespace;
 import type { ArchitecturalHouse, LevelSpec, RoomEdgeSpec, RoomSpec, Vec2 } from '../architecturalTypes';
 
 const EPSILON = 1e-6;

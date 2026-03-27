@@ -10,6 +10,7 @@ import { deriveSlabs } from './derive/deriveSlabs';
 import { houseData } from './houseData';
 import { toThreeWorldMeshes } from './toThreeWorldMeshes';
 import { validateOpenings } from './validation/validateOpenings';
+import { validateRooms } from './validation/validateRooms';
 import { validateStructure } from './validation/validateStructure';
 
 export function buildHouse() {
@@ -22,6 +23,7 @@ export function buildHouse() {
     elevationConvention: 'TOP_OF_SLAB',
     allowGroundSupport: true,
   });
+  validateRooms(architecturalHouse);
 
   validateOpenings(architecturalHouse);
 

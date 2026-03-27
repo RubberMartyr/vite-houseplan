@@ -15,6 +15,7 @@ import { EngineRoofs } from './render/EngineRoofs';
 import { EngineSlabs } from './render/EngineSlabs';
 import { EngineSite } from './render/EngineSite';
 import { EngineWalls } from './render/EngineWalls';
+import { EngineRooms } from './render/EngineRooms';
 import { getWallVisibleBaseY, getWallVisibleTopY, type DerivedWallSegment } from './deriveWalls';
 
 type Props = {
@@ -142,6 +143,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         wallMaterialSpec={FOUNDATION_WALL_MATERIAL}
         cacheKey="basement"
       />
+      <EngineRooms rooms={architecturalHouse.rooms ?? []} levels={architecturalHouse.levels} />
       <EngineOpenings
         openings={derived.openings}
         wallThickness={architecturalHouse.wallThickness}

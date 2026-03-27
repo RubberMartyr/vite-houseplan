@@ -9,6 +9,8 @@ import type { ArchitecturalHouse } from '../engine/architecturalTypes';
 import { markFirstFrameRendered } from '../loadingManager';
 import { DebugButton } from '../engine/debug/ui/DebugButton';
 import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
+import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
+import { validateFloorplanReport } from '../engine/validation/validateFloorplan';
 import { isDebugEnabled } from '../engine/debug/ui/debugMode';
 import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
 import { DebugEdges } from './debug/DebugEdges';
@@ -80,6 +82,9 @@ export default function HouseViewer() {
   const [showWireframe, setShowWireframe] = useState(false);
   const [showEdges, setShowEdges] = useState(true);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
+  const [validationLog, setValidationLog] = useState<ValidationLogEntry[]>([
+    { level: 'info', message: 'Use "Validate floorplan" in Debug to run checks.' },
+  ]);
   const [{ showEnvelope }, setSceneVisibility] = useState<SceneVisibility>({
     showEnvelope: true,
   });
@@ -97,6 +102,39 @@ export default function HouseViewer() {
   }, [house]);
 
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
+
+  const runFloorplanValidation = () => {
+    const timestamp = new Date().toLocaleTimeString();
+
+    setValidationLog((current) => [
+      { level: 'info', message: `[${timestamp}] Running floorplan validation...` },
+      ...current,
+    ]);
+
+    try {
+      const issues = validateFloorplanReport(houseWithInjectedInteriorWall);
+
+      if (issues.length === 0) {
+        setValidationLog((current) => [
+          { level: 'info', message: `[${timestamp}] Floorplan validation passed.` },
+          ...current,
+        ]);
+        return;
+      }
+
+      setValidationLog((current) => [
+        ...issues.map((issue) => ({ level: 'error' as const, message: `[${timestamp}] ${issue.message}` })),
+        ...current,
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Validation failed with an unknown error.';
+      setValidationLog((current) => [
+        { level: 'error', message: `[${timestamp}] ${message}` },
+        ...current,
+      ]);
+    }
+  };
+
 
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
@@ -157,6 +195,8 @@ export default function HouseViewer() {
             onShowOpeningEdgesChange={setShowOpeningEdges}
             initialJson={initialJson}
             onApplyArchitecturalHouse={setHouse}
+            onValidateFloorplan={runFloorplanValidation}
+            validationLog={validationLog}
           />
         </>
       )}

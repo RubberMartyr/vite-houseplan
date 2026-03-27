@@ -10,7 +10,7 @@ import { markFirstFrameRendered } from '../loadingManager';
 import { DebugButton } from '../engine/debug/ui/DebugButton';
 import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
-import { validateFloorplan } from '../engine/validation/validateFloorplan';
+import { validateFloorplanReport } from '../engine/validation/validateFloorplan';
 import { isDebugEnabled } from '../engine/debug/ui/debugMode';
 import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
 import { DebugEdges } from './debug/DebugEdges';
@@ -105,20 +105,20 @@ export default function HouseViewer() {
 
   const runFloorplanValidation = () => {
     const timestamp = new Date().toLocaleTimeString();
+    const issues = validateFloorplanReport(houseWithInjectedInteriorWall);
 
-    try {
-      validateFloorplan(houseWithInjectedInteriorWall);
+    if (issues.length === 0) {
       setValidationLog((current) => [
         { level: 'info', message: `[${timestamp}] Floorplan validation passed.` },
         ...current,
       ]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Floorplan validation failed with an unknown error.';
-      setValidationLog((current) => [
-        { level: 'error', message: `[${timestamp}] ${message}` },
-        ...current,
-      ]);
+      return;
     }
+
+    setValidationLog((current) => [
+      ...issues.map((issue) => ({ level: 'error' as const, message: `[${timestamp}] ${issue.message}` })),
+      ...current,
+    ]);
   };
 
 

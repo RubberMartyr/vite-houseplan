@@ -17,6 +17,10 @@ type RoomEdge = {
   b: Vec2;
 };
 
+
+export type FloorplanValidationIssue = {
+  message: string;
+};
 function toRing(points: Vec2[]): Pair[] {
   if (points.length === 0) {
     return [];
@@ -302,9 +306,36 @@ function validateSharedEdgeAgreement(rooms: RoomSpec[]): void {
   }
 }
 
-export function validateFloorplan(architecturalHouse: ArchitecturalHouse): void {
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Floorplan validation failed with an unknown error.';
+}
+
+function collectLevelValidationIssues(level: LevelSpec, rooms: RoomSpec[]): FloorplanValidationIssue[] {
+  const issues: FloorplanValidationIssue[] = [];
+
+  const runCheck = (check: () => void) => {
+    try {
+      check();
+    } catch (error) {
+      issues.push({ message: toErrorMessage(error) });
+    }
+  };
+
+  runCheck(() => validateRoomBasics(level, rooms));
+  runCheck(() => validateRoomOverlaps(rooms));
+  runCheck(() => validateFullCoverage(level.id, level.footprint.outer, rooms));
+  runCheck(() => validateExteriorWallConflicts(level, rooms));
+  runCheck(() => validateSharedEdgeAgreement(rooms));
+
+  return issues;
+}
+
+export function validateFloorplanReport(architecturalHouse: ArchitecturalHouse): FloorplanValidationIssue[] {
+  const issues: FloorplanValidationIssue[] = [];
+
   if (!architecturalHouse.rooms || architecturalHouse.rooms.length === 0) {
-    throw new Error('rooms must exist');
+    issues.push({ message: 'rooms must exist' });
+    return issues;
   }
 
   const levelsById = new Map(architecturalHouse.levels.map((level) => [level.id, level]));
@@ -314,7 +345,8 @@ export function validateFloorplan(architecturalHouse: ArchitecturalHouse): void 
     const level = levelsById.get(room.levelId);
 
     if (!level) {
-      throw new Error(`Room "${room.id}" is invalid: levelId "${room.levelId}" does not exist.`);
+      issues.push({ message: `Room "${room.id}" is invalid: levelId "${room.levelId}" does not exist.` });
+      continue;
     }
 
     const existing = roomsByLevel.get(room.levelId);
@@ -327,15 +359,20 @@ export function validateFloorplan(architecturalHouse: ArchitecturalHouse): void 
 
   for (const [levelId, rooms] of roomsByLevel) {
     const level = levelsById.get(levelId);
-
     if (!level) {
       continue;
     }
 
-    validateRoomBasics(level, rooms);
-    validateRoomOverlaps(rooms);
-    validateFullCoverage(level.id, level.footprint.outer, rooms);
-    validateExteriorWallConflicts(level, rooms);
-    validateSharedEdgeAgreement(rooms);
+    issues.push(...collectLevelValidationIssues(level, rooms));
+  }
+
+  return issues;
+}
+
+export function validateFloorplan(architecturalHouse: ArchitecturalHouse): void {
+  const issues = validateFloorplanReport(architecturalHouse);
+
+  if (issues.length > 0) {
+    throw new Error(issues[0].message);
   }
 }

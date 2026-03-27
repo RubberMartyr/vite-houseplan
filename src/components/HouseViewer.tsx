@@ -105,20 +105,34 @@ export default function HouseViewer() {
 
   const runFloorplanValidation = () => {
     const timestamp = new Date().toLocaleTimeString();
-    const issues = validateFloorplanReport(houseWithInjectedInteriorWall);
-
-    if (issues.length === 0) {
-      setValidationLog((current) => [
-        { level: 'info', message: `[${timestamp}] Floorplan validation passed.` },
-        ...current,
-      ]);
-      return;
-    }
 
     setValidationLog((current) => [
-      ...issues.map((issue) => ({ level: 'error' as const, message: `[${timestamp}] ${issue.message}` })),
+      { level: 'info', message: `[${timestamp}] Running floorplan validation...` },
       ...current,
     ]);
+
+    try {
+      const issues = validateFloorplanReport(houseWithInjectedInteriorWall);
+
+      if (issues.length === 0) {
+        setValidationLog((current) => [
+          { level: 'info', message: `[${timestamp}] Floorplan validation passed.` },
+          ...current,
+        ]);
+        return;
+      }
+
+      setValidationLog((current) => [
+        ...issues.map((issue) => ({ level: 'error' as const, message: `[${timestamp}] ${issue.message}` })),
+        ...current,
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Validation failed with an unknown error.';
+      setValidationLog((current) => [
+        { level: 'error', message: `[${timestamp}] ${message}` },
+        ...current,
+      ]);
+    }
   };
 
 

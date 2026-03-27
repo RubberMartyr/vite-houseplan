@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { ArchitecturalHouse } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
+import { validateFloorplan } from './validation/validateFloorplan';
 import { EdgeVisualizer } from './debug/EdgeVisualizer';
 import { EngineDebugHUD } from './debug/EngineDebugHUD';
 import { DerivedGraphOverlay } from './debug/DerivedGraphOverlay';
@@ -35,6 +36,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
     () => {
       const arch = architecturalHouse;
       console.log('ARCH PASSED INTO ENGINE:', arch);
+      validateFloorplan(arch);
       return deriveHouse(arch);
     },
     [architecturalHouse]

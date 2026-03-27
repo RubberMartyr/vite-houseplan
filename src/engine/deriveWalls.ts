@@ -1,7 +1,7 @@
 import { ArchitecturalHouse, RoofSpec } from "./architecturalTypes";
 import { Vec3 } from "./types";
 
-const USE_ROOM_DERIVED_INTERIOR_WALLS = false;
+const USE_ROOM_DERIVED_INTERIOR_WALLS = true;
 
 function signedAreaXZ(pts: { x: number; z: number }[]): number {
   let a = 0;

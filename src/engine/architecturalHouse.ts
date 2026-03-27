@@ -491,13 +491,42 @@ export const architecturalHouse: ArchitecturalHouse = {
 
   levels,
   site,
-  interiorWalls: [
+  rooms: [
     {
-      id: 'wall-ground-hall-partition-east',
+      id: 'room-ground-entry',
+      name: 'Entry',
       levelId: 'ground',
-      start: { x: 1.5, z: 3.2 },
-      end: { x: 1.5, z: 8.4 },
-      thickness: 0.12,
+      polygon: [
+        { x: -3.2, z: 0.6 },
+        { x: -1.0, z: 0.6 },
+        { x: -1.0, z: 3.0 },
+        { x: -3.2, z: 3.0 },
+      ],
+      edges: [{ type: 'wall' }, { type: 'open' }, { type: 'wall' }, { type: 'wall' }],
+    },
+    {
+      id: 'room-ground-living',
+      name: 'Living',
+      levelId: 'ground',
+      polygon: [
+        { x: -0.8, z: 0.6 },
+        { x: 4.2, z: 0.6 },
+        { x: 4.2, z: 6.4 },
+        { x: -0.8, z: 6.4 },
+      ],
+      edges: [{ type: 'wall' }, { type: 'wall' }, { type: 'open' }, { type: 'open' }],
+    },
+    {
+      id: 'room-ground-kitchen',
+      name: 'Kitchen',
+      levelId: 'ground',
+      polygon: [
+        { x: -3.2, z: 3.4 },
+        { x: -0.8, z: 3.4 },
+        { x: -0.8, z: 7.8 },
+        { x: -3.2, z: 7.8 },
+      ],
+      edges: [{ type: 'wall' }, { type: 'open' }, { type: 'wall' }, { type: 'wall' }],
     },
   ],
   rooms: [

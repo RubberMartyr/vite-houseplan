@@ -57,12 +57,19 @@ function roomError(roomId: string, reason: string): Error {
   return new Error(`Room "${roomId}" is invalid: ${reason}`);
 }
 
+function canonicalUndirectedEdgeKey(a: Vec2, b: Vec2): string {
+  const aKey = `${a.x},${a.z}`;
+  const bKey = `${b.x},${b.z}`;
+  return aKey <= bKey ? `${aKey}|${bKey}` : `${bKey}|${aKey}`;
+}
+
 export function validateRooms(arch: ArchitecturalHouse) {
   if (!arch.rooms || arch.rooms.length === 0) {
     return;
   }
 
   const levelsById = new Map(arch.levels.map((level) => [level.id, level]));
+  const sharedEdgeClaims = new Map<string, { roomId: string; type: 'wall' | 'open' }>();
 
   for (const room of arch.rooms) {
     const level = levelsById.get(room.levelId);
@@ -100,6 +107,18 @@ export function validateRooms(arch: ArchitecturalHouse) {
       const a = room.polygon[i];
       const b = room.polygon[(i + 1) % room.polygon.length];
       const midpoint = { x: (a.x + b.x) * 0.5, z: (a.z + b.z) * 0.5 };
+      const edgeType = room.edges[i].type;
+      const sharedEdgeKey = `${room.levelId}:${canonicalUndirectedEdgeKey(a, b)}`;
+      const existingClaim = sharedEdgeClaims.get(sharedEdgeKey);
+
+      if (!existingClaim) {
+        sharedEdgeClaims.set(sharedEdgeKey, { roomId: room.id, type: edgeType });
+      } else if (existingClaim.roomId !== room.id && existingClaim.type !== edgeType) {
+        throw roomError(
+          room.id,
+          `shared edge with room "${existingClaim.roomId}" has conflicting edge types (${existingClaim.type} vs ${edgeType}).`
+        );
+      }
 
       if (!isPointInsidePolygonXZ(level.footprint.outer, midpoint)) {
         throw roomError(

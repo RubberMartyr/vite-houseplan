@@ -10,10 +10,14 @@ import { markFirstFrameRendered } from '../loadingManager';
 import { DebugButton } from '../engine/debug/ui/DebugButton';
 import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
-import { validateFloorplanReport } from '../engine/validation/validateFloorplan';
+import {
+  type FloorplanValidationResult,
+  validateFloorplan,
+} from '../engine/validation/validateFloorplan';
 import { isDebugEnabled } from '../engine/debug/ui/debugMode';
 import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
 import { DebugEdges } from './debug/DebugEdges';
+import { FloorplanValidationOverlay } from '../engine/debug/FloorplanValidationOverlay';
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -82,8 +86,11 @@ export default function HouseViewer() {
   const [showWireframe, setShowWireframe] = useState(false);
   const [showEdges, setShowEdges] = useState(true);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
+  const [showFloorplanOverlay, setShowFloorplanOverlay] = useState(true);
+  const [showValidationIssues, setShowValidationIssues] = useState(true);
+  const [validationResult, setValidationResult] = useState<FloorplanValidationResult | null>(null);
   const [validationLog, setValidationLog] = useState<ValidationLogEntry[]>([
-    { level: 'info', message: 'Use "Validate floorplan" in Debug to run checks.' },
+    { level: 'info', message: 'Use "Run Floorplan Validation" in Debug to run checks.' },
   ]);
   const [{ showEnvelope }, setSceneVisibility] = useState<SceneVisibility>({
     showEnvelope: true,
@@ -95,13 +102,50 @@ export default function HouseViewer() {
 
   const houseWithInjectedInteriorWall = useMemo<ArchitecturalHouse>(() => {
     const arch: ArchitecturalHouse = {
-      ...house
+      ...house,
     };
 
     return arch;
   }, [house]);
 
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
+
+  const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
+    const issueCodes = result.issues.reduce<Record<string, number>>((acc, issue) => {
+      acc[issue.code] = (acc[issue.code] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const summary = `Summary: rooms=${result.roomCount}, levels=${result.levelCount}, errors=${result.errorCount}, warnings=${result.warningCount}.`;
+    const codes = Object.entries(issueCodes)
+      .map(([code, count]) => `${code}=${count}`)
+      .join(', ');
+
+    const entries: ValidationLogEntry[] = [
+      { level: 'info', message: `[${timestamp}] ${summary}` },
+      { level: 'info', message: `[${timestamp}] Issue codes: ${codes || 'none'}.` },
+    ];
+
+    for (const [levelId, levelData] of Object.entries(result.perLevel)) {
+      if (levelData.issues.length === 0) {
+        continue;
+      }
+
+      entries.push({
+        level: 'info',
+        message: `[${timestamp}] Level ${levelId}: rooms=${levelData.roomCount}, issues=${levelData.issues.length}, uncovered=${levelData.uncoveredPolygons?.length ?? 0}, overlaps=${levelData.overlapPairs?.length ?? 0}.`,
+      });
+    }
+
+    for (const issue of result.issues) {
+      entries.push({
+        level: issue.severity === 'error' ? 'error' : 'info',
+        message: `[${timestamp}] ${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ''}: ${issue.message}`,
+      });
+    }
+
+    return entries;
+  };
 
   const runFloorplanValidation = () => {
     const timestamp = new Date().toLocaleTimeString();
@@ -112,10 +156,12 @@ export default function HouseViewer() {
     ]);
 
     try {
-      const issues = validateFloorplanReport(houseWithInjectedInteriorWall);
+      const result = validateFloorplan(houseWithInjectedInteriorWall);
+      setValidationResult(result);
 
-      if (issues.length === 0) {
+      if (result.issueCount === 0) {
         setValidationLog((current) => [
+          ...buildValidationEntries(result, timestamp),
           { level: 'info', message: `[${timestamp}] Floorplan validation passed.` },
           ...current,
         ]);
@@ -123,18 +169,23 @@ export default function HouseViewer() {
       }
 
       setValidationLog((current) => [
-        ...issues.map((issue) => ({ level: 'error' as const, message: `[${timestamp}] ${issue.message}` })),
+        ...buildValidationEntries(result, timestamp),
         ...current,
       ]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Validation failed with an unknown error.';
+      const message = error instanceof Error ? error.message : 'Unknown validator error.';
+      setValidationResult(null);
       setValidationLog((current) => [
-        { level: 'error', message: `[${timestamp}] ${message}` },
+        { level: 'error', message: `[${timestamp}] Validation crashed: ${message}` },
         ...current,
       ]);
     }
   };
 
+  const clearValidationOutput = () => {
+    setValidationResult(null);
+    setValidationLog([{ level: 'info', message: 'Validation output cleared.' }]);
+  };
 
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
@@ -165,6 +216,14 @@ export default function HouseViewer() {
           <EngineHouse architecturalHouse={houseWithInjectedInteriorWall} showEnvelope={showEnvelope} />
           <DebugAxes />
           {debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
+          {debugEnabled && (
+            <FloorplanValidationOverlay
+              architecturalHouse={houseWithInjectedInteriorWall}
+              validationResult={validationResult}
+              showFloorplanOverlay={showFloorplanOverlay}
+              showValidationIssues={showValidationIssues}
+            />
+          )}
         </group>
 
         {debugEnabled && <WireframeOverride enabled={showWireframe} />}
@@ -195,7 +254,12 @@ export default function HouseViewer() {
             onShowOpeningEdgesChange={setShowOpeningEdges}
             initialJson={initialJson}
             onApplyArchitecturalHouse={setHouse}
-            onValidateFloorplan={runFloorplanValidation}
+            onRunFloorplanValidation={runFloorplanValidation}
+            showFloorplanOverlay={showFloorplanOverlay}
+            onToggleFloorplanOverlay={() => setShowFloorplanOverlay((value) => !value)}
+            showValidationIssues={showValidationIssues}
+            onToggleValidationIssues={() => setShowValidationIssues((value) => !value)}
+            onClearValidationOutput={clearValidationOutput}
             validationLog={validationLog}
           />
         </>

@@ -71,6 +71,124 @@ function describeMissingRegions(missing: MultiPolygon, maxRegions = 4): string {
 }
 
 
+
+
+function dot2(ax: number, az: number, bx: number, bz: number): number {
+  return ax * bx + az * bz;
+}
+
+function getParallelDistanceToEdge(point: Vec2, edgeStart: Vec2, edgeEnd: Vec2): number {
+  const ex = edgeEnd.x - edgeStart.x;
+  const ez = edgeEnd.z - edgeStart.z;
+  const edgeLength = Math.hypot(ex, ez);
+
+  if (edgeLength <= EPSILON) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.abs(cross2(ex, ez, point.x - edgeStart.x, point.z - edgeStart.z)) / edgeLength;
+}
+
+function getProjectedIntervalOnEdge(segmentStart: Vec2, segmentEnd: Vec2, edgeStart: Vec2, edgeEnd: Vec2): [number, number] {
+  const ex = edgeEnd.x - edgeStart.x;
+  const ez = edgeEnd.z - edgeStart.z;
+  const edgeLength = Math.hypot(ex, ez);
+
+  if (edgeLength <= EPSILON) {
+    return [0, 0];
+  }
+
+  const ux = ex / edgeLength;
+  const uz = ez / edgeLength;
+
+  const t1 = dot2(segmentStart.x - edgeStart.x, segmentStart.z - edgeStart.z, ux, uz);
+  const t2 = dot2(segmentEnd.x - edgeStart.x, segmentEnd.z - edgeStart.z, ux, uz);
+
+  return [Math.min(t1, t2), Math.max(t1, t2)];
+}
+
+function intervalOverlapLength(aMin: number, aMax: number, bMin: number, bMax: number): number {
+  return Math.max(0, Math.min(aMax, bMax) - Math.max(aMin, bMin));
+}
+
+function collectInteriorWallExteriorWindowConflicts(
+  arch: ArchitecturalHouse,
+  level: LevelSpec
+): FloorplanValidationIssue[] {
+  const issues: FloorplanValidationIssue[] = [];
+  const interiorWalls = (arch.interiorWalls ?? []).filter((wall) => wall.levelId === level.id);
+  const openings = (arch.openings ?? []).filter(
+    (opening) => opening.levelId === level.id && opening.edge.ring === 'outer'
+  );
+
+  if (interiorWalls.length === 0 || openings.length === 0) {
+    return issues;
+  }
+
+  const nearThreshold = Math.max(0.15, arch.wallThickness * 0.9);
+
+  for (const wall of interiorWalls) {
+    const wallDx = wall.end.x - wall.start.x;
+    const wallDz = wall.end.z - wall.start.z;
+    const wallLength = Math.hypot(wallDx, wallDz);
+
+    if (wallLength <= EPSILON) {
+      continue;
+    }
+
+    for (let edgeIndex = 0; edgeIndex < level.footprint.outer.length; edgeIndex += 1) {
+      const edgeStart = level.footprint.outer[edgeIndex];
+      const edgeEnd = level.footprint.outer[(edgeIndex + 1) % level.footprint.outer.length];
+      const edgeDx = edgeEnd.x - edgeStart.x;
+      const edgeDz = edgeEnd.z - edgeStart.z;
+      const edgeLength = Math.hypot(edgeDx, edgeDz);
+
+      if (edgeLength <= EPSILON) {
+        continue;
+      }
+
+      const parallelness = Math.abs(cross2(wallDx, wallDz, edgeDx, edgeDz)) / (wallLength * edgeLength);
+      if (parallelness > 0.02) {
+        continue;
+      }
+
+      const [wallProjMin, wallProjMax] = getProjectedIntervalOnEdge(wall.start, wall.end, edgeStart, edgeEnd);
+      const clampedWallMin = Math.max(0, Math.min(edgeLength, wallProjMin));
+      const clampedWallMax = Math.max(0, Math.min(edgeLength, wallProjMax));
+
+      if (intervalOverlapLength(clampedWallMin, clampedWallMax, 0, edgeLength) <= EPSILON) {
+        continue;
+      }
+
+      const distance = Math.min(
+        getParallelDistanceToEdge(wall.start, edgeStart, edgeEnd),
+        getParallelDistanceToEdge(wall.end, edgeStart, edgeEnd)
+      );
+
+      if (distance > nearThreshold) {
+        continue;
+      }
+
+      const edgeOpenings = openings.filter((opening) => opening.edge.edgeIndex === edgeIndex);
+
+      for (const opening of edgeOpenings) {
+        const openingMin = opening.offset;
+        const openingMax = opening.offset + opening.width;
+        const overlap = intervalOverlapLength(clampedWallMin, clampedWallMax, openingMin, openingMax);
+
+        if (overlap > EPSILON) {
+          issues.push({
+            message:
+              `Interior wall ${wall.id} sits next to exterior wall with opening ${opening.id} ` +
+              `on level ${level.id} edge ${edgeIndex} (distance ${round2(distance)}m, overlap ${round2(overlap)}m).`,
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
 export type FloorplanValidationIssue = {
   message: string;
 };
@@ -427,6 +545,7 @@ export function validateFloorplanReport(architecturalHouse: ArchitecturalHouse):
     }
 
     issues.push(...collectLevelValidationIssues(level, rooms));
+    issues.push(...collectInteriorWallExteriorWindowConflicts(architecturalHouse, level));
   }
 
   return issues;

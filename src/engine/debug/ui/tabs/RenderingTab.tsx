@@ -12,7 +12,12 @@ type Props = {
   onShowEdgesChange: (enabled: boolean) => void;
   showOpeningEdges: boolean;
   onShowOpeningEdgesChange: (enabled: boolean) => void;
-  onValidateFloorplan: () => void;
+  onRunFloorplanValidation: () => void;
+  showFloorplanOverlay: boolean;
+  onToggleFloorplanOverlay: () => void;
+  showValidationIssues: boolean;
+  onToggleValidationIssues: () => void;
+  onClearValidationOutput: () => void;
   validationLog?: ValidationLogEntry[];
 };
 
@@ -50,23 +55,22 @@ export function RenderingTab({
   onShowEdgesChange,
   showOpeningEdges,
   onShowOpeningEdgesChange,
-  onValidateFloorplan,
+  onRunFloorplanValidation,
+  showFloorplanOverlay,
+  onToggleFloorplanOverlay,
+  showValidationIssues,
+  onToggleValidationIssues,
+  onClearValidationOutput,
   validationLog = [],
 }: Props) {
   const [localLog, setLocalLog] = useState<ValidationLogEntry[]>([]);
 
-  const combinedLog = useMemo(
-    () => [...localLog, ...validationLog],
-    [localLog, validationLog]
-  );
+  const combinedLog = useMemo(() => [...localLog, ...validationLog], [localLog, validationLog]);
 
   const handleValidateClick = () => {
     const timestamp = new Date().toLocaleTimeString();
-    setLocalLog((current) => [
-      { level: 'info', message: `[${timestamp}] Validate button clicked.` },
-      ...current,
-    ]);
-    onValidateFloorplan();
+    setLocalLog((current) => [{ level: 'info', message: `[${timestamp}] Validation requested.` }, ...current]);
+    onRunFloorplanValidation();
   };
 
   return (
@@ -76,29 +80,24 @@ export function RenderingTab({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <ToggleRow label="Wireframe mode" checked={showWireframe} onChange={onShowWireframeChange} />
         <ToggleRow label="Show structural edges" checked={showEdges} onChange={onShowEdgesChange} />
-        <ToggleRow
-          label="Show opening/frame edges"
-          checked={showOpeningEdges}
-          onChange={onShowOpeningEdgesChange}
-        />
+        <ToggleRow label="Show opening/frame edges" checked={showOpeningEdges} onChange={onShowOpeningEdgesChange} />
       </div>
 
       <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
-        <button
-          type="button"
-          onClick={handleValidateClick}
-          style={{
-            justifySelf: 'start',
-            borderRadius: 8,
-            border: '1px solid rgba(125, 211, 252, 0.8)',
-            background: 'rgba(3, 105, 161, 0.35)',
-            color: '#f8fafc',
-            padding: '8px 12px',
-            cursor: 'pointer',
-          }}
-        >
-          Validate floorplan
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={handleValidateClick}>
+            Run Floorplan Validation
+          </button>
+          <button type="button" onClick={onToggleFloorplanOverlay}>
+            {showFloorplanOverlay ? 'Hide Floorplan Overlay' : 'Toggle Floorplan Overlay'}
+          </button>
+          <button type="button" onClick={onToggleValidationIssues}>
+            {showValidationIssues ? 'Hide Validation Issues' : 'Toggle Validation Issues'}
+          </button>
+          <button type="button" onClick={onClearValidationOutput}>
+            Clear Validation Output
+          </button>
+        </div>
 
         <div
           style={{
@@ -107,13 +106,13 @@ export function RenderingTab({
             background: 'rgba(2, 6, 23, 0.55)',
             padding: 10,
             minHeight: 80,
-            maxHeight: 200,
+            maxHeight: 220,
             overflowY: 'auto',
           }}
         >
           {(combinedLog.length === 0 ? [{ level: 'info', message: 'No validation runs yet.' }] : combinedLog).map((entry, index) => {
             const tone = entry.level === 'error' ? '#fca5a5' : '#86efac';
-            const label = entry.level === 'error' ? 'Error' : 'OK';
+            const label = entry.level === 'error' ? 'Error' : 'Info';
 
             return (
               <div key={`${entry.message}-${index}`} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
@@ -124,7 +123,6 @@ export function RenderingTab({
           })}
         </div>
       </div>
-
     </div>
   );
 }

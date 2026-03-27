@@ -6,6 +6,7 @@ import { deriveOpenings } from './deriveOpenings';
 import { deriveRoofs } from './deriveRoofs';
 import { deriveSlabs } from './deriveSlabs';
 import { deriveAuxiliaryStructures } from './deriveAuxiliaryStructures';
+import { deriveRooms } from './deriveRooms';
 import { deriveWalls } from './deriveWalls';
 import type { DerivedHouse } from './types/DerivedHouse';
 
@@ -37,6 +38,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
   // Stage 2
   const openings = deriveOpenings(arch, { slabs, walls });
   const openingsRev = revisionCounter++;
+  const rooms = deriveRooms(arch);
 
   // Stage 3
   const roofs = deriveRoofs(arch, { slabs, walls, openings });
@@ -52,6 +54,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
     roofs,
     carports,
     openings,
+    rooms,
     exteriorAccesses,
     exteriorAccessCutouts,
     revisions: {

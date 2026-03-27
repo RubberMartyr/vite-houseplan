@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { useEffect, useMemo } from 'react';
 import type { LevelSpec, RoomSpec } from '../architecturalTypes';
-import { archToWorldXZ } from '../spaceMapping';
 
 type EngineRoomsProps = {
   rooms: RoomSpec[];
@@ -35,9 +34,8 @@ export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
           return null;
         }
 
-        const worldPolygon = room.polygon.map(archToWorldXZ);
         const shape = new THREE.Shape(
-          worldPolygon.map((point) => new THREE.Vector2(point.x, point.z))
+          room.polygon.map((point) => new THREE.Vector2(point.x, point.z))
         );
         const geometry = new THREE.ExtrudeGeometry(shape, {
           depth: level.height,

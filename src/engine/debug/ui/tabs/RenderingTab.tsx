@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 export type ValidationLogEntry = {
   level: 'error' | 'info';
   message: string;
@@ -51,6 +53,22 @@ export function RenderingTab({
   onValidateFloorplan,
   validationLog = [],
 }: Props) {
+  const [localLog, setLocalLog] = useState<ValidationLogEntry[]>([]);
+
+  const combinedLog = useMemo(
+    () => [...localLog, ...validationLog],
+    [localLog, validationLog]
+  );
+
+  const handleValidateClick = () => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLocalLog((current) => [
+      { level: 'info', message: `[${timestamp}] Validate button clicked.` },
+      ...current,
+    ]);
+    onValidateFloorplan();
+  };
+
   return (
     <div>
       <h3 style={{ marginTop: 0, marginBottom: 12 }}>Rendering</h3>
@@ -68,7 +86,7 @@ export function RenderingTab({
       <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
         <button
           type="button"
-          onClick={onValidateFloorplan}
+          onClick={handleValidateClick}
           style={{
             justifySelf: 'start',
             borderRadius: 8,
@@ -93,7 +111,7 @@ export function RenderingTab({
             overflowY: 'auto',
           }}
         >
-          {(validationLog.length === 0 ? [{ level: 'info', message: 'No validation runs yet.' }] : validationLog).map((entry, index) => {
+          {(combinedLog.length === 0 ? [{ level: 'info', message: 'No validation runs yet.' }] : combinedLog).map((entry, index) => {
             const tone = entry.level === 'error' ? '#fca5a5' : '#86efac';
             const label = entry.level === 'error' ? 'Error' : 'OK';
 

@@ -10,15 +10,15 @@ type EngineRoomsProps = {
 
 type RoomMeshData = {
   room: RoomSpec;
-  geometry: THREE.ShapeGeometry;
+  geometry: THREE.ExtrudeGeometry;
   y: number;
 };
 
-const ROOM_Y_OFFSET = 0.02;
+const ROOM_Y_OFFSET = 0.01;
 
 export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
   console.log('ROOMS IN ENGINE:', rooms);
-  console.log('EngineRooms rooms:', rooms.length);
+  console.log('EngineRooms:', rooms.length);
   const levelById = useMemo(
     () => new Map(levels.map((level) => [level.id, level])),
     [levels]
@@ -39,12 +39,16 @@ export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
         const shape = new THREE.Shape(
           worldPolygon.map((point) => new THREE.Vector2(point.x, point.z))
         );
-        const geometry = new THREE.ShapeGeometry(shape);
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+          depth: level.height,
+          bevelEnabled: false,
+        });
+        geometry.rotateX(-Math.PI / 2);
 
         return {
           room,
           geometry,
-          y: level.elevation + ROOM_Y_OFFSET,
+          y: level.elevation - level.slab.thickness + ROOM_Y_OFFSET,
         };
       })
       .filter((entry): entry is RoomMeshData => entry !== null);
@@ -66,9 +70,9 @@ export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
         <mesh
           key={room.id}
           geometry={geometry}
-          rotation={[-Math.PI / 2, 0, 0]}
           position={[0, y, 0]}
-          onClick={() => {
+          onPointerDown={(event) => {
+            event.stopPropagation();
             console.log('ROOM CLICKED:', room.id, room.name);
           }}
           userData={{ type: 'room', roomId: room.id, roomName: room.name }}
@@ -76,7 +80,7 @@ export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
           <meshBasicMaterial
             color={0xff0000}
             transparent
-            opacity={0.3}
+            opacity={0.25}
             side={THREE.DoubleSide}
             depthWrite={false}
           />

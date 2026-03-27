@@ -16,7 +16,12 @@ type Props = {
   onShowOpeningEdgesChange: (enabled: boolean) => void;
   initialJson: string;
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
-  onValidateFloorplan: () => void;
+  onRunFloorplanValidation: () => void;
+  showFloorplanOverlay: boolean;
+  onToggleFloorplanOverlay: () => void;
+  showValidationIssues: boolean;
+  onToggleValidationIssues: () => void;
+  onClearValidationOutput: () => void;
   validationLog?: ValidationLogEntry[];
 };
 
@@ -74,7 +79,12 @@ export function DebugDashboard({
   onShowOpeningEdgesChange,
   initialJson,
   onApplyArchitecturalHouse,
-  onValidateFloorplan,
+  onRunFloorplanValidation,
+  showFloorplanOverlay,
+  onToggleFloorplanOverlay,
+  showValidationIssues,
+  onToggleValidationIssues,
+  onClearValidationOutput,
   validationLog = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('rendering');
@@ -167,7 +177,12 @@ export function DebugDashboard({
                 onShowEdgesChange={onShowEdgesChange}
                 showOpeningEdges={showOpeningEdges}
                 onShowOpeningEdgesChange={onShowOpeningEdgesChange}
-                onValidateFloorplan={onValidateFloorplan}
+                onRunFloorplanValidation={onRunFloorplanValidation}
+                showFloorplanOverlay={showFloorplanOverlay}
+                onToggleFloorplanOverlay={onToggleFloorplanOverlay}
+                showValidationIssues={showValidationIssues}
+                onToggleValidationIssues={onToggleValidationIssues}
+                onClearValidationOutput={onClearValidationOutput}
                 validationLog={validationLog}
               />
             )}

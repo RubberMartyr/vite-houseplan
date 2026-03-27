@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ArchitecturalHouse } from '../../architecturalTypes';
 import { JsonEditorTab } from './tabs/JsonEditorTab';
-import { RenderingTab } from './tabs/RenderingTab';
+import { RenderingTab, type ValidationLogEntry } from './tabs/RenderingTab';
 
 type TabId = 'rendering' | 'json';
 
@@ -16,6 +16,8 @@ type Props = {
   onShowOpeningEdgesChange: (enabled: boolean) => void;
   initialJson: string;
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
+  onValidateFloorplan: () => void;
+  validationLog: ValidationLogEntry[];
 };
 
 export function DebugDashboard({
@@ -29,6 +31,8 @@ export function DebugDashboard({
   onShowOpeningEdgesChange,
   initialJson,
   onApplyArchitecturalHouse,
+  onValidateFloorplan,
+  validationLog,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('rendering');
 
@@ -60,6 +64,8 @@ export function DebugDashboard({
         onShowEdgesChange={onShowEdgesChange}
         showOpeningEdges={showOpeningEdges}
         onShowOpeningEdgesChange={onShowOpeningEdgesChange}
+        onValidateFloorplan={onValidateFloorplan}
+        validationLog={validationLog}
       />
     );
   }, [
@@ -69,9 +75,11 @@ export function DebugDashboard({
     onShowEdgesChange,
     onShowOpeningEdgesChange,
     onShowWireframeChange,
+    onValidateFloorplan,
     showEdges,
     showOpeningEdges,
     showWireframe,
+    validationLog,
   ]);
 
   if (!isOpen) {

@@ -65,13 +65,15 @@ function issueEdgeLines(issues: ValidationIssue[], levelById: Map<string, LevelS
     .map((issue, index) => {
       const levelY = (issue.levelId ? levelById.get(issue.levelId)?.elevation : undefined) ?? 0;
       const color =
-        issue.code === 'ROOM_EDGE_MISMATCH'
+        issue.code === 'ROOM_T_JUNCTION'
           ? '#22d3ee'
-          : issue.code === 'ROOM_PARTIAL_SHARED_EDGE'
-            ? '#ff00ff'
-            : issue.code === 'INTERIOR_WALL_ON_EXTERIOR_BOUNDARY'
+          : issue.code === 'ROOM_PARTIAL_SHARED_EDGE' && issue.severity === 'warning'
+            ? '#facc15'
+            : issue.severity === 'error'
               ? '#fb923c'
-              : '#f8fafc';
+              : issue.severity === 'warning'
+                ? '#facc15'
+                : '#38bdf8';
       const a = archToWorldVec3(issue.edge!.a.x, levelY + 0.08, issue.edge!.a.z);
       const b = archToWorldVec3(issue.edge!.b.x, levelY + 0.08, issue.edge!.b.z);
       return {

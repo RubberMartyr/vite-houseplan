@@ -493,40 +493,165 @@ export const architecturalHouse: ArchitecturalHouse = {
   site,
   rooms: [
     {
-      id: 'room-ground-entry',
-      name: 'Entry',
+      id: 'room-ground-office',
+      name: 'Office',
       levelId: 'ground',
       polygon: [
-        { x: -3.2, z: 0.6 },
-        { x: -1.0, z: 0.6 },
-        { x: -1.0, z: 3.0 },
-        { x: -3.2, z: 3.0 },
+        { x: -4.8, z: 0.0 },
+        { x: -1.0, z: 0.0 },
+        { x: -1.0, z: 4.0 },
+        { x: -4.8, z: 4.0 },
       ],
-      edges: [{ type: 'wall' }, { type: 'open' }, { type: 'wall' }, { type: 'wall' }],
+      edges: [
+        { type: 'exterior' },
+        { type: 'wall' },
+        { type: 'wall' },
+        { type: 'exterior' },
+      ],
     },
+  
     {
-      id: 'room-ground-living',
-      name: 'Living',
+      id: 'room-ground-hall',
+      name: 'Hall',
       levelId: 'ground',
       polygon: [
-        { x: -0.8, z: 0.6 },
-        { x: 4.2, z: 0.6 },
-        { x: 4.2, z: 6.4 },
-        { x: -0.8, z: 6.4 },
+        { x: -1.0, z: 0.0 },
+        { x: 1.2, z: 0.0 },
+        { x: 1.2, z: 4.0 },
+        { x: -1.0, z: 4.0 },
       ],
-      edges: [{ type: 'wall' }, { type: 'wall' }, { type: 'open' }, { type: 'open' }],
+      edges: [
+        { type: 'exterior' },
+        { type: 'wall' },
+        { type: 'wall' },
+        { type: 'wall' },
+      ],
     },
+  
+    {
+      id: 'room-ground-wc',
+      name: 'WC',
+      levelId: 'ground',
+      polygon: [
+        { x: 1.2, z: 0.0 },
+        { x: 4.8, z: 0.0 },
+        { x: 4.8, z: 1.8 },
+        { x: 1.2, z: 1.8 },
+      ],
+      edges: [
+        { type: 'exterior' },
+        { type: 'exterior' },
+        { type: 'wall' },
+        { type: 'wall' },
+      ],
+    },
+  
+    {
+      id: 'room-ground-entry-storage',
+      name: 'Entry Storage',
+      levelId: 'ground',
+      polygon: [
+        { x: 1.2, z: 1.8 },
+        { x: 4.8, z: 1.8 },
+        { x: 4.8, z: 4.0 },
+        { x: 1.2, z: 4.0 },
+      ],
+      edges: [
+        { type: 'wall' },
+        { type: 'exterior' },
+        { type: 'wall' },
+        { type: 'wall' },
+      ],
+    },
+  
+    {
+      id: 'room-ground-lounge',
+      name: 'Lounge',
+      levelId: 'ground',
+      polygon: [
+        { x: -4.1, z: 4.0 },
+        { x: 1.2, z: 4.0 },
+        { x: 1.2, z: 8.45 },
+        { x: -4.1, z: 8.45 },
+      ],
+      edges: [
+        { type: 'wall' },
+        { type: 'wall' },
+        { type: 'open' },
+        { type: 'exterior' },
+      ],
+    },
+  
+    {
+      id: 'room-ground-stairs-core',
+      name: 'Stairs Core',
+      levelId: 'ground',
+      polygon: [
+        { x: 1.2, z: 4.0 },
+        { x: 2.8, z: 4.0 },
+        { x: 2.8, z: 8.45 },
+        { x: 1.2, z: 8.45 },
+      ],
+      edges: [
+        { type: 'wall' },
+        { type: 'wall' },
+        { type: 'wall' },
+        { type: 'wall' },
+      ],
+    },
+  
+    {
+      id: 'room-ground-storage',
+      name: 'Storage',
+      levelId: 'ground',
+      polygon: [
+        { x: 2.8, z: 4.0 },
+        { x: 4.8, z: 4.0 },
+        { x: 4.8, z: 8.45 },
+        { x: 2.8, z: 8.45 },
+      ],
+      edges: [
+        { type: 'wall' },
+        { type: 'exterior' },
+        { type: 'wall' },
+        { type: 'wall' },
+      ],
+    },
+  
+    {
+      id: 'room-ground-dining',
+      name: 'Dining',
+      levelId: 'ground',
+      polygon: [
+        { x: -3.5, z: 8.45 },
+        { x: 2.8, z: 8.45 },
+        { x: 2.8, z: 12.0 },
+        { x: -3.5, z: 12.0 },
+      ],
+      edges: [
+        { type: 'open' },
+        { type: 'wall' },
+        { type: 'wall' },
+        { type: 'exterior' },
+      ],
+    },
+  
     {
       id: 'room-ground-kitchen',
       name: 'Kitchen',
       levelId: 'ground',
       polygon: [
-        { x: -3.2, z: 3.4 },
-        { x: -0.8, z: 3.4 },
-        { x: -0.8, z: 7.8 },
-        { x: -3.2, z: 7.8 },
+        { x: -3.5, z: 12.0 },
+        { x: 4.8, z: 12.0 },
+        { x: 4.8, z: 15.0 },
+        { x: -3.5, z: 15.0 },
       ],
-      edges: [{ type: 'wall' }, { type: 'open' }, { type: 'wall' }, { type: 'wall' }],
+      edges: [
+        { type: 'wall' },
+        { type: 'exterior' },
+        { type: 'exterior' },
+        { type: 'exterior' },
+      ],
     },
   ],
 

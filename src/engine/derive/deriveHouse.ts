@@ -7,6 +7,7 @@ import { deriveSlabs } from './deriveSlabs';
 import { deriveAuxiliaryStructures } from './deriveAuxiliaryStructures';
 import { deriveRooms } from './deriveRooms';
 import { deriveWalls } from './deriveWalls';
+import { getStructuralWallHeight } from './getStructuralWallHeight';
 import type { DerivedHouse } from './types/DerivedHouse';
 
 let revisionCounter = 1;
@@ -18,7 +19,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
     {
       getLevels: (house) => house.levels,
       getLevelElevation: (level) => (level as LevelSpec).elevation,
-      getLevelHeight: (level) => (level as LevelSpec).height,
+      getLevelHeight: (_level, index) => getStructuralWallHeight(arch.levels, index),
       getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
       elevationConvention: 'TOP_OF_SLAB',
       allowGroundSupport: true,

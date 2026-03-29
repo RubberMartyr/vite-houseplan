@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import React, { useEffect, useMemo } from 'react';
 import type { LevelSpec, RoomSpec } from '../architecturalTypes';
 import { buildRoomPrismGeometry } from '../geometry/buildRoomPrismGeometry';
+import { getStructuralWallHeight } from '../derive/getStructuralWallHeight';
 
 type EngineRoomsProps = {
   rooms: RoomSpec[];
@@ -41,7 +42,12 @@ export function EngineRooms({ rooms, levels }: EngineRoomsProps) {
         }
 
         const baseY = level.elevation - level.slab.thickness;
-        const height = level.height;
+        const levelIndex = levels.findIndex((l) => l.id === level.id);
+        if (levelIndex < 0) {
+          return null;
+        }
+
+        const height = getStructuralWallHeight(levels, levelIndex);
 
         const geometry = buildRoomPrismGeometry({
           polygon: room.polygon,

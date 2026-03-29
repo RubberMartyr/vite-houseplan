@@ -7,6 +7,7 @@ export type ValidationIssue = {
     | 'SLAB_MISSING'
     | 'SLAB_FLOATING'
     | 'WALL_FLOATING'
+    | 'WALL_TOP_MISALIGNED'
     | 'LEVEL_ORDER_INVALID'
     | 'LEVEL_GAP_UNSUPPORTED';
   message: string;
@@ -88,6 +89,29 @@ function slabBottom(elevation: number, thickness: number, convention: 'TOP_OF_SL
   return convention === 'TOP_OF_SLAB' ? elevation - thickness : elevation;
 }
 
+function expectedWallTopAtSlabUnderside(
+  nextElevation: number,
+  nextSlabThickness: number,
+  convention: 'TOP_OF_SLAB' | 'BOTTOM_OF_SLAB'
+) {
+  return convention === 'TOP_OF_SLAB'
+    ? nextElevation - nextSlabThickness
+    : nextElevation;
+}
+
+function getWallTopAlignmentDelta(
+  currentElevation: number,
+  wallHeight: number,
+  nextElevation: number,
+  nextSlabThickness: number,
+  convention: 'TOP_OF_SLAB' | 'BOTTOM_OF_SLAB'
+) {
+  const actualWallTop = currentElevation + wallHeight;
+  const expectedWallTop = expectedWallTopAtSlabUnderside(nextElevation, nextSlabThickness, convention);
+  const diff = actualWallTop - expectedWallTop;
+  return { actualWallTop, expectedWallTop, diff };
+}
+
 /**
  * Validates “no floating slabs / walls” using only your structural model.
  * - Ensures each level has slab if walls are expected.
@@ -127,6 +151,7 @@ export function validateStructure<House>(
     const elevation = adapter.getLevelElevation(level, i);
     const height = adapter.getLevelHeight(level, i);
     const thickness = adapter.getSlabThickness(level, i);
+    const nextLevel = levels[i + 1];
 
     // 1) Slab must exist (strict structural guarantee)
     if (thickness == null || !Number.isFinite(thickness) || thickness <= 0) {
@@ -225,6 +250,31 @@ export function validateStructure<House>(
         message: `Level ${i} has invalid height (got ${String(height)}).`,
         details: { elevation, height },
       });
+    }
+
+    if (nextLevel) {
+      const nextElevation = adapter.getLevelElevation(nextLevel, i + 1);
+      const nextThickness = adapter.getSlabThickness(nextLevel, i + 1);
+      if (nextThickness != null && Number.isFinite(nextThickness) && nextThickness > 0) {
+        const { actualWallTop, expectedWallTop, diff } = getWallTopAlignmentDelta(
+          elevation,
+          height,
+          nextElevation,
+          nextThickness,
+          adapter.elevationConvention
+        );
+        if (Math.abs(diff) > eps) {
+          issues.push({
+            severity: 'warning',
+            code: 'WALL_TOP_MISALIGNED',
+            levelIndex: i,
+            message: `Level ${i} wall top mismatch. Expected wall top ≈ slab underside above (${expectedWallTop.toFixed(
+              3
+            )}), got ${actualWallTop.toFixed(3)} (Δ ${diff.toFixed(3)}m).`,
+            details: { actualWallTop, expectedWallTop, diff, eps },
+          });
+        }
+      }
     }
   }
 

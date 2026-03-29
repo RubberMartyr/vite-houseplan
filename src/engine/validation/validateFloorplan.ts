@@ -804,7 +804,6 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
             hasTypeMismatch: false,
             hasTJunction: false,
           });
-          continue;
         }
 
         if (relationship === 'disjoint') {

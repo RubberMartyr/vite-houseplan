@@ -91,12 +91,12 @@ const toolbarStyle: React.CSSProperties = {
 };
 
 const baseToggleStyle: React.CSSProperties = {
-  border: '1px solid rgba(146, 165, 196, 0.36)',
+  border: '1px solid rgba(146, 165, 196, 0.4)',
   borderRadius: 999,
-  padding: '7px 14px',
+  padding: '8px 15px',
   fontSize: 13,
   fontWeight: 700,
-  letterSpacing: 0.2,
+  letterSpacing: 0.25,
   cursor: 'pointer',
   transition: 'all 180ms ease',
 };
@@ -140,13 +140,18 @@ export default function HouseViewer() {
     [house.levels]
   );
 
-  const showRooms = !toggles.showWalls && toggles.roomsEnabled;
+  const showRooms =
+    toggles.roomsEnabled &&
+    !toggles.showWalls &&
+    !toggles.showRoof &&
+    !toggles.showGlass &&
+    !toggles.showSlabs;
 
   useEffect(() => {
-    if (toggles.showWalls) {
+    if (!showRooms) {
       setHoveredRoomId(null);
     }
-  }, [toggles.showWalls]);
+  }, [showRooms]);
 
   const houseWithInjectedInteriorWall = useMemo<ArchitecturalHouse>(() => {
     const arch: ArchitecturalHouse = {
@@ -244,7 +249,7 @@ export default function HouseViewer() {
     { key: 'showRoof' as const, label: 'Roof' },
     { key: 'showSlabs' as const, label: 'Slabs' },
     { key: 'roomsEnabled' as const, label: 'Rooms' },
-    { key: 'showGlass' as const, label: 'Glass' },
+    { key: 'showGlass' as const, label: 'Windows' },
     { key: 'showDebug' as const, label: 'Debug' },
   ];
 
@@ -320,12 +325,18 @@ export default function HouseViewer() {
               type="button"
               style={{
                 ...baseToggleStyle,
-                background: isActive ? 'rgba(77, 166, 255, 0.28)' : 'rgba(24, 34, 52, 0.72)',
-                color: isActive ? '#ffffff' : 'rgba(201, 214, 236, 0.72)',
-                opacity: isActive ? 1 : 0.74,
-                boxShadow: isActive ? '0 0 0 1px rgba(118, 197, 255, 0.5), 0 0 16px rgba(57, 145, 220, 0.34)' : 'none',
+                background: isActive
+                  ? 'linear-gradient(180deg, rgba(106, 188, 255, 0.48), rgba(39, 127, 214, 0.46))'
+                  : 'linear-gradient(180deg, rgba(21, 31, 47, 0.9), rgba(13, 20, 31, 0.88))',
+                color: isActive ? '#eff8ff' : 'rgba(173, 188, 210, 0.72)',
+                borderColor: isActive ? 'rgba(156, 218, 255, 0.68)' : 'rgba(108, 126, 152, 0.42)',
+                boxShadow: isActive
+                  ? '0 0 0 1px rgba(142, 213, 255, 0.55), 0 0 18px rgba(53, 151, 255, 0.28), inset 0 0 16px rgba(172, 228, 255, 0.14)'
+                  : 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
               }}
               onClick={() => setToggles((current) => ({ ...current, [key]: !current[key] }))}
+              aria-pressed={isActive}
+              title={`${label}: ${isActive ? 'ON' : 'OFF'}`}
             >
               {label}
             </button>

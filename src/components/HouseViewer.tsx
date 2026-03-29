@@ -18,6 +18,7 @@ import { isDebugEnabled } from '../engine/debug/ui/debugMode';
 import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
 import { DebugEdges } from './debug/DebugEdges';
 import { FloorplanValidationOverlay } from '../engine/debug/FloorplanValidationOverlay';
+import { RoomInfoCard } from './RoomInfoCard';
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -57,26 +58,47 @@ function DebugAxes() {
   return null;
 }
 
-type SceneVisibility = {
-  showEnvelope: boolean;
+type ToggleState = {
+  showWalls: boolean;
+  showRoof: boolean;
+  showSlabs: boolean;
+  roomsEnabled: boolean;
+  showGlass: boolean;
+  showDebug: boolean;
 };
 
-const overlayButtonStyle: React.CSSProperties = {
+type SelectedRoomState = {
+  id: string;
+  name: string;
+  levelName?: string;
+};
+
+const toolbarStyle: React.CSSProperties = {
   position: 'absolute',
   top: 16,
   left: 16,
-  zIndex: 10,
-  padding: '10px 14px',
+  zIndex: 11,
+  display: 'flex',
+  gap: 10,
+  flexWrap: 'wrap',
+  maxWidth: 'min(88vw, 760px)',
+  padding: 10,
+  borderRadius: 16,
+  border: '1px solid rgba(125, 160, 212, 0.24)',
+  background: 'rgba(7, 13, 24, 0.62)',
+  boxShadow: '0 16px 34px rgba(4, 8, 15, 0.35)',
+  backdropFilter: 'blur(10px)',
+};
+
+const baseToggleStyle: React.CSSProperties = {
+  border: '1px solid rgba(146, 165, 196, 0.36)',
   borderRadius: 999,
-  border: '1px solid rgba(15, 23, 42, 0.15)',
-  background: 'rgba(255, 255, 255, 0.92)',
-  color: '#0f172a',
-  fontSize: 14,
-  fontWeight: 600,
-  lineHeight: 1.2,
-  boxShadow: '0 10px 24px rgba(15, 23, 42, 0.12)',
+  padding: '7px 14px',
+  fontSize: 13,
+  fontWeight: 700,
+  letterSpacing: 0.2,
   cursor: 'pointer',
-  backdropFilter: 'blur(6px)',
+  transition: 'all 180ms ease',
 };
 
 export default function HouseViewer() {
@@ -92,13 +114,39 @@ export default function HouseViewer() {
   const [validationLog, setValidationLog] = useState<ValidationLogEntry[]>([
     { level: 'info', message: 'Use "Run Floorplan Validation" in Debug to run checks.' },
   ]);
-  const [{ showEnvelope }, setSceneVisibility] = useState<SceneVisibility>({
-    showEnvelope: true,
+  const [toggles, setToggles] = useState<ToggleState>({
+    showWalls: true,
+    showRoof: true,
+    showSlabs: true,
+    roomsEnabled: true,
+    showGlass: true,
+    showDebug: debugEnabled,
   });
+  const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<SelectedRoomState | null>(null);
 
   useEffect(() => {
     setHouse(architecturalHouse);
   }, [architecturalHouse]);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = 'default';
+    };
+  }, []);
+
+  const roomLevelById = useMemo(
+    () => new Map(house.levels.map((level) => [level.id, level.name])),
+    [house.levels]
+  );
+
+  const showRooms = !toggles.showWalls && toggles.roomsEnabled;
+
+  useEffect(() => {
+    if (toggles.showWalls) {
+      setHoveredRoomId(null);
+    }
+  }, [toggles.showWalls]);
 
   const houseWithInjectedInteriorWall = useMemo<ArchitecturalHouse>(() => {
     const arch: ArchitecturalHouse = {
@@ -191,6 +239,15 @@ export default function HouseViewer() {
     setValidationLog([{ level: 'info', message: 'Validation output cleared.' }]);
   };
 
+  const toggleConfig = [
+    { key: 'showWalls' as const, label: 'Walls' },
+    { key: 'showRoof' as const, label: 'Roof' },
+    { key: 'showSlabs' as const, label: 'Slabs' },
+    { key: 'roomsEnabled' as const, label: 'Rooms' },
+    { key: 'showGlass' as const, label: 'Glass' },
+    { key: 'showDebug' as const, label: 'Debug' },
+  ];
+
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
       <Canvas
@@ -217,10 +274,28 @@ export default function HouseViewer() {
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
         <group>
-          <EngineHouse architecturalHouse={houseWithInjectedInteriorWall} showEnvelope={showEnvelope} />
+          <EngineHouse
+            architecturalHouse={houseWithInjectedInteriorWall}
+            showWalls={toggles.showWalls}
+            showRoof={toggles.showRoof}
+            showSlabs={toggles.showSlabs}
+            showGlass={toggles.showGlass}
+            showRooms={showRooms}
+            showDebug={toggles.showDebug}
+            selectedRoomId={selectedRoom?.id ?? null}
+            hoveredRoomId={hoveredRoomId}
+            onRoomHover={setHoveredRoomId}
+            onRoomSelect={(room) => {
+              setSelectedRoom({
+                id: room.id,
+                name: room.name,
+                levelName: roomLevelById.get(room.levelId) ?? room.levelId,
+              });
+            }}
+          />
           <DebugAxes />
-          {debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
-          {debugEnabled && (
+          {toggles.showDebug && debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
+          {toggles.showDebug && debugEnabled && (
             <FloorplanValidationOverlay
               architecturalHouse={houseWithInjectedInteriorWall}
               validationResult={validationResult}
@@ -230,21 +305,37 @@ export default function HouseViewer() {
           )}
         </group>
 
-        {debugEnabled && <WireframeOverride enabled={showWireframe} />}
+        {toggles.showDebug && debugEnabled && <WireframeOverride enabled={showWireframe} />}
 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
       </Canvas>
 
-      <button
-        type="button"
-        style={overlayButtonStyle}
-        onClick={() => setSceneVisibility((current) => ({ showEnvelope: !current.showEnvelope }))}
-      >
-        {showEnvelope ? 'Hide walls, roof, windows & ground' : 'Show walls, roof, windows & ground'}
-      </button>
+      <div style={toolbarStyle}>
+        {toggleConfig.map(({ key, label }) => {
+          const isActive = toggles[key];
+          return (
+            <button
+              key={key}
+              type="button"
+              style={{
+                ...baseToggleStyle,
+                background: isActive ? 'rgba(77, 166, 255, 0.28)' : 'rgba(24, 34, 52, 0.72)',
+                color: isActive ? '#ffffff' : 'rgba(201, 214, 236, 0.72)',
+                opacity: isActive ? 1 : 0.74,
+                boxShadow: isActive ? '0 0 0 1px rgba(118, 197, 255, 0.5), 0 0 16px rgba(57, 145, 220, 0.34)' : 'none',
+              }}
+              onClick={() => setToggles((current) => ({ ...current, [key]: !current[key] }))}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-      {debugEnabled && (
+      <RoomInfoCard roomName={selectedRoom?.name ?? null} levelName={selectedRoom?.levelName ?? null} />
+
+      {toggles.showDebug && debugEnabled && (
         <>
           <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />
           <DebugDashboard

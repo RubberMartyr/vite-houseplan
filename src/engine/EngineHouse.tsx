@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
-import type { ArchitecturalHouse } from './architecturalTypes';
+import type { ArchitecturalHouse, RoomSpec } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
 import { EdgeVisualizer } from './debug/EdgeVisualizer';
 import { EngineDebugHUD } from './debug/EngineDebugHUD';
 import { DerivedGraphOverlay } from './debug/DerivedGraphOverlay';
 import { OpeningAnchorDebug } from './debug/OpeningAnchorDebug';
 import { RoofPlaneVisualizer } from './debug/RoofPlaneVisualizer';
-import { debugFlags } from './debug/debugFlags';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineExteriorAccesses } from './render/EngineExteriorAccesses';
 import { EngineCarports } from './render/EngineCarports';
@@ -20,7 +19,16 @@ import { getWallVisibleBaseY, getWallVisibleTopY, type DerivedWallSegment } from
 
 type Props = {
   architecturalHouse: ArchitecturalHouse;
-  showEnvelope?: boolean;
+  showWalls?: boolean;
+  showRoof?: boolean;
+  showSlabs?: boolean;
+  showGlass?: boolean;
+  showRooms?: boolean;
+  showDebug?: boolean;
+  selectedRoomId?: string | null;
+  hoveredRoomId?: string | null;
+  onRoomSelect?: (room: RoomSpec) => void;
+  onRoomHover?: (roomId: string | null) => void;
 };
 
 const FOUNDATION_WALL_MATERIAL = {
@@ -30,7 +38,19 @@ const FOUNDATION_WALL_MATERIAL = {
   edgeColor: '#c8c8c8',
 } as const;
 
-export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) {
+export function EngineHouse({
+  architecturalHouse,
+  showWalls = true,
+  showRoof = true,
+  showSlabs = true,
+  showGlass = true,
+  showRooms = false,
+  showDebug = false,
+  selectedRoomId = null,
+  hoveredRoomId = null,
+  onRoomSelect,
+  onRoomHover,
+}: Props) {
   const derived: DerivedHouse = useMemo(
     () => {
       const arch = architecturalHouse;
@@ -110,7 +130,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
       <EngineSite
         site={architecturalHouse.site}
         cutouts={derived.exteriorAccessCutouts.map((cutout) => cutout.polygon)}
-        visible={showEnvelope}
+        visible={showWalls}
       />
       <EngineWalls
         walls={clippedAboveGradeWalls}
@@ -118,7 +138,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
-        visible={showEnvelope}
+        visible={showWalls}
         wallMaterialSpec={architecturalHouse.materials?.walls}
         cacheKey="above-grade"
       />
@@ -128,7 +148,7 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         wallRevision={derived.revisions.walls}
         openingsRevision={0}
         levelFootprintsById={levelFootprintsById}
-        visible={showEnvelope}
+        visible={showWalls}
         wallMaterialSpec={FOUNDATION_WALL_MATERIAL}
         cacheKey="below-grade-band"
       />
@@ -138,44 +158,53 @@ export function EngineHouse({ architecturalHouse, showEnvelope = true }: Props) 
         wallRevision={derived.revisions.walls}
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
-        visible={showEnvelope}
+        visible={showWalls}
         wallMaterialSpec={FOUNDATION_WALL_MATERIAL}
         cacheKey="basement"
       />
-      <EngineRooms rooms={architecturalHouse.rooms ?? []} levels={architecturalHouse.levels} />
+      {showRooms && (
+        <EngineRooms
+          rooms={architecturalHouse.rooms ?? []}
+          levels={architecturalHouse.levels}
+          selectedRoomId={selectedRoomId}
+          hoveredRoomId={hoveredRoomId}
+          onRoomSelect={onRoomSelect}
+          onRoomHover={onRoomHover}
+        />
+      )}
       <EngineOpenings
         openings={derived.openings}
         wallThickness={architecturalHouse.wallThickness}
-        visible={showEnvelope}
+        visible={showGlass}
         windowsMaterialSpec={architecturalHouse.materials?.windows}
       />
       <EngineExteriorAccesses
         parts={derived.exteriorAccesses}
-        visible={showEnvelope}
+        visible={showWalls}
         wallMaterialSpec={architecturalHouse.materials?.walls}
       />
-      <EngineSlabs slabs={derived.slabs} />
+      <EngineSlabs slabs={derived.slabs} visible={showSlabs} />
       <EngineRoofs
         roofs={derived.roofs}
         roofRevision={derived.revisions.roofs}
         roofValidationEntries={[]}
-        visible={showEnvelope}
+        visible={showRoof}
         roofMaterialSpec={architecturalHouse.materials?.roof}
       />
       <EngineCarports
         carports={derived.carports}
         columnColor={architecturalHouse.materials?.windows?.frameColor}
-        visible={showEnvelope}
+        visible={showWalls}
       />
-      {debugFlags.enabled && (
+      {showDebug && (
         <>
           <EdgeVisualizer walls={derived.walls} />
           <OpeningAnchorDebug openings={derived.openings} />
+          <EngineDebugHUD derived={derived} />
+          <RoofPlaneVisualizer roofs={derived.roofs} />
+          <DerivedGraphOverlay derived={derived} />
         </>
       )}
-      <EngineDebugHUD derived={derived} />
-      <RoofPlaneVisualizer roofs={derived.roofs} />
-      <DerivedGraphOverlay derived={derived} />
     </>
   );
 }

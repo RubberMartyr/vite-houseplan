@@ -43,7 +43,7 @@ export function EngineRooms({
           return null;
         }
 
-        const baseY = level.elevation - level.slab.thickness;
+        const baseY = level.elevation;
         const levelIndex = levels.findIndex((l) => l.id === level.id);
         if (levelIndex < 0) {
           return null;

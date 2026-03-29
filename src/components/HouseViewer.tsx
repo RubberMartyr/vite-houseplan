@@ -59,11 +59,7 @@ function DebugAxes() {
 }
 
 type ToggleState = {
-  showWalls: boolean;
-  showRoof: boolean;
-  showSlabs: boolean;
-  roomsEnabled: boolean;
-  showGlass: boolean;
+  shellVisible: boolean;
   showDebug: boolean;
 };
 
@@ -101,6 +97,29 @@ const baseToggleStyle: React.CSSProperties = {
   transition: 'all 180ms ease',
 };
 
+const shellSwitchTrackStyle: React.CSSProperties = {
+  position: 'relative',
+  width: 64,
+  height: 34,
+  borderRadius: 999,
+  border: 'none',
+  padding: 0,
+  cursor: 'pointer',
+  transition: 'background 180ms ease, box-shadow 180ms ease',
+};
+
+const shellSwitchKnobStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 3,
+  left: 3,
+  width: 28,
+  height: 28,
+  borderRadius: '50%',
+  background: '#f5fbff',
+  boxShadow: '0 3px 10px rgba(0, 0, 0, 0.38)',
+  transition: 'transform 180ms ease',
+};
+
 export default function HouseViewer() {
   const debugEnabled = isDebugEnabled();
   const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
@@ -115,11 +134,7 @@ export default function HouseViewer() {
     { level: 'info', message: 'Use "Run Floorplan Validation" in Debug to run checks.' },
   ]);
   const [toggles, setToggles] = useState<ToggleState>({
-    showWalls: true,
-    showRoof: true,
-    showSlabs: true,
-    roomsEnabled: true,
-    showGlass: true,
+    shellVisible: true,
     showDebug: debugEnabled,
   });
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
@@ -140,12 +155,12 @@ export default function HouseViewer() {
     [house.levels]
   );
 
-  const showRooms =
-    toggles.roomsEnabled &&
-    !toggles.showWalls &&
-    !toggles.showRoof &&
-    !toggles.showGlass &&
-    !toggles.showSlabs;
+  const showWalls = toggles.shellVisible;
+  const showRoof = toggles.shellVisible;
+  const showGlass = toggles.shellVisible;
+  const showSlabs = true;
+  const showRooms = !toggles.shellVisible;
+  const showRoomInfoCard = !toggles.shellVisible && selectedRoom !== null;
 
   useEffect(() => {
     if (!showRooms) {
@@ -244,15 +259,6 @@ export default function HouseViewer() {
     setValidationLog([{ level: 'info', message: 'Validation output cleared.' }]);
   };
 
-  const toggleConfig = [
-    { key: 'showWalls' as const, label: 'Walls' },
-    { key: 'showRoof' as const, label: 'Roof' },
-    { key: 'showSlabs' as const, label: 'Slabs' },
-    { key: 'roomsEnabled' as const, label: 'Rooms' },
-    { key: 'showGlass' as const, label: 'Windows' },
-    { key: 'showDebug' as const, label: 'Debug' },
-  ];
-
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
       <Canvas
@@ -281,10 +287,10 @@ export default function HouseViewer() {
         <group>
           <EngineHouse
             architecturalHouse={houseWithInjectedInteriorWall}
-            showWalls={toggles.showWalls}
-            showRoof={toggles.showRoof}
-            showSlabs={toggles.showSlabs}
-            showGlass={toggles.showGlass}
+            showWalls={showWalls}
+            showRoof={showRoof}
+            showSlabs={showSlabs}
+            showGlass={showGlass}
             showRooms={showRooms}
             showDebug={toggles.showDebug}
             selectedRoomId={selectedRoom?.id ?? null}
@@ -317,34 +323,56 @@ export default function HouseViewer() {
       </Canvas>
 
       <div style={toolbarStyle}>
-        {toggleConfig.map(({ key, label }) => {
-          const isActive = toggles[key];
-          return (
-            <button
-              key={key}
-              type="button"
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: '#e7f0ff', fontWeight: 700, letterSpacing: 0.3 }}>Shell</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={toggles.shellVisible}
+            aria-label="Toggle shell visibility"
+            style={{
+              ...shellSwitchTrackStyle,
+              background: toggles.shellVisible ? 'linear-gradient(180deg, #40d47e, #1e9f56)' : 'linear-gradient(180deg, #39465e, #212b3d)',
+              boxShadow: toggles.shellVisible
+                ? '0 0 0 1px rgba(134, 255, 188, 0.4), 0 0 20px rgba(68, 231, 138, 0.35)'
+                : '0 0 0 1px rgba(111, 132, 166, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+            }}
+            onClick={() => setToggles((current) => ({ ...current, shellVisible: !current.shellVisible }))}
+            title={`Shell: ${toggles.shellVisible ? 'ON' : 'OFF'}`}
+          >
+            <span
               style={{
-                ...baseToggleStyle,
-                background: isActive
-                  ? 'linear-gradient(180deg, rgba(106, 188, 255, 0.48), rgba(39, 127, 214, 0.46))'
-                  : 'linear-gradient(180deg, rgba(21, 31, 47, 0.9), rgba(13, 20, 31, 0.88))',
-                color: isActive ? '#eff8ff' : 'rgba(173, 188, 210, 0.72)',
-                borderColor: isActive ? 'rgba(156, 218, 255, 0.68)' : 'rgba(108, 126, 152, 0.42)',
-                boxShadow: isActive
-                  ? '0 0 0 1px rgba(142, 213, 255, 0.55), 0 0 18px rgba(53, 151, 255, 0.28), inset 0 0 16px rgba(172, 228, 255, 0.14)'
-                  : 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+                ...shellSwitchKnobStyle,
+                transform: toggles.shellVisible ? 'translateX(30px)' : 'translateX(0)',
               }}
-              onClick={() => setToggles((current) => ({ ...current, [key]: !current[key] }))}
-              aria-pressed={isActive}
-              title={`${label}: ${isActive ? 'ON' : 'OFF'}`}
-            >
-              {label}
-            </button>
-          );
-        })}
+            />
+          </button>
+          <span style={{ color: '#d2dfee', fontWeight: 700, minWidth: 34 }}>
+            {toggles.shellVisible ? 'ON' : 'OFF'}
+          </span>
+        </div>
+        {debugEnabled && (
+          <button
+            type="button"
+            style={{
+              ...baseToggleStyle,
+              background: toggles.showDebug
+                ? 'linear-gradient(180deg, rgba(106, 188, 255, 0.48), rgba(39, 127, 214, 0.46))'
+                : 'linear-gradient(180deg, rgba(21, 31, 47, 0.9), rgba(13, 20, 31, 0.88))',
+              color: toggles.showDebug ? '#eff8ff' : 'rgba(173, 188, 210, 0.72)',
+              borderColor: toggles.showDebug ? 'rgba(156, 218, 255, 0.68)' : 'rgba(108, 126, 152, 0.42)',
+            }}
+            onClick={() => setToggles((current) => ({ ...current, showDebug: !current.showDebug }))}
+          >
+            Debug
+          </button>
+        )}
       </div>
 
-      <RoomInfoCard roomName={selectedRoom?.name ?? null} levelName={selectedRoom?.levelName ?? null} />
+      <RoomInfoCard
+        roomName={showRoomInfoCard ? selectedRoom?.name ?? null : null}
+        levelName={showRoomInfoCard ? selectedRoom?.levelName ?? null : null}
+      />
 
       {toggles.showDebug && debugEnabled && (
         <>

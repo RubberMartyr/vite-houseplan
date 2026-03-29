@@ -1,9 +1,11 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
 import type { ArchitecturalHouse } from '../../architecturalTypes';
+import { FloorplanValidationTab } from './tabs/FloorplanValidationTab';
 import { JsonEditorTab } from './tabs/JsonEditorTab';
 import { RenderingTab, type ValidationLogEntry } from './tabs/RenderingTab';
+import { VisibilityTab, type VisibilityState } from './tabs/VisibilityTab';
 
-type TabId = 'rendering' | 'json';
+type TabId = 'rendering' | 'floorplan-validation' | 'visibility' | 'json';
 
 type Props = {
   isOpen: boolean;
@@ -18,11 +20,13 @@ type Props = {
   onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
   onRunFloorplanValidation: () => void;
   showFloorplanOverlay: boolean;
-  onToggleFloorplanOverlay: () => void;
+  onShowFloorplanOverlayChange: (enabled: boolean) => void;
   showValidationIssues: boolean;
-  onToggleValidationIssues: () => void;
+  onShowValidationIssuesChange: (enabled: boolean) => void;
   onClearValidationOutput: () => void;
   validationLog?: ValidationLogEntry[];
+  visibility: VisibilityState;
+  onVisibilityChange: (nextVisibility: VisibilityState) => void;
 };
 
 type DebugBoundaryProps = {
@@ -81,11 +85,13 @@ export function DebugDashboard({
   onApplyArchitecturalHouse,
   onRunFloorplanValidation,
   showFloorplanOverlay,
-  onToggleFloorplanOverlay,
+  onShowFloorplanOverlayChange,
   showValidationIssues,
-  onToggleValidationIssues,
+  onShowValidationIssuesChange,
   onClearValidationOutput,
   validationLog = [],
+  visibility,
+  onVisibilityChange,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('rendering');
 
@@ -142,6 +148,8 @@ export function DebugDashboard({
         <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(148, 163, 184, 0.2)', display: 'flex', gap: 8 }}>
           {[
             { id: 'rendering' as const, label: 'Rendering' },
+            { id: 'floorplan-validation' as const, label: 'Floor Plan Validation' },
+            { id: 'visibility' as const, label: 'Visibility' },
             { id: 'json' as const, label: 'JSON' },
           ].map((tab) => {
             const active = tab.id === activeTab;
@@ -169,7 +177,7 @@ export function DebugDashboard({
           <DebugContentBoundary>
             {activeTab === 'json' ? (
               <JsonEditorTab initialJson={initialJson} onApplyArchitecturalHouse={onApplyArchitecturalHouse} />
-            ) : (
+            ) : activeTab === 'rendering' ? (
               <RenderingTab
                 showWireframe={showWireframe}
                 onShowWireframeChange={onShowWireframeChange}
@@ -177,14 +185,19 @@ export function DebugDashboard({
                 onShowEdgesChange={onShowEdgesChange}
                 showOpeningEdges={showOpeningEdges}
                 onShowOpeningEdgesChange={onShowOpeningEdgesChange}
+              />
+            ) : activeTab === 'floorplan-validation' ? (
+              <FloorplanValidationTab
                 onRunFloorplanValidation={onRunFloorplanValidation}
                 showFloorplanOverlay={showFloorplanOverlay}
-                onToggleFloorplanOverlay={onToggleFloorplanOverlay}
+                onShowFloorplanOverlayChange={onShowFloorplanOverlayChange}
                 showValidationIssues={showValidationIssues}
-                onToggleValidationIssues={onToggleValidationIssues}
+                onShowValidationIssuesChange={onShowValidationIssuesChange}
                 onClearValidationOutput={onClearValidationOutput}
                 validationLog={validationLog}
               />
+            ) : (
+              <VisibilityTab visibility={visibility} onVisibilityChange={onVisibilityChange} />
             )}
           </DebugContentBoundary>
         </div>

@@ -28,6 +28,7 @@ const TOPOLOGY_MIN_SHARED_OVERLAP = VALIDATION_TOLERANCES.edgeOverlapMin;
 const TINY_RESIDUAL_EDGE_LENGTH = 0.05;
 const MIN_MEANINGFUL_MISMATCH_OVERLAP = 0.5;
 const MIN_MEANINGFUL_MISMATCH_RATIO = 0.25;
+const EDGE_EPS = 0.01;
 
 type Segment = {
   a: Vec2;
@@ -342,6 +343,20 @@ function isPointOnSegmentInterior(point: Vec2, edge: Segment, eps: number = EPSI
   return isPointOnSegment(point, edge, eps) && !pointsNearlyEqual(point, edge.a) && !pointsNearlyEqual(point, edge.b);
 }
 
+function hasEndpointTerminatingOnOtherEdgeInterior(edgeA: Segment, edgeB: Segment, eps: number = EPSILON): boolean {
+  return isPointOnSegmentInterior(edgeA.a, edgeB, eps) || isPointOnSegmentInterior(edgeA.b, edgeB, eps);
+}
+
+function hasContainedEdgeWithinTolerance(edgeA: Segment, edgeB: Segment, eps: number = EDGE_EPS): boolean {
+  if (!areEdgesCollinearWithinTolerance(edgeA, edgeB, eps)) {
+    return false;
+  }
+
+  const overlap = edgeOverlapLength(edgeA, edgeB, eps);
+  const minLen = Math.min(edgeLength(edgeA), edgeLength(edgeB));
+  return overlap >= minLen - eps;
+}
+
 type EdgeRelationship = 'exact_shared' | 'partial_shared' | 't_junction' | 'corner_touch' | 'disjoint';
 
 function classifyEdgeRelationship(edgeA: Segment, edgeB: Segment, eps: number = EPSILON): EdgeRelationship {
@@ -607,6 +622,10 @@ function isTinyResidualEdge(edge: Segment, eps: number = EPSILON): boolean {
   return edgeLength(edge) <= Math.max(TINY_RESIDUAL_EDGE_LENGTH, eps * 10);
 }
 
+function requiresAdjacentRoomEdge(edgeType: RoomEdgeSpec['type'] | string): boolean {
+  return edgeType === 'wall' || edgeType === 'partition' || edgeType === 'interior';
+}
+
 function roomPairKey(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
@@ -802,6 +821,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
         maxOverlapRatio: number;
         maxMisalignment: number;
         explainedByTJunctionOnly: boolean;
+        hasContainedEdge: boolean;
       }
     >();
     const groupedMismatches = new Map<
@@ -820,6 +840,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
     const cornerTouchByPair = new Map<string, { roomAId: string; roomBId: string; edgeA: RoomEdge; edgeB: RoomEdge; count: number }>();
     const explainedInteriorEdges = new Set<string>();
     const edgeId = (edge: RoomEdge) => `${edge.room.id}|${edge.edgeIndex}`;
+    let levelHasRoomOverlapArea = false;
     const getPairSummary = (roomAId: string, roomBId: string): PairRelationshipSummary => {
       const key = roomPairKey(roomAId, roomBId);
       const existing = pairRelationship.get(key);
@@ -860,6 +881,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
         const overlap = polygonClipping.intersection(polyA, polyB);
         const overlapArea = polygonsArea(overlap);
         if (overlapArea > AREA_EPSILON) {
+          levelHasRoomOverlapArea = true;
           pushIssue(result, {
             code: 'ROOM_OVERLAP',
             severity: 'error',
@@ -883,6 +905,34 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
       }
     }
 
+    const footprintPolygon = toPolygon(level.footprint.outer);
+    if (levelRooms.length === 0) {
+      const footprintArea = Math.abs(polygonSignedArea(level.footprint.outer));
+      if (footprintArea > AREA_EPSILON) {
+        const severity: ValidationSeverity =
+          footprintArea >= GAP_ERROR_AREA ? 'error' : footprintArea >= GAP_WARNING_AREA ? 'warning' : 'info';
+        pushIssue(result, {
+          code: 'ROOM_GAP_IN_FOOTPRINT',
+          severity,
+          message: `Level "${level.id}" footprint is not covered by rooms.`,
+          levelId: level.id,
+          polygon: level.footprint.outer,
+          meta: { uncoveredArea: footprintArea },
+        });
+        result.perLevel[level.id].uncoveredPolygons = [level.footprint.outer];
+      }
+      continue;
+    }
+
+    const roomPolygons = levelRooms.map((room) => toPolygon(room.polygon));
+    const [firstPolygon, ...restPolygons] = roomPolygons;
+    const union = polygonClipping.union(firstPolygon, ...restPolygons);
+    const coveredPolygons = flattenOuterRings(union);
+    result.perLevel[level.id].coveredPolygons = coveredPolygons;
+    const uncovered = polygonClipping.difference(footprintPolygon, union);
+    const uncoveredArea = polygonsArea(uncovered);
+    const levelHasUncoveredArea = uncoveredArea > AREA_EPSILON;
+
     for (let i = 0; i < levelEdges.length; i += 1) {
       const edgeA = levelEdges[i];
       for (let j = i + 1; j < levelEdges.length; j += 1) {
@@ -897,6 +947,12 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
         const sharedRatio = collinear ? overlapRatio(edgeA, edgeB) : 0;
         const minLen = Math.min(edgeLength(edgeA), edgeLength(edgeB));
         const isFullSharedEdge = collinear && overlap >= minLen - EPSILON;
+        const hasCollinearTJunctionTermination =
+          collinear &&
+          overlap > EPSILON &&
+          overlap < minLen - EPSILON &&
+          (hasEndpointTerminatingOnOtherEdgeInterior(edgeA, edgeB, VALIDATION_TOLERANCES.tJunctionSnapDistance) ||
+            hasEndpointTerminatingOnOtherEdgeInterior(edgeB, edgeA, VALIDATION_TOLERANCES.tJunctionSnapDistance));
         const lineKey = boundarySignature(edgeA, edgeB);
         const boundaryKey = `${pairKey}|${lineKey}`;
 
@@ -919,7 +975,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
           });
         }
 
-        if (relationship === 't_junction') {
+        if (relationship === 't_junction' || hasCollinearTJunctionTermination) {
           const tKey = `${pairKey}|${lineKey}`;
           const existing = groupedTJunctions.get(tKey);
           if (!existing) {
@@ -975,12 +1031,14 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
               maxOverlapRatio: sharedRatio,
               maxMisalignment: misalignmentDistance,
               explainedByTJunctionOnly: false,
+              hasContainedEdge: hasContainedEdgeWithinTolerance(edgeA, edgeB),
             });
           } else {
             existing.overlapCount += 1;
             existing.totalOverlapLength += overlap;
             existing.maxOverlapRatio = Math.max(existing.maxOverlapRatio, sharedRatio);
             existing.maxMisalignment = Math.max(existing.maxMisalignment, misalignmentDistance);
+            existing.hasContainedEdge = existing.hasContainedEdge || hasContainedEdgeWithinTolerance(edgeA, edgeB);
           }
           summary.partialSharedCount += 1;
           summary.totalPartialLength += overlap;
@@ -1050,10 +1108,12 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
       const isError =
         grouped.maxOverlapRatio > PARTIAL_SHARED_EDGE_ERROR_RATIO &&
         grouped.maxMisalignment > VALIDATION_TOLERANCES.coordinateEpsilon;
+      const downgradeToWarning =
+        grouped.hasContainedEdge && !levelHasRoomOverlapArea && !levelHasUncoveredArea;
       pushDedupedIssue(
         {
           code: 'ROOM_PARTIAL_SHARED_EDGE',
-          severity: isError ? 'error' : 'warning',
+          severity: isError && !downgradeToWarning ? 'error' : 'warning',
           message: `Rooms "${grouped.roomAId}" and "${grouped.roomBId}" partially share a boundary.`,
           levelId: level.id,
           roomIds: [grouped.roomAId, grouped.roomBId],
@@ -1066,6 +1126,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
             misalignmentDistance: grouped.maxMisalignment,
             errorOverlapRatioThreshold: PARTIAL_SHARED_EDGE_ERROR_RATIO,
             misalignmentTolerance: VALIDATION_TOLERANCES.coordinateEpsilon,
+            downgradedByContainedEdgeRule: downgradeToWarning,
           },
         },
         grouped.boundaryKey
@@ -1120,32 +1181,6 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
       );
     }
 
-    const footprintPolygon = toPolygon(level.footprint.outer);
-    if (levelRooms.length === 0) {
-      const footprintArea = Math.abs(polygonSignedArea(level.footprint.outer));
-      if (footprintArea > AREA_EPSILON) {
-        const severity: ValidationSeverity =
-          footprintArea >= GAP_ERROR_AREA ? 'error' : footprintArea >= GAP_WARNING_AREA ? 'warning' : 'info';
-        pushIssue(result, {
-          code: 'ROOM_GAP_IN_FOOTPRINT',
-          severity,
-          message: `Level "${level.id}" footprint is not covered by rooms.`,
-          levelId: level.id,
-          polygon: level.footprint.outer,
-          meta: { uncoveredArea: footprintArea },
-        });
-        result.perLevel[level.id].uncoveredPolygons = [level.footprint.outer];
-      }
-      continue;
-    }
-
-    const roomPolygons = levelRooms.map((room) => toPolygon(room.polygon));
-    const [firstPolygon, ...restPolygons] = roomPolygons;
-    const union = polygonClipping.union(firstPolygon, ...restPolygons);
-    result.perLevel[level.id].coveredPolygons = flattenOuterRings(union);
-    const uncovered = polygonClipping.difference(footprintPolygon, union);
-    const uncoveredArea = polygonsArea(uncovered);
-
     if (uncoveredArea >= GAP_WARNING_AREA) {
       const uncoveredPolygons = flattenOuterRings(uncovered);
       result.perLevel[level.id].uncoveredPolygons = uncoveredPolygons;
@@ -1170,11 +1205,15 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
 
     for (let i = 0; i < levelEdges.length; i += 1) {
       const edge = levelEdges[i];
-      const isExterior = isEdgeOnFootprintBoundary(edge, level.footprint.outer);
+      const isExteriorByGeometry = isEdgeOnFootprintBoundary(edge, level.footprint.outer);
+      const isExteriorBySnapTolerance = isEdgeOnFootprintBoundary(edge, level.footprint.outer, EDGE_EPS);
+      const isExteriorByType = edge.type === 'exterior';
+      const isExteriorCompatible = isExteriorByType || isExteriorByGeometry || isExteriorBySnapTolerance;
       const isOpen = edge.type === 'open';
       const tinyResidual = isTinyResidualEdge(edge);
+      const requiresAdjacency = requiresAdjacentRoomEdge(edge.type);
 
-      if (isExterior) {
+      if (isExteriorCompatible) {
         upsertAdjacencyEdge(adjacencyEdges, {
           roomAId: edge.room.id,
           roomBId: edge.room.id,
@@ -1239,7 +1278,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
       const hasNonTrivialAdjacency =
         hasExactShared || hasPartialShared || maxOverlap > TOPOLOGY_MIN_SHARED_OVERLAP || hasTJunction || isExplainedByPairAggregation;
 
-      if (!isExterior && !isOpen && !tinyResidual && !hasNonTrivialAdjacency) {
+      if (requiresAdjacency && !isOpen && !tinyResidual && !isExteriorCompatible && !hasNonTrivialAdjacency) {
         pushIssue(result, {
           code: 'ROOM_UNCLOSED_TOPOLOGY',
           severity: 'error',

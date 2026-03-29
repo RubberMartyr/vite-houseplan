@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { ArchitecturalHouse, LevelSpec, Vec2 } from '../architecturalTypes';
 import { archToWorldVec3, archToWorldXZ } from '../spaceMapping';
-import type { FloorplanValidationResult, ValidationIssue } from '../validation/validateFloorplan';
+import type { FloorplanValidationResult, RoomAdjacencyEdge, ValidationIssue } from '../validation/validateFloorplan';
 
 type Props = {
   architecturalHouse: ArchitecturalHouse;
@@ -87,6 +87,14 @@ function issueEdgeLines(issues: ValidationIssue[], levelById: Map<string, LevelS
     });
 }
 
+function adjacencyColor(edge: RoomAdjacencyEdge): string {
+  if (edge.relationshipType === 'exterior_boundary') return '#ffffff';
+  if (edge.relationshipType === 't_junction') return '#22d3ee';
+  if (edge.relationshipType === 'partial_shared') return '#facc15';
+  if (edge.hasTypeMismatch) return '#ef4444';
+  return '#22c55e';
+}
+
 export function FloorplanValidationOverlay({
   architecturalHouse,
   validationResult,
@@ -139,17 +147,58 @@ export function FloorplanValidationOverlay({
 
     if (showValidationIssues && validationResult) {
       for (const level of architecturalHouse.levels) {
+        const coveredPolygons = validationResult.perLevel[level.id]?.coveredPolygons ?? [];
+        for (let i = 0; i < coveredPolygons.length; i += 1) {
+          const geom = polygonToShapeGeometry(coveredPolygons[i], level.elevation + 0.055);
+          if (geom) {
+            meshes.push({
+              key: `covered-${level.id}-${i}`,
+              geometry: geom,
+              color: '#22c55e',
+              opacity: 0.15,
+            });
+          }
+        }
+
         const uncoveredPolygons = validationResult.perLevel[level.id]?.uncoveredPolygons ?? [];
+        const hasMicroGap = validationResult.perLevel[level.id]?.issues.some((issue) => issue.code === 'ROOM_MICRO_GAP') ?? false;
         for (let i = 0; i < uncoveredPolygons.length; i += 1) {
           const geom = polygonToShapeGeometry(uncoveredPolygons[i], level.elevation + 0.06);
           if (geom) {
             meshes.push({
               key: `uncovered-${level.id}-${i}`,
               geometry: geom,
-              color: '#f59e0b',
+              color: hasMicroGap ? '#f59e0b' : '#ef4444',
               opacity: 0.42,
             });
           }
+        }
+
+        const adjacency = validationResult.perLevel[level.id]?.adjacencyEdges ?? [];
+        for (const [index, adjacencyEdge] of adjacency.entries()) {
+          if (!Number.isFinite(adjacencyEdge.sharedLength) || adjacencyEdge.sharedLength <= 0.001) {
+            continue;
+          }
+          const roomA = architecturalHouse.rooms?.find((room) => room.id === adjacencyEdge.roomAId && room.levelId === level.id);
+          const roomB = architecturalHouse.rooms?.find((room) => room.id === adjacencyEdge.roomBId && room.levelId === level.id);
+          const targetRoom = roomA ?? roomB;
+          if (!targetRoom) continue;
+          const sourceEdge =
+            targetRoom.polygon
+              .map((point, edgeIndex) => ({ a: point, b: targetRoom.polygon[(edgeIndex + 1) % targetRoom.polygon.length] }))
+              .find((edge) => Math.hypot(edge.a.x - edge.b.x, edge.a.z - edge.b.z) >= adjacencyEdge.sharedLength - 0.1) ?? null;
+          if (!sourceEdge) continue;
+
+          const a = archToWorldVec3(sourceEdge.a.x, level.elevation + 0.09, sourceEdge.a.z);
+          const b = archToWorldVec3(sourceEdge.b.x, level.elevation + 0.09, sourceEdge.b.z);
+          lines.push({
+            key: `adj-${level.id}-${adjacencyEdge.roomAId}-${adjacencyEdge.roomBId}-${adjacencyEdge.relationshipType}-${index}`,
+            points: [
+              [a.x, a.y, a.z],
+              [b.x, b.y, b.z],
+            ],
+            color: adjacencyColor(adjacencyEdge),
+          });
         }
       }
 

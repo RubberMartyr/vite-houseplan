@@ -6,16 +6,25 @@ const polygonClipping =
   (polygonClippingNamespace as typeof polygonClippingNamespace & { default?: typeof polygonClippingNamespace })
     .default ?? polygonClippingNamespace;
 
-const EPSILON = 1e-6;
+export const VALIDATION_TOLERANCES = {
+  coordinateEpsilon: 0.02,
+  edgeOverlapMin: 0.1,
+  tinyGapArea: 0.25,
+  majorGapArea: 1.0,
+  tJunctionSnapDistance: 0.1,
+  cornerTouchDistance: 0.05,
+} as const;
+
+const EPSILON = VALIDATION_TOLERANCES.coordinateEpsilon;
 const AREA_EPSILON = 1e-5;
 const THIN_WIDTH_WARNING = 0.45;
 const THIN_WIDTH_ERROR = 0.2;
-const GAP_WARNING_AREA = 0.25;
-const GAP_ERROR_AREA = 1.0;
+const GAP_WARNING_AREA = VALIDATION_TOLERANCES.tinyGapArea;
+const GAP_ERROR_AREA = VALIDATION_TOLERANCES.majorGapArea;
 const EDGE_MISMATCH_LENGTH_THRESHOLD = 1.0;
 const EDGE_MISMATCH_RATIO_THRESHOLD = 0.5;
 const PARTIAL_SHARED_EDGE_ERROR_RATIO = 0.8;
-const TOPOLOGY_MIN_SHARED_OVERLAP = 0.05;
+const TOPOLOGY_MIN_SHARED_OVERLAP = VALIDATION_TOLERANCES.edgeOverlapMin;
 const TINY_RESIDUAL_EDGE_LENGTH = 0.05;
 
 type Segment = {
@@ -49,7 +58,11 @@ export type ValidationIssue = {
     | 'ROOM_TOO_THIN'
     | 'ROOM_SELF_INTERSECTION'
     | 'ROOM_MISSING_LEVEL'
-    | 'ROOM_EMPTY_SET';
+    | 'ROOM_EMPTY_SET'
+    | 'ROOM_CORNER_TOUCH'
+    | 'ROOM_FRAGMENT_EDGE'
+    | 'ROOM_MICRO_GAP'
+    | 'ROOM_MICRO_OVERLAP';
   severity: ValidationSeverity;
   message: string;
   levelId?: string;
@@ -60,6 +73,24 @@ export type ValidationIssue = {
   };
   polygon?: { x: number; z: number }[];
   meta?: Record<string, unknown>;
+};
+
+export type AdjacencyRelationshipType =
+  | 'exact_shared'
+  | 'partial_shared'
+  | 't_junction'
+  | 'corner_touch'
+  | 'exterior_boundary'
+  | 'open_transition';
+
+export type RoomAdjacencyEdge = {
+  roomAId: string;
+  roomBId: string;
+  sharedLength: number;
+  relationshipType: AdjacencyRelationshipType;
+  overlapRatio: number;
+  hasTypeMismatch: boolean;
+  hasTJunction: boolean;
 };
 
 export type FloorplanValidationResult = {
@@ -77,7 +108,9 @@ export type FloorplanValidationResult = {
       roomCount: number;
       issues: ValidationIssue[];
       uncoveredPolygons?: { x: number; z: number }[][];
+      coveredPolygons?: { x: number; z: number }[][];
       overlapPairs?: { roomA: string; roomB: string }[];
+      adjacencyEdges?: RoomAdjacencyEdge[];
     }
   >;
 };
@@ -264,7 +297,7 @@ function isPointOnSegmentInterior(point: Vec2, edge: Segment, eps: number = EPSI
   return isPointOnSegment(point, edge, eps) && !pointsNearlyEqual(point, edge.a) && !pointsNearlyEqual(point, edge.b);
 }
 
-type EdgeRelationship = 'exact_shared' | 'partial_shared' | 't_junction' | 'boundary' | 'disjoint';
+type EdgeRelationship = 'exact_shared' | 'partial_shared' | 't_junction' | 'corner_touch' | 'disjoint';
 
 function classifyEdgeRelationship(edgeA: Segment, edgeB: Segment, eps: number = EPSILON): EdgeRelationship {
   const overlap = edgeOverlapLength(edgeA, edgeB, eps);
@@ -274,21 +307,21 @@ function classifyEdgeRelationship(edgeA: Segment, edgeB: Segment, eps: number = 
   }
 
   const hasTJunction =
-    isPointOnSegmentInterior(edgeA.a, edgeB, eps) ||
-    isPointOnSegmentInterior(edgeA.b, edgeB, eps) ||
-    isPointOnSegmentInterior(edgeB.a, edgeA, eps) ||
-    isPointOnSegmentInterior(edgeB.b, edgeA, eps);
+    isPointOnSegmentInterior(edgeA.a, edgeB, VALIDATION_TOLERANCES.tJunctionSnapDistance) ||
+    isPointOnSegmentInterior(edgeA.b, edgeB, VALIDATION_TOLERANCES.tJunctionSnapDistance) ||
+    isPointOnSegmentInterior(edgeB.a, edgeA, VALIDATION_TOLERANCES.tJunctionSnapDistance) ||
+    isPointOnSegmentInterior(edgeB.b, edgeA, VALIDATION_TOLERANCES.tJunctionSnapDistance);
   if (hasTJunction) {
     return 't_junction';
   }
 
   const touchesAtEndpoint =
-    pointsNearlyEqual(edgeA.a, edgeB.a) ||
-    pointsNearlyEqual(edgeA.a, edgeB.b) ||
-    pointsNearlyEqual(edgeA.b, edgeB.a) ||
-    pointsNearlyEqual(edgeA.b, edgeB.b);
+    Math.hypot(edgeA.a.x - edgeB.a.x, edgeA.a.z - edgeB.a.z) <= VALIDATION_TOLERANCES.cornerTouchDistance ||
+    Math.hypot(edgeA.a.x - edgeB.b.x, edgeA.a.z - edgeB.b.z) <= VALIDATION_TOLERANCES.cornerTouchDistance ||
+    Math.hypot(edgeA.b.x - edgeB.a.x, edgeA.b.z - edgeB.a.z) <= VALIDATION_TOLERANCES.cornerTouchDistance ||
+    Math.hypot(edgeA.b.x - edgeB.b.x, edgeA.b.z - edgeB.b.z) <= VALIDATION_TOLERANCES.cornerTouchDistance;
   if (touchesAtEndpoint) {
-    return 'boundary';
+    return 'corner_touch';
   }
 
   return 'disjoint';
@@ -402,7 +435,9 @@ function createInitialResult(arch: ArchitecturalHouse): FloorplanValidationResul
           roomCount: 0,
           issues: [],
           uncoveredPolygons: [],
+          coveredPolygons: [],
           overlapPairs: [],
+          adjacencyEdges: [],
         },
       ])
     ),
@@ -532,6 +567,36 @@ function isTinyResidualEdge(edge: Segment, eps: number = EPSILON): boolean {
   return edgeLength(edge) <= Math.max(TINY_RESIDUAL_EDGE_LENGTH, eps * 10);
 }
 
+function roomPairKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+function endpointMisalignmentDistance(edgeA: Segment, edgeB: Segment): number {
+  return Math.min(
+    Math.hypot(edgeA.a.x - edgeB.a.x, edgeA.a.z - edgeB.a.z),
+    Math.hypot(edgeA.a.x - edgeB.b.x, edgeA.a.z - edgeB.b.z),
+    Math.hypot(edgeA.b.x - edgeB.a.x, edgeA.b.z - edgeB.a.z),
+    Math.hypot(edgeA.b.x - edgeB.b.x, edgeA.b.z - edgeB.b.z)
+  );
+}
+
+function upsertAdjacencyEdge(
+  map: Map<string, RoomAdjacencyEdge>,
+  edge: RoomAdjacencyEdge
+): void {
+  const key = `${roomPairKey(edge.roomAId, edge.roomBId)}|${edge.relationshipType}`;
+  const existing = map.get(key);
+  if (!existing) {
+    map.set(key, edge);
+    return;
+  }
+
+  existing.sharedLength = Math.max(existing.sharedLength, edge.sharedLength);
+  existing.overlapRatio = Math.max(existing.overlapRatio, edge.overlapRatio);
+  existing.hasTypeMismatch = existing.hasTypeMismatch || edge.hasTypeMismatch;
+  existing.hasTJunction = existing.hasTJunction || edge.hasTJunction;
+}
+
 function validateRoomInsideFootprint(room: RoomSpec, level: LevelSpec): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
@@ -645,6 +710,9 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
   for (const level of arch.levels) {
     const levelRooms = roomsByLevel.get(level.id) ?? [];
     const levelEdges = levelRooms.flatMap(extractRoomEdges);
+    const adjacencyEdges = new Map<string, RoomAdjacencyEdge>();
+    const groupedTJunctions = new Map<string, { roomAId: string; roomBId: string; edgeA: RoomEdge; edgeB: RoomEdge; count: number }>();
+    const groupedPartialShares = new Map<string, { roomAId: string; roomBId: string; edge: RoomEdge; count: number; maxOverlap: number; maxRatio: number; maxMisalignment: number }>();
 
     for (let i = 0; i < levelRooms.length; i += 1) {
       const roomA = levelRooms[i];
@@ -665,6 +733,16 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
             roomIds: [roomA.id, roomB.id],
             meta: { overlapArea, overlapPolygons: flattenOuterRings(overlap) },
           });
+          if (overlapArea < VALIDATION_TOLERANCES.tinyGapArea) {
+            pushIssue(result, {
+              code: 'ROOM_MICRO_OVERLAP',
+              severity: 'warning',
+              message: `Rooms "${roomA.id}" and "${roomB.id}" have a micro-overlap (${overlapArea.toFixed(4)}m²).`,
+              levelId: level.id,
+              roomIds: [roomA.id, roomB.id],
+              meta: { overlapArea, groupedBy: 'roomPair' },
+            });
+          }
           result.perLevel[level.id].overlapPairs?.push({ roomA: roomA.id, roomB: roomB.id });
         }
       }
@@ -682,23 +760,53 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
 
         const relationship = classifyEdgeRelationship(edgeA, edgeB);
         if (relationship === 't_junction') {
-          pushIssue(result, {
-            code: 'ROOM_T_JUNCTION',
-            severity: 'info',
-            message: `Rooms "${edgeA.room.id}" and "${edgeB.room.id}" form a T-junction.`,
-            levelId: level.id,
-            roomIds: [edgeA.room.id, edgeB.room.id],
-            edge: { a: edgeA.a, b: edgeA.b },
-            meta: {
-              edgeAIndex: edgeA.edgeIndex,
-              edgeBIndex: edgeB.edgeIndex,
-              relationship,
-            },
+          const tKey = roomPairKey(edgeA.room.id, edgeB.room.id);
+          const existing = groupedTJunctions.get(tKey);
+          if (!existing) {
+            groupedTJunctions.set(tKey, {
+              roomAId: edgeA.room.id,
+              roomBId: edgeB.room.id,
+              edgeA,
+              edgeB,
+              count: 1,
+            });
+          } else {
+            existing.count += 1;
+          }
+          upsertAdjacencyEdge(adjacencyEdges, {
+            roomAId: edgeA.room.id,
+            roomBId: edgeB.room.id,
+            sharedLength: 0,
+            relationshipType: 't_junction',
+            overlapRatio: 0,
+            hasTypeMismatch: false,
+            hasTJunction: true,
           });
           continue;
         }
 
-        if (relationship === 'disjoint' || relationship === 'boundary') {
+        if (relationship === 'corner_touch') {
+          pushIssue(result, {
+            code: 'ROOM_CORNER_TOUCH',
+            severity: 'info',
+            message: `Rooms "${edgeA.room.id}" and "${edgeB.room.id}" touch at a corner.`,
+            levelId: level.id,
+            roomIds: [edgeA.room.id, edgeB.room.id],
+            edge: { a: edgeA.a, b: edgeA.b },
+            meta: { edgeAIndex: edgeA.edgeIndex, edgeBIndex: edgeB.edgeIndex },
+          });
+          upsertAdjacencyEdge(adjacencyEdges, {
+            roomAId: edgeA.room.id,
+            roomBId: edgeB.room.id,
+            sharedLength: 0,
+            relationshipType: 'corner_touch',
+            overlapRatio: 0,
+            hasTypeMismatch: false,
+            hasTJunction: false,
+          });
+        }
+
+        if (relationship === 'disjoint') {
           continue;
         }
 
@@ -708,28 +816,52 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
         const isFullSharedEdge = overlap >= minLen - EPSILON;
 
         if (!isFullSharedEdge) {
-          const partialSeverity: ValidationSeverity =
-            sharedRatio > PARTIAL_SHARED_EDGE_ERROR_RATIO ? 'error' : 'warning';
-          pushIssue(result, {
-            code: 'ROOM_PARTIAL_SHARED_EDGE',
-            severity: partialSeverity,
-            message: `Rooms "${edgeA.room.id}" and "${edgeB.room.id}" partially share an edge.`,
-            levelId: level.id,
-            roomIds: [edgeA.room.id, edgeB.room.id],
-            edge: { a: edgeA.a, b: edgeA.b },
-            meta: {
-              edgeAIndex: edgeA.edgeIndex,
-              edgeBIndex: edgeB.edgeIndex,
-              overlapLength: overlap,
-              overlapRatio: sharedRatio,
-              errorOverlapRatioThreshold: PARTIAL_SHARED_EDGE_ERROR_RATIO,
-            },
+          const misalignmentDistance = endpointMisalignmentDistance(edgeA, edgeB);
+          const pairKey = roomPairKey(edgeA.room.id, edgeB.room.id);
+          const existing = groupedPartialShares.get(pairKey);
+          if (!existing) {
+            groupedPartialShares.set(pairKey, {
+              roomAId: edgeA.room.id,
+              roomBId: edgeB.room.id,
+              edge: edgeA,
+              count: 1,
+              maxOverlap: overlap,
+              maxRatio: sharedRatio,
+              maxMisalignment: misalignmentDistance,
+            });
+          } else {
+            existing.count += 1;
+            existing.maxOverlap = Math.max(existing.maxOverlap, overlap);
+            existing.maxRatio = Math.max(existing.maxRatio, sharedRatio);
+            existing.maxMisalignment = Math.max(existing.maxMisalignment, misalignmentDistance);
+          }
+          upsertAdjacencyEdge(adjacencyEdges, {
+            roomAId: edgeA.room.id,
+            roomBId: edgeB.room.id,
+            sharedLength: overlap,
+            relationshipType: 'partial_shared',
+            overlapRatio: sharedRatio,
+            hasTypeMismatch: edgeA.type !== edgeB.type,
+            hasTJunction: false,
+          });
+        } else {
+          upsertAdjacencyEdge(adjacencyEdges, {
+            roomAId: edgeA.room.id,
+            roomBId: edgeB.room.id,
+            sharedLength: overlap,
+            relationshipType: edgeA.type === 'open' || edgeB.type === 'open' ? 'open_transition' : 'exact_shared',
+            overlapRatio: sharedRatio,
+            hasTypeMismatch: edgeA.type !== edgeB.type,
+            hasTJunction: false,
           });
         }
 
         if (edgeA.type !== edgeB.type) {
           const meaningfulOverlap =
-            overlap > EDGE_MISMATCH_LENGTH_THRESHOLD || sharedRatio > EDGE_MISMATCH_RATIO_THRESHOLD;
+            overlap > EDGE_MISMATCH_LENGTH_THRESHOLD &&
+            sharedRatio > EDGE_MISMATCH_RATIO_THRESHOLD &&
+            edgeA.type !== 'open' &&
+            edgeB.type !== 'open';
           pushIssue(result, {
             code: 'ROOM_EDGE_MISMATCH',
             severity: meaningfulOverlap ? 'error' : 'warning',
@@ -750,6 +882,41 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
           });
         }
       }
+    }
+
+    for (const grouped of groupedTJunctions.values()) {
+      pushIssue(result, {
+        code: 'ROOM_T_JUNCTION',
+        severity: 'info',
+        message: `Rooms "${grouped.roomAId}" and "${grouped.roomBId}" form ${grouped.count} T-junction connection(s).`,
+        levelId: level.id,
+        roomIds: [grouped.roomAId, grouped.roomBId],
+        edge: { a: grouped.edgeA.a, b: grouped.edgeA.b },
+        meta: { groupedBy: 'roomPair', count: grouped.count, edgeAIndex: grouped.edgeA.edgeIndex, edgeBIndex: grouped.edgeB.edgeIndex },
+      });
+    }
+
+    for (const grouped of groupedPartialShares.values()) {
+      const isError =
+        grouped.maxRatio > PARTIAL_SHARED_EDGE_ERROR_RATIO &&
+        grouped.maxMisalignment > VALIDATION_TOLERANCES.coordinateEpsilon;
+      pushIssue(result, {
+        code: 'ROOM_PARTIAL_SHARED_EDGE',
+        severity: isError ? 'error' : 'warning',
+        message: `Rooms "${grouped.roomAId}" and "${grouped.roomBId}" have ${grouped.count} partial shared edge segment(s).`,
+        levelId: level.id,
+        roomIds: [grouped.roomAId, grouped.roomBId],
+        edge: { a: grouped.edge.a, b: grouped.edge.b },
+        meta: {
+          groupedBy: 'roomPair',
+          count: grouped.count,
+          overlapLength: grouped.maxOverlap,
+          overlapRatio: grouped.maxRatio,
+          misalignmentDistance: grouped.maxMisalignment,
+          errorOverlapRatioThreshold: PARTIAL_SHARED_EDGE_ERROR_RATIO,
+          misalignmentTolerance: VALIDATION_TOLERANCES.coordinateEpsilon,
+        },
+      });
     }
 
     const footprintPolygon = toPolygon(level.footprint.outer);
@@ -774,6 +941,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
     const roomPolygons = levelRooms.map((room) => toPolygon(room.polygon));
     const [firstPolygon, ...restPolygons] = roomPolygons;
     const union = polygonClipping.union(firstPolygon, ...restPolygons);
+    result.perLevel[level.id].coveredPolygons = flattenOuterRings(union);
     const uncovered = polygonClipping.difference(footprintPolygon, union);
     const uncoveredArea = polygonsArea(uncovered);
 
@@ -790,6 +958,13 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
       });
     } else if (uncoveredArea > AREA_EPSILON) {
       result.perLevel[level.id].uncoveredPolygons = flattenOuterRings(uncovered);
+      pushIssue(result, {
+        code: 'ROOM_MICRO_GAP',
+        severity: 'info',
+        message: `Level "${level.id}" has micro uncovered area ${uncoveredArea.toFixed(4)}m².`,
+        levelId: level.id,
+        meta: { uncoveredArea },
+      });
     }
 
     for (let i = 0; i < levelEdges.length; i += 1) {
@@ -797,6 +972,40 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
       const isExterior = isEdgeOnFootprintBoundary(edge, level.footprint.outer);
       const isOpen = edge.type === 'open';
       const tinyResidual = isTinyResidualEdge(edge);
+
+      if (isExterior) {
+        upsertAdjacencyEdge(adjacencyEdges, {
+          roomAId: edge.room.id,
+          roomBId: edge.room.id,
+          sharedLength: edgeLength(edge),
+          relationshipType: 'exterior_boundary',
+          overlapRatio: 1,
+          hasTypeMismatch: false,
+          hasTJunction: false,
+        });
+      }
+      if (isOpen) {
+        upsertAdjacencyEdge(adjacencyEdges, {
+          roomAId: edge.room.id,
+          roomBId: edge.room.id,
+          sharedLength: edgeLength(edge),
+          relationshipType: 'open_transition',
+          overlapRatio: 1,
+          hasTypeMismatch: false,
+          hasTJunction: false,
+        });
+      }
+      if (tinyResidual) {
+        pushIssue(result, {
+          code: 'ROOM_FRAGMENT_EDGE',
+          severity: 'info',
+          message: `Room "${edge.room.id}" edge ${edge.edgeIndex} is a tiny residual fragment.`,
+          levelId: level.id,
+          roomIds: [edge.room.id],
+          edge: { a: edge.a, b: edge.b },
+          meta: { edgeLength: edgeLength(edge), threshold: TINY_RESIDUAL_EDGE_LENGTH, groupedBy: 'roomId' },
+        });
+      }
 
       let hasExactShared = false;
       let hasPartialShared = false;
@@ -835,6 +1044,7 @@ export function validateFloorplan(arch: ArchitecturalHouse): FloorplanValidation
         });
       }
     }
+    result.perLevel[level.id].adjacencyEdges = Array.from(adjacencyEdges.values());
   }
 
   result.issueCount = result.issues.length;

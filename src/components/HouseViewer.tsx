@@ -112,11 +112,12 @@ export default function HouseViewer() {
 
   const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
     const issueCodes = result.issues.reduce<Record<string, number>>((acc, issue) => {
-      acc[issue.code] = (acc[issue.code] ?? 0) + 1;
+      const key = `${issue.severity}:${issue.code}`;
+      acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     }, {});
 
-    const summary = `Summary: rooms=${result.roomCount}, levels=${result.levelCount}, errors=${result.errorCount}, warnings=${result.warningCount}.`;
+    const summary = `Summary: rooms=${result.roomCount}, levels=${result.levelCount}, errors=${result.errorCount}, warnings=${result.warningCount}, info=${result.infoCount}.`;
     const codes = Object.entries(issueCodes)
       .map(([code, count]) => `${code}=${count}`)
       .join(', ');
@@ -139,7 +140,7 @@ export default function HouseViewer() {
 
     for (const issue of result.issues) {
       entries.push({
-        level: issue.severity === 'error' ? 'error' : 'info',
+        level: issue.severity === 'error' ? 'error' : issue.severity === 'warning' ? 'warn' : 'info',
         message: `[${timestamp}] ${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ''}: ${issue.message}`,
       });
     }
@@ -157,6 +158,18 @@ export default function HouseViewer() {
 
     const result = validateFloorplan(houseWithInjectedInteriorWall);
     setValidationResult(result);
+    const summaryMessage = `Summary: rooms=${result.roomCount}, levels=${result.levelCount}, errors=${result.errorCount}, warnings=${result.warningCount}, info=${result.infoCount}`;
+    console.info(summaryMessage);
+    for (const issue of result.issues) {
+      const issueMessage = `${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ''}: ${issue.message}`;
+      if (issue.severity === 'error') {
+        console.error(issueMessage, issue.meta ?? {});
+      } else if (issue.severity === 'warning') {
+        console.warn(issueMessage, issue.meta ?? {});
+      } else {
+        console.info(issueMessage, issue.meta ?? {});
+      }
+    }
 
     if (result.issueCount === 0) {
       setValidationLog((current) => [

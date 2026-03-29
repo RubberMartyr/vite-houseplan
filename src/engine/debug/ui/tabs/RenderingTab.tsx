@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 export type ValidationLogEntry = {
-  level: 'error' | 'info';
+  level: 'error' | 'warn' | 'info';
   message: string;
 };
 
@@ -111,8 +111,8 @@ export function RenderingTab({
           }}
         >
           {(combinedLog.length === 0 ? [{ level: 'info', message: 'No validation runs yet.' }] : combinedLog).map((entry, index) => {
-            const tone = entry.level === 'error' ? '#fca5a5' : '#86efac';
-            const label = entry.level === 'error' ? 'Error' : 'Info';
+            const tone = entry.level === 'error' ? '#fca5a5' : entry.level === 'warn' ? '#fde68a' : '#86efac';
+            const label = entry.level === 'error' ? 'Error' : entry.level === 'warn' ? 'Warn' : 'Info';
 
             return (
               <div key={`${entry.message}-${index}`} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>

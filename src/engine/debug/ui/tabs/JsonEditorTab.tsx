@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ArchitecturalHouse, LevelSpec, RoofSpec } from '../../../architecturalTypes';
 import { deriveHouse } from '../../../derive/deriveHouse';
+import { getStructuralWallHeight } from '../../../derive/getStructuralWallHeight';
 import { validateOpenings } from '../../../validation/validateOpenings';
 import { validateRooms } from '../../../validation/validateRooms';
 import { validateStructure } from '../../../validation/validateStructure';
@@ -45,7 +46,7 @@ function validateArchitecturalHouse(jsonText: string): ValidationResult {
       {
         getLevels: (house) => house.levels,
         getLevelElevation: (level) => (level as LevelSpec).elevation,
-        getLevelHeight: (level) => (level as LevelSpec).height,
+        getLevelHeight: (_level, index) => getStructuralWallHeight(candidate.levels, index),
         getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
         elevationConvention: 'TOP_OF_SLAB',
         allowGroundSupport: true,

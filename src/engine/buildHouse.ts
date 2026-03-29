@@ -5,6 +5,7 @@ import type { ArchitecturalHouse, LevelSpec } from './architecturalTypes';
 import { buildFacadePanelsWithOpenings } from './builders/buildFacadePanels';
 import { buildWindowMeshes } from './builders/buildWindowMeshes';
 import { deriveOpenings } from './derive/deriveOpenings';
+import { getStructuralWallHeight } from './derive/getStructuralWallHeight';
 import { deriveWallSegmentsFromLevels } from './deriveWalls';
 import { deriveSlabs } from './derive/deriveSlabs';
 import { houseData } from './houseData';
@@ -18,7 +19,7 @@ export function buildHouse() {
   validateStructure<ArchitecturalHouse>(architecturalHouse, {
     getLevels: (house) => house.levels,
     getLevelElevation: (level) => (level as LevelSpec).elevation,
-    getLevelHeight: (level) => (level as LevelSpec).height,
+    getLevelHeight: (_level, index) => getStructuralWallHeight(architecturalHouse.levels, index),
     getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
     elevationConvention: 'TOP_OF_SLAB',
     allowGroundSupport: true,
@@ -40,7 +41,7 @@ export function buildHouse() {
     buildFacadePanelsWithOpenings({
       outer: level.footprint.outer,
       levelIndex,
-      wallHeight: level.height,
+      wallHeight: getStructuralWallHeight(architecturalHouse.levels, levelIndex),
       wallBase: level.elevation,
       panelThickness: facadePanelDepth,
       openings: derivedOpenings,

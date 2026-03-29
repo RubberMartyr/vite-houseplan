@@ -1,5 +1,6 @@
 import { ArchitecturalHouse, RoofSpec } from "./architecturalTypes";
 import { Vec3 } from "./types";
+import { getStructuralWallHeight, getStructuralWallTop } from './derive/getStructuralWallHeight';
 
 const USE_ROOM_DERIVED_INTERIOR_WALLS = true;
 
@@ -72,7 +73,8 @@ function buildRoofWallCaps(arch: ArchitecturalHouse): Map<string, RoofWallCap> {
     }
 
     const cap = caps.get(baseLevel.id);
-    const structuralTopY = baseLevel.elevation + baseLevel.height;
+    const structuralTopY =
+      baseLevel.elevation + getStructuralWallHeight(arch.levels, arch.levels.indexOf(baseLevel));
     if (!cap) {
       caps.set(baseLevel.id, {
         structuralTopY,
@@ -96,6 +98,7 @@ export function deriveWallSegmentsFromLevels(
   const roofWallCaps = buildRoofWallCaps(arch);
 
   for (const level of arch.levels) {
+    const levelIndex = arch.levels.indexOf(level);
     const outer = level.footprint.outer;
     const area = signedAreaXZ(outer);
     const isCCW = area > 0;
@@ -108,7 +111,7 @@ export function deriveWallSegmentsFromLevels(
       const current = outer[i];
       const next = outer[(i + 1) % outer.length];
       const segmentLength = Math.hypot(next.x - current.x, next.z - current.z);
-      const structuralTopY = level.elevation + level.height;
+      const structuralTopY = getStructuralWallTop(arch.levels, levelIndex);
       const visibleTopY = roofWallCap?.edgeKeys.has(edgeKey(current, next))
         ? roofWallCap.structuralTopY
         : structuralTopY;
@@ -128,7 +131,7 @@ export function deriveWallSegmentsFromLevels(
           y: level.elevation,
           z: next.z,
         },
-        height: level.height,
+        height: getStructuralWallHeight(arch.levels, levelIndex),
         thickness: arch.wallThickness,
         outwardSign,
         uOffset,
@@ -159,13 +162,11 @@ export function deriveWallSegmentsFromLevels(
   for (const wall of interiorWallsToUse) {
     const levelIndex = arch.levels.findIndex((l) => l.id === wall.levelId);
     const level = arch.levels[levelIndex];
-    const nextLevel = arch.levels[levelIndex + 1];
     if (!level) continue;
+    const wallTop = getStructuralWallTop(arch.levels, levelIndex);
 
     const visibleBaseY = level.elevation - level.slab.thickness;
-    const topY = nextLevel
-      ? nextLevel.elevation - nextLevel.slab.thickness
-      : level.elevation + level.height;
+    const topY = wallTop;
     const visibleHeight = topY - visibleBaseY;
 
     const segment: DerivedWallSegment = {
@@ -184,7 +185,7 @@ export function deriveWallSegmentsFromLevels(
         z: wall.end.z,
       },
 
-      height: visibleHeight,
+      height: getStructuralWallHeight(arch.levels, levelIndex),
       thickness: wall.thickness,
 
       // interior walls don't have footprint orientation

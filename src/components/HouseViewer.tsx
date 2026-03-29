@@ -10,6 +10,7 @@ import { markFirstFrameRendered } from '../loadingManager';
 import { DebugButton } from '../engine/debug/ui/DebugButton';
 import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
+import type { VisibilityState } from '../engine/debug/ui/tabs/VisibilityTab';
 import {
   type FloorplanValidationResult,
   validateFloorplan,
@@ -61,6 +62,7 @@ function DebugAxes() {
 type ToggleState = {
   shellVisible: boolean;
   showDebug: boolean;
+  visibility: VisibilityState;
 };
 
 type SelectedRoomState = {
@@ -125,10 +127,10 @@ export default function HouseViewer() {
   const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [showWireframe, setShowWireframe] = useState(false);
-  const [showEdges, setShowEdges] = useState(true);
+  const [showEdges, setShowEdges] = useState(false);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
-  const [showFloorplanOverlay, setShowFloorplanOverlay] = useState(true);
-  const [showValidationIssues, setShowValidationIssues] = useState(true);
+  const [showFloorplanOverlay, setShowFloorplanOverlay] = useState(false);
+  const [showValidationIssues, setShowValidationIssues] = useState(false);
   const [validationResult, setValidationResult] = useState<FloorplanValidationResult | null>(null);
   const [validationLog, setValidationLog] = useState<ValidationLogEntry[]>([
     { level: 'info', message: 'Use "Run Floorplan Validation" in Debug to run checks.' },
@@ -136,6 +138,13 @@ export default function HouseViewer() {
   const [toggles, setToggles] = useState<ToggleState>({
     shellVisible: true,
     showDebug: debugEnabled,
+    visibility: {
+      showSlabs: true,
+      showWindows: true,
+      showWalls: true,
+      showRooms: false,
+      showRoof: true,
+    },
   });
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<SelectedRoomState | null>(null);
@@ -155,12 +164,12 @@ export default function HouseViewer() {
     [house.levels]
   );
 
-  const showWalls = toggles.shellVisible;
-  const showRoof = toggles.shellVisible;
-  const showGlass = toggles.shellVisible;
-  const showSlabs = true;
-  const showRooms = !toggles.shellVisible;
-  const showRoomInfoCard = !toggles.shellVisible && selectedRoom !== null;
+  const showWalls = toggles.visibility.showWalls;
+  const showRoof = toggles.visibility.showRoof;
+  const showGlass = toggles.visibility.showWindows;
+  const showSlabs = toggles.visibility.showSlabs;
+  const showRooms = toggles.visibility.showRooms;
+  const showRoomInfoCard = showRooms && selectedRoom !== null;
 
   useEffect(() => {
     if (!showRooms) {
@@ -337,7 +346,22 @@ export default function HouseViewer() {
                 ? '0 0 0 1px rgba(134, 255, 188, 0.4), 0 0 20px rgba(68, 231, 138, 0.35)'
                 : '0 0 0 1px rgba(111, 132, 166, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
             }}
-            onClick={() => setToggles((current) => ({ ...current, shellVisible: !current.shellVisible }))}
+            onClick={() =>
+              setToggles((current) => {
+                const shellVisible = !current.shellVisible;
+                return {
+                  ...current,
+                  shellVisible,
+                  visibility: {
+                    ...current.visibility,
+                    showWindows: shellVisible,
+                    showWalls: shellVisible,
+                    showRoof: shellVisible,
+                    showRooms: !shellVisible,
+                  },
+                };
+              })
+            }
             title={`Shell: ${toggles.shellVisible ? 'ON' : 'OFF'}`}
           >
             <span
@@ -390,11 +414,23 @@ export default function HouseViewer() {
             onApplyArchitecturalHouse={setHouse}
             onRunFloorplanValidation={runFloorplanValidation}
             showFloorplanOverlay={showFloorplanOverlay}
-            onToggleFloorplanOverlay={() => setShowFloorplanOverlay((value) => !value)}
+            onShowFloorplanOverlayChange={setShowFloorplanOverlay}
             showValidationIssues={showValidationIssues}
-            onToggleValidationIssues={() => setShowValidationIssues((value) => !value)}
+            onShowValidationIssuesChange={setShowValidationIssues}
             onClearValidationOutput={clearValidationOutput}
             validationLog={validationLog}
+            visibility={toggles.visibility}
+            onVisibilityChange={(visibility) =>
+              setToggles((current) => ({
+                ...current,
+                shellVisible:
+                  visibility.showWalls &&
+                  visibility.showWindows &&
+                  visibility.showRoof &&
+                  !visibility.showRooms,
+                visibility,
+              }))
+            }
           />
         </>
       )}

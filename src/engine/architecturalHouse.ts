@@ -573,8 +573,8 @@ export const architecturalHouse: ArchitecturalHouse = {
       polygon: [
         { x: 1.0, z: 4.0 },
         { x: 2.7, z: 4.0 },
-        { x: 2.7, z: 8.45 },
-        { x: 1.0, z: 8.45 },
+        { x: 2.7, z: 6.2 },
+        { x: 1.0, z: 6.2 },
       ],
       edges: [
         { type: 'wall' },
@@ -583,19 +583,19 @@ export const architecturalHouse: ArchitecturalHouse = {
         { type: 'wall' },
       ],
     },
-
     {
       id: 'room-ground-storage-entry',
       name: 'Storage',
       levelId: 'ground',
       polygon: [
-        { x: 0.9, z: 1.8 },
+        { x: 2.3, z: 1.8 },
         { x: 4.8, z: 1.8 },
         { x: 4.8, z: 8.45 },
-        { x: 0.9, z: 8.45 },
-        { x: 0.9, z: 4.0 },
+        { x: 1.0, z: 8.45 },
+        { x: 1.0, z: 6.2 },
+        { x: 2.7, z: 6.2 },
         { x: 2.7, z: 4.0 },
-        { x: 2.7, z: 1.8 },
+        { x: 2.3, z: 4.0 },
       ],
       edges: [
         { type: 'wall' },
@@ -605,9 +605,9 @@ export const architecturalHouse: ArchitecturalHouse = {
         { type: 'wall' },
         { type: 'wall' },
         { type: 'wall' },
+        { type: 'wall' },
       ],
     },
-
     {
       id: 'room-ground-kitchen',
       name: 'Kitchen',

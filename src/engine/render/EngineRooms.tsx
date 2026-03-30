@@ -57,6 +57,12 @@ export function EngineRooms({
           height,
         });
 
+        const positionAttribute = geometry.getAttribute('position');
+        if (!positionAttribute || positionAttribute.count === 0) {
+          geometry.dispose();
+          return null;
+        }
+
         const outlineGeometry = new THREE.EdgesGeometry(geometry, 1);
 
         return {

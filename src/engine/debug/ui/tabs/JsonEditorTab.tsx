@@ -110,6 +110,25 @@ export function JsonEditorTab({ initialJson, onApplyArchitecturalHouse }: Props)
   }, [initialJson]);
 
   const canApply = useMemo(() => validation.success && validation.parsedHouse !== null, [validation]);
+  const copyAsTypeScript = async () => {
+    try {
+      const parsed = JSON.parse(draft) as ArchitecturalHouse;
+      const typeScriptSnippet = `export const architecturalHouse: ArchitecturalHouse = ${JSON.stringify(parsed, null, 2)};`;
+      await navigator.clipboard.writeText(typeScriptSnippet);
+      setValidation({
+        success: true,
+        parsedHouse: parsed,
+        entries: [{ level: 'info', message: 'Copied as TypeScript for architecturalHouse.ts.' }],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to copy TypeScript snippet.';
+      setValidation({
+        success: false,
+        parsedHouse: null,
+        entries: [{ level: 'error', message }],
+      });
+    }
+  };
 
   return (
     <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto auto', gap: 12, minHeight: 0, height: '100%' }}>
@@ -154,6 +173,9 @@ export function JsonEditorTab({ initialJson, onApplyArchitecturalHouse }: Props)
         </button>
         <button type="button" onClick={() => setValidation(validateArchitecturalHouse(draft))}>
           Validate
+        </button>
+        <button type="button" onClick={copyAsTypeScript}>
+          Copy as TS
         </button>
         <button
           type="button"

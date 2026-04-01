@@ -9,9 +9,7 @@ src/engine
 ├── EngineHouse.tsx
 ├── architecturalHouse.ts
 ├── architecturalTypes.ts
-├── buildHouse.ts
 ├── buildRoof.ts
-├── buildWalls.ts
 ├── buildWallsFromDerivedSegments.ts
 ├── builders
 │   ├── buildFacadePanels.ts
@@ -51,7 +49,6 @@ src/engine
 │   ├── normalizeMultiPlaneRoof.ts
 │   └── planMultiPlaneRoofFixes.ts
 ├── spaceMapping.ts
-├── toThreeWorldMeshes.ts
 ├── types.ts
 └── validation
     ├── validateMultiPlaneRoof.ts
@@ -153,7 +150,6 @@ deriveHouse
 ### Call-site inventory requested
 
 - `buildExtrudedShell` is called by:
-  - `src/engine/buildWalls.ts`
   - `src/model/wallsEavesBand.ts`
 
 - `deriveWalls` is called by:
@@ -198,10 +194,10 @@ EngineHouse
 
 Additional geometry builder path in codebase:
 
-buildWallsFromCurrentSystem
-  src/engine/buildWalls.ts
-      └── buildExtrudedShell
-          src/engine/geometry/buildExtrudedShell.ts
+buildWallsFromDerivedSegments
+  src/engine/buildWallsFromDerivedSegments.ts
+      └── extrudeWallSegment
+          src/engine/extrudeWallSegment.ts
               └── THREE.ExtrudeGeometry
 ```
 
@@ -221,7 +217,6 @@ Method used: static relative-import graph across `src/**/*.ts(x)`; files in `src
 - `src/model/types/FacadePlan.ts`
 
 ### `src/engine` candidates
-- `src/engine/buildHouse.ts`
 - `src/engine/deriveSlabs.ts`
 - `src/engine/render/EngineRoofs.tsx`
 - `src/engine/render/EngineWalls.tsx`

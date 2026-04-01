@@ -142,7 +142,6 @@ Rendering strategy is split by element class:
 ## Debug logging hotspots
 
 - `deriveOpenings` logs edge checks, center-on-edge checks, and serialized output.
-- `toThreeWorldMeshes` logs source/mapped world-space diagnostics for window/wall meshes when debug flags allow.
 
 ---
 
@@ -164,17 +163,11 @@ Two geometry paths coexist: a modern derive→render path and a legacy build-hou
 
 Caching is revision-driven (`createGeometryCache`): when revision id is unchanged, previously built geometry is reused.
 
-## B) Legacy/parallel build path (`buildHouse`)
+## B) Legacy/parallel build path
 
-`buildHouse.ts` still constructs an alternative mesh output:
+The legacy `buildHouse.ts` + `toThreeWorldMeshes.ts` path has been removed.
 
-- validates structure/openings
-- derives slabs/walls/openings
-- builds facade panels and window meshes
-- maps meshes into world coordinates via `toThreeWorldMeshes`
-- returns `{ walls, roof, worldMeshes }`
-
-This path is useful for tooling/prototyping and demonstrates facade/opening-oriented geometry generation.
+Remaining migration target in this area is `buildRoof.ts`, which is still consumed by `src/model/roof.ts`.
 
 ---
 

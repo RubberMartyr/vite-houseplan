@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import React, { useEffect, useMemo } from 'react';
+import React, { memo, useEffect, useMemo } from 'react';
 import type { LevelSpec, RoomSpec } from '../architecturalTypes';
 import { buildRoomPrismGeometry } from '../geometry/buildRoomPrismGeometry';
 import { getStructuralWallHeight } from '../derive/getStructuralWallHeight';
@@ -23,7 +23,7 @@ const BASE_FILL_COLOR = new THREE.Color('#5bbcff');
 const HOVER_FILL_COLOR = new THREE.Color('#7fccff');
 const SELECTED_FILL_COLOR = new THREE.Color('#9ad9ff');
 
-export function EngineRooms({
+export const EngineRooms = memo(function EngineRooms({
   rooms,
   levels,
   selectedRoomId,
@@ -149,4 +149,4 @@ export function EngineRooms({
       })}
     </group>
   );
-}
+});

@@ -8,6 +8,7 @@ import { useDebugUIState } from '../debug/debugUIState';
 import { createRoofMaterial } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import { debugFlags } from '../debug/debugFlags';
+import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
 
 type Props = {
   roofs: DerivedRoof[];
@@ -59,7 +60,8 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true, roofMater
       });
     }
 
-    const next = toDisposableRoofGeometries(deriveFlatRoofGeometries(roofs));
+    const next = profileGeometryBuild('FlatRoofs', () => toDisposableRoofGeometries(deriveFlatRoofGeometries(roofs)));
+    incrementGeometryRebuildCount('roofs');
     geometryCache.current.set(roofRevision, next);
 
     return next.value;

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { EngineFlatRoofs } from './EngineFlatRoofs';
 import { EngineGableRoofs } from './EngineGableRoofs';
 import type { MultiPlaneRoofValidationResult } from '../validation/validateMultiPlaneRoof';
@@ -14,7 +14,7 @@ type EngineRoofsProps = {
   roofMaterialSpec?: ArchitecturalMaterials['roof'];
 };
 
-export function EngineRoofs({ roofs, roofRevision, roofValidationEntries, visible = true, roofMaterialSpec }: EngineRoofsProps) {
+export const EngineRoofs = memo(function EngineRoofs({ roofs, roofRevision, roofValidationEntries, visible = true, roofMaterialSpec }: EngineRoofsProps) {
   const invalidRoofIds = useMemo(
     () => new Set(roofValidationEntries.filter((entry) => entry.validation.errors.length > 0).map((entry) => entry.roof.id)),
     [roofValidationEntries]
@@ -37,4 +37,4 @@ export function EngineRoofs({ roofs, roofRevision, roofValidationEntries, visibl
       />
     </>
   );
-}
+});

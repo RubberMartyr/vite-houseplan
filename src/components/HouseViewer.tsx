@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
@@ -7,8 +7,6 @@ import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse } from '../engine/architecturalTypes';
 import { markFirstFrameRendered } from '../loadingManager';
-import { DebugButton } from '../engine/debug/ui/DebugButton';
-import { DebugDashboard } from '../engine/debug/ui/DebugDashboard';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
 import type { VisibilityState } from '../engine/debug/ui/tabs/VisibilityTab';
 import {
@@ -16,10 +14,24 @@ import {
   validateFloorplan,
 } from '../engine/validation/validateFloorplan';
 import { debugFlags } from '../engine/debug/debugFlags';
-import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
-import { DebugEdges } from './debug/DebugEdges';
-import { FloorplanValidationOverlay } from '../engine/debug/FloorplanValidationOverlay';
 import { RoomInfoCard } from './RoomInfoCard';
+
+
+const DebugButton = lazy(() =>
+  import('../engine/debug/ui/DebugButton').then((module) => ({ default: module.DebugButton }))
+);
+const DebugDashboard = lazy(() =>
+  import('../engine/debug/ui/DebugDashboard').then((module) => ({ default: module.DebugDashboard }))
+);
+const WireframeOverride = lazy(() =>
+  import('../engine/debug/ui/useWireframeOverride').then((module) => ({ default: module.WireframeOverride }))
+);
+const DebugEdges = lazy(() => import('./debug/DebugEdges').then((module) => ({ default: module.DebugEdges })));
+const FloorplanValidationOverlay = lazy(() =>
+  import('../engine/debug/FloorplanValidationOverlay').then((module) => ({
+    default: module.FloorplanValidationOverlay,
+  }))
+);
 
 function FirstFrameMarker() {
   const firstFrameRef = useRef(false);
@@ -314,18 +326,28 @@ export default function HouseViewer() {
             }}
           />
           <DebugAxes />
-          {toggles.showDebug && debugEnabled && <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />}
           {toggles.showDebug && debugEnabled && (
-            <FloorplanValidationOverlay
-              architecturalHouse={houseWithInjectedInteriorWall}
-              validationResult={validationResult}
-              showFloorplanOverlay={showFloorplanOverlay}
-              showValidationIssues={showValidationIssues}
-            />
+            <Suspense fallback={null}>
+              <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />
+            </Suspense>
+          )}
+          {toggles.showDebug && debugEnabled && (
+            <Suspense fallback={null}>
+              <FloorplanValidationOverlay
+                architecturalHouse={houseWithInjectedInteriorWall}
+                validationResult={validationResult}
+                showFloorplanOverlay={showFloorplanOverlay}
+                showValidationIssues={showValidationIssues}
+              />
+            </Suspense>
           )}
         </group>
 
-        {toggles.showDebug && debugEnabled && <WireframeOverride enabled={showWireframe} />}
+        {toggles.showDebug && debugEnabled && (
+          <Suspense fallback={null}>
+            <WireframeOverride enabled={showWireframe} />
+          </Suspense>
+        )}
 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
@@ -400,8 +422,9 @@ export default function HouseViewer() {
 
       {toggles.showDebug && debugEnabled && (
         <>
-          <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />
-          <DebugDashboard
+          <Suspense fallback={null}>
+            <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />
+            <DebugDashboard
             isOpen={isDashboardOpen}
             onClose={() => setIsDashboardOpen(false)}
             showWireframe={showWireframe}
@@ -431,7 +454,8 @@ export default function HouseViewer() {
                 visibility,
               }))
             }
-          />
+            />
+          </Suspense>
         </>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { DerivedSlab } from '../derive/deriveSlabs';
 import { buildSlabMesh } from '../../view/buildSlabMeshes';
@@ -7,6 +7,7 @@ import { DebugWireframe } from '../debug/DebugWireframe';
 import { useDebugUIState } from '../debug/debugUIState';
 import { createGeometryCache } from '../cache/createGeometryCache';
 import { debugFlags } from '../debug/debugFlags';
+import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
 
 type EngineSlabsProps = {
   slabs: DerivedSlab[];
@@ -40,7 +41,7 @@ function toDisposableSlabMeshes(meshes: THREE.Mesh[]): DisposableSlabMeshes {
   };
 }
 
-export function EngineSlabs({ slabs, slabRevision, visible = true }: EngineSlabsProps) {
+export const EngineSlabs = memo(function EngineSlabs({ slabs, slabRevision, visible = true }: EngineSlabsProps) {
   const geometryCache = useRef(createGeometryCache<DisposableSlabMeshes>());
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
@@ -69,9 +70,10 @@ export function EngineSlabs({ slabs, slabRevision, visible = true }: EngineSlabs
       });
     }
 
-    const next = toDisposableSlabMeshes(
-      renderableSlabs.map((slab) => buildSlabMesh(slab, renderStyleConfig))
+    const next = profileGeometryBuild('Slabs', () =>
+      toDisposableSlabMeshes(renderableSlabs.map((slab) => buildSlabMesh(slab, renderStyleConfig)))
     );
+    incrementGeometryRebuildCount('slabs');
     geometryCache.current.set(slabRevision, next);
 
     return next.value;
@@ -117,4 +119,4 @@ export function EngineSlabs({ slabs, slabRevision, visible = true }: EngineSlabs
       ))}
     </>
   );
-}
+});

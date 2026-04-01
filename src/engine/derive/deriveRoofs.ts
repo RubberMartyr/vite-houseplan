@@ -5,6 +5,7 @@ import type { DerivedRoof } from './types/DerivedRoof';
 import type { DerivedSlab } from './deriveSlabs';
 import type { DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from './types/DerivedOpening';
+import { getDefaultRoofBaseLevel, getLevelById } from '../utils/levelUtils';
 
 function dedupeConsecutivePoints(points: XZ[]): XZ[] {
   if (points.length < 2) return points;
@@ -41,7 +42,10 @@ export function deriveRoofs(arch: ArchitecturalHouse, _context: DeriveRoofsConte
   const { roofs = [] } = arch;
 
   return roofs.flatMap((roof) => {
-    const baseLevel = arch.levels.find((level) => level.id === roof.baseLevelId);
+    const roofBaseLevelId = roof.baseLevelId ?? getDefaultRoofBaseLevel(arch)?.id;
+    if (!roofBaseLevelId) return [];
+
+    const baseLevel = getLevelById(arch, roofBaseLevelId);
     if (!baseLevel) return [];
 
     const footprintOuter = ensureClosed(baseLevel.footprint.outer);
@@ -56,7 +60,7 @@ export function deriveRoofs(arch: ArchitecturalHouse, _context: DeriveRoofsConte
     return {
       id: roof.id,
       kind: roof.type,
-      baseLevelId: roof.baseLevelId,
+      baseLevelId: roofBaseLevelId,
       baseLevel: {
         id: baseLevel.id,
         elevation: baseLevel.elevation,

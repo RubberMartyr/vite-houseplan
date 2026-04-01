@@ -346,7 +346,7 @@ const RIGHT_FACADE_DOOR_HEIGHT = cm(215);
 const RIGHT_FACADE_WINDOW_WIDTH = cm(80);
 const RIGHT_FACADE_WINDOW_HEIGHT = cm(90);
 const RIGHT_FACADE_WINDOW_BOTTOM_Y = cm(410);
-const FIRST_FLOOR_ELEVATION = levels.find((level) => level.id === 'first')?.elevation ?? 0;
+const FIRST_FLOOR_ELEVATION = firstLevel.elevation;
 const RIGHT_FACADE_WINDOW_SILL_HEIGHT = RIGHT_FACADE_WINDOW_BOTTOM_Y - FIRST_FLOOR_ELEVATION;
 
 // The ground-floor side-elevation drawing calls out a 215cm-high door, while the

@@ -11,6 +11,7 @@ import { EngineSite } from './render/EngineSite';
 import { EngineWalls } from './render/EngineWalls';
 import { EngineRooms } from './render/EngineRooms';
 import { getWallVisibleBaseY, getWallVisibleTopY, type DerivedWallSegment } from './deriveWalls';
+import { getLowestLevel } from './utils/levelUtils';
 
 
 const EngineDebugLayer = lazy(() =>
@@ -64,7 +65,10 @@ export function EngineHouse({
     () => Object.fromEntries(house.levels.map((level) => [level.id, level.footprint.outer])),
     [house]
   );
-  const basementLevelIds = useMemo(() => new Set(['basement']), []);
+  const basementLevelIds = useMemo(() => {
+    const lowestLevelId = getLowestLevel(house)?.id;
+    return new Set(lowestLevelId ? [lowestLevelId] : []);
+  }, [house]);
   const basementWalls = useMemo(
     () => derived.walls.filter((wall) => basementLevelIds.has(wall.levelId)),
     [basementLevelIds, derived.walls]
@@ -118,12 +122,12 @@ export function EngineHouse({
     [aboveGradeWalls, siteElevation]
   );
   const basementOpenings = useMemo(
-    () => derived.openings.filter((opening) => house.levels[opening.levelIndex]?.id === 'basement'),
-    [house.levels, derived.openings]
+    () => derived.openings.filter((opening) => basementLevelIds.has(house.levels[opening.levelIndex]?.id ?? '')),
+    [house.levels, basementLevelIds, derived.openings]
   );
   const aboveGradeOpenings = useMemo(
-    () => derived.openings.filter((opening) => house.levels[opening.levelIndex]?.id !== 'basement'),
-    [house.levels, derived.openings]
+    () => derived.openings.filter((opening) => !basementLevelIds.has(house.levels[opening.levelIndex]?.id ?? '')),
+    [house.levels, basementLevelIds, derived.openings]
   );
 
   return (

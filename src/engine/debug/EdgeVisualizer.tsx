@@ -8,6 +8,8 @@ type Props = {
 };
 
 export function EdgeVisualizer({ walls }: Props) {
+  const lowestBaseY = Math.min(...walls.map((wall) => wall.baseY));
+
   return (
     <>
       {walls.map((wall) => {
@@ -16,7 +18,7 @@ export function EdgeVisualizer({ walls }: Props) {
         const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
         const arrowEnd = new THREE.Vector3().copy(mid).add(dir.multiplyScalar(0.5));
-        const color = wall.levelId === 'ground' ? 'cyan' : 'magenta';
+        const color = Math.abs(wall.baseY - lowestBaseY) < 1e-6 ? 'cyan' : 'magenta';
 
         return (
           <group key={wall.id}>

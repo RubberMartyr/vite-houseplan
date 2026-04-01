@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Vec2 } from '../architecturalTypes';
 import { getWallVisibleHeight, type DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
 import type { BuiltWall } from '../buildWallsFromDerivedSegments';
 import { extrudeWallSegment } from '../extrudeWallSegment';
 import { DebugWireframe } from '../debug/DebugWireframe';
-import { createGeometryCache } from '../cache/geometryCache';
+import { createGeometryCache } from '../cache/createGeometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
 import { debugFlags } from '../debug/debugFlags';
 import {
@@ -37,7 +37,110 @@ type BuiltWallPiece = BuiltWall & {
   debugThinBand?: boolean;
 };
 
-const getGeometry = createGeometryCache<BuiltWallPiece[]>();
+type DisposableBuiltWallCollection = {
+  value: BuiltWallPiece[];
+  dispose: () => void;
+};
+
+function toDisposableBuiltWalls(walls: BuiltWallPiece[]): DisposableBuiltWallCollection {
+  return {
+    value: walls,
+    dispose: () => {
+      walls.forEach((wall) => wall.geometry.dispose());
+    },
+  };
+}
+
+function buildWallGeometry(
+  walls: DerivedWallSegment[],
+  openings: DerivedOpening[],
+  levelFootprintsById: Record<string, Vec2[]> | undefined,
+  wallMaterialScale: number,
+  debugEnabled: boolean
+): BuiltWallPiece[] {
+  const exteriorWalls = walls.filter((wall) => wall.kind !== 'interior');
+  const interiorWalls = walls.filter((wall) => wall.kind === 'interior');
+  const { walls: mergedExteriorWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(
+    exteriorWalls,
+    openings
+  );
+  const visibleWalls = [...mergedExteriorWalls, ...interiorWalls];
+  const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
+
+  if (debugEnabled) {
+    console.log('[GeometryCache] rebuilding wall geometry', {
+      wallCount: walls.length,
+      openingCount: openings.length,
+    });
+    console.debug('[separator-debug]', {
+      stage: 'EngineWalls:post-merge',
+      wallCountBeforeMerge: walls.length,
+      wallCountAfterMerge: visibleWalls.length,
+      openingCountBeforeMerge: openings.length,
+      openingCountAfterMerge: visibleOpenings.length,
+    });
+  }
+
+  return visibleWalls.flatMap((wall) => {
+    const openingsOnWall = openingsByWall.get(wall.id) ?? [];
+    const footprintOuter = levelFootprintsById?.[wall.levelId];
+
+    if (!openingsOnWall.length) {
+      if (debugEnabled) {
+        console.debug('[separator-debug]', {
+          stage: 'EngineWalls:no-openings-direct-render',
+          wallId: wall.id,
+        });
+      }
+
+      return [
+        {
+          id: wall.id,
+          geometry: extrudeWallSegment(wall, wallMaterialScale, footprintOuter),
+        },
+      ];
+    }
+
+    const wallLength = Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z);
+    const pieces = splitWallByOpenings(wallLength, getWallVisibleHeight(wall), openingsOnWall, wall);
+
+    if (debugEnabled) {
+      console.debug('[separator-debug]', {
+        stage: 'EngineWalls:split-result',
+        wallId: wall.id,
+        openingsOnWall: openingsOnWall.map((opening) => ({
+          openingId: opening.id,
+          vMin: opening.vMin,
+          vMax: opening.vMax,
+        })),
+        pieceCount: pieces.length,
+      });
+    }
+
+    return pieces.map((piece, pieceIndex) => {
+      const pieceId = `${wall.id}-piece-${pieceIndex}`;
+      const debugSeparatorCandidate = isSeparatorCandidatePiece(piece);
+      const debugThinBand = piece.vMax - piece.vMin < 0.8;
+
+      if (debugSeparatorCandidate) {
+        logSeparatorDebug(
+          debugEnabled,
+          createSeparatorDebugMetadata('EngineWalls:piece-ready-for-geometry', wall.id, piece, {
+            pieceId,
+            renderedIntoMesh: true,
+          })
+        );
+      }
+
+      return {
+        id: pieceId,
+        debugSeparatorCandidate,
+        debugThinBand,
+        geometry: buildWallPieceGeometry(wall, piece, wallMaterialScale, footprintOuter, pieceId),
+      };
+    });
+  });
+}
 
 export function EngineWalls({
   walls,
@@ -49,9 +152,10 @@ export function EngineWalls({
   wallMaterialSpec,
   cacheKey = 'default',
 }: EngineWallsProps) {
-  console.log('ALL WALLS:', walls);
+  const geometryCache = useRef(createGeometryCache<DisposableBuiltWallCollection>());
   const debugWireframe = useDebugUIState((state) => state.debugWireframe);
   const debugEnabled = debugFlags.enabled;
+  const wallMaterialScale = wallMaterialSpec?.scale ?? 0.6;
   const wallMaterials = useMemo(() => createWallMaterials(wallMaterialSpec), [wallMaterialSpec]);
   const interiorWallMaterials = useMemo(
     () =>
@@ -87,6 +191,12 @@ export function EngineWalls({
     () => () => interiorWallMaterials.forEach((material) => material.dispose()),
     [interiorWallMaterials]
   );
+  useEffect(
+    () => () => {
+      geometryCache.current.dispose();
+    },
+    []
+  );
 
   const builtWalls = useMemo(() => {
     if (!visible) {
@@ -94,96 +204,41 @@ export function EngineWalls({
     }
 
     const revision = `${cacheKey}:${wallRevision}:${openingsRevision}`;
+    const numericRevision = Array.from(revision).reduce(
+      (hash, char) => ((hash * 31 + char.charCodeAt(0)) | 0) >>> 0,
+      0
+    );
+    const cached = geometryCache.current.get(numericRevision);
 
-    return getGeometry(revision, () => {
-      const exteriorWalls = walls.filter((wall) => wall.kind !== 'interior');
-      const interiorWalls = walls.filter((wall) => wall.kind === 'interior');
-      const { walls: mergedExteriorWalls, openings: visibleOpenings } = mergeExteriorWallsForRendering(exteriorWalls, openings);
-      const visibleWalls = [...mergedExteriorWalls, ...interiorWalls];
-      const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
-
+    if (cached) {
       if (debugEnabled) {
-        console.debug('[separator-debug]', {
-          stage: 'EngineWalls:post-merge',
-          wallCountBeforeMerge: walls.length,
-          wallCountAfterMerge: visibleWalls.length,
-          openingCountBeforeMerge: openings.length,
-          openingCountAfterMerge: visibleOpenings.length,
+        console.log('[GeometryCache] reusing wall geometry', {
+          cacheKey,
+          revision,
+          wallCount: walls.length,
         });
       }
+      return cached.value;
+    }
 
-      return visibleWalls.flatMap((wall) => {
-        const openingsOnWall = openingsByWall.get(wall.id) ?? [];
-        const footprintOuter = levelFootprintsById?.[wall.levelId];
+    const disposable = toDisposableBuiltWalls(
+      buildWallGeometry(walls, openings, levelFootprintsById, wallMaterialScale, debugEnabled)
+    );
 
-        if (!openingsOnWall.length) {
-          if (debugEnabled) {
-            console.debug('[separator-debug]', {
-              stage: 'EngineWalls:no-openings-direct-render',
-              wallId: wall.id,
-            });
-          }
+    geometryCache.current.set(numericRevision, disposable);
 
-          return [
-            {
-              id: wall.id,
-              geometry: extrudeWallSegment(wall, wallMaterialSpec?.scale ?? 0.6, footprintOuter),
-            },
-          ];
-        }
-
-        const wallLength = Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z);
-        const pieces = splitWallByOpenings(
-          wallLength,
-          getWallVisibleHeight(wall),
-          openingsOnWall,
-          wall
-        );
-
-        if (debugEnabled) {
-          console.debug('[separator-debug]', {
-            stage: 'EngineWalls:split-result',
-            wallId: wall.id,
-            openingsOnWall: openingsOnWall.map((opening) => ({
-              openingId: opening.id,
-              vMin: opening.vMin,
-              vMax: opening.vMax,
-            })),
-            pieceCount: pieces.length,
-          });
-        }
-
-        return pieces.map((piece, pieceIndex) => {
-          const pieceId = `${wall.id}-piece-${pieceIndex}`;
-          const debugSeparatorCandidate = isSeparatorCandidatePiece(piece);
-          const debugThinBand = piece.vMax - piece.vMin < 0.8;
-
-          if (debugSeparatorCandidate) {
-            logSeparatorDebug(
-              debugEnabled,
-              createSeparatorDebugMetadata('EngineWalls:piece-ready-for-geometry', wall.id, piece, {
-                pieceId,
-                renderedIntoMesh: true,
-              })
-            );
-          }
-
-          return {
-            id: pieceId,
-            debugSeparatorCandidate,
-            debugThinBand,
-            geometry: buildWallPieceGeometry(
-              wall,
-              piece,
-              wallMaterialSpec?.scale ?? 0.6,
-              footprintOuter,
-              pieceId
-            ),
-          };
-        });
-      });
-    });
-  }, [cacheKey, debugEnabled, walls, openings, wallRevision, openingsRevision, levelFootprintsById, visible, wallMaterialSpec?.scale]);
+    return disposable.value;
+  }, [
+    cacheKey,
+    debugEnabled,
+    levelFootprintsById,
+    openings,
+    openingsRevision,
+    visible,
+    wallMaterialScale,
+    wallRevision,
+    walls,
+  ]);
 
   const normalBuiltWalls = useMemo(
     () => (debugEnabled ? builtWalls.filter((wall) => !wall.debugThinBand) : builtWalls),
@@ -222,18 +277,18 @@ export function EngineWalls({
       })}
       {debugEnabled &&
         separatorBuiltWalls.map(({ id, geometry }) => (
-        <mesh
-          key={id}
-          geometry={geometry}
-          material={separatorDebugMaterial}
-          position={[0, 0, 0.01]}
-          castShadow
-          receiveShadow
-          userData={{ debugType: 'structure', debugSeparatorCandidate: true, debugThinBand: true }}
-        >
-          <DebugWireframe />
-        </mesh>
-      ))}
+          <mesh
+            key={id}
+            geometry={geometry}
+            material={separatorDebugMaterial}
+            position={[0, 0, 0.01]}
+            castShadow
+            receiveShadow
+            userData={{ debugType: 'structure', debugSeparatorCandidate: true, debugThinBand: true }}
+          >
+            <DebugWireframe />
+          </mesh>
+        ))}
     </>
   );
 }

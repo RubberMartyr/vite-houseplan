@@ -183,7 +183,7 @@ export function EngineHouse({
         visible={showWalls}
         wallMaterialSpec={architecturalHouse.materials?.walls}
       />
-      <EngineSlabs slabs={derived.slabs} visible={showSlabs} />
+      <EngineSlabs slabs={derived.slabs} slabRevision={derived.revisions.slabs} visible={showSlabs} />
       <EngineRoofs
         roofs={derived.roofs}
         roofRevision={derived.revisions.roofs}
@@ -201,7 +201,7 @@ export function EngineHouse({
           <EdgeVisualizer walls={derived.walls} />
           <OpeningAnchorDebug openings={derived.openings} />
           <EngineDebugHUD derived={derived} />
-          <RoofPlaneVisualizer roofs={derived.roofs} />
+          <RoofPlaneVisualizer roofs={derived.roofs} roofRevision={derived.revisions.roofs} />
           <DerivedGraphOverlay derived={derived} />
         </>
       )}

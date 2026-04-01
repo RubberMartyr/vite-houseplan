@@ -7,7 +7,14 @@ import { DebugWireframe } from '../debug/DebugWireframe';
 import { useDebugUIState } from '../debug/debugUIState';
 import { createGeometryCache } from '../cache/createGeometryCache';
 import { debugFlags } from '../debug/debugFlags';
-import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
+import {
+  incrementGeometryRebuildCount,
+  profileGeometryBuild,
+  recordGeometryBuildStats,
+  recordGeometryCacheHit,
+  recordGeometryCacheMiss,
+  summarizeGeometry,
+} from '../debug/geometryProfiler';
 
 type EngineSlabsProps = {
   slabs: DerivedSlab[];
@@ -54,6 +61,7 @@ export const EngineSlabs = memo(function EngineSlabs({ slabs, slabRevision, visi
   const slabMeshes = useMemo(() => {
     const cached = geometryCache.current.get(slabRevision);
     if (cached) {
+      recordGeometryCacheHit('slabs');
       if (debugEnabled) {
         console.log('[GeometryCache] reusing slab geometry', {
           revision: slabRevision,
@@ -62,6 +70,7 @@ export const EngineSlabs = memo(function EngineSlabs({ slabs, slabRevision, visi
       }
       return cached.value;
     }
+    recordGeometryCacheMiss('slabs');
 
     if (debugEnabled) {
       console.log('[GeometryCache] rebuilding slab geometry', {
@@ -70,9 +79,16 @@ export const EngineSlabs = memo(function EngineSlabs({ slabs, slabRevision, visi
       });
     }
 
+    const startTime = performance.now();
     const next = profileGeometryBuild('Slabs', () =>
       toDisposableSlabMeshes(renderableSlabs.map((slab) => buildSlabMesh(slab, renderStyleConfig)))
     );
+    const geometrySummary = summarizeGeometry(next.value.map((mesh) => mesh.geometry));
+    recordGeometryBuildStats('slabs', {
+      startTime,
+      triangles: geometrySummary.triangles,
+      memoryMB: geometrySummary.memoryMB,
+    });
     incrementGeometryRebuildCount('slabs');
     geometryCache.current.set(slabRevision, next);
 

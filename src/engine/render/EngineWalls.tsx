@@ -10,7 +10,15 @@ import { createGeometryCache } from '../cache/createGeometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
 import { debugFlags } from '../debug/debugFlags';
 import { debugLog } from '../debug/debugLog';
-import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
+import {
+  incrementGeometryRebuildCount,
+  profileGeometryBuild,
+  recordGeometryBuildStats,
+  recordGeometryCacheHit,
+  recordGeometryCacheMiss,
+  setWallDiagnostics,
+  summarizeGeometry,
+} from '../debug/geometryProfiler';
 import {
   createSeparatorDebugMetadata,
   isSeparatorCandidatePiece,
@@ -83,7 +91,7 @@ function buildWallGeometry(
     });
   }
 
-  return visibleWalls.flatMap((wall) => {
+  const built = visibleWalls.flatMap((wall) => {
     const openingsOnWall = openingsByWall.get(wall.id) ?? [];
     const footprintOuter = levelFootprintsById?.[wall.levelId];
 
@@ -142,6 +150,14 @@ function buildWallGeometry(
       };
     });
   });
+
+  setWallDiagnostics({
+    shellSegments: visibleWalls.length,
+    facadePanels: built.length,
+    openingsCut: visibleOpenings.length,
+  });
+
+  return built;
 }
 
 export const EngineWalls = memo(function EngineWalls({
@@ -213,6 +229,7 @@ export const EngineWalls = memo(function EngineWalls({
     const cached = geometryCache.current.get(numericRevision);
 
     if (cached) {
+      recordGeometryCacheHit('walls');
       if (debugEnabled) {
         debugLog('GeometryCache', 'Reusing wall geometry', {
           cacheKey,
@@ -222,12 +239,20 @@ export const EngineWalls = memo(function EngineWalls({
       }
       return cached.value;
     }
+    recordGeometryCacheMiss('walls');
 
+    const startTime = performance.now();
     const disposable = profileGeometryBuild('Walls', () =>
       toDisposableBuiltWalls(
         buildWallGeometry(walls, openings, levelFootprintsById, wallMaterialScale, debugEnabled)
       )
     );
+    const geometrySummary = summarizeGeometry(disposable.value.map((wall) => wall.geometry));
+    recordGeometryBuildStats('walls', {
+      startTime,
+      triangles: geometrySummary.triangles,
+      memoryMB: geometrySummary.memoryMB,
+    });
 
     incrementGeometryRebuildCount('walls');
     geometryCache.current.set(numericRevision, disposable);

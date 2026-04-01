@@ -8,7 +8,14 @@ import { useDebugUIState } from '../debug/debugUIState';
 import { createRoofMaterial } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import { debugFlags } from '../debug/debugFlags';
-import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
+import {
+  incrementGeometryRebuildCount,
+  profileGeometryBuild,
+  recordGeometryBuildStats,
+  recordGeometryCacheHit,
+  recordGeometryCacheMiss,
+  summarizeGeometry,
+} from '../debug/geometryProfiler';
 
 type Props = {
   roofs: DerivedRoof[];
@@ -47,11 +54,13 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true, roofMater
   const geometries = useMemo(() => {
     const cached = geometryCache.current.get(roofRevision);
     if (cached) {
+      recordGeometryCacheHit('roofs');
       if (debugEnabled) {
         console.log('[GeometryCache] reusing flat roof geometry', { revision: roofRevision });
       }
       return cached.value;
     }
+    recordGeometryCacheMiss('roofs');
 
     if (debugEnabled) {
       console.log('[GeometryCache] rebuilding flat roof geometry', {
@@ -60,7 +69,14 @@ export function EngineFlatRoofs({ roofs, roofRevision, visible = true, roofMater
       });
     }
 
+    const startTime = performance.now();
     const next = profileGeometryBuild('FlatRoofs', () => toDisposableRoofGeometries(deriveFlatRoofGeometries(roofs)));
+    const geometrySummary = summarizeGeometry(next.value);
+    recordGeometryBuildStats('roofs', {
+      startTime,
+      triangles: geometrySummary.triangles,
+      memoryMB: geometrySummary.memoryMB,
+    });
     incrementGeometryRebuildCount('roofs');
     geometryCache.current.set(roofRevision, next);
 

@@ -75,6 +75,7 @@ export function findFacadeEdgeIndex(ring: XZ[], which: "minZ" | "maxZ"): number 
  */
 const groundLevel: ArchitecturalHouse['levels'][number] = {
   id: "ground",
+  name: "Ground",
   elevation: 0,
   height: 2.8,
   slab: {
@@ -99,6 +100,7 @@ const groundLevel: ArchitecturalHouse['levels'][number] = {
 
 const basementLevel: ArchitecturalHouse['levels'][number] = {
   id: "basement",
+  name: "Basement",
   elevation: groundLevel.elevation - groundLevel.slab.thickness - groundLevel.height,
   height: groundLevel.height,
   slab: {
@@ -112,6 +114,7 @@ const basementLevel: ArchitecturalHouse['levels'][number] = {
 
 const firstLevel: ArchitecturalHouse['levels'][number] = {
   id: "first",
+  name: "First",
   elevation: 3.05,
   height: 2.8,
   slab: {
@@ -452,7 +455,7 @@ console.log("FRONT EDGE DIRECTION", {
   direction: { x: b.x - a.x, z: b.z - a.z },
 });
 
-export const LOT_1A_CARPORT: ArchitecturalHouse['auxiliary'][number] = {
+export const LOT_1A_CARPORT: NonNullable<ArchitecturalHouse['auxiliary']>[number] = {
   id: 'carport-main',
   type: 'flat',
   attachedTo: {
@@ -474,7 +477,7 @@ export const LOT_1A_CARPORT: ArchitecturalHouse['auxiliary'][number] = {
     insetFromEdge: 0.1,
     sides: {
       front: false,
-      back: false,
+      rear: false,
       houseSide: false,
       outerSide: true,
     },

@@ -1,3 +1,6 @@
+import type { OpeningSide } from './openings/types';
+import type { RoofFaceKind, RoofType } from './roof/types';
+
 export type Vec3 = {
   x: number;
   y: number;
@@ -14,10 +17,39 @@ export type Footprint = {
   holes?: Vec2[][];
 };
 
+export type SiteSurfaceKind =
+  | 'grass'
+  | 'driveway'
+  | 'patio'
+  | 'water'
+  | 'cobblestone'
+  | 'fence';
+
+export type SiteSurfaceMaterial = {
+  type: 'standard';
+  texture?: string;
+  normalMap?: string;
+  repeat?: [number, number];
+  scale?: { x: number; y: number };
+  color?: string;
+  roughness?: number;
+  metalness?: number;
+} | {
+  type: 'wood_vertical_slats';
+  texture?: string;
+  normalMap?: string;
+  scale?: { x: number; y: number };
+  color?: string;
+  roughness?: number;
+  metalness?: number;
+};
+
 export interface SiteSurfaceSpec {
   id: string;
-  type?: 'cobblestone' | 'fence';
+  kind: SiteSurfaceKind;
+  type?: SiteSurfaceKind;
   polygon: Vec2[];
+  material: SiteSurfaceMaterial;
   color?: string;
   elevation?: number;
   height?: number;
@@ -27,24 +59,6 @@ export interface SiteSurfaceSpec {
     gap: number;
     thickness: number;
     pattern: number[];
-  };
-  material?: {
-    type: 'standard';
-    texture?: string;
-    normalMap?: string;
-    repeat?: [number, number];
-    scale?: { x: number; y: number };
-    color?: string;
-    roughness?: number;
-    metalness?: number;
-  } | {
-    type: 'wood_vertical_slats';
-    texture?: string;
-    normalMap?: string;
-    scale?: { x: number; y: number };
-    color?: string;
-    roughness?: number;
-    metalness?: number;
   };
 }
 
@@ -62,6 +76,7 @@ export interface SlabSpec {
 
 export interface LevelSpec {
   id: string;
+  name: string;
   elevation: number;
   height: number;
   footprint: Footprint;
@@ -120,7 +135,7 @@ export type FaceRegion =
 
 export type RoofFaceSpec = {
   id: string;
-  kind: 'ridgeSideSegment' | 'hipCap';
+  kind: RoofFaceKind;
   ridgeId?: string;
   ridgeT0?: number;
   ridgeT1?: number;
@@ -134,7 +149,7 @@ export type RoofFaceSpec = {
 
 export type MultiPlaneRoofSpec = {
   id: string;
-  type: 'multi-plane';
+  type: Extract<RoofType, 'multi-plane'>;
   baseLevelId: string;
   eaveHeight: number;
   thickness?: number;
@@ -146,14 +161,14 @@ export type MultiPlaneRoofSpec = {
 export type RoofSpec =
   | {
       id: string;
-      type: 'flat';
+      type: Extract<RoofType, 'flat'>;
       baseLevelId: string;
       subtractAboveLevelId?: string;
       thickness: number;
     }
   | {
       id: string;
-      type: 'gable';
+      type: Extract<RoofType, 'gable'>;
       baseLevelId: string;
       eaveHeight: number;
       ridgeHeight: number;
@@ -166,7 +181,7 @@ export type RoofSpec =
     }
   | {
       id: string;
-      type: 'multi-ridge';
+      type: Extract<RoofType, 'multi-ridge'>;
       baseLevelId: string;
       eaveHeight: number;
       thickness?: number;
@@ -179,7 +194,7 @@ export interface CarportSpec {
   id: string;
   type: 'flat';
   attachedTo: {
-    side: 'left' | 'right' | 'front' | 'back';
+    side: OpeningSide;
   };
   footprint: {
     outer: XZ[];
@@ -192,7 +207,7 @@ export interface CarportSpec {
     insetFromEdge: number;
     sides: {
       front: boolean;
-      back: boolean;
+      rear: boolean;
       houseSide: boolean;
       outerSide: boolean;
     };
@@ -284,7 +299,7 @@ export interface InteriorWallSpec {
 }
 
 export interface RoomEdgeSpec {
-  type: 'wall' | 'open';
+  type: 'wall' | 'open' | 'exterior';
 }
 
 export interface RoomSpec {

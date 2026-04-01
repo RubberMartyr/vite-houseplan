@@ -1,11 +1,9 @@
-import type { SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
+import type { SiteSurfaceKind, SiteSurfaceSpec, Vec2 } from '../architecturalTypes';
 import polygonClipping from 'polygon-clipping';
-
-type SiteSurfaceType = 'cobblestone' | 'fence';
 
 type SiteLayoutSurface = {
   id: string;
-  type: SiteSurfaceType;
+  kind: SiteSurfaceKind;
   polygon: Vec2[];
   height?: number;
   thickness?: number;
@@ -21,7 +19,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
   surfaces: [
     {
       id: 'lot1a-fence-front',
-      type: 'fence',
+      kind: 'fence',
       height: 2.0,
       polygon: [
         { x: -10.2, z: 0.5 },
@@ -48,7 +46,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
     },
     {
       id: 'lot1a-cobblestone-main',
-      type: 'cobblestone',
+      kind: 'cobblestone',
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
@@ -75,7 +73,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
 
     {
       id: 'lot1a-driveway',
-      type: 'cobblestone',
+      kind: 'cobblestone',
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
@@ -92,7 +90,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
 
     {
       id: 'lot1a-front-right-driveway',
-      type: 'cobblestone',
+      kind: 'cobblestone',
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
@@ -108,7 +106,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
 
     {
       id: 'lot1a-left-indent-strip',
-      type: 'cobblestone',
+      kind: 'cobblestone',
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
@@ -125,7 +123,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
 
     {
       id: 'lot1a-basement-strip',
-      type: 'cobblestone',
+      kind: 'cobblestone',
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
@@ -142,7 +140,7 @@ export const LOT_1A_SITE_LAYOUT: SiteLayout = {
 
     {
       id: 'lot1a-basement-stair-landing',
-      type: 'cobblestone',
+      kind: 'cobblestone',
       material: {
         type: 'standard',
         texture: '/textures/Marshalls_Rustic.jpg',
@@ -181,13 +179,14 @@ function subtractHouseFromSurface(surfacePolygon: Vec2[], housePolygon: Vec2[]):
 }
 
 export function mapSiteLayoutToSurfaces(layout: SiteLayout, houseFootprint: Vec2[]): SiteSurfaceSpec[] {
-  return layout.surfaces.flatMap((surface) => {
-    if (surface.type === 'fence') {
+  return layout.surfaces.flatMap<SiteSurfaceSpec>((surface) => {
+    if (surface.kind === 'fence') {
       return [{
         id: surface.id,
-        type: surface.type,
+        kind: surface.kind,
+        type: surface.kind,
         polygon: surface.polygon,
-        material: surface.material,
+        material: surface.material ?? { type: 'wood_vertical_slats' },
         height: surface.height,
         thickness: surface.thickness,
         fence: surface.fence,
@@ -198,9 +197,10 @@ export function mapSiteLayoutToSurfaces(layout: SiteLayout, houseFootprint: Vec2
 
     return clippedPolygons.map((polygon, index) => ({
       id: `${surface.id}-${index}`,
-      type: surface.type,
-      color: surface.type === 'cobblestone' ? '#3b82f6' : undefined,
-      material: surface.material,
+      kind: surface.kind,
+      type: surface.kind,
+      color: surface.kind === 'cobblestone' ? '#3b82f6' : undefined,
+      material: surface.material ?? { type: 'standard' },
       polygon,
     }));
   });

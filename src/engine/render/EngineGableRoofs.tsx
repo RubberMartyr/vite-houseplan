@@ -8,7 +8,15 @@ import { useDebugUIState } from '../debug/debugUIState';
 import { createRoofMaterial } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import { debugFlags } from '../debug/debugFlags';
-import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
+import {
+  incrementGeometryRebuildCount,
+  profileGeometryBuild,
+  recordGeometryBuildStats,
+  recordGeometryCacheHit,
+  recordGeometryCacheMiss,
+  setRoofDiagnostics,
+  summarizeGeometry,
+} from '../debug/geometryProfiler';
 
 type Props = {
   roofs: DerivedRoof[];
@@ -26,6 +34,38 @@ type DisposableRoofGeometries = {
   value: THREE.BufferGeometry[];
   dispose: () => void;
 };
+
+function summarizeRoofDiagnostics(roofs: DerivedRoof[]) {
+  const summary = roofs.reduce(
+    (acc, roof) => {
+      const spec = roof.spec as {
+        seamBases?: unknown[];
+        roofRegions?: unknown[];
+        regions?: unknown[];
+        hipCaps?: unknown[];
+        ridgeSegments?: unknown[];
+        faces?: unknown[];
+      };
+
+      acc.seamBases += Array.isArray(spec?.seamBases) ? spec.seamBases.length : 0;
+      const regionCount = Array.isArray(spec?.roofRegions)
+        ? spec.roofRegions.length
+        : Array.isArray(spec?.regions)
+          ? spec.regions.length
+          : Array.isArray(spec?.faces)
+            ? spec.faces.length
+            : 0;
+      acc.roofRegions += regionCount;
+      acc.hipCaps += Array.isArray(spec?.hipCaps) ? spec.hipCaps.length : 0;
+      acc.ridgeSegments += Array.isArray(spec?.ridgeSegments) ? spec.ridgeSegments.length : 0;
+      return acc;
+    },
+    { seamBases: 0, roofRegions: 0, hipCaps: 0, ridgeSegments: 0 }
+  );
+
+  const hasDiagnostics = Object.values(summary).some((value) => value > 0);
+  return hasDiagnostics ? summary : undefined;
+}
 
 function buildGeometries(roofs: DerivedRoof[], options: BuildGeometriesOptions) {
   return deriveGableRoofGeometries(roofs, options);
@@ -63,11 +103,13 @@ export function EngineGableRoofs({
   const sceneGeometries = useMemo(() => {
     const cached = geometryCache.current.get(roofRevision);
     if (cached) {
+      recordGeometryCacheHit('roofs');
       if (debugEnabled) {
         console.log('[GeometryCache] reusing gable roof geometry', { revision: roofRevision });
       }
       return cached.value;
     }
+    recordGeometryCacheMiss('roofs');
 
     if (debugEnabled) {
       console.log('[GeometryCache] rebuilding gable roof geometry', {
@@ -76,7 +118,15 @@ export function EngineGableRoofs({
       });
     }
 
+    const startTime = performance.now();
     const next = profileGeometryBuild('GableRoofs', () => toDisposableRoofGeometries(buildGeometries(roofs, options)));
+    const geometrySummary = summarizeGeometry(next.value);
+    recordGeometryBuildStats('roofs', {
+      startTime,
+      triangles: geometrySummary.triangles,
+      memoryMB: geometrySummary.memoryMB,
+    });
+    setRoofDiagnostics(summarizeRoofDiagnostics(roofs));
     incrementGeometryRebuildCount('roofs');
     geometryCache.current.set(roofRevision, next);
     return next.value;

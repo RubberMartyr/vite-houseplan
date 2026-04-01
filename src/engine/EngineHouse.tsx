@@ -19,7 +19,7 @@ const EngineDebugLayer = lazy(() =>
   }))
 );
 type Props = {
-  architecturalHouse: ArchitecturalHouse;
+  house: ArchitecturalHouse;
   showWalls?: boolean;
   showRoof?: boolean;
   showSlabs?: boolean;
@@ -40,7 +40,7 @@ const FOUNDATION_WALL_MATERIAL = {
 } as const;
 
 export function EngineHouse({
-  architecturalHouse,
+  house,
   showWalls = true,
   showRoof = true,
   showSlabs = true,
@@ -54,15 +54,15 @@ export function EngineHouse({
 }: Props) {
   const derived: DerivedHouse = useMemo(
     () => {
-      const arch = architecturalHouse;
+      const arch = house;
       return deriveHouse(arch);
     },
-    [architecturalHouse]
+    [house]
   );
-  const siteElevation = architecturalHouse.site?.elevation ?? 0;
+  const siteElevation = house.site?.elevation ?? 0;
   const levelFootprintsById = useMemo(
-    () => Object.fromEntries(architecturalHouse.levels.map((level) => [level.id, level.footprint.outer])),
-    [architecturalHouse]
+    () => Object.fromEntries(house.levels.map((level) => [level.id, level.footprint.outer])),
+    [house]
   );
   const basementLevelIds = useMemo(() => new Set(['basement']), []);
   const basementWalls = useMemo(
@@ -118,18 +118,18 @@ export function EngineHouse({
     [aboveGradeWalls, siteElevation]
   );
   const basementOpenings = useMemo(
-    () => derived.openings.filter((opening) => architecturalHouse.levels[opening.levelIndex]?.id === 'basement'),
-    [architecturalHouse.levels, derived.openings]
+    () => derived.openings.filter((opening) => house.levels[opening.levelIndex]?.id === 'basement'),
+    [house.levels, derived.openings]
   );
   const aboveGradeOpenings = useMemo(
-    () => derived.openings.filter((opening) => architecturalHouse.levels[opening.levelIndex]?.id !== 'basement'),
-    [architecturalHouse.levels, derived.openings]
+    () => derived.openings.filter((opening) => house.levels[opening.levelIndex]?.id !== 'basement'),
+    [house.levels, derived.openings]
   );
 
   return (
     <>
       <EngineSite
-        site={architecturalHouse.site}
+        site={house.site}
         cutouts={derived.exteriorAccessCutouts.map((cutout) => cutout.polygon)}
         visible={showWalls}
       />
@@ -140,7 +140,7 @@ export function EngineHouse({
         openingsRevision={derived.revisions.openings}
         levelFootprintsById={levelFootprintsById}
         visible={showWalls}
-        wallMaterialSpec={architecturalHouse.materials?.walls}
+        wallMaterialSpec={house.materials?.walls}
         cacheKey="above-grade"
       />
       <EngineWalls
@@ -165,8 +165,8 @@ export function EngineHouse({
       />
       {showRooms && (
         <EngineRooms
-          rooms={architecturalHouse.rooms ?? []}
-          levels={architecturalHouse.levels}
+          rooms={house.rooms ?? []}
+          levels={house.levels}
           selectedRoomId={selectedRoomId}
           hoveredRoomId={hoveredRoomId}
           onRoomSelect={onRoomSelect}
@@ -175,14 +175,14 @@ export function EngineHouse({
       )}
       <EngineOpenings
         openings={derived.openings}
-        wallThickness={architecturalHouse.wallThickness}
+        wallThickness={house.wallThickness}
         visible={showGlass}
-        windowsMaterialSpec={architecturalHouse.materials?.windows}
+        windowsMaterialSpec={house.materials?.windows}
       />
       <EngineExteriorAccesses
         parts={derived.exteriorAccesses}
         visible={showWalls}
-        wallMaterialSpec={architecturalHouse.materials?.walls}
+        wallMaterialSpec={house.materials?.walls}
       />
       <EngineSlabs slabs={derived.slabs} slabRevision={derived.revisions.slabs} visible={showSlabs} />
       <EngineRoofs
@@ -190,11 +190,11 @@ export function EngineHouse({
         roofRevision={derived.revisions.roofs}
         roofValidationEntries={[]}
         visible={showRoof}
-        roofMaterialSpec={architecturalHouse.materials?.roof}
+        roofMaterialSpec={house.materials?.roof}
       />
       <EngineCarports
         carports={derived.carports}
-        columnColor={architecturalHouse.materials?.windows?.frameColor}
+        columnColor={house.materials?.windows?.frameColor}
         visible={showWalls}
       />
       {showDebug && (

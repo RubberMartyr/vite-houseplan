@@ -307,7 +307,7 @@ export default function HouseViewer() {
 
         <group>
           <EngineHouse
-            architecturalHouse={houseWithInjectedInteriorWall}
+            house={houseWithInjectedInteriorWall}
             showWalls={showWalls}
             showRoof={showRoof}
             showSlabs={showSlabs}

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { architecturalHouse } from '../architecturalHouse';
 import type { MultiPlaneRoofSpec } from '../types';
+import type { ArchitecturalHouse } from '../architecturalTypes';
 import { deriveHouse } from '../derive/deriveHouse';
 import { deriveGableRoofGeometries } from '../deriveGableRoofs';
 import { normalizeMultiPlaneRoof } from './normalizeMultiPlaneRoof';
@@ -16,8 +16,8 @@ export type LegacyRoofAdapterOutput = {
   regions: Array<ReturnType<typeof deriveHipCapRegions>[number] | ReturnType<typeof deriveRidgeSideRegions>[number]>;
 };
 
-export function buildRoofLegacyAdapter(): LegacyRoofAdapterOutput {
-  const derivedHouse = deriveHouse(architecturalHouse);
+export function buildRoofLegacyAdapter(house: ArchitecturalHouse): LegacyRoofAdapterOutput {
+  const derivedHouse = deriveHouse(house);
   const geometries = deriveGableRoofGeometries(derivedHouse.roofs);
 
   const plans = derivedHouse.roofs

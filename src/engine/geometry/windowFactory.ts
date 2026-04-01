@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import {
-  EPS,
   FRAME_BORDER,
   FRAME_DEPTH,
-  GLASS_INSET,
   GLASS_THICKNESS,
   METAL_BAND_DEPTH,
   METAL_BAND_HEIGHT,

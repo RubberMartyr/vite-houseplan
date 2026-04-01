@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import * as THREE from 'three';
 import { leftX, rightX, frontZ, rearZ, originOffset } from '../../model/houseSpec';
 import { Facade, getFacadePlane } from '../../model/orientation';

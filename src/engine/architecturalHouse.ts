@@ -1,5 +1,5 @@
 import type { OpeningStyleSpec } from './architecturalTypes';
-import { ArchitecturalHouse } from "./architecturalTypes";
+import type { ArchitecturalHouse } from "./architecturalTypes";
 import { computeOpeningOffsetsFromChain } from "./geometry/facadeChains";
 import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
 import { LOT_1A_SITE_LAYOUT, mapSiteLayoutToSurfaces } from './site/lot1aSurfaces';
@@ -431,29 +431,6 @@ function createLeftFacadeStackOpenings(stack: LeftFacadeStack) {
     return openings;
   });
 }
-
-console.log("FRONT EDGE CHECK", {
-  frontFacade: FRONT_FACADE,
-  ground: {
-    edgeIndex: groundFrontEdgeIndex,
-    start: groundLevel.footprint.outer[groundFrontEdgeIndex],
-    end: groundLevel.footprint.outer[(groundFrontEdgeIndex + 1) % groundLevel.footprint.outer.length],
-  },
-  first: {
-    edgeIndex: firstFrontEdgeIndex,
-    start: firstLevel.footprint.outer[firstFrontEdgeIndex],
-    end: firstLevel.footprint.outer[(firstFrontEdgeIndex + 1) % firstLevel.footprint.outer.length],
-  },
-});
-
-const a = groundLevel.footprint.outer[groundFrontEdgeIndex];
-const b = groundLevel.footprint.outer[(groundFrontEdgeIndex + 1) % groundLevel.footprint.outer.length];
-
-console.log("FRONT EDGE DIRECTION", {
-  start: a,
-  end: b,
-  direction: { x: b.x - a.x, z: b.z - a.z },
-});
 
 export const LOT_1A_CARPORT: NonNullable<ArchitecturalHouse['auxiliary']>[number] = {
   id: 'carport-main',

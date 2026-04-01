@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { Matrix4, Quaternion, Vector3 } from 'three';
 import { resolveOpeningRenderParts } from '../openings/resolveOpeningRenderParts';
 import { archToWorldXZ } from '../spaceMapping';

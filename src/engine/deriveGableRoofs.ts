@@ -955,10 +955,6 @@ function findSharedCornerBoundaryFromAdjacentPatch(
   return null;
 }
 
-function clamp01(t: number) {
-  return Math.max(0, Math.min(1, t));
-}
-
 function sameXZ(a: XZ, b: XZ, eps = 1e-6): boolean {
   return Math.abs(a.x - b.x) < eps && Math.abs(a.z - b.z) < eps;
 }
@@ -1060,32 +1056,6 @@ function pickCornerFromEdgeContainingBase(
   }
 
   return { corner: null, candidates: [] };
-}
-
-function absPerpDistanceToLineXZ(p: XZ, a: XZ, b: XZ): number {
-  const dx = b.x - a.x;
-  const dz = b.z - a.z;
-  const len = Math.sqrt(dx * dx + dz * dz) || 1;
-  const cross = (p.x - a.x) * dz - (p.z - a.z) * dx;
-  return Math.abs(cross) / len;
-}
-
-function pickFarthestPoint(polyClosed: XZ[], a: XZ, b: XZ): XZ | null {
-  const poly = polyClosed.slice(0, -1);
-  if (poly.length < 3) return null;
-
-  let best = poly[0];
-  let bestD = -Infinity;
-
-  for (const p of poly) {
-    const d = absPerpDistanceToLineXZ(p, a, b);
-    if (d > bestD) {
-      bestD = d;
-      best = p;
-    }
-  }
-
-  return best;
 }
 
 function midXZ(a: XZ, b: XZ): XZ {

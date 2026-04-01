@@ -14,6 +14,7 @@ type EngineExteriorAccessesProps = {
 const MATERIAL_BY_KIND: Record<DerivedExteriorAccessPart['kind'], THREE.MeshStandardMaterialParameters> = {
   floor: { color: '#b9b3aa', roughness: 0.92, metalness: 0.04 },
   'retaining-wall': { color: '#c7c2b8', roughness: 0.95, metalness: 0.02 },
+  'guard-wall': { color: '#c7c2b8', roughness: 0.95, metalness: 0.02 },
   'stair-step': { color: '#cfc9bf', roughness: 0.9, metalness: 0.03 },
 };
 

@@ -6,7 +6,7 @@ type DeriveAuxiliaryStructuresContext = {
   roofs: DerivedRoof[];
 };
 
-type EdgeClass = 'front' | 'back' | 'houseSide' | 'outerSide';
+type EdgeClass = 'front' | 'rear' | 'houseSide' | 'outerSide';
 
 type PolygonEdge = {
   start: XZ;
@@ -59,7 +59,7 @@ function classifyEdge(edge: { start: XZ; end: XZ }, minX: number, maxX: number, 
   const meanZ = (edge.start.z + edge.end.z) / 2;
 
   if (Math.abs(meanZ - minZ) < EPSILON) return 'front';
-  if (Math.abs(meanZ - maxZ) < EPSILON) return 'back';
+  if (Math.abs(meanZ - maxZ) < EPSILON) return 'rear';
   if (Math.abs(meanX - minX) < EPSILON) return 'houseSide';
   if (Math.abs(meanX - maxX) < EPSILON) return 'outerSide';
 
@@ -141,7 +141,7 @@ function deriveCarportColumns(carport: CarportSpec): XZ[] {
 
   const enabledSides: Record<EdgeClass, boolean> = {
     front: carport.columns.sides.front,
-    back: carport.columns.sides.back,
+    rear: carport.columns.sides.rear,
     houseSide: carport.columns.sides.houseSide,
     outerSide: carport.columns.sides.outerSide,
   };

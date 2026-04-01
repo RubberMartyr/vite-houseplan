@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { MultiPlaneRoofSpec } from '../engine/types';
+import type { MultiPlaneRoofSpec, RoofSpec } from '../engine/types';
 import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
 import { applyRoofFixPlan, planMultiPlaneRoofFixes } from '../engine/roof/planMultiPlaneRoofFixes';
 import { normalizeMultiPlaneRoof } from '../engine/roof/normalizeMultiPlaneRoof';
+import { isMultiPlaneRoofSpec, isRoofSpec } from '../engine/typeGuards';
 
 type RoofValidationEntry = { roof: MultiPlaneRoofSpec; validation: MultiPlaneRoofValidationResult };
 
@@ -13,7 +14,7 @@ type Props = {
   validationEntries: RoofValidationEntry[];
   onDebouncedValidate: (entries: RoofValidationEntry[]) => void;
   onHoverRidge?: (ridgeId: string | null) => void;
-  onApply: (nextRoofs: any[]) => void;
+  onApply: (nextRoofs: RoofSpec[]) => void;
 };
 
 const DRAFT_STORAGE_KEY = 'hv.roofEditor.draft';
@@ -55,10 +56,10 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEnt
 
     const id = window.setTimeout(() => {
       try {
-        const parsed = JSON.parse(draftText);
+        const parsed: unknown = JSON.parse(draftText);
         if (!Array.isArray(parsed)) return;
         const entries = parsed
-          .filter((roof): roof is MultiPlaneRoofSpec => !!roof && roof.type === 'multi-plane')
+          .filter(isMultiPlaneRoofSpec)
           .map((roof) => {
             const normalized = normalizeMultiPlaneRoof(roof);
             return { roof: normalized, validation: validateMultiPlaneRoof(normalized) };
@@ -78,19 +79,23 @@ export function RoofJsonEditorPanel({ isOpen, onClose, roofsValue, validationEnt
 
   const handleApply = () => {
     try {
-      const parsed = JSON.parse(draftText);
+      const parsed: unknown = JSON.parse(draftText);
       if (!Array.isArray(parsed)) {
         setParseError('Root value must be an array of roofs.');
         return;
       }
+      if (!parsed.every(isRoofSpec)) {
+        setParseError('Array must contain valid roof specs.');
+        return;
+      }
 
-      const nextRoofs = parsed;
+      const nextRoofs: RoofSpec[] = parsed;
       const patchedRoofs = [...nextRoofs];
 
       nextRoofs.forEach((roof, index) => {
         if (!roof || roof.type !== 'multi-plane') return;
-        const current = (roofsValue as any[])?.[index];
-        if (!current || current.type !== 'multi-plane') return;
+        const current = Array.isArray(roofsValue) ? roofsValue[index] : null;
+        if (!isMultiPlaneRoofSpec(current)) return;
 
         const plan = planMultiPlaneRoofFixes(current, roof);
 

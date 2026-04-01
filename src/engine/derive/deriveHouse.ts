@@ -9,17 +9,20 @@ import { deriveRooms } from './deriveRooms';
 import { deriveWalls } from './deriveWalls';
 import { getStructuralWallHeight } from './getStructuralWallHeight';
 import type { DerivedHouse } from './types/DerivedHouse';
+import { normalizeArchitecturalHouse } from '../normalizeArchitecturalHouse';
 
 let revisionCounter = 1;
 
 export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
+  const normalizedArch = normalizeArchitecturalHouse(arch);
+
   // Stage 0
   validateStructure(
-    arch,
+    normalizedArch,
     {
       getLevels: (house) => house.levels,
       getLevelElevation: (level) => (level as LevelSpec).elevation,
-      getLevelHeight: (_level, index) => getStructuralWallHeight(arch.levels, index),
+      getLevelHeight: (_level, index) => getStructuralWallHeight(normalizedArch.levels, index),
       getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
       elevationConvention: 'TOP_OF_SLAB',
       allowGroundSupport: true,
@@ -28,24 +31,24 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
   );
 
   // Stage 1
-  const slabs = deriveSlabs(arch);
+  const slabs = deriveSlabs(normalizedArch);
   const slabsRev = revisionCounter++;
 
-  const walls = deriveWalls(arch, { slabs });
+  const walls = deriveWalls(normalizedArch, { slabs });
   const wallsRev = revisionCounter++;
 
   // Stage 2
-  const openings = deriveOpenings(arch, { slabs, walls });
+  const openings = deriveOpenings(normalizedArch, { slabs, walls });
   const openingsRev = revisionCounter++;
-  const rooms = deriveRooms(arch);
+  const rooms = deriveRooms(normalizedArch);
 
   // Stage 3
-  const roofs = deriveRoofs(arch, { slabs, walls, openings });
+  const roofs = deriveRoofs(normalizedArch, { slabs, walls, openings });
   const roofsRev = revisionCounter++;
-  const carports = deriveAuxiliaryStructures(arch, { roofs });
+  const carports = deriveAuxiliaryStructures(normalizedArch, { roofs });
   const carportsRev = revisionCounter++;
 
-  const { parts: exteriorAccesses, cutouts: exteriorAccessCutouts } = deriveExteriorAccesses(arch, { walls });
+  const { parts: exteriorAccesses, cutouts: exteriorAccessCutouts } = deriveExteriorAccesses(normalizedArch, { walls });
 
   return {
     slabs,

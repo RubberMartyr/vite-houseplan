@@ -1,6 +1,16 @@
 import type { MultiPlaneRoofSpec, XZ } from "../types";
 import type { DerivedRoof } from "../derive/types/DerivedRoof";
 
+export type RoofType =
+  | 'flat'
+  | 'gable'
+  | 'multi-ridge'
+  | 'multi-plane';
+
+export type RoofFaceKind =
+  | 'hipCap'
+  | 'ridgeSideSegment';
+
 export type RoofPoint = {
   x: number;
   z: number;

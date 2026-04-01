@@ -13,35 +13,38 @@ import { toThreeWorldMeshes } from './toThreeWorldMeshes';
 import { validateOpenings } from './validation/validateOpenings';
 import { validateRooms } from './validation/validateRooms';
 import { validateStructure } from './validation/validateStructure';
+import { normalizeArchitecturalHouse } from './normalizeArchitecturalHouse';
 
 export function buildHouse() {
   void houseData;
-  validateStructure<ArchitecturalHouse>(architecturalHouse, {
+  const normalizedArchitecturalHouse = normalizeArchitecturalHouse(architecturalHouse);
+
+  validateStructure<ArchitecturalHouse>(normalizedArchitecturalHouse, {
     getLevels: (house) => house.levels,
     getLevelElevation: (level) => (level as LevelSpec).elevation,
-    getLevelHeight: (_level, index) => getStructuralWallHeight(architecturalHouse.levels, index),
+    getLevelHeight: (_level, index) => getStructuralWallHeight(normalizedArchitecturalHouse.levels, index),
     getSlabThickness: (level) => (level as LevelSpec).slab?.thickness ?? null,
     elevationConvention: 'TOP_OF_SLAB',
     allowGroundSupport: true,
   });
-  validateRooms(architecturalHouse);
+  validateRooms(normalizedArchitecturalHouse);
 
-  validateOpenings(architecturalHouse);
+  validateOpenings(normalizedArchitecturalHouse);
 
-  const derivedSlabs = deriveSlabs(architecturalHouse);
-  const derivedWalls = deriveWallSegmentsFromLevels(architecturalHouse);
-  const derivedOpenings = deriveOpenings(architecturalHouse, {
+  const derivedSlabs = deriveSlabs(normalizedArchitecturalHouse);
+  const derivedWalls = deriveWallSegmentsFromLevels(normalizedArchitecturalHouse);
+  const derivedOpenings = deriveOpenings(normalizedArchitecturalHouse, {
     slabs: derivedSlabs,
     walls: derivedWalls,
   });
 
   const facadePanelDepth = 0.025;
 
-  const facadePanels = architecturalHouse.levels.flatMap((level, levelIndex) =>
+  const facadePanels = normalizedArchitecturalHouse.levels.flatMap((level, levelIndex) =>
     buildFacadePanelsWithOpenings({
       outer: level.footprint.outer,
       levelIndex,
-      wallHeight: getStructuralWallHeight(architecturalHouse.levels, levelIndex),
+      wallHeight: getStructuralWallHeight(normalizedArchitecturalHouse.levels, levelIndex),
       wallBase: level.elevation,
       panelThickness: facadePanelDepth,
       openings: derivedOpenings,

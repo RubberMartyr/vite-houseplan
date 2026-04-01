@@ -6,13 +6,14 @@ import type { DerivedExteriorAccessCutout, DerivedExteriorAccessPart } from './D
 import type { DerivedCarport } from './DerivedCarport';
 import type { DerivedRoom } from './DerivedRoom';
 
-export interface DerivedRevisions {
-  slabs: number;
-  walls: number;
-  roofs: number;
-  openings: number;
-  carports: number;
-}
+export type RevisionKey =
+  | 'slabs'
+  | 'walls'
+  | 'roofs'
+  | 'openings'
+  | 'carports';
+
+export type DerivedRevisions = Record<RevisionKey, number>;
 
 export interface DerivedHouse {
   slabs: DerivedSlab[];

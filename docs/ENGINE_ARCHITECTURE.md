@@ -167,7 +167,7 @@ Caching is revision-driven (`createGeometryCache`): when revision id is unchange
 
 The legacy `buildHouse.ts` + `toThreeWorldMeshes.ts` path has been removed.
 
-Remaining migration target in this area is `buildRoof.ts`, which is still consumed by `src/model/roof.ts`.
+Legacy `buildRoof.ts` is fully removed; roof generation now flows through derive modules only.
 
 ---
 

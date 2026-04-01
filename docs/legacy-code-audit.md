@@ -1,6 +1,6 @@
 # Legacy Import Audit
 
-Generated: 2026-04-01T10:58:10.246Z
+Generated: 2026-04-01T11:18:58.956Z
 
 ## buildHouse
 - status: clear
@@ -12,7 +12,5 @@ Generated: 2026-04-01T10:58:10.246Z
 - status: clear
 
 ## buildRoof
-- status: clear (allowed migration reference only)
-- allowed references (1)
-  - src/model/roof.ts -> ../engine/buildRoof
+- status: clear
 

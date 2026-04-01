@@ -1,17 +1,17 @@
 import React from 'react';
 
 type FacadeKey = 'front' | 'rear' | 'left' | 'right';
-type FloorKey = 'basement' | 'ground' | 'first' | 'attic';
 
 type ViewerControlsProps = {
   cutawayEnabled: boolean;
   onToggleCutaway: () => void;
   facadeVisibility: Record<FacadeKey, boolean>;
   onToggleFacade: (key: FacadeKey) => void;
-  activeFloors: Record<FloorKey, boolean>;
+  activeFloors: Record<string, boolean>;
   allFloorsActive: boolean;
-  onToggleFloor: (key: FloorKey) => void;
+  onToggleFloor: (key: string) => void;
   onSetAllFloors: () => void;
+  levelOptions?: { key: string; label: string }[];
   showTerrain: boolean;
   onToggleTerrain: () => void;
   showRoof: boolean;
@@ -36,6 +36,7 @@ export function ViewerControls({
   allFloorsActive,
   onToggleFloor,
   onSetAllFloors,
+  levelOptions,
   showTerrain,
   onToggleTerrain,
   showRoof,
@@ -118,14 +119,7 @@ export function ViewerControls({
 
       <span style={{ fontWeight: 800, letterSpacing: 0.5, marginTop: 4 }}>Floor Isolation</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-        {(
-          [
-            { key: 'basement', label: 'Basement' },
-            { key: 'ground', label: 'Ground' },
-            { key: 'first', label: 'First' },
-            { key: 'attic', label: 'Attic' },
-          ] as { key: FloorKey; label: string }[]
-        ).map(({ key, label }) => {
+        {(levelOptions ?? Object.keys(activeFloors).map((key) => ({ key, label: key }))).map(({ key, label }) => {
           const isActive = activeFloors[key];
           return (
             <button

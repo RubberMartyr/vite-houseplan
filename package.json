@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test:visual": "playwright test",
     "typecheck": "tsc --noEmit",
-    "guard:no-arch-render-geometry": "bash scripts/check-no-arch-in-render-geometry.sh"
+    "guard:no-arch-render-geometry": "bash scripts/check-no-arch-in-render-geometry.sh",
+    "check:no-inline-z": "node scripts/check-no-inline-z-inversion.mjs",
+    "ci": "npm run typecheck && npm run build && npm run check:no-inline-z"
   },
   "dependencies": {
     "react": "^18.3.1",

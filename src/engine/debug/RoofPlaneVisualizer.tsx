@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { isDebugEnabled } from './debugFlags';
 import { createGeometryCollectionCache } from '../cache/createGeometryCollectionCache';
+import { debugFlags } from './debugFlags';
+import { debugLog } from './debugLog';
 
 type RoofTriangle = {
   a: [number, number, number];
@@ -39,11 +40,16 @@ function createDisposableGeometry(positions: number[]): DisposableGeometry {
   };
 }
 
+export function shouldShowRoofPlanes(): boolean {
+  return debugFlags.enabled && debugFlags.showRoofPlanes;
+}
+
 export function RoofPlaneVisualizer({ roofs, roofRevision }: Props) {
   const geometryCache = useRef(createGeometryCollectionCache<DisposableGeometry>());
+  const enabled = shouldShowRoofPlanes();
 
   const faceEntries = useMemo(() => {
-    if (!isDebugEnabled()) {
+    if (!enabled) {
       return [];
     }
 
@@ -66,18 +72,18 @@ export function RoofPlaneVisualizer({ roofs, roofRevision }: Props) {
         const key = `${roof.id ?? roofIndex}:${face.id ?? faceIndex}`;
         const cached = geometryCache.current.get(key, roofRevision);
         if (cached) {
-          console.log('[GeometryCache] reusing roof debug geometry', { key, revision: roofRevision });
+          debugLog('RoofPlanes', 'Reusing roof debug geometry', { key, revision: roofRevision });
           return [{ key, geometry: cached.value }];
         }
 
-        console.log('[GeometryCache] rebuilding roof debug geometry', { key, revision: roofRevision });
+        debugLog('RoofPlanes', 'Rebuilding roof debug geometry', { key, revision: roofRevision });
         const next = createDisposableGeometry(positions);
         geometryCache.current.set(key, roofRevision, next);
 
         return [{ key, geometry: next.value }];
       });
     });
-  }, [roofRevision, roofs]);
+  }, [enabled, roofRevision, roofs]);
 
   const faceMaterial = useMemo(
     () =>
@@ -98,7 +104,7 @@ export function RoofPlaneVisualizer({ roofs, roofRevision }: Props) {
     };
   }, [faceMaterial]);
 
-  if (!isDebugEnabled()) return null;
+  if (!enabled) return null;
 
   return (
     <group>

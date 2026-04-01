@@ -9,6 +9,7 @@ import { DebugWireframe } from '../debug/DebugWireframe';
 import { createGeometryCache } from '../cache/createGeometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
 import { debugFlags } from '../debug/debugFlags';
+import { debugLog } from '../debug/debugLog';
 import {
   createSeparatorDebugMetadata,
   isSeparatorCandidatePiece,
@@ -68,7 +69,7 @@ function buildWallGeometry(
   const openingsByWall = groupOpeningsByWall(visibleWalls, visibleOpenings);
 
   if (debugEnabled) {
-    console.log('[GeometryCache] rebuilding wall geometry', {
+    debugLog('GeometryCache', 'Rebuilding wall geometry', {
       wallCount: walls.length,
       openingCount: openings.length,
     });
@@ -212,7 +213,7 @@ export function EngineWalls({
 
     if (cached) {
       if (debugEnabled) {
-        console.log('[GeometryCache] reusing wall geometry', {
+        debugLog('GeometryCache', 'Reusing wall geometry', {
           cacheKey,
           revision,
           wallCount: walls.length,

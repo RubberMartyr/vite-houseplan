@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { buildRoofFromCurrentSystem } from '../engine/buildRoof';
+import { buildRoofLegacyAdapter } from '../engine/roof/buildRoofLegacyAdapter';
 
 export function buildRoofMeshes(): {
   meshes: Array<{ geometry: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] }>;
 } {
-  return buildRoofFromCurrentSystem();
+  const { meshes } = buildRoofLegacyAdapter();
+  return { meshes };
 }

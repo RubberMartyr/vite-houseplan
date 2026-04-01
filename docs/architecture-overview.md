@@ -9,7 +9,6 @@ src/engine
 ├── EngineHouse.tsx
 ├── architecturalHouse.ts
 ├── architecturalTypes.ts
-├── buildRoof.ts
 ├── buildWallsFromDerivedSegments.ts
 ├── builders
 │   ├── buildFacadePanels.ts

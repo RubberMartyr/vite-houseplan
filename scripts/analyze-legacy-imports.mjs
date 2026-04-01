@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 
 const ROOTS = ['src', 'scripts'];
-const ALLOWED_IMPORTS = new Set(['src/model/roof.ts']);
+const ALLOWED_IMPORTS = new Set();
 const TARGETS = ['buildHouse', 'toThreeWorldMeshes', 'buildWalls', 'buildRoof'];
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 

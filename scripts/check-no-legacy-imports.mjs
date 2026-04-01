@@ -5,9 +5,7 @@ const ROOTS = ['src', 'scripts'];
 const BLOCKED = ['buildHouse', 'toThreeWorldMeshes', 'buildWalls', 'buildRoof'];
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 
-const ALLOWLIST = new Map([
-  ['src/model/roof.ts', new Set(['buildRoof'])],
-]);
+const ALLOWLIST = new Map();
 
 function walk(dir) {
   const items = readdirSync(dir, { withFileTypes: true });

@@ -1,14 +1,11 @@
 import { Html } from '@react-three/drei';
 import type { DerivedHouse } from '../derive/types/DerivedHouse';
-import { isDebugEnabled } from './debugFlags';
 
 type Props = {
   derived: DerivedHouse;
 };
 
 export function EngineDebugHUD({ derived }: Props) {
-  if (!isDebugEnabled()) return null;
-
   return (
     <Html prepend>
       <div

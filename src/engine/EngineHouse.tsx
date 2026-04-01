@@ -1,11 +1,6 @@
 import { useMemo } from 'react';
 import type { ArchitecturalHouse, RoomSpec } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
-import { EdgeVisualizer } from './debug/EdgeVisualizer';
-import { EngineDebugHUD } from './debug/EngineDebugHUD';
-import { DerivedGraphOverlay } from './debug/DerivedGraphOverlay';
-import { OpeningAnchorDebug } from './debug/OpeningAnchorDebug';
-import { RoofPlaneVisualizer } from './debug/RoofPlaneVisualizer';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineExteriorAccesses } from './render/EngineExteriorAccesses';
 import { EngineCarports } from './render/EngineCarports';
@@ -16,6 +11,7 @@ import { EngineSite } from './render/EngineSite';
 import { EngineWalls } from './render/EngineWalls';
 import { EngineRooms } from './render/EngineRooms';
 import { getWallVisibleBaseY, getWallVisibleTopY, type DerivedWallSegment } from './deriveWalls';
+import { EngineDebugLayer } from './debug/EngineDebugLayer';
 
 type Props = {
   architecturalHouse: ArchitecturalHouse;
@@ -196,15 +192,7 @@ export function EngineHouse({
         columnColor={architecturalHouse.materials?.windows?.frameColor}
         visible={showWalls}
       />
-      {showDebug && (
-        <>
-          <EdgeVisualizer walls={derived.walls} />
-          <OpeningAnchorDebug openings={derived.openings} />
-          <EngineDebugHUD derived={derived} />
-          <RoofPlaneVisualizer roofs={derived.roofs} roofRevision={derived.revisions.roofs} />
-          <DerivedGraphOverlay derived={derived} />
-        </>
-      )}
+      {showDebug && <EngineDebugLayer derived={derived} />}
     </>
   );
 }

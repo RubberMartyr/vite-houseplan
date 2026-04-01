@@ -15,7 +15,7 @@ import {
   type FloorplanValidationResult,
   validateFloorplan,
 } from '../engine/validation/validateFloorplan';
-import { isDebugEnabled } from '../engine/debug/ui/debugMode';
+import { debugFlags } from '../engine/debug/debugFlags';
 import { WireframeOverride } from '../engine/debug/ui/useWireframeOverride';
 import { DebugEdges } from './debug/DebugEdges';
 import { FloorplanValidationOverlay } from '../engine/debug/FloorplanValidationOverlay';
@@ -41,7 +41,7 @@ function DebugAxes() {
   const helperRef = useRef<THREE.AxesHelper | null>(null);
 
   useEffect(() => {
-    if (!isDebugEnabled()) {
+    if (!debugFlags.enabled) {
       return;
     }
 
@@ -123,7 +123,7 @@ const shellSwitchKnobStyle: React.CSSProperties = {
 };
 
 export default function HouseViewer() {
-  const debugEnabled = isDebugEnabled();
+  const debugEnabled = debugFlags.enabled;
   const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [showWireframe, setShowWireframe] = useState(false);

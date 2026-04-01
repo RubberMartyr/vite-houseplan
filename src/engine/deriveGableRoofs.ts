@@ -17,6 +17,12 @@ type RoofPlane = {
 import { normalizeMultiPlaneRoof } from "./roof/normalizeMultiPlaneRoof";
 import { buildRoofGeometry } from "./geometry/buildRoofGeometry";
 import { archArrayToWorld, archToWorldXZ } from "./spaceMapping";
+import { deriveRoofPlan } from "./roof/deriveRoofPlan";
+import { deriveSeamBases } from "./roof/deriveSeamBases";
+import { deriveHipCapRegions } from "./roof/deriveHipCapRegions";
+import { deriveCornerTriangles } from "./roof/deriveCornerTriangles";
+import { deriveRidgeSideRegions } from "./roof/deriveRidgeSideRegions";
+import { triangulateRoofRegion } from "./roof/triangulateRoofRegion";
 
 type GableRoofSpec = Extract<RoofSpec, { type: "gable" }>;
 type MultiRidgeRoofSpec = Extract<RoofSpec, { type: "multi-ridge" }>;
@@ -578,7 +584,16 @@ function deriveMultiPlaneRoofGeometries(
   roof: MultiPlaneRoofSpec
 ): THREE.BufferGeometry[] {
   const verificationMode = getRoofOverlapVerificationMode();
-  const thickness = roof.thickness ?? 0.2;
+  const plan = deriveRoofPlan(derivedRoof, roof);
+  const seamBases = deriveSeamBases(plan);
+  const hipRegions = deriveHipCapRegions(plan);
+  const ridgeSideRegions = deriveRidgeSideRegions(plan, seamBases);
+  const cornerTriangles = deriveCornerTriangles(plan.footprint, seamBases, plan.ridgeSegments);
+  const triangulatedRegionCount = [...hipRegions, ...ridgeSideRegions].reduce(
+    (count, region) => count + triangulateRoofRegion(region).length,
+    0
+  );
+  const thickness = plan.thickness;
 
   // Multi-plane roof face clipping must use the same overhang-adjusted roof outline
   // for every face. Mixing the architectural footprint with the derived roof boundary
@@ -592,6 +607,16 @@ function deriveMultiPlaneRoofGeometries(
     string,
     { left?: RoofPlane; right?: RoofPlane }
   >();
+
+  if (shouldLogRoofFaceDebug()) {
+    console.log({
+      seamBaseCount: seamBases.length,
+      hipRegionCount: hipRegions.length,
+      ridgeSideRegionCount: ridgeSideRegions.length,
+      cornerTriangleCount: cornerTriangles.length,
+      triangulatedRegionCount,
+    });
+  }
 
   const facesHip = roof.faces.filter((f) => f.kind === "hipCap");
   const facesRidge = roof.faces.filter((f) => f.kind !== "hipCap");

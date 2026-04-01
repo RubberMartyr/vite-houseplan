@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  build-and-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npm run check:legacy
+      - run: npm run check:coordinate-mapping
+      - run: npm run check:deadcode
+      - run: npm run check:render-architecture
+      - run: npm run check:bundle-size

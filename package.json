@@ -11,8 +11,13 @@
     "typecheck": "tsc --noEmit",
     "guard:no-arch-render-geometry": "bash scripts/check-no-arch-in-render-geometry.sh",
     "check:no-inline-z": "node scripts/check-no-inline-z-inversion.mjs",
-    "ci": "npm run typecheck && npm run build && npm run check:legacy",
-    "check:legacy": "node scripts/check-no-legacy-imports.mjs"
+    "ci": "npm run typecheck && npm run test && npm run build && npm run check:legacy && npm run check:coordinate-mapping && npm run check:deadcode && npm run check:render-architecture && npm run check:bundle-size",
+    "check:legacy": "node scripts/check-no-legacy-imports.mjs",
+    "test": "node scripts/run-node-tests.mjs",
+    "check:coordinate-mapping": "node scripts/check-no-inline-z-inversion.mjs",
+    "check:deadcode": "node scripts/check-deadcode.mjs",
+    "check:render-architecture": "node scripts/check-no-render-architectural-imports.mjs",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

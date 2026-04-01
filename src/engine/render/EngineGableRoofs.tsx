@@ -8,6 +8,7 @@ import { useDebugUIState } from '../debug/debugUIState';
 import { createRoofMaterial } from '../materials/materialResolver';
 import type { ArchitecturalMaterials } from '../architecturalTypes';
 import { debugFlags } from '../debug/debugFlags';
+import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
 
 type Props = {
   roofs: DerivedRoof[];
@@ -75,7 +76,8 @@ export function EngineGableRoofs({
       });
     }
 
-    const next = toDisposableRoofGeometries(buildGeometries(roofs, options));
+    const next = profileGeometryBuild('GableRoofs', () => toDisposableRoofGeometries(buildGeometries(roofs, options)));
+    incrementGeometryRebuildCount('roofs');
     geometryCache.current.set(roofRevision, next);
     return next.value;
   }, [debugEnabled, options, roofRevision, roofs]);

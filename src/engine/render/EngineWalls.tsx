@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import type { Vec2 } from '../architecturalTypes';
 import { getWallVisibleHeight, type DerivedWallSegment } from '../deriveWalls';
 import type { DerivedOpening } from '../derive/types/DerivedOpening';
@@ -10,6 +10,7 @@ import { createGeometryCache } from '../cache/createGeometryCache';
 import { useDebugUIState } from '../debug/debugUIState';
 import { debugFlags } from '../debug/debugFlags';
 import { debugLog } from '../debug/debugLog';
+import { incrementGeometryRebuildCount, profileGeometryBuild } from '../debug/geometryProfiler';
 import {
   createSeparatorDebugMetadata,
   isSeparatorCandidatePiece,
@@ -143,7 +144,7 @@ function buildWallGeometry(
   });
 }
 
-export function EngineWalls({
+export const EngineWalls = memo(function EngineWalls({
   walls,
   openings,
   wallRevision,
@@ -222,10 +223,13 @@ export function EngineWalls({
       return cached.value;
     }
 
-    const disposable = toDisposableBuiltWalls(
-      buildWallGeometry(walls, openings, levelFootprintsById, wallMaterialScale, debugEnabled)
+    const disposable = profileGeometryBuild('Walls', () =>
+      toDisposableBuiltWalls(
+        buildWallGeometry(walls, openings, levelFootprintsById, wallMaterialScale, debugEnabled)
+      )
     );
 
+    incrementGeometryRebuildCount('walls');
     geometryCache.current.set(numericRevision, disposable);
 
     return disposable.value;
@@ -292,4 +296,4 @@ export function EngineWalls({
         ))}
     </>
   );
-}
+});

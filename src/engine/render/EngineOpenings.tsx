@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import * as THREE from 'three';
+import React, { memo, useEffect, useMemo } from 'react';
+import { Matrix4, Quaternion, Vector3 } from 'three';
 import { resolveOpeningRenderParts } from '../openings/resolveOpeningRenderParts';
 import { archToWorldXZ } from '../spaceMapping';
 import type { DerivedOpeningRect } from '../derived/derivedOpenings';
@@ -13,7 +13,7 @@ type Props = {
   windowsMaterialSpec?: ArchitecturalMaterials['windows'];
 };
 
-export function EngineOpenings({
+export const EngineOpenings = memo(function EngineOpenings({
   openings,
   wallThickness = 0.3,
   visible = true,
@@ -49,14 +49,14 @@ export function EngineOpenings({
         const tangentXZ = archToWorldXZ({ x: o.tangentXZ.x, z: o.tangentXZ.z });
         const outwardXZ = archToWorldXZ({ x: o.outwardXZ.x, z: o.outwardXZ.z });
 
-        const tangent = new THREE.Vector3(tangentXZ.x, 0, tangentXZ.z).normalize();
-        const outward = new THREE.Vector3(outwardXZ.x, 0, outwardXZ.z).normalize();
-        const up = new THREE.Vector3(0, 1, 0);
+        const tangent = new Vector3(tangentXZ.x, 0, tangentXZ.z).normalize();
+        const outward = new Vector3(outwardXZ.x, 0, outwardXZ.z).normalize();
+        const up = new Vector3(0, 1, 0);
 
         const centerY = o.centerArch.y;
         const centerXZ = archToWorldXZ({ x: o.centerArch.x, z: o.centerArch.z });
 
-        const center = new THREE.Vector3(centerXZ.x, centerY, centerXZ.z);
+        const center = new Vector3(centerXZ.x, centerY, centerXZ.z);
 
         const inward = outward.clone().multiplyScalar(-wallThickness / 2);
         const defaultPosition = center.clone().add(inward);
@@ -65,8 +65,8 @@ export function EngineOpenings({
             ? center.clone().add(outward.clone().multiplyScalar(renderConfig.originOffsetZ))
             : defaultPosition;
 
-        const basis = new THREE.Matrix4().makeBasis(tangent, up, outward);
-        const quaternion = new THREE.Quaternion().setFromRotationMatrix(basis);
+        const basis = new Matrix4().makeBasis(tangent, up, outward);
+        const quaternion = new Quaternion().setFromRotationMatrix(basis);
 
         return (
           <group key={o.id} position={openingPosition.toArray()} quaternion={quaternion.toArray()}>
@@ -90,4 +90,4 @@ export function EngineOpenings({
       })}
     </>
   );
-}
+});

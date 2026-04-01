@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import type { ArchitecturalHouse, RoomSpec } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
@@ -11,8 +11,13 @@ import { EngineSite } from './render/EngineSite';
 import { EngineWalls } from './render/EngineWalls';
 import { EngineRooms } from './render/EngineRooms';
 import { getWallVisibleBaseY, getWallVisibleTopY, type DerivedWallSegment } from './deriveWalls';
-import { EngineDebugLayer } from './debug/EngineDebugLayer';
 
+
+const EngineDebugLayer = lazy(() =>
+  import('./debug/EngineDebugLayer').then((module) => ({
+    default: module.EngineDebugLayer,
+  }))
+);
 type Props = {
   architecturalHouse: ArchitecturalHouse;
   showWalls?: boolean;
@@ -192,7 +197,11 @@ export function EngineHouse({
         columnColor={architecturalHouse.materials?.windows?.frameColor}
         visible={showWalls}
       />
-      {showDebug && <EngineDebugLayer derived={derived} />}
+      {showDebug && (
+        <Suspense fallback={null}>
+          <EngineDebugLayer derived={derived} />
+        </Suspense>
+      )}
     </>
   );
 }

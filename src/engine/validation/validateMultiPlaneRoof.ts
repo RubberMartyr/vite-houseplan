@@ -2,8 +2,6 @@ import type { FaceRegion, HalfPlane, MultiPlaneRoofSpec, RidgePerpCut, RoofFaceS
 
 const EPS = 1e-6;
 
-type Severity = 'error' | 'warning';
-
 type ValidationBase = {
   code: string;
   message: string;

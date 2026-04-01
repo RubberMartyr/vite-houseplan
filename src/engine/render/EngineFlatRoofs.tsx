@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { deriveFlatRoofGeometries } from '../deriveFlatRoofs';
 import type { DerivedRoof } from '../derive/types/DerivedRoof';

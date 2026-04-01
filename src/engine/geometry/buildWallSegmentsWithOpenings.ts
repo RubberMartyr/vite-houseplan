@@ -1,4 +1,3 @@
-import type { DerivedWallSegment } from '../derive/types/DerivedWallSegment';
 import type { DerivedOpeningRect } from '../derive/types/derivedOpenings';
 
 export interface WallSegmentPiece {

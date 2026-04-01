@@ -96,7 +96,7 @@ function buildStackSeparatorBand(
   };
 }
 
-function shouldKeepStackSeparator(lowerOpening: DerivedOpening, upperOpening: DerivedOpening) {
+function shouldKeepStackSeparator(_lowerOpening: DerivedOpening, upperOpening: DerivedOpening) {
   return upperOpening.style.mergeWithBelow !== true;
 }
 

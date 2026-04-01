@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import React, { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import type { LevelSpec, RoomSpec } from '../architecturalTypes';
 import { buildRoomPrismGeometry } from '../geometry/buildRoomPrismGeometry';
 import { getStructuralWallHeight } from '../derive/getStructuralWallHeight';

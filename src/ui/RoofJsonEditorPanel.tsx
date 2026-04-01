@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MultiPlaneRoofSpec, RoofSpec } from '../engine/types';
 import { validateMultiPlaneRoof, type MultiPlaneRoofValidationResult } from '../engine/validation/validateMultiPlaneRoof';
 import { applyRoofFixPlan, planMultiPlaneRoofFixes } from '../engine/roof/planMultiPlaneRoofFixes';

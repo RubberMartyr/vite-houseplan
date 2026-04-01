@@ -17,10 +17,6 @@ type LocalCorner = {
   n: number;
 };
 
-function archVectorToWorld(x: number, y: number, z: number): THREE.Vector3 {
-  return new THREE.Vector3(x, y, -z);
-}
-
 function appendFace(
   positions: number[],
   uvs: number[],
@@ -101,8 +97,8 @@ export function buildWallPrismGeometry(
   const tangentWorld = new THREE.Vector3()
     .subVectors(cornersWorld[1], cornersWorld[0])
     .normalize();
-  const outwardWorld = archVectorToWorld(outward.x, 0, outward.z).normalize();
-  const inwardWorld = archVectorToWorld(inward.x, 0, inward.z).normalize();
+  const outwardWorld = archToWorldVec3(outward.x, 0, outward.z).normalize();
+  const inwardWorld = archToWorldVec3(inward.x, 0, inward.z).normalize();
   const upWorld = new THREE.Vector3(0, 1, 0);
   const downWorld = new THREE.Vector3(0, -1, 0);
 

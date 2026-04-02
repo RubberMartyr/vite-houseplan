@@ -67,6 +67,12 @@ export interface SiteSpec {
   elevation?: number;
   color?: string;
   surfaces?: SiteSurfaceSpec[];
+  boundaries?: {
+    fences: unknown[];
+    hedges: unknown[];
+    gates: unknown[];
+  };
+  objects?: SiteObjectSpec[];
 }
 
 export interface SlabSpec {
@@ -220,6 +226,38 @@ export interface CarportSpec {
 }
 
 export type AuxiliaryStructure = CarportSpec;
+export type SiteObjectType =
+  | 'carport'
+  | 'fence'
+  | 'gate'
+  | 'hedge'
+  | 'tree'
+  | 'driveway'
+  | 'pool'
+  | 'shed'
+  | 'patio'
+  | 'terrace'
+  | 'retaining_wall'
+  | 'landscape_zone';
+
+export type SiteCarportObjectSpec = Omit<CarportSpec, 'type'> & {
+  type: 'carport';
+  roofType?: CarportSpec['type'];
+};
+
+export type SiteObjectSpec =
+  | SiteCarportObjectSpec
+  | {
+      id: string;
+      type: Exclude<SiteObjectType, 'carport'>;
+      [key: string]: unknown;
+    };
+
+export interface PropertyDefinition {
+  id: string;
+  site: SiteSpec;
+  house: ArchitecturalHouse;
+}
 
 export type OpeningKind = 'window' | 'door';
 

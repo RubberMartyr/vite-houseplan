@@ -1,9 +1,10 @@
-import type { ArchitecturalHouse, CarportSpec, XZ } from '../architecturalTypes';
+import type { ArchitecturalHouse, CarportSpec, SiteSpec, XZ } from '../architecturalTypes';
 import type { DerivedRoof } from './types/DerivedRoof';
 import type { DerivedCarport } from './types/DerivedCarport';
 
 type DeriveAuxiliaryStructuresContext = {
   roofs: DerivedRoof[];
+  site?: SiteSpec;
 };
 
 type EdgeClass = 'front' | 'rear' | 'houseSide' | 'outerSide';
@@ -173,12 +174,24 @@ function buildCarportRoofPolygon(footprint: XZ[]): XZ[] {
   ];
 }
 
+function getCarportSpecs(arch: ArchitecturalHouse, site?: SiteSpec): CarportSpec[] {
+  const legacyCarports = arch.auxiliary ?? [];
+  const siteCarports = (site?.objects ?? [])
+    .filter((siteObject): siteObject is Extract<NonNullable<SiteSpec['objects']>[number], { type: 'carport' }> => siteObject.type === 'carport')
+    .map((siteObject) => ({
+      ...siteObject,
+      type: siteObject.roofType ?? 'flat',
+    }));
+
+  return [...legacyCarports, ...siteCarports];
+}
+
 export function deriveAuxiliaryStructures(
   arch: ArchitecturalHouse,
   context: DeriveAuxiliaryStructuresContext
 ): DerivedCarport[] {
-  const { auxiliary = [] } = arch;
-  const groundElevation = arch.site?.elevation ?? 0;
+  const auxiliary = getCarportSpecs(arch, context.site ?? arch.site);
+  const groundElevation = context.site?.elevation ?? arch.site?.elevation ?? 0;
 
   return auxiliary.map((structure) => {
     const carportElevation = deriveCarportElevation(structure, context.roofs);

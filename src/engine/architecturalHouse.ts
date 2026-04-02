@@ -1,4 +1,4 @@
-import type { ArchitecturalHouse } from "./architecturalTypes";
+import type { ArchitecturalHouse, PropertyDefinition, SiteCarportObjectSpec, SiteSpec } from "./architecturalTypes";
 import { createLeftFacadeStackOpenings, type LeftFacadeStack } from './factories/openingGroups/createLeftFacadeStackOpenings';
 import { createOpeningsFromChain } from './factories/openingGroups/createOpeningsFromChain';
 import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
@@ -49,11 +49,16 @@ const firstFrontEdgeIndex = findFacadeEdgeIndex(FIRST_OUTER, 'minZ');
 const GROUND_REAR_MAIN_EDGE = 1;
 const FIRST_REAR_EDGE = 9;
 
-const site: ArchitecturalHouse['site'] = {
+const site: SiteSpec = {
   elevation: -0.001,
   color: '#6DAA2C',
   footprint: LOT_1A_FOOTPRINT,
   surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT, GROUND_OUTER),
+  boundaries: {
+    fences: [],
+    hedges: [],
+    gates: [],
+  },
 };
 
 // These three stacks sit on the indented left facade's explicit vertical edge runs.
@@ -114,9 +119,9 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
 // +410cm above grade. Keep both openings on the long, flat right facade run and
 // aligned to the same approximate z=5.50m centreline from the front edge.
 
-export const LOT_1A_CARPORT: NonNullable<ArchitecturalHouse['auxiliary']>[number] = {
+export const LOT_1A_CARPORT: SiteCarportObjectSpec = {
   id: 'carport-main',
-  type: 'flat',
+  type: 'carport',
   attachedTo: {
     side: 'right',
   },
@@ -148,7 +153,7 @@ export const LOT_1A_CARPORT: NonNullable<ArchitecturalHouse['auxiliary']>[number
   },
 };
 
-export const architecturalHouse: ArchitecturalHouse = {
+const houseDefinition: ArchitecturalHouse = {
   wallThickness: 0.3,
   levels: [
     {
@@ -176,7 +181,6 @@ export const architecturalHouse: ArchitecturalHouse = {
       footprint: { outer: FIRST_OUTER },
     },
   ],
-  site,
   rooms: [
     {
       id: 'room-ground-office',
@@ -450,8 +454,6 @@ export const architecturalHouse: ArchitecturalHouse = {
     },
   ],
 
-  auxiliary: [LOT_1A_CARPORT],
-
   openings: [
     ...createOpeningsFromChain({
       chain: [1.15, 1.1, 0.7, 1.1, 0.95, 1.0, 1.15, 0.7, 1.75],
@@ -641,3 +643,14 @@ export const architecturalHouse: ArchitecturalHouse = {
     },
   ],
 };
+
+export const propertyDefinition: PropertyDefinition = {
+  id: 'lot-1a',
+  site: {
+    ...site,
+    objects: [LOT_1A_CARPORT],
+  },
+  house: houseDefinition,
+};
+
+export const architecturalHouse: ArchitecturalHouse = propertyDefinition.house;

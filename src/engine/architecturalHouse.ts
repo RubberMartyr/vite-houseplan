@@ -17,7 +17,6 @@ import {
   plainWindow,
 } from './styles/openingStylePresets';
 import { findFacadeEdgeIndex } from './utils/facadeEdgeUtils';
-import { cm } from './utils/units';
 
 const GROUND_OUTER = [
   { x: 4.8, z: 15 },
@@ -57,12 +56,6 @@ const site: ArchitecturalHouse['site'] = {
   surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT, GROUND_OUTER),
 };
 
-const LEFT_FACADE_GROUND_OPENING_HEIGHT = 2.8;
-const LEFT_FACADE_FIRST_OPENING_HEIGHT = cm(195);
-const LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT = cm(215);
-const FRONT_DORMER_WINDOW_HEIGHT = 1;
-const FRONT_DORMER_WINDOW_SILL_HEIGHT = 1.8;
-
 // These three stacks sit on the indented left facade's explicit vertical edge runs.
 // Do not replace these with generic minX/left-facade helpers: each stack belongs to
 // a different footprint segment and must stay edge-addressed for deterministic derivation.
@@ -71,12 +64,12 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
     id: 'LOW',
     groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 2, fromEnd: false },
     firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 4, fromEnd: false },
-    width: cm(70),
-    groundHeight: LEFT_FACADE_SHORT_GROUND_OPENING_HEIGHT,
-    firstHeight: LEFT_FACADE_FIRST_OPENING_HEIGHT,
+    width: 0.7,
+    groundHeight: 2.15,
+    firstHeight: 1.95,
     positions: [
       {
-        groundOffset: cm(130),
+        groundOffset: 1.3,
         includeFirst: false,
       },
     ],
@@ -85,17 +78,17 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
     id: 'MID',
     groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 5, fromEnd: true },
     firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 2, fromEnd: true },
-    width: cm(80),
-    groundHeight: LEFT_FACADE_GROUND_OPENING_HEIGHT,
-    firstHeight: LEFT_FACADE_FIRST_OPENING_HEIGHT,
+    width: 0.8,
+    groundHeight: 2.8,
+    firstHeight: 1.95,
     positions: [
       {
-        groundOffset: cm(100),
+        groundOffset: 1,
         includeFirst: true,
       },
       {
         idSuffix: 'B',
-        groundOffset: cm(265),
+        groundOffset: 2.65,
         includeFirst: true,
       },
     ],
@@ -104,61 +97,22 @@ const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
     id: 'HIGH',
     groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 3, fromEnd: true },
     firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 0, fromEnd: true },
-    width: cm(80),
-    groundHeight: LEFT_FACADE_GROUND_OPENING_HEIGHT,
-    firstHeight: LEFT_FACADE_FIRST_OPENING_HEIGHT,
+    width: 0.8,
+    groundHeight: 2.8,
+    firstHeight: 1.95,
     positions: [
       {
-        groundOffset: cm(130),
+        groundOffset: 1.3,
         includeFirst: true,
       },
     ],
   },
 ] as const;
 
-const RIGHT_FACADE_DOOR_WIDTH = cm(90);
-const RIGHT_FACADE_DOOR_HEIGHT = cm(215);
-const RIGHT_FACADE_WINDOW_WIDTH = cm(80);
-const RIGHT_FACADE_WINDOW_HEIGHT = cm(90);
-const RIGHT_FACADE_WINDOW_BOTTOM_Y = cm(410);
-const FIRST_FLOOR_ELEVATION = 3.05;
-const RIGHT_FACADE_WINDOW_SILL_HEIGHT = RIGHT_FACADE_WINDOW_BOTTOM_Y - FIRST_FLOOR_ELEVATION;
-
 // The ground-floor side-elevation drawing calls out a 215cm-high door, while the
 // first-floor plan dimensions the right-side window at 80cm wide with its sill at
 // +410cm above grade. Keep both openings on the long, flat right facade run and
 // aligned to the same approximate z=5.50m centreline from the front edge.
-const RIGHT_FACADE_SHARED_CENTER_Z = 5.5;
-const RIGHT_FACADE_DOOR_OFFSET =
-  RIGHT_FACADE_SHARED_CENTER_Z - RIGHT_FACADE_DOOR_WIDTH / 2;
-const RIGHT_FACADE_FIRST_WINDOW_EDGE_INDEX = 7;
-const RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z = FIRST_OUTER[7].z;
-const RIGHT_FACADE_WINDOW_OFFSET =
-  RIGHT_FACADE_SHARED_CENTER_Z -
-  RIGHT_FACADE_WINDOW_WIDTH / 2 -
-  RIGHT_FACADE_FIRST_WINDOW_EDGE_START_Z;
-
-// Model the rear-right exterior basement stair as a deterministic add-on that
-// stays edge-addressed to the long right facade run. The plan shows a much
-// longer, roomier exterior stair court than the initial placeholder block, so
-// keep the lower landing aligned to the new basement door while extending the
-// full access well to roughly 6.75m along the facade and widening it slightly.
-const BASEMENT_RIGHT_ACCESS_LENGTH = 6.75;
-const BASEMENT_RIGHT_ACCESS_OFFSET = 15 - BASEMENT_RIGHT_ACCESS_LENGTH;
-const BASEMENT_RIGHT_ACCESS_SIDE_WALL_THICKNESS = 0.2;
-const BASEMENT_RIGHT_ACCESS_DOOR_WALL_CLEARANCE = 0.1;
-const BASEMENT_RIGHT_ACCESS_LANDING_LENGTH = 1.3;
-const BASEMENT_RIGHT_ACCESS_STAIR_RUN = BASEMENT_RIGHT_ACCESS_LENGTH - BASEMENT_RIGHT_ACCESS_LANDING_LENGTH;
-const BASEMENT_RIGHT_ACCESS_WELL_WIDTH = 1.8;
-const BASEMENT_RIGHT_ACCESS_STEP_COUNT = 17;
-const BASEMENT_RIGHT_ACCESS_WALL_HEIGHT = 3.1;
-const BASEMENT_RIGHT_ACCESS_DOOR_WIDTH = cm(95);
-const BASEMENT_RIGHT_ACCESS_DOOR_HEIGHT = cm(215);
-const BASEMENT_RIGHT_ACCESS_GUARD_WALL_HEIGHT = 1;
-const BASEMENT_RIGHT_ACCESS_DOOR_OFFSET =
-  BASEMENT_RIGHT_ACCESS_OFFSET +
-  BASEMENT_RIGHT_ACCESS_SIDE_WALL_THICKNESS +
-  BASEMENT_RIGHT_ACCESS_DOOR_WALL_CLEARANCE;
 
 export const LOT_1A_CARPORT: NonNullable<ArchitecturalHouse['auxiliary']>[number] = {
   id: 'carport-main',
@@ -573,8 +527,8 @@ export const architecturalHouse: ArchitecturalHouse = {
           levelId: 'first',
           edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
           width: 0.9,
-          sillHeight: FRONT_DORMER_WINDOW_SILL_HEIGHT,
-          height: FRONT_DORMER_WINDOW_HEIGHT,
+          sillHeight: 1.8,
+          height: 1,
           style: frontDormerWindow,
         },
         {
@@ -634,10 +588,10 @@ export const architecturalHouse: ArchitecturalHouse = {
       kind: 'door',
       levelId: 'ground',
       edge: { levelId: 'ground', ring: 'outer', edgeIndex: 9 },
-      offset: RIGHT_FACADE_DOOR_OFFSET,
-      width: RIGHT_FACADE_DOOR_WIDTH,
+      offset: 5.05,
+      width: 0.9,
       sillHeight: 0,
-      height: RIGHT_FACADE_DOOR_HEIGHT,
+      height: 2.15,
       style: doorDetailed,
     },
     {
@@ -645,21 +599,21 @@ export const architecturalHouse: ArchitecturalHouse = {
       kind: 'door',
       levelId: 'basement',
       edge: { levelId: 'basement', ring: 'outer', edgeIndex: 9 },
-      offset: BASEMENT_RIGHT_ACCESS_DOOR_OFFSET,
-      width: BASEMENT_RIGHT_ACCESS_DOOR_WIDTH,
+      offset: 8.55,
+      width: 0.95,
       sillHeight: 0,
-      height: BASEMENT_RIGHT_ACCESS_DOOR_HEIGHT,
+      height: 2.15,
       style: doorDetailed,
     },
     {
       id: 'RIGHT_F_WINDOW',
       kind: 'window',
       levelId: 'first',
-      edge: { levelId: 'first', ring: 'outer', edgeIndex: RIGHT_FACADE_FIRST_WINDOW_EDGE_INDEX },
-      offset: RIGHT_FACADE_WINDOW_OFFSET,
-      width: RIGHT_FACADE_WINDOW_WIDTH,
-      sillHeight: RIGHT_FACADE_WINDOW_SILL_HEIGHT,
-      height: RIGHT_FACADE_WINDOW_HEIGHT,
+      edge: { levelId: 'first', ring: 'outer', edgeIndex: 7 },
+      offset: 1.1,
+      width: 0.8,
+      sillHeight: 1.05,
+      height: 0.9,
       style: plainWindow,
     },
     ...createLeftFacadeStackOpenings(LEFT_FACADE_STACKS, {
@@ -674,16 +628,16 @@ export const architecturalHouse: ArchitecturalHouse = {
       id: 'BASEMENT_RIGHT_REAR_ACCESS',
       levelId: 'basement',
       edge: { levelId: 'basement', ring: 'outer', edgeIndex: 9 },
-      offset: BASEMENT_RIGHT_ACCESS_OFFSET,
-      wellWidth: BASEMENT_RIGHT_ACCESS_WELL_WIDTH,
-      landingLength: BASEMENT_RIGHT_ACCESS_LANDING_LENGTH,
-      stairRun: BASEMENT_RIGHT_ACCESS_STAIR_RUN,
-      stairRise: BASEMENT_RIGHT_ACCESS_WALL_HEIGHT,
-      stepCount: BASEMENT_RIGHT_ACCESS_STEP_COUNT,
+      offset: 8.25,
+      wellWidth: 1.8,
+      landingLength: 1.3,
+      stairRun: 5.45,
+      stairRise: 3.1,
+      stepCount: 17,
       floorThickness: 0.18,
-      wallThickness: BASEMENT_RIGHT_ACCESS_SIDE_WALL_THICKNESS,
-      wallHeight: BASEMENT_RIGHT_ACCESS_WALL_HEIGHT,
-      guardWallHeight: BASEMENT_RIGHT_ACCESS_GUARD_WALL_HEIGHT,
+      wallThickness: 0.2,
+      wallHeight: 3.1,
+      guardWallHeight: 1,
     },
   ],
 };

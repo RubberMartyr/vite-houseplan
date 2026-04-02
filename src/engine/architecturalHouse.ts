@@ -1,5 +1,5 @@
-import type { ArchitecturalHouse, PropertyDefinition, SiteCarportObjectSpec, SiteSpec } from "./architecturalTypes";
-import { createLeftFacadeStackOpenings, type LeftFacadeStack } from './factories/openingGroups/createLeftFacadeStackOpenings';
+import type { ArchitecturalHouse, PropertyDefinition } from "./architecturalTypes";
+import { createLeftFacadeStackOpenings } from './factories/openingGroups/createLeftFacadeStackOpenings';
 import { createOpeningsFromChain } from './factories/openingGroups/createOpeningsFromChain';
 import { LOT_1A_FOOTPRINT } from './site/lot1aFootprint';
 import { LOT_1A_SITE_LAYOUT, mapSiteLayoutToSurfaces } from './site/lot1aSurfaces';
@@ -18,7 +18,7 @@ import {
 } from './styles/openingStylePresets';
 import { findFacadeEdgeIndex } from './utils/facadeEdgeUtils';
 
-const GROUND_OUTER = [
+const GROUND_LEVEL_FOOTPRINT = [
   { x: 4.8, z: 15 },
   { x: 4.1, z: 15 },
   { x: -3.5, z: 15 },
@@ -31,7 +31,7 @@ const GROUND_OUTER = [
   { x: 4.8, z: 0 },
 ];
 
-const FIRST_OUTER = [
+const FIRST_LEVEL_FOOTPRINT = [
   { x: -3.5, z: 12 },
   { x: -3.5, z: 8.45 },
   { x: -4.1, z: 8.45 },
@@ -44,125 +44,74 @@ const FIRST_OUTER = [
   { x: 4.8, z: 12 },
 ];
 
-const groundFrontEdgeIndex = findFacadeEdgeIndex(GROUND_OUTER, 'minZ');
-const firstFrontEdgeIndex = findFacadeEdgeIndex(FIRST_OUTER, 'minZ');
+const GROUND_FRONT_EDGE_INDEX = findFacadeEdgeIndex(GROUND_LEVEL_FOOTPRINT, 'minZ');
+const FIRST_FRONT_EDGE_INDEX = findFacadeEdgeIndex(FIRST_LEVEL_FOOTPRINT, 'minZ');
 const GROUND_REAR_MAIN_EDGE = 1;
 const FIRST_REAR_EDGE = 9;
-
-const site: SiteSpec = {
-  elevation: -0.001,
-  color: '#6DAA2C',
-  footprint: LOT_1A_FOOTPRINT,
-  surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT, GROUND_OUTER),
-  boundaries: {
-    fences: [],
-    hedges: [],
-    gates: [],
-  },
-};
-
-// These three stacks sit on the indented left facade's explicit vertical edge runs.
-// Do not replace these with generic minX/left-facade helpers: each stack belongs to
-// a different footprint segment and must stay edge-addressed for deterministic derivation.
-const LEFT_FACADE_STACKS: readonly LeftFacadeStack[] = [
-  {
-    id: 'LOW',
-    groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 2, fromEnd: false },
-    firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 4, fromEnd: false },
-    width: 0.7,
-    groundHeight: 2.15,
-    firstHeight: 1.95,
-    positions: [
-      {
-        groundOffset: 1.3,
-        includeFirst: false,
-      },
-    ],
-  },
-  {
-    id: 'MID',
-    groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 5, fromEnd: true },
-    firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 2, fromEnd: true },
-    width: 0.8,
-    groundHeight: 2.8,
-    firstHeight: 1.95,
-    positions: [
-      {
-        groundOffset: 1,
-        includeFirst: true,
-      },
-      {
-        idSuffix: 'B',
-        groundOffset: 2.65,
-        includeFirst: true,
-      },
-    ],
-  },
-  {
-    id: 'HIGH',
-    groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 3, fromEnd: true },
-    firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 0, fromEnd: true },
-    width: 0.8,
-    groundHeight: 2.8,
-    firstHeight: 1.95,
-    positions: [
-      {
-        groundOffset: 1.3,
-        includeFirst: true,
-      },
-    ],
-  },
-] as const;
 
 // The ground-floor side-elevation drawing calls out a 215cm-high door, while the
 // first-floor plan dimensions the right-side window at 80cm wide with its sill at
 // +410cm above grade. Keep both openings on the long, flat right facade run and
 // aligned to the same approximate z=5.50m centreline from the front edge.
 
-export const LOT_1A_CARPORT: SiteCarportObjectSpec = {
-  id: 'carport-main',
-  type: 'carport',
-  attachedTo: {
-    side: 'right',
-  },
-  footprint: {
-    outer: [
-      { x: 4.8, z: 0.0 },
-      { x: 8.55, z: 0.0 },
-      { x: 8.55, z: 15.0 },
-      { x: 4.8, z: 15.0 },
+export const propertyDefinition: PropertyDefinition = {
+  id: 'lot-1a',
+  site: {
+    elevation: -0.001,
+    color: '#6DAA2C',
+    footprint: LOT_1A_FOOTPRINT,
+    surfaces: mapSiteLayoutToSurfaces(LOT_1A_SITE_LAYOUT, GROUND_LEVEL_FOOTPRINT),
+    boundaries: {
+      fences: [],
+      hedges: [],
+      gates: [],
+    },
+    objects: [
+      {
+        id: 'carport-main',
+        type: 'carport',
+        attachedTo: {
+          side: 'right',
+        },
+        footprint: {
+          outer: [
+            { x: 4.8, z: 0.0 },
+            { x: 8.55, z: 0.0 },
+            { x: 8.55, z: 15.0 },
+            { x: 4.8, z: 15.0 },
+          ],
+        },
+        heightOffsetFromRoof: -0.5,
+        thickness: 0.2,
+        columns: {
+          spacing: 3.0,
+          size: 0.15,
+          insetFromEdge: 0.1,
+          sides: {
+            front: false,
+            rear: false,
+            houseSide: false,
+            outerSide: true,
+          },
+        },
+        material: {
+          roof: 'flat_roof_dark',
+          columns: 'wood_oak_light',
+          underside: '/textures/fence/wood.jpg',
+        },
+      },
     ],
   },
-  heightOffsetFromRoof: -0.5,
-  thickness: 0.2,
-  columns: {
-    spacing: 3.0,
-    size: 0.15,
-    insetFromEdge: 0.1,
-    sides: {
-      front: false,
-      rear: false,
-      houseSide: false,
-      outerSide: true,
-    },
-  },
-  material: {
-    roof: 'flat_roof_dark',
-    columns: 'wood_oak_light',
-    underside: '/textures/fence/wood.jpg',
-  },
-};
-
-const houseDefinition: ArchitecturalHouse = {
-  wallThickness: 0.3,
-  levels: [
+  house: {
+    wallThickness: 0.3,
+    levels: [
     {
       id: 'basement',
       name: 'Basement',
       elevation: -3.1,
       height: 2.8,
       slab: { thickness: 0.3, inset: 0 },
-      footprint: { outer: GROUND_OUTER },
+      footprint: { outer: GROUND_LEVEL_FOOTPRINT },
     },
     {
       id: 'ground',
@@ -170,7 +119,7 @@ const houseDefinition: ArchitecturalHouse = {
       elevation: 0,
       height: 2.8,
       slab: { thickness: 0.3, inset: 0 },
-      footprint: { outer: GROUND_OUTER },
+      footprint: { outer: GROUND_LEVEL_FOOTPRINT },
     },
     {
       id: 'first',
@@ -178,7 +127,7 @@ const houseDefinition: ArchitecturalHouse = {
       elevation: 3.05,
       height: 2.8,
       slab: { thickness: 0.25, inset: 0 },
-      footprint: { outer: FIRST_OUTER },
+      footprint: { outer: FIRST_LEVEL_FOOTPRINT },
     },
   ],
   rooms: [
@@ -462,7 +411,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_G_W1',
           kind: 'window',
           levelId: 'ground',
-          edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
+          edge: { levelId: 'ground', ring: 'outer', edgeIndex: GROUND_FRONT_EDGE_INDEX },
           width: 1.1,
           sillHeight: 0.7,
           height: 1.6,
@@ -472,7 +421,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_G_W2',
           kind: 'window',
           levelId: 'ground',
-          edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
+          edge: { levelId: 'ground', ring: 'outer', edgeIndex: GROUND_FRONT_EDGE_INDEX },
           width: 1.1,
           sillHeight: 0.7,
           height: 1.6,
@@ -482,7 +431,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_G_DOOR',
           kind: 'door',
           levelId: 'ground',
-          edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
+          edge: { levelId: 'ground', ring: 'outer', edgeIndex: GROUND_FRONT_EDGE_INDEX },
           width: 1,
           sillHeight: 0,
           height: 2.5,
@@ -492,7 +441,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_G_W3',
           kind: 'window',
           levelId: 'ground',
-          edge: { levelId: 'ground', ring: 'outer', edgeIndex: groundFrontEdgeIndex },
+          edge: { levelId: 'ground', ring: 'outer', edgeIndex: GROUND_FRONT_EDGE_INDEX },
           width: 0.7,
           sillHeight: 1.65,
           height: 0.5,
@@ -507,7 +456,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_F_W1',
           kind: 'window',
           levelId: 'first',
-          edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
+          edge: { levelId: 'first', ring: 'outer', edgeIndex: FIRST_FRONT_EDGE_INDEX },
           width: 0.9,
           sillHeight: 0.35,
           height: 1.6,
@@ -517,7 +466,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_F_W2',
           kind: 'window',
           levelId: 'first',
-          edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
+          edge: { levelId: 'first', ring: 'outer', edgeIndex: FIRST_FRONT_EDGE_INDEX },
           width: 0.9,
           sillHeight: 0.35,
           height: 1.6,
@@ -527,7 +476,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_F_W3',
           kind: 'window',
           levelId: 'first',
-          edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
+          edge: { levelId: 'first', ring: 'outer', edgeIndex: FIRST_FRONT_EDGE_INDEX },
           width: 0.9,
           sillHeight: 1.8,
           height: 1,
@@ -537,7 +486,7 @@ const houseDefinition: ArchitecturalHouse = {
           id: 'FRONT_F_W4',
           kind: 'window',
           levelId: 'first',
-          edge: { levelId: 'first', ring: 'outer', edgeIndex: firstFrontEdgeIndex },
+          edge: { levelId: 'first', ring: 'outer', edgeIndex: FIRST_FRONT_EDGE_INDEX },
           width: 0.7,
           sillHeight: 1.3,
           height: 0.9,
@@ -618,7 +567,55 @@ const houseDefinition: ArchitecturalHouse = {
       height: 0.9,
       style: plainWindow,
     },
-    ...createLeftFacadeStackOpenings(LEFT_FACADE_STACKS, {
+    ...createLeftFacadeStackOpenings([
+      {
+        id: 'LOW',
+        groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 2, fromEnd: false },
+        firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 4, fromEnd: false },
+        width: 0.7,
+        groundHeight: 2.15,
+        firstHeight: 1.95,
+        positions: [
+          {
+            groundOffset: 1.3,
+            includeFirst: false,
+          },
+        ],
+      },
+      {
+        id: 'MID',
+        groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 5, fromEnd: true },
+        firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 2, fromEnd: true },
+        width: 0.8,
+        groundHeight: 2.8,
+        firstHeight: 1.95,
+        positions: [
+          {
+            groundOffset: 1,
+            includeFirst: true,
+          },
+          {
+            idSuffix: 'B',
+            groundOffset: 2.65,
+            includeFirst: true,
+          },
+        ],
+      },
+      {
+        id: 'HIGH',
+        groundEdge: { levelId: 'ground', ring: 'outer', edgeIndex: 3, fromEnd: true },
+        firstEdge: { levelId: 'first', ring: 'outer', edgeIndex: 0, fromEnd: true },
+        width: 0.8,
+        groundHeight: 2.8,
+        firstHeight: 1.95,
+        positions: [
+          {
+            groundOffset: 1.3,
+            includeFirst: true,
+          },
+        ],
+      },
+    ], {
       lowerTall: leftFacadeTallLowerWindow,
       upperTall: leftFacadeTallUpperWindow,
       short: leftFacadeShortWindow,
@@ -642,15 +639,7 @@ const houseDefinition: ArchitecturalHouse = {
       guardWallHeight: 1,
     },
   ],
-};
-
-export const propertyDefinition: PropertyDefinition = {
-  id: 'lot-1a',
-  site: {
-    ...site,
-    objects: [LOT_1A_CARPORT],
   },
-  house: houseDefinition,
 };
 
 export const architecturalHouse: ArchitecturalHouse = propertyDefinition.house;

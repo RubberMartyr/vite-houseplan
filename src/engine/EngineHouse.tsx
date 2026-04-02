@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo } from 'react';
-import type { ArchitecturalHouse, RoomSpec } from './architecturalTypes';
+import type { ArchitecturalHouse, RoomSpec, SiteSpec } from './architecturalTypes';
 import { deriveHouse } from './derive/deriveHouse';
 import type { DerivedHouse } from './derive/types/DerivedHouse';
 import { EngineExteriorAccesses } from './render/EngineExteriorAccesses';
@@ -21,6 +21,7 @@ const EngineDebugLayer = lazy(() =>
 );
 type Props = {
   house: ArchitecturalHouse;
+  site?: SiteSpec;
   showWalls?: boolean;
   showRoof?: boolean;
   showSlabs?: boolean;
@@ -42,6 +43,7 @@ const FOUNDATION_WALL_MATERIAL = {
 
 export function EngineHouse({
   house,
+  site,
   showWalls = true,
   showRoof = true,
   showSlabs = true,
@@ -56,11 +58,12 @@ export function EngineHouse({
   const derived: DerivedHouse = useMemo(
     () => {
       const arch = house;
-      return deriveHouse(arch);
+      return deriveHouse(arch, { site: site ?? arch.site });
     },
-    [house]
+    [house, site]
   );
-  const siteElevation = house.site?.elevation ?? 0;
+  const resolvedSite = site ?? house.site;
+  const siteElevation = resolvedSite?.elevation ?? 0;
   const levelFootprintsById = useMemo(
     () => Object.fromEntries(house.levels.map((level) => [level.id, level.footprint.outer])),
     [house]
@@ -133,7 +136,7 @@ export function EngineHouse({
   return (
     <>
       <EngineSite
-        site={house.site}
+        site={resolvedSite}
         cutouts={derived.exteriorAccessCutouts.map((cutout) => cutout.polygon)}
         visible={showWalls}
       />

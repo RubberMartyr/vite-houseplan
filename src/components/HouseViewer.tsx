@@ -4,7 +4,7 @@ import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
-import { architecturalHouse } from '../engine/architecturalHouse';
+import { architecturalHouse, propertyDefinition } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse } from '../engine/architecturalTypes';
 import { markFirstFrameRendered } from '../loadingManager';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
@@ -308,6 +308,7 @@ export default function HouseViewer() {
         <group>
           <EngineHouse
             house={houseWithInjectedInteriorWall}
+            site={propertyDefinition.site}
             showWalls={showWalls}
             showRoof={showRoof}
             showSlabs={showSlabs}

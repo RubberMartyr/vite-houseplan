@@ -1,4 +1,4 @@
-import type { ArchitecturalHouse, LevelSpec } from '../architecturalTypes';
+import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../architecturalTypes';
 import { validateStructure } from '../validation/validateStructure';
 import { deriveExteriorAccesses } from './deriveExteriorAccesses';
 import { deriveOpenings } from './deriveOpenings';
@@ -13,7 +13,7 @@ import { normalizeArchitecturalHouse } from '../normalizeArchitecturalHouse';
 
 let revisionCounter = 1;
 
-export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
+export function deriveHouse(arch: ArchitecturalHouse, options?: { site?: SiteSpec }): DerivedHouse {
   const normalizedArch = normalizeArchitecturalHouse(arch);
 
   // Stage 0
@@ -45,7 +45,7 @@ export function deriveHouse(arch: ArchitecturalHouse): DerivedHouse {
   // Stage 3
   const roofs = deriveRoofs(normalizedArch, { slabs, walls, openings });
   const roofsRev = revisionCounter++;
-  const carports = deriveAuxiliaryStructures(normalizedArch, { roofs });
+  const carports = deriveAuxiliaryStructures(normalizedArch, { roofs, site: options?.site });
   const carportsRev = revisionCounter++;
 
   const { parts: exteriorAccesses, cutouts: exteriorAccessCutouts } = deriveExteriorAccesses(normalizedArch, { walls });

@@ -15,6 +15,23 @@ export type Vec2 = {
 export type Footprint = {
   outer: Vec2[];
   holes?: Vec2[][];
+  id?: string;
+  derivedFrom?: string | null;
+  differences?: Array<Record<string, unknown>>;
+  edges?: Array<{
+    id: string;
+    side?: string;
+    edgeIndex: number;
+    from?: Vec2;
+    to?: Vec2;
+  }>;
+  semanticZones?: Array<{
+    id: string;
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+  }>;
 };
 
 export type SiteSurfaceKind =
@@ -295,7 +312,8 @@ export interface OpeningStyleSpec {
 export interface OpeningEdgeRef {
   levelId: string;
   ring: 'outer';
-  edgeIndex: number;
+  edgeId?: string;
+  edgeIndex?: number;
   fromEnd?: boolean;
 }
 

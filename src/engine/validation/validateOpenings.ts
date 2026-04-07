@@ -5,6 +5,17 @@ const MIN_OPENING_DIMENSION = 0.05;
 
 export function validateOpenings(house: ArchitecturalHouse) {
   const levelById = new Map(house.levels.map((lvl, idx) => [lvl.id, { lvl, idx }]));
+  const resolveEdgeIndex = (level: ArchitecturalHouse['levels'][number], edgeId: string): number | null => {
+    const edge = level.footprint.edges?.find((item) => item.id === edgeId);
+
+    if (edge) return edge.edgeIndex;
+    if (!level.footprint.derivedFrom) return null;
+
+    const parent = house.levels.find((entry) => entry.id === level.footprint.derivedFrom);
+    if (!parent) return null;
+
+    return resolveEdgeIndex(parent, edgeId);
+  };
 
   for (const op of house.openings ?? []) {
     const rec = levelById.get(op.levelId);
@@ -43,7 +54,10 @@ export function validateOpenings(house: ArchitecturalHouse) {
 
     const outer = lvl.footprint.outer;
     const n = outer.length;
-    const edgeIndex = op.edge.edgeIndex;
+    const edgeIndex = op.edge.edgeIndex ?? (op.edge.edgeId ? resolveEdgeIndex(lvl, op.edge.edgeId) : null);
+    if (edgeIndex == null) {
+      throw new Error(`Opening ${op.id}: could not resolve edge via edgeIndex/edgeId`);
+    }
     if (edgeIndex < 0 || edgeIndex >= n) {
       throw new Error(`Opening ${op.id}: invalid edgeIndex ${edgeIndex}`);
     }

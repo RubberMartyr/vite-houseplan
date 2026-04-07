@@ -108,6 +108,17 @@ export function deriveOpenings(
   const levelIndexById = new Map(house.levels.map((level, index) => [level.id, index]));
   const wallById = new Map(context.walls.map((wall) => [wall.id, wall]));
   const out: DerivedOpening[] = [];
+  const resolveEdgeIndex = (level: ArchitecturalHouse['levels'][number], edgeId: string): number | null => {
+    const edge = level.footprint.edges?.find((item) => item.id === edgeId);
+
+    if (edge) return edge.edgeIndex;
+
+    if (!level.footprint.derivedFrom) return null;
+    const parent = house.levels.find((entry) => entry.id === level.footprint.derivedFrom);
+    if (!parent) return null;
+
+    return resolveEdgeIndex(parent, edgeId);
+  };
 
   for (const opening of house.openings ?? []) {
     const levelIndex = levelIndexById.get(opening.levelId);
@@ -115,9 +126,11 @@ export function deriveOpenings(
 
     const level = house.levels[levelIndex];
     const outer = level.footprint.outer;
-    const edgeIndex = opening.edge.edgeIndex;
+    const edgeIndex = opening.edge.edgeIndex ?? (
+      opening.edge.edgeId ? resolveEdgeIndex(level, opening.edge.edgeId) : null
+    );
 
-    if (!outer.length) continue;
+    if (!outer.length || edgeIndex == null) continue;
 
     const a = outer[edgeIndex];
     const b = outer[(edgeIndex + 1) % outer.length];

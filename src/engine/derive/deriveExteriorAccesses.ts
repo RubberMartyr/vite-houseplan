@@ -50,9 +50,30 @@ function pickOutwardNormalXZ(outer: Vec2[], edgeMidpoint: Vec2, n1: Vec2, n2: Ve
   return preferred;
 }
 
-function resolveEdgePlacement(level: ArchitecturalHouse['levels'][number], spec: ExteriorAccessSpec) {
+function resolveEdgePlacement(
+  level: ArchitecturalHouse['levels'][number],
+  spec: ExteriorAccessSpec,
+  house: ArchitecturalHouse
+) {
+  const resolveEdgeIndex = (node: ArchitecturalHouse['levels'][number], edgeId: string): number | null => {
+    const edge = node.footprint.edges?.find((item) => item.id === edgeId);
+
+    if (edge) return edge.edgeIndex;
+    if (!node.footprint.derivedFrom) return null;
+
+    const parent = house.levels.find((entry) => entry.id === node.footprint.derivedFrom);
+    if (!parent) return null;
+
+    return resolveEdgeIndex(parent, edgeId);
+  };
+
   const outer = level.footprint.outer;
-  const edgeIndex = spec.edge.edgeIndex;
+  const edgeIndex = spec.edge.edgeIndex ?? (
+    spec.edge.edgeId ? resolveEdgeIndex(level, spec.edge.edgeId) : null
+  );
+  if (edgeIndex == null) {
+    throw new Error(`Exterior access ${spec.id}: could not resolve edge via edgeIndex/edgeId.`);
+  }
   const start = outer[edgeIndex];
   const end = outer[(edgeIndex + 1) % outer.length];
   const dx = end.x - start.x;
@@ -139,7 +160,7 @@ export function deriveExteriorAccesses(
       throw new Error(`Exterior access ${spec.id}: level ${spec.levelId} was not found.`);
     }
 
-    const { start, tangentXZ, outwardXZ, uMin } = resolveEdgePlacement(level, spec);
+    const { start, tangentXZ, outwardXZ, uMin } = resolveEdgePlacement(level, spec, house);
     const floorThickness = spec.floorThickness ?? DEFAULT_FLOOR_THICKNESS;
     const wallThickness = spec.wallThickness ?? DEFAULT_WALL_THICKNESS;
     const wallHeight = spec.wallHeight ?? Math.abs(level.elevation);

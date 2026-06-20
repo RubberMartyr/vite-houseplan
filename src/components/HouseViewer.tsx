@@ -5,7 +5,8 @@ import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
 import { architecturalHouse, propertyDefinition } from '../engine/architecturalHouse';
-import type { ArchitecturalHouse } from '../engine/architecturalTypes';
+import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../engine/architecturalTypes';
+import type { DraftHouseModel, HouseViewerProps, PointXZ } from '../types';
 import { markFirstFrameRendered } from '../loadingManager';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
 import type { VisibilityState } from '../engine/debug/ui/tabs/VisibilityTab';
@@ -134,11 +135,140 @@ const shellSwitchKnobStyle: React.CSSProperties = {
   transition: 'transform 180ms ease',
 };
 
-export default function HouseViewer() {
+const isPointList = (value: unknown): value is PointXZ[] =>
+  Array.isArray(value) &&
+  value.length >= 3 &&
+  value.every(
+    (point) =>
+      typeof point === 'object' &&
+      point !== null &&
+      typeof (point as PointXZ).x === 'number' &&
+      typeof (point as PointXZ).z === 'number'
+  );
+
+const hasArchitecturalLevels = (model: unknown): model is ArchitecturalHouse =>
+  typeof model === 'object' &&
+  model !== null &&
+  Array.isArray((model as ArchitecturalHouse).levels) &&
+  typeof (model as ArchitecturalHouse).wallThickness === 'number';
+
+const createLevelFromDraft = (level: NonNullable<DraftHouseModel['levels']>[number], index: number): LevelSpec | null => {
+  const outer = level.footprint?.outer;
+
+  if (!isPointList(outer)) {
+    return null;
+  }
+
+  return {
+    id: level.id,
+    name: level.name ?? level.id,
+    elevation: level.elevation ?? index * (level.height ?? 2.8),
+    height: level.height ?? 2.8,
+    slab: {
+      thickness: level.slab?.thickness ?? 0.25,
+      inset: level.slab?.inset ?? 0,
+    },
+    footprint: {
+      id: `${level.id}-footprint`,
+      outer,
+      edges: [],
+      semanticZones: [],
+    },
+  };
+};
+
+const createLevelFromParcel = (outer: PointXZ[]): LevelSpec => ({
+  id: 'parcel-base',
+  name: 'Parcel Base',
+  elevation: 0,
+  height: 0.01,
+  slab: { thickness: 0.02, inset: 0 },
+  footprint: {
+    id: 'parcel-base-footprint',
+    outer,
+    edges: [],
+    semanticZones: [],
+  },
+});
+
+const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHouse => {
+  if (hasArchitecturalLevels(model)) {
+    return model;
+  }
+
+  if (typeof model !== 'object' || model === null) {
+    return architecturalHouse;
+  }
+
+  const draft = model as DraftHouseModel;
+  const levels = draft.levels
+    ?.map((level, index) => createLevelFromDraft(level, index))
+    .filter((level): level is LevelSpec => level !== null);
+
+  if (levels && levels.length > 0) {
+    return {
+      wallThickness: draft.walls?.[0]?.thickness ?? 0.3,
+      levels,
+      openings: [],
+      rooms: [],
+      roofs: [],
+    };
+  }
+
+  if (isPointList(draft.parcel?.outer)) {
+    return {
+      wallThickness: 0.3,
+      levels: [createLevelFromParcel(draft.parcel.outer)],
+      openings: [],
+      rooms: [],
+      roofs: [],
+    };
+  }
+
+  return architecturalHouse;
+};
+
+const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
+  if (hasArchitecturalLevels(model)) {
+    return model.site ?? propertyDefinition.site;
+  }
+
+  if (typeof model !== 'object' || model === null) {
+    return propertyDefinition.site;
+  }
+
+  const draft = model as DraftHouseModel;
+
+  if (isPointList(draft.parcel?.outer)) {
+    return {
+      footprint: {
+        id: 'parcel-footprint',
+        outer: draft.parcel.outer,
+        edges: [],
+        semanticZones: [],
+      },
+      elevation: -0.001,
+      color: '#6DAA2C',
+      surfaces: [],
+      boundaries: {
+        fences: [],
+        hedges: [],
+        gates: [],
+      },
+      objects: [],
+    };
+  }
+
+  return propertyDefinition.site;
+};
+
+export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
   const debugEnabled = debugFlags.enabled;
-  const [house, setHouse] = useState<ArchitecturalHouse>(architecturalHouse);
+  const resolvedHouse = useMemo(() => toArchitecturalHouse(model), [model]);
+  const resolvedSite = useMemo(() => toSite(model), [model]);
+  const [house, setHouse] = useState<ArchitecturalHouse>(resolvedHouse);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [showWireframe, setShowWireframe] = useState(false);
+  const [showWireframe, setShowWireframe] = useState(mode === 'wireframe');
   const [showEdges, setShowEdges] = useState(false);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
   const [showFloorplanOverlay, setShowFloorplanOverlay] = useState(false);
@@ -162,8 +292,8 @@ export default function HouseViewer() {
   const [selectedRoom, setSelectedRoom] = useState<SelectedRoomState | null>(null);
 
   useEffect(() => {
-    setHouse(architecturalHouse);
-  }, [architecturalHouse]);
+    setHouse(resolvedHouse);
+  }, [resolvedHouse]);
 
   useEffect(() => {
     return () => {
@@ -182,6 +312,10 @@ export default function HouseViewer() {
   const showSlabs = toggles.visibility.showSlabs;
   const showRooms = toggles.visibility.showRooms;
   const showRoomInfoCard = showRooms && selectedRoom !== null;
+
+  useEffect(() => {
+    setShowWireframe(mode === 'wireframe');
+  }, [mode]);
 
   useEffect(() => {
     if (!showRooms) {
@@ -281,7 +415,7 @@ export default function HouseViewer() {
   };
 
   return (
-    <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
+    <div className={className} style={{ width: '100%', height: '100vh', position: 'relative' }}>
       <Canvas
         shadows
         camera={{ position: [0, 7, -12], fov: 50 }}
@@ -308,13 +442,13 @@ export default function HouseViewer() {
         <group>
           <EngineHouse
             house={houseWithInjectedInteriorWall}
-            site={propertyDefinition.site}
+            site={resolvedSite}
             showWalls={showWalls}
             showRoof={showRoof}
             showSlabs={showSlabs}
             showGlass={showGlass}
             showRooms={showRooms}
-            showDebug={toggles.showDebug}
+            showDebug={toggles.showDebug || showHelpers}
             selectedRoomId={selectedRoom?.id ?? null}
             hoveredRoomId={hoveredRoomId}
             onRoomHover={setHoveredRoomId}
@@ -327,12 +461,12 @@ export default function HouseViewer() {
             }}
           />
           <DebugAxes />
-          {toggles.showDebug && debugEnabled && (
+          {(toggles.showDebug || showHelpers) && debugEnabled && (
             <Suspense fallback={null}>
               <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />
             </Suspense>
           )}
-          {toggles.showDebug && debugEnabled && (
+          {(toggles.showDebug || showHelpers) && debugEnabled && (
             <Suspense fallback={null}>
               <FloorplanValidationOverlay
                 architecturalHouse={houseWithInjectedInteriorWall}
@@ -344,7 +478,7 @@ export default function HouseViewer() {
           )}
         </group>
 
-        {toggles.showDebug && debugEnabled && (
+        {(toggles.showDebug || showHelpers) && debugEnabled && (
           <Suspense fallback={null}>
             <WireframeOverride enabled={showWireframe} />
           </Suspense>
@@ -421,7 +555,7 @@ export default function HouseViewer() {
         levelName={showRoomInfoCard ? selectedRoom?.levelName ?? null : null}
       />
 
-      {toggles.showDebug && debugEnabled && (
+      {(toggles.showDebug || showHelpers) && debugEnabled && (
         <>
           <Suspense fallback={null}>
             <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />

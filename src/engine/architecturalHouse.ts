@@ -106,10 +106,11 @@ const getFootprintForLevel = (levelId: FootprintLevelId) => FOOTPRINTS[levelId];
 
 const getEdgeIndex = (levelId: FootprintLevelId, edgeId: string): number => {
   const footprint = getFootprintForLevel(levelId);
-  const edge = footprint.edges.find((item) => item.id === edgeId);
+  const edges = footprint.edges as Array<{ id: string; edgeIndex: number }>;
+  const edge = edges.find((item) => item.id === edgeId);
 
   if (edge) return edge.edgeIndex;
-  if (footprint.derivedFrom) return getEdgeIndex(footprint.derivedFrom, edgeId);
+  if (footprint.derivedFrom) return getEdgeIndex(footprint.derivedFrom as FootprintLevelId, edgeId);
 
   throw new Error(`Unknown edge "${edgeId}" for level "${levelId}"`);
 };

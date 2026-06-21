@@ -19,7 +19,7 @@
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
@@ -31,7 +31,9 @@
     "declaration": true,
     "declarationDir": "dist",
     "emitDeclarationOnly": false,
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src",
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "./src"

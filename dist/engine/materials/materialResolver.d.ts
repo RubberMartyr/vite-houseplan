@@ -1,0 +1,10 @@
+import * as THREE from 'three';
+import type { ArchitecturalMaterials } from '../architecturalTypes';
+type WallMaterialSpec = ArchitecturalMaterials['walls'];
+type RoofMaterialSpec = ArchitecturalMaterials['roof'];
+type WindowMaterialSpec = ArchitecturalMaterials['windows'];
+export declare function createWallMaterial(materialSpec?: WallMaterialSpec): THREE.MeshStandardMaterial;
+export declare function createWallMaterials(materialSpec?: WallMaterialSpec): [THREE.MeshStandardMaterial, THREE.MeshStandardMaterial, THREE.MeshStandardMaterial];
+export declare function createRoofMaterial(materialSpec?: RoofMaterialSpec): THREE.MeshStandardMaterial;
+export declare function createOpeningMaterials(materialSpec?: WindowMaterialSpec): Record<'frame' | 'glass' | 'wood' | 'stone', THREE.MeshStandardMaterial>;
+export {};

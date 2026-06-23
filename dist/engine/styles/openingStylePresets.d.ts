@@ -1,0 +1,12 @@
+import type { OpeningStyleSpec } from '../architecturalTypes';
+export declare const frontGroundTallWindow: OpeningStyleSpec;
+export declare const frontFirstTallWindow: OpeningStyleSpec;
+export declare const frontDormerWindow: OpeningStyleSpec;
+export declare const frontSmallWindow: OpeningStyleSpec;
+export declare const leftFacadeTallLowerWindow: OpeningStyleSpec;
+export declare const leftFacadeTallUpperWindow: OpeningStyleSpec;
+export declare const leftFacadeShortWindow: OpeningStyleSpec;
+export declare const plainWindow: OpeningStyleSpec;
+export declare const firstFloorTransom: OpeningStyleSpec;
+export declare const doorDetailed: OpeningStyleSpec;
+export declare const frontPortalDoor: OpeningStyleSpec;

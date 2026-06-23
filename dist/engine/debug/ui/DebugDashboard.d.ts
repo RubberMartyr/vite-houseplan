@@ -1,0 +1,26 @@
+import type { ArchitecturalHouse } from '../../architecturalTypes';
+import { type ValidationLogEntry } from './tabs/RenderingTab';
+import { type VisibilityState } from './tabs/VisibilityTab';
+type Props = {
+    isOpen: boolean;
+    onClose: () => void;
+    showWireframe: boolean;
+    onShowWireframeChange: (enabled: boolean) => void;
+    showEdges: boolean;
+    onShowEdgesChange: (enabled: boolean) => void;
+    showOpeningEdges: boolean;
+    onShowOpeningEdgesChange: (enabled: boolean) => void;
+    initialJson: string;
+    onApplyArchitecturalHouse: (house: ArchitecturalHouse) => void;
+    onRunFloorplanValidation: () => void;
+    showFloorplanOverlay: boolean;
+    onShowFloorplanOverlayChange: (enabled: boolean) => void;
+    showValidationIssues: boolean;
+    onShowValidationIssuesChange: (enabled: boolean) => void;
+    onClearValidationOutput: () => void;
+    validationLog?: ValidationLogEntry[];
+    visibility: VisibilityState;
+    onVisibilityChange: (nextVisibility: VisibilityState) => void;
+};
+export declare function DebugDashboard({ isOpen, onClose, showWireframe, onShowWireframeChange, showEdges, onShowEdgesChange, showOpeningEdges, onShowOpeningEdgesChange, initialJson, onApplyArchitecturalHouse, onRunFloorplanValidation, showFloorplanOverlay, onShowFloorplanOverlayChange, showValidationIssues, onShowValidationIssuesChange, onClearValidationOutput, validationLog, visibility, onVisibilityChange, }: Props): import("react/jsx-runtime").JSX.Element | null;
+export {};

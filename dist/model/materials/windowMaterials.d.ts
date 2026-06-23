@@ -1,0 +1,11 @@
+import * as THREE from 'three';
+export declare const frameMaterial: THREE.MeshBasicMaterial;
+export declare const blueStoneMaterial: THREE.MeshStandardMaterial;
+export declare const glassMaterial: THREE.MeshBasicMaterial;
+export declare const metalBandMaterial: THREE.MeshBasicMaterial;
+export declare const revealMaterial: THREE.MeshBasicMaterial;
+export declare const frontBlueStoneMaterial: THREE.MeshStandardMaterial;
+export declare const anthraciteStoneMaterial: THREE.MeshStandardMaterial;
+export declare const oakMaterial: THREE.MeshStandardMaterial;
+export declare const doorGlassMaterial: THREE.MeshStandardMaterial;
+export declare const anthraciteBandMaterial: THREE.MeshStandardMaterial;

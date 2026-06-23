@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
 
 import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../engine/architecturalTypes';
-import type { DraftHouseModel, HouseViewerProps, PointXZ } from '../types';
+import type { HouseViewerProps } from '../types';
 import { markFirstFrameRendered } from '../loadingManager';
 import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
 import type { VisibilityState } from '../engine/debug/ui/tabs/VisibilityTab';
@@ -16,6 +16,9 @@ import {
 } from '../engine/validation/validateFloorplan';
 import { debugFlags } from '../engine/debug/debugFlags';
 import { RoomInfoCard } from './RoomInfoCard';
+import { HouseViewerDiagnostics } from './HouseViewerDiagnostics';
+import { HouseViewerErrorBoundary } from './HouseViewerErrorBoundary';
+import { normalizeHouseViewerModel, type RenderLevel, type RenderModel, type RenderPoint } from '../model/normalizeHouseViewerModel';
 
 
 const DebugButton = lazy(() =>
@@ -158,17 +161,6 @@ const shellSwitchKnobStyle: React.CSSProperties = {
   transition: 'transform 180ms ease',
 };
 
-const isPointList = (value: unknown): value is PointXZ[] =>
-  Array.isArray(value) &&
-  value.length >= 3 &&
-  value.every(
-    (point) =>
-      typeof point === 'object' &&
-      point !== null &&
-      typeof (point as PointXZ).x === 'number' &&
-      typeof (point as PointXZ).z === 'number'
-  );
-
 const EMPTY_ARCHITECTURAL_HOUSE: ArchitecturalHouse = {
   wallThickness: 0.3,
   levels: [],
@@ -177,168 +169,67 @@ const EMPTY_ARCHITECTURAL_HOUSE: ArchitecturalHouse = {
   roofs: [],
 };
 
-const getRenderableLevels = (levels: unknown): LevelSpec[] =>
-  (Array.isArray(levels) ? levels : []).flatMap((level, index) => {
-    if (typeof level !== 'object' || level === null) {
-      return [];
-    }
+const createFootprintMetadata = (outer: RenderPoint[]) =>
+  outer.map((_, index) => ({
+    id: `edge-${index}`,
+    edgeIndex: index,
+    type: 'exterior' as const,
+  }));
 
-    const candidate = level as Partial<LevelSpec>;
-    const outer = candidate.footprint?.outer;
-
-    if (!isPointList(outer)) {
-      return [];
-    }
-
-    const id = candidate.id ?? `level-${index}`;
-    const height = candidate.height ?? 2.8;
-
-    return [
-      {
-        ...candidate,
-        id,
-        name: candidate.name ?? id,
-        elevation: candidate.elevation ?? index * height,
-        height,
-        slab: {
-          thickness: candidate.slab?.thickness ?? 0.25,
-          inset: candidate.slab?.inset ?? 0,
-        },
-        footprint: {
-          ...candidate.footprint,
-          id: candidate.footprint?.id ?? `${id}-footprint`,
-          outer,
-          edges: candidate.footprint?.edges ?? [],
-          semanticZones: candidate.footprint?.semanticZones ?? [],
-        },
-      },
-    ];
-  });
-
-const getParcelOuter = (model: unknown): PointXZ[] | null => {
-  if (typeof model !== 'object' || model === null) {
-    return null;
-  }
-
-  const candidate = model as {
-    parcel?: { outer?: unknown };
-    site?: { parcel?: { outer?: unknown }; footprint?: { outer?: unknown } };
-  };
-
-  if (isPointList(candidate.parcel?.outer)) {
-    return candidate.parcel.outer;
-  }
-
-  if (isPointList(candidate.site?.parcel?.outer)) {
-    return candidate.site.parcel.outer;
-  }
-
-  if (isPointList(candidate.site?.footprint?.outer)) {
-    return candidate.site.footprint.outer;
-  }
-
-  return null;
-};
-
-const createSiteFromParcel = (outer: PointXZ[]): SiteSpec => ({
+const createLevelFromRenderLevel = (level: RenderLevel): LevelSpec => ({
+  id: level.id,
+  name: level.name,
+  elevation: level.elevation,
+  height: level.height,
+  slab: level.slab,
   footprint: {
-    id: 'parcel-footprint',
-    outer,
-    edges: [],
+    id: level.sourceFootprintId ?? `${level.id}-footprint`,
+    outer: level.outer,
+    edges: createFootprintMetadata(level.outer),
     semanticZones: [],
   },
-  elevation: -0.001,
-  color: '#6DAA2C',
-  surfaces: [],
-  boundaries: {
-    fences: [],
-    hedges: [],
-    gates: [],
-  },
-  objects: [],
 });
 
-const hasArchitecturalLevels = (model: unknown): model is ArchitecturalHouse =>
-  typeof model === 'object' &&
-  model !== null &&
-  Array.isArray((model as ArchitecturalHouse).levels) &&
-  typeof (model as ArchitecturalHouse).wallThickness === 'number';
+const createArchitecturalHouseFromRenderModel = (renderModel: RenderModel): ArchitecturalHouse => ({
+  ...EMPTY_ARCHITECTURAL_HOUSE,
+  levels: renderModel.levels.map(createLevelFromRenderLevel),
+});
 
-const createLevelFromDraft = (level: NonNullable<DraftHouseModel['levels']>[number], index: number): LevelSpec | null => {
-  const outer = level.footprint?.outer;
-
-  if (!isPointList(outer)) {
-    return null;
+const createSiteFromRenderModel = (renderModel: RenderModel): SiteSpec | undefined => {
+  if (!renderModel.parcel) {
+    return undefined;
   }
 
   return {
-    id: level.id,
-    name: level.name ?? level.id,
-    elevation: level.elevation ?? index * (level.height ?? 2.8),
-    height: level.height ?? 2.8,
-    slab: {
-      thickness: level.slab?.thickness ?? 0.25,
-      inset: level.slab?.inset ?? 0,
-    },
     footprint: {
-      id: `${level.id}-footprint`,
-      outer,
-      edges: [],
+      id: 'parcel-footprint',
+      outer: renderModel.parcel.outer,
+      edges: createFootprintMetadata(renderModel.parcel.outer),
       semanticZones: [],
     },
+    elevation: -0.001,
+    color: '#6DAA2C',
+    surfaces: [],
+    boundaries: {
+      fences: [],
+      hedges: [],
+      gates: [],
+    },
+    objects: [],
   };
 };
 
-const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHouse => {
-  if (hasArchitecturalLevels(model)) {
-    const renderableLevels = getRenderableLevels(model.levels);
-    const renderableLevelIds = new Set(renderableLevels.map((level) => level.id));
-
-    return {
-      ...model,
-      levels: renderableLevels,
-      roofs: model.roofs?.filter((roof) => renderableLevelIds.has(roof.baseLevelId)) ?? [],
-      openings: model.openings?.filter((opening) => renderableLevelIds.has(opening.levelId)) ?? [],
-      rooms: model.rooms?.filter((room) => renderableLevelIds.has(room.levelId)) ?? [],
-    };
-  }
-
-  if (typeof model !== 'object' || model === null) {
-    return EMPTY_ARCHITECTURAL_HOUSE;
-  }
-
-  const draft = model as DraftHouseModel;
-  const levels = (draft.levels ?? [])
-    .map((level, index) => createLevelFromDraft(level, index))
-    .filter((level): level is LevelSpec => level !== null);
-
-  return {
-    wallThickness: draft.walls?.[0]?.thickness ?? 0.3,
-    levels,
-    openings: [],
-    rooms: [],
-    roofs: [],
-  };
+type HouseViewerCanvasProps = {
+  renderModel: RenderModel;
+  mode: HouseViewerProps['mode'];
+  showHelpers: boolean;
+  className?: string;
 };
 
-const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
-  const parcelOuter = getParcelOuter(model);
-
-  if (parcelOuter) {
-    return createSiteFromParcel(parcelOuter);
-  }
-
-  if (hasArchitecturalLevels(model) && isPointList(model.site?.footprint?.outer)) {
-    return model.site;
-  }
-
-  return undefined;
-};
-
-export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
+function HouseViewerCanvas({ renderModel, mode = 'solid', showHelpers = false, className }: HouseViewerCanvasProps) {
   const debugEnabled = debugFlags.enabled;
-  const resolvedHouse = useMemo(() => toArchitecturalHouse(model), [model]);
-  const resolvedSite = useMemo(() => toSite(model), [model]);
+  const resolvedHouse = useMemo(() => createArchitecturalHouseFromRenderModel(renderModel), [renderModel]);
+  const resolvedSite = useMemo(() => createSiteFromRenderModel(renderModel), [renderModel]);
   const [house, setHouse] = useState<ArchitecturalHouse>(resolvedHouse);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [showWireframe, setShowWireframe] = useState(mode === 'wireframe');
@@ -405,7 +296,7 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
   }, [house]);
 
   const hasRenderableLevels = house.levels.length > 0;
-  const hasRenderableParcel = isPointList(resolvedSite?.footprint.outer);
+  const hasRenderableParcel = Boolean(renderModel.parcel);
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
 
   const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
@@ -669,6 +560,19 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
           </Suspense>
         </>
       )}
+    </div>
+  );
+}
+
+export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
+  const renderModel = useMemo(() => normalizeHouseViewerModel(model), [model]);
+
+  return (
+    <div className={className} style={{ width: '100%', height: '100vh', position: 'relative' }}>
+      <HouseViewerDiagnostics renderModel={renderModel} showHelpers={showHelpers} />
+      <HouseViewerErrorBoundary renderModel={renderModel}>
+        <HouseViewerCanvas renderModel={renderModel} mode={mode} showHelpers={showHelpers} />
+      </HouseViewerErrorBoundary>
     </div>
   );
 }

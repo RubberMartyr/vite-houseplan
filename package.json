@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "prepare": "npm run build",
     "preview": "vite preview",
     "test:visual": "playwright test",
     "typecheck": "tsc --noEmit",

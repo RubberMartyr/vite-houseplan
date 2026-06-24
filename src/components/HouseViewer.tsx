@@ -193,8 +193,6 @@ const createLevelFromRenderLevel = (level: RenderLevel): LevelSpec => ({
 const createArchitecturalHouseFromRenderModel = (renderModel: RenderModel): ArchitecturalHouse => ({
   ...EMPTY_ARCHITECTURAL_HOUSE,
   levels: renderModel.levels.map(createLevelFromRenderLevel),
-  rooms: renderModel.rooms,
-  openings: renderModel.openings,
 });
 
 const createSiteFromRenderModel = (renderModel: RenderModel): SiteSpec | undefined => {
@@ -568,6 +566,28 @@ function HouseViewerCanvas({ renderModel, mode = 'solid', showHelpers = false, c
 
 export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
   const renderModel = useMemo(() => normalizeHouseViewerModel(model), [model]);
+
+  const invalidLevels = (model?.levels ?? []).filter(
+    (level: any) => !Array.isArray(level?.footprint?.outer) || level.footprint.outer.length < 3
+  );
+
+  if (invalidLevels.length > 0) {
+    return (
+      <div className="houseviewer-error">
+        <h3>HouseViewer model is missing required geometry</h3>
+        <p>Every level must contain footprint.outer with at least 3 points.</p>
+        <pre>{JSON.stringify({ invalidLevels: invalidLevels.map((level: any) => level?.id) }, null, 2)}</pre>
+      </div>
+    );
+  }
+
+  const hasRenderableLevel = (model?.levels ?? []).some(
+    (level: any) => Array.isArray(level?.footprint?.outer) && level.footprint.outer.length >= 3
+  );
+
+  if (!hasRenderableLevel) {
+    return <div className="houseviewer-empty">No building footprint available yet.</div>;
+  }
 
   return (
     <div className={className} style={{ width: '100%', height: '100vh', position: 'relative' }}>

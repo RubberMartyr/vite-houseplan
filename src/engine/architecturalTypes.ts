@@ -16,6 +16,7 @@ export type {
   RoomSpec,
   RoofSpec,
   SiteSpec,
+  SiteParcelSpec,
   SiteObjectSpec,
   SiteCarportObjectSpec,
   SiteObjectType,

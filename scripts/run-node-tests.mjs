@@ -9,6 +9,7 @@ const entries = [
   'src/engine/roof/__tests__/roofGeometry.test.ts',
   'src/engine/cache/__tests__/geometryCache.test.ts',
   'src/engine/debug/__tests__/EngineDebugHUD.test.ts',
+  'src/model/__tests__/previewJson.test.ts',
 ];
 
 const outdir = join(process.cwd(), '.tmp-tests');
@@ -27,6 +28,6 @@ await build({
   logLevel: 'silent',
 });
 
-const builtFiles = entries.map((entry) => join(outdir, entry.replace(/^src\/engine\//, '').replace(/\.ts$/, '.cjs')));
+const builtFiles = entries.map((entry) => join(outdir, entry.replace(/^src\//, '').replace(/\.ts$/, '.cjs')));
 const result = spawnSync(process.execPath, ['--test', ...builtFiles], { stdio: 'inherit' });
 if (result.status !== 0) process.exit(result.status ?? 1);

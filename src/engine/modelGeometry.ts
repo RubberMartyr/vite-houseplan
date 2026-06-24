@@ -6,6 +6,7 @@ export type HouseViewerModel = Partial<Omit<ArchitecturalHouse, 'site'>> & {
     parcel?: SiteSpec['parcel'];
     surfaces?: SiteSpec['surfaces'];
     objects?: SiteSpec['objects'];
+    boundaries?: SiteSpec['boundaries'];
   };
 };
 
@@ -137,6 +138,11 @@ export function normalizeViewerModel(model: MaybeModel): ArchitecturalHouse {
         },
         surfaces: sourceSite?.surfaces ?? [],
         objects: sourceSite?.objects ?? [],
+        boundaries: {
+          fences: sourceSite?.boundaries?.fences ?? [],
+          hedges: sourceSite?.boundaries?.hedges ?? [],
+          gates: sourceSite?.boundaries?.gates ?? [],
+        },
       } as SiteSpec)
     : undefined;
 

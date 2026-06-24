@@ -8,7 +8,10 @@ type HouseViewerDiagnosticsProps = {
 export function HouseViewerDiagnostics({ renderModel, showHelpers = false }: HouseViewerDiagnosticsProps) {
   const { diagnostics } = renderModel;
   const hasIssues =
-    diagnostics.warnings.length > 0 || diagnostics.errors.length > 0 || diagnostics.skippedLevels.length > 0;
+    diagnostics.warnings.length > 0 ||
+    diagnostics.errors.length > 0 ||
+    diagnostics.info.length > 0 ||
+    diagnostics.skippedLevels.length > 0;
 
   if (!showHelpers && !hasIssues) {
     return null;
@@ -37,13 +40,35 @@ export function HouseViewerDiagnostics({ renderModel, showHelpers = false }: Hou
       <div>Parcel points: {diagnostics.inputSummary.parcelPointCount}</div>
       <div>Raw levels: {diagnostics.inputSummary.levelCount}</div>
       <div>Renderable levels: {diagnostics.inputSummary.renderableLevelCount}</div>
+      <div>Renderable rooms: {diagnostics.inputSummary.renderableRoomCount}</div>
+      <div>Renderable openings: {diagnostics.inputSummary.renderableOpeningCount}</div>
       <div>Skipped levels: {diagnostics.skippedLevels.length}</div>
+      {diagnostics.errors.length > 0 && (
+        <div style={{ marginTop: 8, color: '#fecaca' }}>
+          <strong>Errors</strong>
+          <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+            {diagnostics.errors.map((error, index) => (
+              <li key={`${error}-${index}`}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {diagnostics.warnings.length > 0 && (
         <div style={{ marginTop: 8 }}>
           <strong>Warnings</strong>
           <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
             {diagnostics.warnings.map((warning, index) => (
               <li key={`${warning}-${index}`}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {diagnostics.info.length > 0 && (
+        <div style={{ marginTop: 8, color: '#bfdbfe' }}>
+          <strong>Info</strong>
+          <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+            {diagnostics.info.map((info, index) => (
+              <li key={`${info}-${index}`}>{info}</li>
             ))}
           </ul>
         </div>

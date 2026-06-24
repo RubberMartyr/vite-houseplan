@@ -45,10 +45,10 @@ function findMainFlatRoof(roofs: DerivedRoof[]): DerivedRoof | null {
   });
 }
 
-function deriveCarportElevation(carport: CarportSpec, roofs: DerivedRoof[]): number {
+export function deriveCarportElevation(carport: CarportSpec, roofs: DerivedRoof[]): number | null {
   const mainFlatRoof = findMainFlatRoof(roofs);
   if (!mainFlatRoof) {
-    throw new Error(`Carport ${carport.id}: no flat roof available for elevation reference.`);
+    return null;
   }
 
   const mainRoofBaseElevation = mainFlatRoof.baseLevel.elevation + mainFlatRoof.baseLevel.height;
@@ -191,23 +191,32 @@ export function deriveAuxiliaryStructures(
   context: DeriveAuxiliaryStructuresContext
 ): DerivedCarport[] {
   const auxiliary = getCarportSpecs(arch, context.site ?? arch.site);
+  if (auxiliary.length === 0) return [];
+
   const groundElevation = context.site?.elevation ?? arch.site?.elevation ?? 0;
 
-  return auxiliary.map((structure) => {
+  return auxiliary.flatMap((structure) => {
     const carportElevation = deriveCarportElevation(structure, context.roofs);
+    if (carportElevation == null) {
+      const isDev = Boolean((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV);
+      if (isDev) {
+        console.warn(`Skipped carport ${structure.id}: no flat roof available for elevation reference.`);
+      }
+      return [];
+    }
     const columns = deriveCarportColumns(structure).map((position) => ({
       position,
       height: Math.max(0, carportElevation - groundElevation),
       size: structure.columns.size,
     }));
 
-    return {
+    return [{
       id: structure.id,
       roofPolygon: buildCarportRoofPolygon(structure.footprint.outer),
       elevation: carportElevation,
       thickness: structure.thickness,
       columns,
       material: structure.material,
-    };
+    }];
   });
 }

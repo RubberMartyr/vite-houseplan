@@ -5,10 +5,18 @@ export type PointXZ = {
 
 export type DraftHouseModel = {
   site?: {
+    color?: string;
+    elevation?: number;
+    footprint?: {
+      outer?: PointXZ[];
+    };
     parcel?: {
       outer?: PointXZ[];
       source?: 'official-api' | 'manual' | 'unknown' | string;
     };
+    surfaces?: unknown[];
+    objects?: unknown[];
+    boundaries?: unknown;
   };
 
   parcel?: {

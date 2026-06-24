@@ -7,9 +7,13 @@ function normalizeLevel(level: LevelSpec): LevelSpec {
   };
 }
 
-export function normalizeArchitecturalHouse(house: ArchitecturalHouse): ArchitecturalHouse {
+export function normalizeArchitecturalHouse(house: Partial<ArchitecturalHouse>): ArchitecturalHouse {
   return {
     ...house,
-    levels: house.levels.map(normalizeLevel),
-  };
+    wallThickness: house.wallThickness ?? 0.3,
+    levels: (house.levels ?? []).map(normalizeLevel),
+    rooms: house.rooms ?? [],
+    openings: house.openings ?? [],
+    roofs: house.roofs ?? [],
+  } as ArchitecturalHouse;
 }

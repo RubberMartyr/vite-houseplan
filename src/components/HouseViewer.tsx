@@ -16,7 +16,8 @@ import {
 } from '../engine/validation/validateFloorplan';
 import { debugFlags } from '../engine/debug/debugFlags';
 import { RoomInfoCard } from './RoomInfoCard';
-import { getParcelPolygon, getRenderableGeometrySummary, getValidLevelFootprints } from '../engine/modelGeometry';
+import { getRenderableGeometrySummary, getSiteFootprint, getValidLevelFootprints, isValidPolygon } from '../engine/modelGeometry';
+import { archToWorldXZ } from '../engine/spaceMapping';
 
 
 const DebugButton = lazy(() =>
@@ -46,6 +47,41 @@ function FirstFrameMarker() {
     firstFrameRef.current = true;
     markFirstFrameRendered();
   });
+
+  return null;
+}
+
+
+function AutoFrameCamera({ summary }: { summary: ReturnType<typeof getRenderableGeometrySummary> }) {
+  const { camera, controls } = useThree();
+
+  useEffect(() => {
+    const points = [
+      ...(summary.siteFootprint ?? []),
+      ...summary.levelFootprints.flatMap((entry) => entry.outer),
+    ];
+
+    if (points.length === 0) {
+      return;
+    }
+
+    const worldPoints = points.map(archToWorldXZ);
+    const minX = Math.min(...worldPoints.map((point) => point.x));
+    const maxX = Math.max(...worldPoints.map((point) => point.x));
+    const minZ = Math.min(...worldPoints.map((point) => point.z));
+    const maxZ = Math.max(...worldPoints.map((point) => point.z));
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minZ + maxZ) / 2;
+    const span = Math.max(maxX - minX, maxZ - minZ, 6);
+
+    camera.position.set(centerX, Math.max(7, span * 0.55), centerZ + span * 0.9);
+    camera.lookAt(centerX, 0, centerZ);
+    camera.updateProjectionMatrix();
+
+    const orbitControls = controls as { target?: THREE.Vector3; update?: () => void } | undefined;
+    orbitControls?.target?.set(centerX, 0, centerZ);
+    orbitControls?.update?.();
+  }, [camera, controls, summary]);
 
   return null;
 }
@@ -153,16 +189,7 @@ const shellSwitchKnobStyle: React.CSSProperties = {
   transition: 'transform 180ms ease',
 };
 
-const isPointList = (value: unknown): value is PointXZ[] =>
-  Array.isArray(value) &&
-  value.length >= 3 &&
-  value.every(
-    (point) =>
-      typeof point === 'object' &&
-      point !== null &&
-      typeof (point as PointXZ).x === 'number' &&
-      typeof (point as PointXZ).z === 'number'
-  );
+const isPointList = (value: unknown): value is PointXZ[] => isValidPolygon(value);
 
 const hasArchitecturalLevels = (model: unknown): model is ArchitecturalHouse =>
   typeof model === 'object' &&
@@ -209,18 +236,18 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
   }
 
   const draft = model as DraftHouseModel;
-  const levels = draft.levels
-    ?.map((level, index) => createLevelFromDraft(level, index))
+  const levels = (draft.levels ?? [])
+    .map((level, index) => createLevelFromDraft(level, index))
     .filter((level): level is LevelSpec => level !== null);
 
-  if (levels && levels.length > 0) {
+  if (levels.length > 0) {
     return {
       wallThickness: draft.walls?.[0]?.thickness ?? 0.3,
       levels,
       openings: [],
       rooms: [],
       roofs: [],
-      site: draft.site?.parcel ? ({ parcel: draft.site.parcel } as SiteSpec) : undefined,
+      site: draft.site ? (draft.site as SiteSpec) : undefined,
     };
   }
 
@@ -230,7 +257,7 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
     openings: [],
     rooms: [],
     roofs: [],
-    site: draft.site?.parcel ? ({ parcel: draft.site.parcel } as SiteSpec) : undefined,
+    site: draft.site ? (draft.site as SiteSpec) : undefined,
   };
 };
 
@@ -240,26 +267,26 @@ const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
   }
 
   const draft = model as DraftHouseModel;
-  const parcelOuter = getParcelPolygon(model) ?? (isPointList(draft.parcel?.outer) ? draft.parcel.outer : null);
+  const siteOuter = getSiteFootprint(model) ?? (isPointList(draft.parcel?.outer) ? draft.parcel.outer : null);
 
-  if (parcelOuter) {
+  if (siteOuter) {
     return {
       footprint: {
         id: 'parcel-footprint',
-        outer: parcelOuter,
+        outer: siteOuter,
         edges: [],
         semanticZones: [],
       },
       parcel: (draft.site?.parcel ?? draft.parcel) as SiteSpec['parcel'],
-      elevation: -0.001,
-      color: '#7dd3fc',
-      surfaces: [],
-      boundaries: {
+      elevation: draft.site?.elevation ?? -0.001,
+      color: draft.site?.color ?? '#7dd3fc',
+      surfaces: (draft.site as SiteSpec | undefined)?.surfaces ?? [],
+      boundaries: (draft.site as SiteSpec | undefined)?.boundaries ?? {
         fences: [],
         hedges: [],
         gates: [],
       },
-      objects: [],
+      objects: (draft.site as SiteSpec | undefined)?.objects ?? [],
     };
   }
 
@@ -458,7 +485,10 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
         />
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
+        <AutoFrameCamera summary={renderableGeometrySummary} />
+
         <group>
+          {renderableGeometrySummary.hasRenderableGeometry && (
           <EngineHouse
             house={viewerModel}
             site={viewerModel.site}
@@ -479,6 +509,7 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
               });
             }}
           />
+          )}
           <DebugAxes />
           {(toggles.showDebug || showHelpers) && debugEnabled && (
             <Suspense fallback={null}>
@@ -506,6 +537,13 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
         <OrbitControls makeDefault enableDamping target={[0, 1.2, 0]} />
         <FirstFrameMarker />
       </Canvas>
+
+      {!renderableGeometrySummary.hasRenderableGeometry && (
+        <div style={noticeStyle}>No renderable geometry found.</div>
+      )}
+      {renderableGeometrySummary.mode === 'site-only' && (
+        <div style={noticeStyle}>Site footprint only. No building geometry available.</div>
+      )}
 
       <div style={toolbarStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -574,11 +612,6 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
         levelName={showRoomInfoCard ? selectedRoom?.levelName ?? null : null}
       />
 
-      {!renderableGeometrySummary.hasRenderableGeometry && (
-        <div style={noticeStyle}>
-          {renderableGeometrySummary.errors[0] ?? 'No renderable geometry found.'}
-        </div>
-      )}
 
       {(toggles.showDebug || showHelpers) && debugEnabled && (
         <>

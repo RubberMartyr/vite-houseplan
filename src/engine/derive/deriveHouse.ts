@@ -10,14 +10,17 @@ import { deriveWalls } from './deriveWalls';
 import { getStructuralWallHeight } from './getStructuralWallHeight';
 import type { DerivedHouse } from './types/DerivedHouse';
 import { normalizeArchitecturalHouse } from '../normalizeArchitecturalHouse';
+import { getLevelFootprints, normalizeViewerModel, type HouseViewerModel } from '../modelGeometry';
 
 let revisionCounter = 1;
 
-export function deriveHouse(arch: ArchitecturalHouse, options?: { site?: SiteSpec }): DerivedHouse {
-  const normalizedArch = normalizeArchitecturalHouse(arch);
+export function deriveHouse(arch: ArchitecturalHouse | HouseViewerModel, options?: { site?: SiteSpec }): DerivedHouse {
+  const normalizedArch = normalizeArchitecturalHouse(normalizeViewerModel(arch));
+  const hasBuildingFootprints = getLevelFootprints(normalizedArch).length > 0;
 
   // Stage 0
-  validateStructure(
+  if (hasBuildingFootprints) {
+    validateStructure(
     normalizedArch,
     {
       getLevels: (house) => house.levels,
@@ -28,7 +31,8 @@ export function deriveHouse(arch: ArchitecturalHouse, options?: { site?: SiteSpe
       allowGroundSupport: true,
     },
     { mode: 'throw' }
-  );
+    );
+  }
 
   // Stage 1
   const slabs = deriveSlabs(normalizedArch);

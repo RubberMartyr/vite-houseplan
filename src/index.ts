@@ -7,6 +7,3 @@ export type {
   DraftHouseLevel,
   DraftWall
 } from "./types";
-
-export { normalizeHouseViewerModel } from "./model/normalizeHouseViewerModel";
-export type { RenderModel, RenderLevel, RenderParcel, RenderPoint } from "./model/normalizeHouseViewerModel";

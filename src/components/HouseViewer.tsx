@@ -4,7 +4,7 @@ import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
-import { architecturalHouse, propertyDefinition } from '../engine/architecturalHouse';
+import { architecturalHouse, architecturalProperty } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../engine/architecturalTypes';
 import type { DraftHouseModel, HouseViewerProps, PointXZ } from '../types';
 import { markFirstFrameRendered } from '../loadingManager';
@@ -236,7 +236,7 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
 
 const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
   if (typeof model !== 'object' || model === null) {
-    return propertyDefinition.site;
+    return architecturalProperty.site;
   }
 
   const draft = model as DraftHouseModel;
@@ -338,11 +338,18 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
 
     return arch;
   }, [house]);
-
-  const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
-  const renderableGeometrySummary = useMemo(
-    () => getRenderableGeometrySummary({ ...houseWithInjectedInteriorWall, site: resolvedSite ?? houseWithInjectedInteriorWall.site }),
+  const viewerModel = useMemo<ArchitecturalHouse>(
+    () => ({
+      ...houseWithInjectedInteriorWall,
+      site: resolvedSite ?? houseWithInjectedInteriorWall.site,
+    }),
     [houseWithInjectedInteriorWall, resolvedSite]
+  );
+
+  const initialJson = useMemo(() => JSON.stringify(viewerModel, null, 2), [viewerModel]);
+  const renderableGeometrySummary = useMemo(
+    () => getRenderableGeometrySummary(viewerModel),
+    [viewerModel]
   );
 
   const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
@@ -453,8 +460,8 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
 
         <group>
           <EngineHouse
-            house={houseWithInjectedInteriorWall}
-            site={resolvedSite}
+            house={viewerModel}
+            site={viewerModel.site}
             showWalls={showWalls}
             showRoof={showRoof}
             showSlabs={showSlabs}

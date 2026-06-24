@@ -730,4 +730,9 @@ export const propertyDefinition: PropertyDefinition = {
   },
 };
 
+export const architecturalProperty: ArchitecturalHouse = {
+  ...propertyDefinition.house,
+  site: propertyDefinition.site,
+};
+
 export const architecturalHouse: ArchitecturalHouse = propertyDefinition.house;

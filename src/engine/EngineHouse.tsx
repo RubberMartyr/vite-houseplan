@@ -12,6 +12,7 @@ import { EngineWalls } from './render/EngineWalls';
 import { EngineRooms } from './render/EngineRooms';
 import { getWallVisibleBaseY, getWallVisibleTopY, type DerivedWallSegment } from './deriveWalls';
 import { getLowestLevel } from './utils/levelUtils';
+import { getFootprintOuter } from './utils/getFootprintOuter';
 
 
 const EngineDebugLayer = lazy(() =>
@@ -65,7 +66,22 @@ export function EngineHouse({
   const resolvedSite = site ?? house.site;
   const siteElevation = resolvedSite?.elevation ?? 0;
   const levelFootprintsById = useMemo(
-    () => Object.fromEntries(house.levels.map((level) => [level.id, level.footprint.outer])),
+    () =>
+      Object.fromEntries(
+        house.levels
+          .map((level) => {
+            const points = getFootprintOuter(level);
+            if (points.length < 3) {
+              console.warn('[HouseViewer] Skipping footprint geometry: missing footprint.outer', {
+                levelId: level?.id,
+                level,
+              });
+              return null;
+            }
+            return [level.id, points] as const;
+          })
+          .filter((entry): entry is readonly [string, ReturnType<typeof getFootprintOuter>] => entry !== null)
+      ),
     [house]
   );
   const basementLevelIds = useMemo(() => {

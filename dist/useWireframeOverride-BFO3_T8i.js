@@ -1,5 +1,5 @@
 import { useRef as n, useEffect as u } from "react";
-import { u as o, M as s } from "./index-9DageTfe.js";
+import { u as o, M as s } from "./index-BfNhbY69.js";
 function f({ enabled: t }) {
   const { scene: r } = o(), e = n(null);
   return u(() => {

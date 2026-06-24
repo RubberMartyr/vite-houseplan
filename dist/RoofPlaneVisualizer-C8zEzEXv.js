@@ -1,6 +1,6 @@
 import { jsx as g } from "react/jsx-runtime";
 import { useRef as y, useMemo as m, useEffect as M } from "react";
-import { l as h, M as w, D as P, i as b, B, F as E } from "./index-9DageTfe.js";
+import { m as h, M as w, D as P, j as b, B, F as E } from "./index-BfNhbY69.js";
 function R() {
   const s = /* @__PURE__ */ new Map();
   return {
@@ -43,7 +43,7 @@ function C(s) {
 function D() {
   return b.enabled && b.showRoofPlanes;
 }
-function A({ roofs: s, roofRevision: e }) {
+function x({ roofs: s, roofRevision: e }) {
   const r = y(R()), t = D(), n = m(() => t ? s.flatMap((o, i) => o.faces ? o.faces.flatMap((f, v) => {
     const c = [];
     for (const l of f.triangles ?? [])
@@ -71,6 +71,6 @@ function A({ roofs: s, roofRevision: e }) {
   }, [a]), t ? /* @__PURE__ */ g("group", { children: n.map(({ key: o, geometry: i }) => /* @__PURE__ */ g("mesh", { geometry: i, material: a }, o)) }) : null;
 }
 export {
-  A as RoofPlaneVisualizer,
+  x as RoofPlaneVisualizer,
   D as shouldShowRoofPlanes
 };

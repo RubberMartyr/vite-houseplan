@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ArchitecturalHouse, LevelSpec, RoofSpec } from '../../../architecturalTypes';
 import { deriveHouse } from '../../../derive/deriveHouse';
 import { getStructuralWallHeight } from '../../../derive/getStructuralWallHeight';
@@ -109,7 +109,6 @@ export function JsonEditorTab({ initialJson, onApplyArchitecturalHouse }: Props)
     });
   }, [initialJson]);
 
-  const canApply = useMemo(() => validation.success && validation.parsedHouse !== null, [validation]);
   const copyAsTypeScript = async () => {
     try {
       const parsed = JSON.parse(draft) as ArchitecturalHouse;
@@ -179,18 +178,23 @@ export function JsonEditorTab({ initialJson, onApplyArchitecturalHouse }: Props)
         </button>
         <button
           type="button"
-          disabled={!canApply}
           onClick={() => {
-            if (!validation.parsedHouse) {
-              return;
+            try {
+              const parsed = JSON.parse(draft) as ArchitecturalHouse;
+              onApplyArchitecturalHouse(parsed);
+              setValidation({
+                success: true,
+                parsedHouse: parsed,
+                entries: [{ level: 'info', message: 'ArchitecturalHouse applied to scene.' }],
+              });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Unable to parse JSON.';
+              setValidation({
+                success: false,
+                parsedHouse: null,
+                entries: [{ level: 'error', message: `Cannot apply because JSON is invalid: ${message}` }],
+              });
             }
-
-            onApplyArchitecturalHouse(validation.parsedHouse);
-            setValidation({
-              success: true,
-              parsedHouse: validation.parsedHouse,
-              entries: [{ level: 'info', message: 'ArchitecturalHouse applied to scene.' }],
-            });
           }}
         >
           Apply

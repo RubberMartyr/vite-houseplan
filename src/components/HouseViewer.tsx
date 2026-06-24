@@ -4,7 +4,6 @@ import { useThree } from '@react-three/fiber';
 import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
-import { architecturalHouse, architecturalProperty } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../engine/architecturalTypes';
 import type { DraftHouseModel, HouseViewerProps, PointXZ } from '../types';
 import { markFirstFrameRendered } from '../loadingManager';
@@ -189,6 +188,14 @@ const shellSwitchKnobStyle: React.CSSProperties = {
   transition: 'transform 180ms ease',
 };
 
+const EMPTY_ARCHITECTURAL_HOUSE: ArchitecturalHouse = {
+  wallThickness: 0.3,
+  levels: [],
+  openings: [],
+  rooms: [],
+  roofs: [],
+};
+
 const isPointList = (value: unknown): value is PointXZ[] => isValidPolygon(value);
 
 const hasArchitecturalLevels = (model: unknown): model is ArchitecturalHouse =>
@@ -232,7 +239,7 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
   }
 
   if (typeof model !== 'object' || model === null) {
-    return architecturalHouse;
+    return EMPTY_ARCHITECTURAL_HOUSE;
   }
 
   const draft = model as DraftHouseModel;
@@ -263,7 +270,7 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
 
 const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
   if (typeof model !== 'object' || model === null) {
-    return architecturalProperty.site;
+    return undefined;
   }
 
   const draft = model as DraftHouseModel;
@@ -281,10 +288,10 @@ const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
       elevation: draft.site?.elevation ?? -0.001,
       color: draft.site?.color ?? '#7dd3fc',
       surfaces: (draft.site as SiteSpec | undefined)?.surfaces ?? [],
-      boundaries: (draft.site as SiteSpec | undefined)?.boundaries ?? {
-        fences: [],
-        hedges: [],
-        gates: [],
+      boundaries: {
+        fences: (draft.site as SiteSpec | undefined)?.boundaries?.fences ?? [],
+        hedges: (draft.site as SiteSpec | undefined)?.boundaries?.hedges ?? [],
+        gates: (draft.site as SiteSpec | undefined)?.boundaries?.gates ?? [],
       },
       objects: (draft.site as SiteSpec | undefined)?.objects ?? [],
     };

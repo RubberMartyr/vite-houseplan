@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { architecturalHouse } from '../architecturalHouse';
+import { architecturalHouse, architecturalProperty } from '../architecturalHouse';
 import { deriveHouse } from '../derive/deriveHouse';
 import { deriveAuxiliaryStructures } from '../derive/deriveAuxiliaryStructures';
 import {
@@ -9,6 +9,7 @@ import {
   getSiteFootprint,
   isFinitePointXZ,
   isValidPolygon,
+  normalizeViewerModel,
 } from '../modelGeometry';
 
 const parcel = [
@@ -52,6 +53,30 @@ test('site-footprint-only model is renderable without building levels', () => {
   assert.equal(summary.mode, 'site-only');
   assert.equal(summary.errors.length, 0);
   assert.equal(getLevelFootprints(model).length, 0);
+});
+
+test('site-footprint-only normalized model keeps site extras explicitly empty', () => {
+  const model = { site: { footprint: { outer: parcel } }, levels: [], rooms: [], openings: [] };
+  const normalized = normalizeViewerModel(model);
+  const derived = deriveHouse(normalized, { site: normalized.site });
+
+  assert.deepEqual(normalized.site?.footprint.outer, parcel);
+  assert.equal(normalized.site?.surfaces?.length, 0);
+  assert.equal(normalized.site?.objects?.length, 0);
+  assert.equal(normalized.site?.boundaries?.fences.length, 0);
+  assert.equal(normalized.site?.boundaries?.hedges.length, 0);
+  assert.equal(normalized.site?.boundaries?.gates.length, 0);
+  assert.equal(derived.carports.length, 0);
+});
+
+test('full demo property exposes site extras only from explicit model data', () => {
+  const normalized = normalizeViewerModel(architecturalProperty);
+  const derived = deriveHouse(normalized, { site: normalized.site });
+
+  assert.equal((normalized.site?.surfaces?.length ?? 0) > 0, true);
+  assert.equal((normalized.site?.objects?.length ?? 0) > 0, true);
+  assert.equal(normalized.site?.objects?.some((object) => object.type === 'carport'), true);
+  assert.equal(derived.carports.length > 0, true);
 });
 
 test('site-parcel-only model is renderable without building levels', () => {

@@ -306,9 +306,10 @@ const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
 
 export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
   const debugEnabled = debugFlags.enabled;
-  const resolvedHouse = useMemo(() => toArchitecturalHouse(model), [model]);
-  const resolvedSite = useMemo(() => toSite(model), [model]);
-  const [house, setHouse] = useState<ArchitecturalHouse>(resolvedHouse);
+  const [currentModel, setCurrentModel] = useState<HouseViewerProps['model']>(model);
+  const resolvedHouse = useMemo(() => toArchitecturalHouse(currentModel), [currentModel]);
+  const resolvedSite = useMemo(() => toSite(currentModel), [currentModel]);
+  const house = resolvedHouse;
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [showWireframe, setShowWireframe] = useState(mode === 'wireframe');
   const [showEdges, setShowEdges] = useState(false);
@@ -334,8 +335,15 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
   const [selectedRoom, setSelectedRoom] = useState<SelectedRoomState | null>(null);
 
   useEffect(() => {
-    setHouse(resolvedHouse);
-  }, [resolvedHouse]);
+    setCurrentModel(model);
+  }, [model]);
+
+  useEffect(() => {
+    console.log('HouseViewer received model', currentModel);
+    console.log('site surfaces count', resolvedSite?.surfaces?.length ?? 0);
+    console.log('site objects count', resolvedSite?.objects?.length ?? 0);
+    console.log('site fences count', resolvedSite?.boundaries?.fences?.length ?? 0);
+  }, [currentModel, resolvedSite]);
 
   useEffect(() => {
     return () => {
@@ -634,7 +642,7 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
             showOpeningEdges={showOpeningEdges}
             onShowOpeningEdgesChange={setShowOpeningEdges}
             initialJson={initialJson}
-            onApplyArchitecturalHouse={setHouse}
+            onApplyArchitecturalHouse={setCurrentModel}
             onRunFloorplanValidation={runFloorplanValidation}
             showFloorplanOverlay={showFloorplanOverlay}
             onShowFloorplanOverlayChange={setShowFloorplanOverlay}

@@ -1,10 +1,10 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
-import { Html, OrbitControls, Sky } from '@react-three/drei';
+import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { EngineHouse } from '../engine/EngineHouse';
-
+import { architecturalHouse, propertyDefinition } from '../engine/architecturalHouse';
 import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../engine/architecturalTypes';
 import type { DraftHouseModel, HouseViewerProps, PointXZ } from '../types';
 import { markFirstFrameRendered } from '../loadingManager';
@@ -47,29 +47,6 @@ function FirstFrameMarker() {
   });
 
   return null;
-}
-
-
-function EmptyModelHelper() {
-  return (
-    <Html center position={[0, 1.1, 0]}>
-      <div
-        style={{
-          minWidth: 220,
-          padding: '14px 18px',
-          borderRadius: 14,
-          color: '#475569',
-          background: 'rgba(255, 255, 255, 0.86)',
-          border: '1px solid rgba(148, 163, 184, 0.42)',
-          boxShadow: '0 14px 34px rgba(15, 23, 42, 0.12)',
-          textAlign: 'center',
-          fontWeight: 700,
-        }}
-      >
-        Add a parcel or a level footprint to preview the house.
-      </div>
-    </Html>
-  );
 }
 
 function DebugAxes() {
@@ -169,95 +146,6 @@ const isPointList = (value: unknown): value is PointXZ[] =>
       typeof (point as PointXZ).z === 'number'
   );
 
-const EMPTY_ARCHITECTURAL_HOUSE: ArchitecturalHouse = {
-  wallThickness: 0.3,
-  levels: [],
-  openings: [],
-  rooms: [],
-  roofs: [],
-};
-
-const getRenderableLevels = (levels: unknown): LevelSpec[] =>
-  (Array.isArray(levels) ? levels : []).flatMap((level, index) => {
-    if (typeof level !== 'object' || level === null) {
-      return [];
-    }
-
-    const candidate = level as Partial<LevelSpec>;
-    const outer = candidate.footprint?.outer;
-
-    if (!isPointList(outer)) {
-      return [];
-    }
-
-    const id = candidate.id ?? `level-${index}`;
-    const height = candidate.height ?? 2.8;
-
-    return [
-      {
-        ...candidate,
-        id,
-        name: candidate.name ?? id,
-        elevation: candidate.elevation ?? index * height,
-        height,
-        slab: {
-          thickness: candidate.slab?.thickness ?? 0.25,
-          inset: candidate.slab?.inset ?? 0,
-        },
-        footprint: {
-          ...candidate.footprint,
-          id: candidate.footprint?.id ?? `${id}-footprint`,
-          outer,
-          edges: candidate.footprint?.edges ?? [],
-          semanticZones: candidate.footprint?.semanticZones ?? [],
-        },
-      },
-    ];
-  });
-
-const getParcelOuter = (model: unknown): PointXZ[] | null => {
-  if (typeof model !== 'object' || model === null) {
-    return null;
-  }
-
-  const candidate = model as {
-    parcel?: { outer?: unknown };
-    site?: { parcel?: { outer?: unknown }; footprint?: { outer?: unknown } };
-  };
-
-  if (isPointList(candidate.parcel?.outer)) {
-    return candidate.parcel.outer;
-  }
-
-  if (isPointList(candidate.site?.parcel?.outer)) {
-    return candidate.site.parcel.outer;
-  }
-
-  if (isPointList(candidate.site?.footprint?.outer)) {
-    return candidate.site.footprint.outer;
-  }
-
-  return null;
-};
-
-const createSiteFromParcel = (outer: PointXZ[]): SiteSpec => ({
-  footprint: {
-    id: 'parcel-footprint',
-    outer,
-    edges: [],
-    semanticZones: [],
-  },
-  elevation: -0.001,
-  color: '#6DAA2C',
-  surfaces: [],
-  boundaries: {
-    fences: [],
-    hedges: [],
-    gates: [],
-  },
-  objects: [],
-});
-
 const hasArchitecturalLevels = (model: unknown): model is ArchitecturalHouse =>
   typeof model === 'object' &&
   model !== null &&
@@ -289,50 +177,89 @@ const createLevelFromDraft = (level: NonNullable<DraftHouseModel['levels']>[numb
   };
 };
 
+const createLevelFromParcel = (outer: PointXZ[]): LevelSpec => ({
+  id: 'parcel-base',
+  name: 'Parcel Base',
+  elevation: 0,
+  height: 0.01,
+  slab: { thickness: 0.02, inset: 0 },
+  footprint: {
+    id: 'parcel-base-footprint',
+    outer,
+    edges: [],
+    semanticZones: [],
+  },
+});
+
 const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHouse => {
   if (hasArchitecturalLevels(model)) {
-    const renderableLevels = getRenderableLevels(model.levels);
-    const renderableLevelIds = new Set(renderableLevels.map((level) => level.id));
-
-    return {
-      ...model,
-      levels: renderableLevels,
-      roofs: model.roofs?.filter((roof) => renderableLevelIds.has(roof.baseLevelId)) ?? [],
-      openings: model.openings?.filter((opening) => renderableLevelIds.has(opening.levelId)) ?? [],
-      rooms: model.rooms?.filter((room) => renderableLevelIds.has(room.levelId)) ?? [],
-    };
+    return model;
   }
 
   if (typeof model !== 'object' || model === null) {
-    return EMPTY_ARCHITECTURAL_HOUSE;
+    return architecturalHouse;
   }
 
   const draft = model as DraftHouseModel;
-  const levels = (draft.levels ?? [])
-    .map((level, index) => createLevelFromDraft(level, index))
+  const levels = draft.levels
+    ?.map((level, index) => createLevelFromDraft(level, index))
     .filter((level): level is LevelSpec => level !== null);
 
-  return {
-    wallThickness: draft.walls?.[0]?.thickness ?? 0.3,
-    levels,
-    openings: [],
-    rooms: [],
-    roofs: [],
-  };
+  if (levels && levels.length > 0) {
+    return {
+      wallThickness: draft.walls?.[0]?.thickness ?? 0.3,
+      levels,
+      openings: [],
+      rooms: [],
+      roofs: [],
+    };
+  }
+
+  if (isPointList(draft.parcel?.outer)) {
+    return {
+      wallThickness: 0.3,
+      levels: [createLevelFromParcel(draft.parcel.outer)],
+      openings: [],
+      rooms: [],
+      roofs: [],
+    };
+  }
+
+  return architecturalHouse;
 };
 
 const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
-  const parcelOuter = getParcelOuter(model);
-
-  if (parcelOuter) {
-    return createSiteFromParcel(parcelOuter);
+  if (hasArchitecturalLevels(model)) {
+    return model.site ?? propertyDefinition.site;
   }
 
-  if (hasArchitecturalLevels(model) && isPointList(model.site?.footprint?.outer)) {
-    return model.site;
+  if (typeof model !== 'object' || model === null) {
+    return propertyDefinition.site;
   }
 
-  return undefined;
+  const draft = model as DraftHouseModel;
+
+  if (isPointList(draft.parcel?.outer)) {
+    return {
+      footprint: {
+        id: 'parcel-footprint',
+        outer: draft.parcel.outer,
+        edges: [],
+        semanticZones: [],
+      },
+      elevation: -0.001,
+      color: '#6DAA2C',
+      surfaces: [],
+      boundaries: {
+        fences: [],
+        hedges: [],
+        gates: [],
+      },
+      objects: [],
+    };
+  }
+
+  return propertyDefinition.site;
 };
 
 export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
@@ -404,8 +331,6 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
     return arch;
   }, [house]);
 
-  const hasRenderableLevels = house.levels.length > 0;
-  const hasRenderableParcel = isPointList(resolvedSite?.footprint.outer);
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
 
   const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
@@ -535,7 +460,6 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
               });
             }}
           />
-          {!hasRenderableLevels && !hasRenderableParcel && <EmptyModelHelper />}
           <DebugAxes />
           {(toggles.showDebug || showHelpers) && debugEnabled && (
             <Suspense fallback={null}>

@@ -4,6 +4,13 @@ export type PointXZ = {
 };
 
 export type DraftHouseModel = {
+  site?: {
+    parcel?: {
+      outer?: PointXZ[];
+      source?: 'official-api' | 'manual' | 'unknown' | string;
+    };
+  };
+
   parcel?: {
     outer: PointXZ[];
     source?: 'official-api' | 'manual' | 'unknown';

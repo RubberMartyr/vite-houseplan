@@ -8,6 +8,7 @@ const entries = [
   'src/engine/walls/__tests__/wallGeometry.test.ts',
   'src/engine/roof/__tests__/roofGeometry.test.ts',
   'src/engine/cache/__tests__/geometryCache.test.ts',
+  'src/engine/__tests__/modelGeometry.test.ts',
   'src/engine/debug/__tests__/EngineDebugHUD.test.ts',
 ];
 

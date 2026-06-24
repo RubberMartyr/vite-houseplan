@@ -79,8 +79,14 @@ export interface SiteSurfaceSpec {
   };
 }
 
+export interface SiteParcelSpec {
+  source?: 'official-api' | 'manual' | 'unknown' | string;
+  outer?: XZ[];
+}
+
 export interface SiteSpec {
   footprint: Footprint;
+  parcel?: SiteParcelSpec;
   elevation?: number;
   color?: string;
   surfaces?: SiteSurfaceSpec[];

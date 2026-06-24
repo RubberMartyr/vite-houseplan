@@ -16,6 +16,7 @@ import {
 } from '../engine/validation/validateFloorplan';
 import { debugFlags } from '../engine/debug/debugFlags';
 import { RoomInfoCard } from './RoomInfoCard';
+import { getParcelPolygon, getRenderableGeometrySummary, getValidLevelFootprints } from '../engine/modelGeometry';
 
 
 const DebugButton = lazy(() =>
@@ -101,6 +102,23 @@ const toolbarStyle: React.CSSProperties = {
   backdropFilter: 'blur(10px)',
 };
 
+const noticeStyle: React.CSSProperties = {
+  position: 'absolute',
+  right: 16,
+  bottom: 16,
+  zIndex: 10,
+  maxWidth: 360,
+  padding: '12px 14px',
+  borderRadius: 14,
+  border: '1px solid rgba(96, 165, 250, 0.38)',
+  background: 'rgba(15, 23, 42, 0.78)',
+  color: '#e0f2fe',
+  fontSize: 13,
+  fontWeight: 700,
+  boxShadow: '0 14px 28px rgba(15, 23, 42, 0.25)',
+  backdropFilter: 'blur(10px)',
+};
+
 const baseToggleStyle: React.CSSProperties = {
   border: '1px solid rgba(146, 165, 196, 0.4)',
   borderRadius: 999,
@@ -177,23 +195,13 @@ const createLevelFromDraft = (level: NonNullable<DraftHouseModel['levels']>[numb
   };
 };
 
-const createLevelFromParcel = (outer: PointXZ[]): LevelSpec => ({
-  id: 'parcel-base',
-  name: 'Parcel Base',
-  elevation: 0,
-  height: 0.01,
-  slab: { thickness: 0.02, inset: 0 },
-  footprint: {
-    id: 'parcel-base-footprint',
-    outer,
-    edges: [],
-    semanticZones: [],
-  },
-});
-
 const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHouse => {
   if (hasArchitecturalLevels(model)) {
-    return model;
+    const validLevelIds = new Set(getValidLevelFootprints(model).map(({ level }) => level.id));
+    return {
+      ...model,
+      levels: model.levels.filter((level) => validLevelIds.has(level.id)),
+    };
   }
 
   if (typeof model !== 'object' || model === null) {
@@ -212,43 +220,39 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
       openings: [],
       rooms: [],
       roofs: [],
+      site: draft.site?.parcel ? ({ parcel: draft.site.parcel } as SiteSpec) : undefined,
     };
   }
 
-  if (isPointList(draft.parcel?.outer)) {
-    return {
-      wallThickness: 0.3,
-      levels: [createLevelFromParcel(draft.parcel.outer)],
-      openings: [],
-      rooms: [],
-      roofs: [],
-    };
-  }
-
-  return architecturalHouse;
+  return {
+    wallThickness: 0.3,
+    levels: [],
+    openings: [],
+    rooms: [],
+    roofs: [],
+    site: draft.site?.parcel ? ({ parcel: draft.site.parcel } as SiteSpec) : undefined,
+  };
 };
 
 const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
-  if (hasArchitecturalLevels(model)) {
-    return model.site ?? propertyDefinition.site;
-  }
-
   if (typeof model !== 'object' || model === null) {
     return propertyDefinition.site;
   }
 
   const draft = model as DraftHouseModel;
+  const parcelOuter = getParcelPolygon(model) ?? (isPointList(draft.parcel?.outer) ? draft.parcel.outer : null);
 
-  if (isPointList(draft.parcel?.outer)) {
+  if (parcelOuter) {
     return {
       footprint: {
         id: 'parcel-footprint',
-        outer: draft.parcel.outer,
+        outer: parcelOuter,
         edges: [],
         semanticZones: [],
       },
+      parcel: (draft.site?.parcel ?? draft.parcel) as SiteSpec['parcel'],
       elevation: -0.001,
-      color: '#6DAA2C',
+      color: '#7dd3fc',
       surfaces: [],
       boundaries: {
         fences: [],
@@ -259,7 +263,11 @@ const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
     };
   }
 
-  return propertyDefinition.site;
+  if (hasArchitecturalLevels(model) && model.site?.footprint) {
+    return model.site;
+  }
+
+  return undefined;
 };
 
 export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
@@ -332,6 +340,10 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
   }, [house]);
 
   const initialJson = useMemo(() => JSON.stringify(house, null, 2), [house]);
+  const renderableGeometrySummary = useMemo(
+    () => getRenderableGeometrySummary({ ...houseWithInjectedInteriorWall, site: resolvedSite ?? houseWithInjectedInteriorWall.site }),
+    [houseWithInjectedInteriorWall, resolvedSite]
+  );
 
   const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
     const issueCodes = result.issues.reduce<Record<string, number>>((acc, issue) => {
@@ -554,6 +566,12 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
         roomName={showRoomInfoCard ? selectedRoom?.name ?? null : null}
         levelName={showRoomInfoCard ? selectedRoom?.levelName ?? null : null}
       />
+
+      {!renderableGeometrySummary.hasRenderableGeometry && (
+        <div style={noticeStyle}>
+          {renderableGeometrySummary.errors[0] ?? 'No renderable geometry found.'}
+        </div>
+      )}
 
       {(toggles.showDebug || showHelpers) && debugEnabled && (
         <>

@@ -29509,9 +29509,9 @@ Incoming: %s`, Be, "[" + o.join(", ") + "]", "[" + a.join(", ") + "]");
       }
       return [B, R];
     }
-    function o9(a, o, p) {
+    function a9(a, o, p) {
     }
-    function l9(a, o, p) {
+    function o9(a, o, p) {
     }
     function b_(a, o, p) {
       var y = Vn, S = tl(), R, N = Ur();
@@ -39663,7 +39663,7 @@ function WL(i = !1) {
 function Ka({ forceVisible: i = !1 }) {
   return WL(i) ? /* @__PURE__ */ Ye(o5, { scale: 1.001, threshold: 15, color: "black" }) : null;
 }
-const m9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const p9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   DebugWireframe: Ka,
   shouldShowDebugWireframe: WL
@@ -41690,7 +41690,7 @@ function uW(i) {
 function cW(i) {
   Ou() && (bn.walls = i);
 }
-function g9(i) {
+function m9(i) {
   Ou() && (bn.runtime = {
     ...bn.runtime,
     ...i
@@ -41705,7 +41705,7 @@ function fW(i) {
   );
   return t.length !== 1 ? t.length > 1 ? "unknown" : bn.runtime.lastChangedSubsystem : t[0];
 }
-function v9(i) {
+function g9(i) {
   const e = {
     slabs: i.revisions.slabs,
     walls: i.revisions.walls,
@@ -43864,17 +43864,8 @@ const c8 = new xt("#5bbcff"), f8 = new xt("#7fccff"), d8 = new xt("#9ad9ff"), h8
       ) })
     ] }, f.id);
   }) });
-});
-function p8(i) {
-  var t;
-  const e = (t = i == null ? void 0 : i.footprint) == null ? void 0 : t.outer;
-  return Array.isArray(e) ? e.map((n) => ({
-    x: Number(n.x),
-    z: Number(n.z ?? n.y)
-  })).filter((n) => Number.isFinite(n.x) && Number.isFinite(n.z)) : [];
-}
-const m8 = Mh(
-  () => import("./EngineDebugLayer-BxiKqSWl.js").then((i) => ({
+}), p8 = Mh(
+  () => import("./EngineDebugLayer-CXZ4M9lj.js").then((i) => ({
     default: i.EngineDebugLayer
   }))
 ), BC = {
@@ -43883,7 +43874,7 @@ const m8 = Mh(
   interiorColor: "#c8c8c8",
   edgeColor: "#c8c8c8"
 };
-function g8({
+function m8({
   house: i,
   site: e,
   showWalls: t = !0,
@@ -43905,15 +43896,7 @@ function g8({
     },
     [i, e]
   ), x = e ?? i.site, M = (x == null ? void 0 : x.elevation) ?? 0, w = pn(
-    () => Object.fromEntries(
-      i.levels.map((q) => {
-        const ie = p8(q);
-        return ie.length < 3 ? (console.warn("[HouseViewer] Skipping footprint geometry: missing footprint.outer", {
-          levelId: q == null ? void 0 : q.id,
-          level: q
-        }), null) : [q.id, ie];
-      }).filter((q) => q !== null)
-    ),
+    () => Object.fromEntries(i.levels.map((q) => [q.id, q.footprint.outer])),
     [i]
   ), E = pn(() => {
     var ie;
@@ -44054,7 +44037,7 @@ function g8({
         visible: t
       }
     ),
-    u && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(m8, { derived: v }) })
+    u && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(p8, { derived: v }) })
   ] });
 }
 new URLSearchParams(window.location.search).get("screenshot");
@@ -44078,7 +44061,7 @@ _x.onLoad = () => {
   nD = !0, iD("onLoad+first-frame");
 };
 setTimeout(() => s1("timeout-fallback"), 12e3);
-function v8() {
+function g8() {
   rE || (rE = !0, iD("first-frame"));
 }
 const m0 = i1 ?? nW, As = {
@@ -44088,15 +44071,15 @@ const m0 = i1 ?? nW, As = {
   majorGapArea: 1,
   tJunctionSnapDistance: 0.1,
   cornerTouchDistance: 0.05
-}, Qn = As.coordinateEpsilon, fh = 1e-5, HC = 0.45, kC = 0.2, VC = As.tinyGapArea, GC = As.majorGapArea, WC = 1, XC = 0.5, YC = 0.8, qC = As.edgeOverlapMin, rD = 0.05, y8 = 0.5, x8 = 0.25, sD = 0.01;
-function _8(i) {
+}, Qn = As.coordinateEpsilon, fh = 1e-5, HC = 0.45, kC = 0.2, VC = As.tinyGapArea, GC = As.majorGapArea, WC = 1, XC = 0.5, YC = 0.8, qC = As.edgeOverlapMin, rD = 0.05, v8 = 0.5, y8 = 0.25, sD = 0.01;
+function x8(i) {
   if (i.length === 0)
     return [];
   const e = i.map((l) => [l.x, l.z]), [t, n] = e[0], [r, s] = e[e.length - 1];
   return (Math.abs(t - r) > Qn || Math.abs(n - s) > Qn) && e.push([t, n]), e;
 }
 function dh(i) {
-  return [_8(i)];
+  return [x8(i)];
 }
 function aD(i) {
   let e = 0;
@@ -44127,7 +44110,7 @@ function tf(i, e, t, n) {
 function H0(i, e, t, n) {
   return i * t + e * n;
 }
-function S8(i) {
+function _8(i) {
   return `${i.x.toFixed(6)},${i.z.toFixed(6)}`;
 }
 function ss(i) {
@@ -44146,7 +44129,7 @@ function oD(i, e, t = Qn) {
   const h = n * n + r * r;
   return f <= h + t;
 }
-function M8(i, e) {
+function S8(i, e) {
   let t = !1;
   for (let n = 0, r = e.length - 1; n < e.length; r = n, n += 1) {
     const s = e[n], l = e[r];
@@ -44160,11 +44143,11 @@ function t0(i, e, t) {
   const n = tf(e.x - i.x, e.z - i.z, t.x - e.x, t.z - e.z);
   return Math.abs(n) <= Qn ? 0 : n > 0 ? 1 : -1;
 }
-function b8(i, e) {
+function M8(i, e) {
   const t = t0(i.a, i.b, e.a), n = t0(i.a, i.b, e.b), r = t0(e.a, e.b, i.a), s = t0(e.a, e.b, i.b);
   return t !== n && r !== s;
 }
-function E8(i, e, t, n, r = Qn) {
+function b8(i, e, t, n, r = Qn) {
   const s = e.x - i.x, l = e.z - i.z, u = Math.hypot(s, l);
   if (u <= r)
     return 0;
@@ -44175,9 +44158,9 @@ function E8(i, e, t, n, r = Qn) {
   return Math.max(0, Math.min(x, b) - Math.max(v, E));
 }
 function Sl(i, e, t = Qn) {
-  return E8(i.a, i.b, e.a, e.b, t);
+  return b8(i.a, i.b, e.a, e.b, t);
 }
-function w8(i, e, t = Qn) {
+function E8(i, e, t = Qn) {
   const n = Sl(i, e, t), r = Math.min(ss(i), ss(e));
   return r <= t ? 0 : n / r;
 }
@@ -44190,7 +44173,7 @@ function Xm(i, e, t = Qn) {
 function lD(i, e, t = As.cornerTouchDistance) {
   return (Math.hypot(i.a.x - e.a.x, i.a.z - e.a.z) <= t || Math.hypot(i.a.x - e.b.x, i.a.z - e.b.z) <= t || Math.hypot(i.b.x - e.a.x, i.b.z - e.a.z) <= t || Math.hypot(i.b.x - e.b.x, i.b.z - e.b.z) <= t) && Sl(i, e) <= Qn;
 }
-function T8(i, e, t = Qn) {
+function w8(i, e, t = Qn) {
   return Xm(i, e, t) ? Sl(i, e, t) > t : !1;
 }
 function hh(i, e, t = Qn) {
@@ -44206,20 +44189,20 @@ function ZC(i, e, t = sD) {
   return n >= r - t;
 }
 function JC(i, e, t = Qn) {
-  const n = T8(i, e, t) ? Sl(i, e, t) : 0;
+  const n = w8(i, e, t) ? Sl(i, e, t) : 0;
   if (n > t) {
     const s = Math.min(ss(i), ss(e));
     return n >= s - t ? "exact_shared" : "partial_shared";
   }
   return hh(i.a, e, As.tJunctionSnapDistance) || hh(i.b, e, As.tJunctionSnapDistance) || hh(e.a, i, As.tJunctionSnapDistance) || hh(e.b, i, As.tJunctionSnapDistance) ? "t_junction" : lD(i, e) ? "corner_touch" : "disjoint";
 }
-function A8(i) {
+function T8(i) {
   return i.length <= 1 ? [] : i.slice(0, i.length - 1).map(([t, n]) => ({ x: t, z: n }));
 }
 function n0(i) {
   const e = [];
   for (const t of i)
-    t[0] && e.push(A8(t[0]));
+    t[0] && e.push(T8(t[0]));
   return e;
 }
 function KC(i) {
@@ -44234,14 +44217,14 @@ function KC(i) {
     };
   });
 }
-function R8(i, e) {
+function A8(i, e) {
   const t = e.b.x - e.a.x, n = e.b.z - e.a.z, r = i.x - e.a.x, s = i.z - e.a.z, l = t * t + n * n;
   if (l <= Qn)
     return Math.hypot(r, s);
   const u = Math.max(0, Math.min(1, H0(r, s, t, n) / l)), f = e.a.x + t * u, h = e.a.z + n * u;
   return Math.hypot(i.x - f, i.z - h);
 }
-function C8(i) {
+function R8(i) {
   let e = Number.POSITIVE_INFINITY;
   for (let t = 0; t < i.length; t += 1) {
     const n = i[t], r = i[(t - 1 + i.length) % i.length], s = i[(t + 1) % i.length];
@@ -44249,7 +44232,7 @@ function C8(i) {
       const u = { a: i[l], b: i[(l + 1) % i.length] };
       if (hl(u.a, n) || hl(u.b, n) || hl(u.a, r) || hl(u.b, r) || hl(u.a, s) || hl(u.b, s))
         continue;
-      const f = R8(n, u);
+      const f = A8(n, u);
       e = Math.min(e, f);
     }
   }
@@ -44259,7 +44242,7 @@ function ts(i, e) {
   var t;
   i.issues.push(e), e.severity === "error" ? i.errorCount += 1 : e.severity === "warning" ? i.warningCount += 1 : i.infoCount += 1, e.levelId && ((t = i.perLevel[e.levelId]) == null || t.issues.push(e));
 }
-function P8(i) {
+function C8(i) {
   var e;
   return {
     ok: !0,
@@ -44285,10 +44268,10 @@ function P8(i) {
     )
   };
 }
-function L8(i) {
+function P8(i) {
   return !!(i.rooms && i.rooms.length > 0);
 }
-function D8(i, e) {
+function L8(i, e) {
   const t = [];
   if (i.polygon.length < 3)
     return t.push({
@@ -44299,7 +44282,7 @@ function D8(i, e) {
       roomIds: [i.id],
       polygon: i.polygon
     }), t;
-  new Set(i.polygon.map(S8)).size < 3 && t.push({
+  new Set(i.polygon.map(_8)).size < 3 && t.push({
     code: "ROOM_INVALID_POLYGON",
     severity: "error",
     message: `Room "${i.id}" polygon must have at least 3 unique vertices.`,
@@ -44334,7 +44317,7 @@ function D8(i, e) {
       if (f === l || f === l + 1 || l === 0 && f === i.polygon.length - 1)
         continue;
       const h = { a: i.polygon[f], b: i.polygon[(f + 1) % i.polygon.length] };
-      b8(u, h) && t.push({
+      M8(u, h) && t.push({
         code: "ROOM_SELF_INTERSECTION",
         severity: "error",
         message: `Room "${i.id}" has self-intersecting edges (${l} and ${f}).`,
@@ -44344,7 +44327,7 @@ function D8(i, e) {
       });
     }
   }
-  const s = C8(i.polygon);
+  const s = R8(i.polygon);
   if (s > 0 && s < HC) {
     const l = s < kC ? "error" : "warning";
     t.push({
@@ -44373,10 +44356,10 @@ function YM(i, e, t = Qn) {
   }
   return !1;
 }
-function I8(i, e = Qn) {
+function D8(i, e = Qn) {
   return ss(i) <= Math.max(rD, e * 10);
 }
-function z8(i) {
+function I8(i) {
   return i === "wall" || i === "partition" || i === "interior";
 }
 function pm(i, e) {
@@ -44389,13 +44372,13 @@ function QC(i) {
   const e = [i.a, i.b].sort((t, n) => t.x === n.x ? t.z - n.z : t.x - n.x);
   return `${gl(e[0].x)},${gl(e[0].z)}:${gl(e[1].x)},${gl(e[1].z)}`;
 }
-function N8(i, e) {
+function z8(i, e) {
   if (!Xm(i, e))
     return `edge:${QC(i)}|${QC(e)}`;
   const t = ss(i) >= ss(e) ? i : e, n = t.b.x - t.a.x, r = t.b.z - t.a.z, s = Math.hypot(n, r), l = n / Math.max(s, Qn), u = r / Math.max(s, Qn), f = l > 0 || Math.abs(l) <= Qn && u >= 0 ? l : -l, h = l > 0 || Math.abs(l) <= Qn && u >= 0 ? u : -u, m = -h, g = f, v = m * t.a.x + g * t.a.z, x = (L) => L.x * f + L.z * h, M = Math.min(x(i.a), x(i.b)), w = Math.max(x(i.a), x(i.b)), E = Math.min(x(e.a), x(e.b)), b = Math.max(x(e.a), x(e.b)), C = Math.max(M, E), A = Math.min(w, b);
   return `line:${gl(m)},${gl(g)},${gl(v)}|interval:${gl(C)}:${gl(A)}`;
 }
-function U8(i, e) {
+function N8(i, e) {
   return Math.min(
     Math.hypot(i.a.x - e.a.x, i.a.z - e.a.z),
     Math.hypot(i.a.x - e.b.x, i.a.z - e.b.z),
@@ -44411,10 +44394,10 @@ function ih(i, e) {
   }
   n.sharedLength = Math.max(n.sharedLength, e.sharedLength), n.overlapRatio = Math.max(n.overlapRatio, e.overlapRatio), n.hasTypeMismatch = n.hasTypeMismatch || e.hasTypeMismatch, n.hasTJunction = n.hasTJunction || e.hasTJunction;
 }
-function O8(i, e) {
+function U8(i, e) {
   const t = [];
   for (const s of i.polygon)
-    if (!M8(s, e.footprint.outer)) {
+    if (!S8(s, e.footprint.outer)) {
       t.push({
         code: "ROOM_OUTSIDE_FOOTPRINT",
         severity: "error",
@@ -44436,12 +44419,12 @@ function O8(i, e) {
     meta: { outsideArea: r }
   }), t;
 }
-function F8(i) {
+function O8(i) {
   var l, u;
-  const e = P8(i), t = i.rooms ?? [];
+  const e = C8(i), t = i.rooms ?? [];
   t.length === 0 && ts(e, {
     code: "ROOM_EMPTY_SET",
-    severity: L8(i) ? "error" : "warning",
+    severity: P8(i) ? "error" : "warning",
     message: "No rooms defined."
   });
   const n = new Map(i.levels.map((f) => [f.id, f])), r = /* @__PURE__ */ new Map(), s = /* @__PURE__ */ new Set();
@@ -44470,9 +44453,9 @@ function F8(i) {
       levelId: h.id,
       roomIds: [f.id]
     });
-    for (const g of D8(f, h.id))
+    for (const g of L8(f, h.id))
       ts(e, g);
-    for (const g of O8(f, h))
+    for (const g of U8(f, h))
       ts(e, g);
     for (const g of KC(f))
       YM(g, h.footprint.outer) && g.type === "wall" && ts(e, {
@@ -44551,7 +44534,7 @@ function F8(i) {
       for (let j = Y + 1; j < m.length; j += 1) {
         const ae = m[j];
         if (te.room.id === ae.room.id) continue;
-        const se = pm(te.room.id, ae.room.id), ge = O(te.room.id, ae.room.id), Ge = JC(te, ae), Ie = Xm(te, ae), ue = Ie ? Sl(te, ae) : 0, Re = Ie ? w8(te, ae) : 0, He = Math.min(ss(te), ss(ae)), We = Ie && ue >= He - Qn, St = Ie && ue > Qn && ue < He - Qn && (jC(te, ae, As.tJunctionSnapDistance) || jC(ae, te, As.tJunctionSnapDistance)), Ke = N8(te, ae), je = `${se}|${Ke}`;
+        const se = pm(te.room.id, ae.room.id), ge = O(te.room.id, ae.room.id), Ge = JC(te, ae), Ie = Xm(te, ae), ue = Ie ? Sl(te, ae) : 0, Re = Ie ? E8(te, ae) : 0, He = Math.min(ss(te), ss(ae)), We = Ie && ue >= He - Qn, St = Ie && ue > Qn && ue < He - Qn && (jC(te, ae, As.tJunctionSnapDistance) || jC(ae, te, As.tJunctionSnapDistance)), Ke = z8(te, ae), je = `${se}|${Ke}`;
         if (Ge === "corner_touch") {
           const De = b.get(se);
           De ? De.count += 1 : b.set(se, { roomAId: te.room.id, roomBId: ae.room.id, edgeA: te, edgeB: ae, count: 1 }), ge.cornerTouchCount += 1, ih(g, {
@@ -44591,7 +44574,7 @@ function F8(i) {
             hasTJunction: !1
           });
         else {
-          const De = U8(te, ae), ze = w.get(je);
+          const De = N8(te, ae), ze = w.get(je);
           ze ? (ze.overlapCount += 1, ze.totalOverlapLength += ue, ze.maxOverlapRatio = Math.max(ze.maxOverlapRatio, Re), ze.maxMisalignment = Math.max(ze.maxMisalignment, De), ze.hasContainedEdge = ze.hasContainedEdge || ZC(te, ae)) : w.set(je, {
             roomAId: te.room.id,
             roomBId: ae.room.id,
@@ -44613,7 +44596,7 @@ function F8(i) {
             hasTJunction: !1
           });
         }
-        const ye = ue > y8 || Re > x8;
+        const ye = ue > v8 || Re > y8;
         if (K && ye && !lD(te, ae) && te.type !== "open" && ae.type !== "open") {
           const De = E.get(je);
           (!De || De.overlapLength < ue) && E.set(je, {
@@ -44732,7 +44715,7 @@ function F8(i) {
       meta: { uncoveredArea: ie }
     }));
     for (let Y = 0; Y < m.length; Y += 1) {
-      const te = m[Y], j = YM(te, f.footprint.outer), ae = YM(te, f.footprint.outer, sD), ge = te.type === "exterior" || j || ae, Ge = te.type === "open", Ie = I8(te), ue = z8(te.type);
+      const te = m[Y], j = YM(te, f.footprint.outer), ae = YM(te, f.footprint.outer, sD), ge = te.type === "exterior" || j || ae, Ge = te.type === "open", Ie = D8(te), ue = I8(te.type);
       ge && ih(g, {
         roomAId: te.room.id,
         roomBId: te.room.id,
@@ -44783,7 +44766,7 @@ function F8(i) {
   return e.issueCount = e.issues.length, e.ok = e.errorCount === 0, e;
 }
 const qM = 220;
-function B8({ roomName: i, levelName: e }) {
+function F8({ roomName: i, levelName: e }) {
   const [t, n] = is(!!i), [r, s] = is(!!i);
   return Fn(() => {
     if (i) {
@@ -44824,7 +44807,7 @@ function B8({ roomName: i, levelName: e }) {
     }
   );
 }
-function H8({ renderModel: i, showHelpers: e = !1 }) {
+function B8({ renderModel: i, showHelpers: e = !1 }) {
   const { diagnostics: t } = i, n = t.warnings.length > 0 || t.errors.length > 0 || t.skippedLevels.length > 0;
   return !e && !n ? null : /* @__PURE__ */ Kn(
     "div",
@@ -44879,7 +44862,7 @@ function H8({ renderModel: i, showHelpers: e = !1 }) {
     }
   );
 }
-class k8 extends aE.Component {
+class H8 extends aE.Component {
   constructor() {
     super(...arguments);
     FS(this, "state", { error: null });
@@ -44942,7 +44925,7 @@ class k8 extends aE.Component {
     );
   }
 }
-function V8(i) {
+function k8(i) {
   var v, x, M, w, E, b, C, A, L, O, I, H;
   const e = [], t = [], n = [];
   function r(F) {
@@ -44999,24 +44982,24 @@ function V8(i) {
     }
   };
 }
-const G8 = Mh(
+const V8 = Mh(
   () => import("./DebugButton-BpjzDF5P.js").then((i) => ({ default: i.DebugButton }))
+), G8 = Mh(
+  () => import("./DebugDashboard-bf1vEFmG.js").then((i) => ({ default: i.DebugDashboard }))
 ), W8 = Mh(
-  () => import("./DebugDashboard-3eXMjHBq.js").then((i) => ({ default: i.DebugDashboard }))
-), X8 = Mh(
-  () => import("./useWireframeOverride-BFO3_T8i.js").then((i) => ({ default: i.WireframeOverride }))
-), Y8 = Mh(() => import("./DebugEdges-C1wlA0et.js").then((i) => ({ default: i.DebugEdges }))), q8 = Mh(
-  () => import("./FloorplanValidationOverlay-D7Dz_lT7.js").then((i) => ({
+  () => import("./useWireframeOverride-DEAvRnyV.js").then((i) => ({ default: i.WireframeOverride }))
+), X8 = Mh(() => import("./DebugEdges-m0UqRx5P.js").then((i) => ({ default: i.DebugEdges }))), Y8 = Mh(
+  () => import("./FloorplanValidationOverlay-CSUQ_rht.js").then((i) => ({
     default: i.FloorplanValidationOverlay
   }))
 );
-function j8() {
+function q8() {
   const i = ws(!1);
   return ZE(() => {
-    i.current || (i.current = !0, v8());
+    i.current || (i.current = !0, g8());
   }), null;
 }
-function Z8() {
+function j8() {
   return /* @__PURE__ */ Ye(YV, { center: !0, position: [0, 1.1, 0], children: /* @__PURE__ */ Ye(
     "div",
     {
@@ -45035,7 +45018,7 @@ function Z8() {
     }
   ) });
 }
-function J8() {
+function Z8() {
   const { scene: i } = ja(), e = ws(null);
   return Fn(() => {
     if (!ls.enabled)
@@ -45046,7 +45029,7 @@ function J8() {
     };
   }, [i]), null;
 }
-const K8 = {
+const J8 = {
   position: "absolute",
   top: 16,
   left: 16,
@@ -45061,7 +45044,7 @@ const K8 = {
   background: "rgba(7, 13, 24, 0.62)",
   boxShadow: "0 16px 34px rgba(4, 8, 15, 0.35)",
   backdropFilter: "blur(10px)"
-}, Q8 = {
+}, K8 = {
   border: "1px solid rgba(146, 165, 196, 0.4)",
   borderRadius: 999,
   padding: "8px 15px",
@@ -45070,7 +45053,7 @@ const K8 = {
   letterSpacing: 0.25,
   cursor: "pointer",
   transition: "all 180ms ease"
-}, $8 = {
+}, Q8 = {
   position: "relative",
   width: 64,
   height: 34,
@@ -45079,7 +45062,7 @@ const K8 = {
   padding: 0,
   cursor: "pointer",
   transition: "background 180ms ease, box-shadow 180ms ease"
-}, e9 = {
+}, $8 = {
   position: "absolute",
   top: 3,
   left: 3,
@@ -45089,7 +45072,7 @@ const K8 = {
   background: "#f5fbff",
   boxShadow: "0 3px 10px rgba(0, 0, 0, 0.38)",
   transition: "transform 180ms ease"
-}, t9 = {
+}, e9 = {
   wallThickness: 0.3,
   levels: [],
   openings: [],
@@ -45099,7 +45082,7 @@ const K8 = {
   id: `edge-${t}`,
   edgeIndex: t,
   type: "exterior"
-})), n9 = (i) => ({
+})), t9 = (i) => ({
   id: i.id,
   name: i.name,
   elevation: i.elevation,
@@ -45111,10 +45094,10 @@ const K8 = {
     edges: uD(i.outer),
     semanticZones: []
   }
-}), i9 = (i) => ({
-  ...t9,
-  levels: i.levels.map(n9)
-}), r9 = (i) => {
+}), n9 = (i) => ({
+  ...e9,
+  levels: i.levels.map(t9)
+}), i9 = (i) => {
   if (i.parcel)
     return {
       footprint: {
@@ -45134,8 +45117,8 @@ const K8 = {
       objects: []
     };
 };
-function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className: n }) {
-  const r = ls.enabled, s = pn(() => i9(i), [i]), l = pn(() => r9(i), [i]), [u, f] = is(s), [h, m] = is(!1), [g, v] = is(e === "wireframe"), [x, M] = is(!1), [w, E] = is(!1), [b, C] = is(!1), [A, L] = is(!1), [O, I] = is(null), [H, F] = is([
+function r9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className: n }) {
+  const r = ls.enabled, s = pn(() => n9(i), [i]), l = pn(() => i9(i), [i]), [u, f] = is(s), [h, m] = is(!1), [g, v] = is(e === "wireframe"), [x, M] = is(!1), [w, E] = is(!1), [b, C] = is(!1), [A, L] = is(!1), [O, I] = is(null), [H, F] = is([
     { level: "info", message: 'Use "Run Floorplan Validation" in Debug to run checks.' }
   ]), [z, D] = is({
     shellVisible: !0,
@@ -45190,7 +45173,7 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
       { level: "info", message: `[${Ke}] Running floorplan validation...` },
       ...ye
     ]);
-    const je = F8(Ge);
+    const je = O8(Ge);
     I(je);
     const K = `Summary: rooms=${je.roomCount}, levels=${je.levelCount}, errors=${je.errorCount}, warnings=${je.warningCount}, info=${je.infoCount}`;
     console.info(K);
@@ -45242,7 +45225,7 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
           /* @__PURE__ */ Ye(c5, { distance: 45e4, sunPosition: [2, 0.6, 2], turbidity: 8 }),
           /* @__PURE__ */ Kn("group", { children: [
             /* @__PURE__ */ Ye(
-              g8,
+              m8,
               {
                 house: Ge,
                 site: l,
@@ -45264,11 +45247,11 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
                 }
               }
             ),
-            !Ie && !ue && /* @__PURE__ */ Ye(Z8, {}),
-            /* @__PURE__ */ Ye(J8, {}),
-            (z.showDebug || t) && r && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(Y8, { showEdges: x, showOpeningEdges: w }) }),
+            !Ie && !ue && /* @__PURE__ */ Ye(j8, {}),
+            /* @__PURE__ */ Ye(Z8, {}),
+            (z.showDebug || t) && r && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(X8, { showEdges: x, showOpeningEdges: w }) }),
             (z.showDebug || t) && r && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(
-              q8,
+              Y8,
               {
                 architecturalHouse: Ge,
                 validationResult: O,
@@ -45277,13 +45260,13 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
               }
             ) })
           ] }),
-          (z.showDebug || t) && r && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(X8, { enabled: g }) }),
+          (z.showDebug || t) && r && /* @__PURE__ */ Ye(um, { fallback: null, children: /* @__PURE__ */ Ye(W8, { enabled: g }) }),
           /* @__PURE__ */ Ye(l5, { makeDefault: !0, enableDamping: !0, target: [0, 1.2, 0] }),
-          /* @__PURE__ */ Ye(j8, {})
+          /* @__PURE__ */ Ye(q8, {})
         ]
       }
     ),
-    /* @__PURE__ */ Kn("div", { style: K8, children: [
+    /* @__PURE__ */ Kn("div", { style: J8, children: [
       /* @__PURE__ */ Kn("div", { style: { display: "flex", alignItems: "center", gap: 12 }, children: [
         /* @__PURE__ */ Ye("span", { style: { color: "#e7f0ff", fontWeight: 700, letterSpacing: 0.3 }, children: "Shell" }),
         /* @__PURE__ */ Ye(
@@ -45294,7 +45277,7 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
             "aria-checked": z.shellVisible,
             "aria-label": "Toggle shell visibility",
             style: {
-              ...$8,
+              ...Q8,
               background: z.shellVisible ? "linear-gradient(180deg, #40d47e, #1e9f56)" : "linear-gradient(180deg, #39465e, #212b3d)",
               boxShadow: z.shellVisible ? "0 0 0 1px rgba(134, 255, 188, 0.4), 0 0 20px rgba(68, 231, 138, 0.35)" : "0 0 0 1px rgba(111, 132, 166, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06)"
             },
@@ -45317,7 +45300,7 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
               "span",
               {
                 style: {
-                  ...e9,
+                  ...$8,
                   transform: z.shellVisible ? "translateX(30px)" : "translateX(0)"
                 }
               }
@@ -45331,7 +45314,7 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
         {
           type: "button",
           style: {
-            ...Q8,
+            ...K8,
             background: z.showDebug ? "linear-gradient(180deg, rgba(106, 188, 255, 0.48), rgba(39, 127, 214, 0.46))" : "linear-gradient(180deg, rgba(21, 31, 47, 0.9), rgba(13, 20, 31, 0.88))",
             color: z.showDebug ? "#eff8ff" : "rgba(173, 188, 210, 0.72)",
             borderColor: z.showDebug ? "rgba(156, 218, 255, 0.68)" : "rgba(108, 126, 152, 0.42)"
@@ -45342,16 +45325,16 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
       )
     ] }),
     /* @__PURE__ */ Ye(
-      B8,
+      F8,
       {
         roomName: ge ? (q == null ? void 0 : q.name) ?? null : null,
         levelName: ge ? (q == null ? void 0 : q.levelName) ?? null : null
       }
     ),
     (z.showDebug || t) && r && /* @__PURE__ */ Ye(No, { children: /* @__PURE__ */ Kn(um, { fallback: null, children: [
-      /* @__PURE__ */ Ye(G8, { isOpen: h, onClick: () => m((Ke) => !Ke) }),
+      /* @__PURE__ */ Ye(V8, { isOpen: h, onClick: () => m((Ke) => !Ke) }),
       /* @__PURE__ */ Ye(
-        W8,
+        G8,
         {
           isOpen: h,
           onClose: () => m(!1),
@@ -45381,32 +45364,31 @@ function s9({ renderModel: i, mode: e = "solid", showHelpers: t = !1, className:
     ] }) })
   ] });
 }
-function a9({ model: i = null, mode: e = "solid", showHelpers: t = !1, className: n }) {
-  const r = pn(() => V8(i), [i]);
+function s9({ model: i = null, mode: e = "solid", showHelpers: t = !1, className: n }) {
+  const r = pn(() => k8(i), [i]);
   return /* @__PURE__ */ Kn("div", { className: n, style: { width: "100%", height: "100vh", position: "relative" }, children: [
-    /* @__PURE__ */ Ye(H8, { renderModel: r, showHelpers: t }),
-    /* @__PURE__ */ Ye(k8, { renderModel: r, children: /* @__PURE__ */ Ye(s9, { renderModel: r, mode: e, showHelpers: t }) })
+    /* @__PURE__ */ Ye(B8, { renderModel: r, showHelpers: t }),
+    /* @__PURE__ */ Ye(H8, { renderModel: r, children: /* @__PURE__ */ Ye(r9, { renderModel: r, mode: e, showHelpers: t }) })
   ] });
 }
-function y9(i) {
-  return /* @__PURE__ */ Ye(a9, { ...i });
+function v9(i) {
+  return /* @__PURE__ */ Ye(s9, { ...i });
 }
 export {
-  en as A,
+  Sn as A,
   Jt as B,
   xt as C,
   qn as D,
   ix as E,
   At as F,
-  Sn as G,
+  Sa as G,
   YV as H,
   VE as I,
-  Sa as J,
-  y9 as K,
+  v9 as J,
+  k8 as K,
   cs as L,
   Al as M,
-  V8 as N,
-  m9 as O,
+  p9 as N,
   Eh as P,
   Z2 as R,
   ba as S,
@@ -45416,28 +45398,28 @@ export {
   Du as _,
   v5 as a,
   Uo as b,
-  p8 as c,
+  ef as c,
   lG as d,
-  ef as e,
-  UL as f,
+  UL as e,
+  pi as f,
   Gm as g,
-  pi as h,
-  Ah as i,
-  ls as j,
-  v9 as k,
-  ng as l,
-  r1 as m,
-  TE as n,
-  wE as o,
-  ln as p,
-  Gn as q,
-  kt as r,
-  g9 as s,
-  Le as t,
+  Ah as h,
+  ls as i,
+  g9 as j,
+  ng as k,
+  r1 as l,
+  TE as m,
+  wE as n,
+  ln as o,
+  Gn as p,
+  kt as q,
+  Le as r,
+  m9 as s,
+  lr as t,
   ja as u,
-  F8 as v,
-  lr as w,
-  or as x,
-  yh as y,
-  ki as z
+  O8 as v,
+  or as w,
+  yh as x,
+  ki as y,
+  en as z
 };

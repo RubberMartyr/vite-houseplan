@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import type { ArchitecturalHouse, LevelSpec, Vec2 } from '../architecturalTypes';
 import { archToWorldVec3, archToWorldXZ } from '../spaceMapping';
 import type { FloorplanValidationResult, RoomAdjacencyEdge, ValidationIssue } from '../validation/validateFloorplan';
-import { getFootprintOuter } from '../utils/getFootprintOuter';
 
 type Props = {
   architecturalHouse: ArchitecturalHouse;
@@ -113,16 +112,7 @@ export function FloorplanValidationOverlay({
 
     if (showFloorplanOverlay) {
       for (const level of architecturalHouse.levels) {
-        const points = getFootprintOuter(level);
-        if (points.length < 3) {
-          console.warn('[HouseViewer] Skipping footprint geometry: missing footprint.outer', {
-            levelId: level?.id,
-            level,
-          });
-          continue;
-        }
-
-        const footprintGeometry = polygonToShapeGeometry(points, level.elevation + 0.015);
+        const footprintGeometry = polygonToShapeGeometry(level.footprint.outer, level.elevation + 0.015);
         if (footprintGeometry) {
           meshes.push({
             key: `footprint-${level.id}`,
@@ -134,7 +124,7 @@ export function FloorplanValidationOverlay({
 
         lines.push({
           key: `footprint-line-${level.id}`,
-          points: polygonToLoop(level.elevation + 0.03, points),
+          points: polygonToLoop(level.elevation + 0.03, level.footprint.outer),
           color: '#22c55e',
         });
       }

@@ -32,8 +32,7 @@
     "declarationDir": "dist",
     "emitDeclarationOnly": false,
     "outDir": "dist",
-    "rootDir": "src",
-    "ignoreDeprecations": "5.0"
+    "rootDir": "src"
   },
   "include": [
     "./src"

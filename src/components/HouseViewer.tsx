@@ -1,38 +1,63 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { useThree } from '@react-three/fiber';
-import { OrbitControls, Sky } from '@react-three/drei';
-import * as THREE from 'three';
-import { EngineHouse } from '../engine/EngineHouse';
-import type { ArchitecturalHouse, LevelSpec, SiteSpec } from '../engine/architecturalTypes';
-import type { DraftHouseModel, HouseViewerProps, PointXZ } from '../types';
-import { markFirstFrameRendered } from '../loadingManager';
-import type { ValidationLogEntry } from '../engine/debug/ui/tabs/RenderingTab';
-import type { VisibilityState } from '../engine/debug/ui/tabs/VisibilityTab';
+import React, {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
+import { OrbitControls, Sky } from "@react-three/drei";
+import * as THREE from "three";
+import { EngineHouse } from "../engine/EngineHouse";
+import type {
+  ArchitecturalHouse,
+  LevelSpec,
+  SiteSpec,
+} from "../engine/architecturalTypes";
+import type { DraftHouseModel, HouseViewerProps, PointXZ } from "../types";
+import { markFirstFrameRendered } from "../loadingManager";
+import type { ValidationLogEntry } from "../engine/debug/ui/tabs/RenderingTab";
+import type { VisibilityState } from "../engine/debug/ui/tabs/VisibilityTab";
 import {
   type FloorplanValidationResult,
   validateFloorplan,
-} from '../engine/validation/validateFloorplan';
-import { debugFlags } from '../engine/debug/debugFlags';
-import { RoomInfoCard } from './RoomInfoCard';
-import { getRenderableGeometrySummary, getSiteFootprint, getValidLevelFootprints, isValidPolygon } from '../engine/modelGeometry';
-import { archToWorldXZ } from '../engine/spaceMapping';
-
+} from "../engine/validation/validateFloorplan";
+import { debugFlags } from "../engine/debug/debugFlags";
+import { RoomInfoCard } from "./RoomInfoCard";
+import {
+  getRenderableGeometrySummary,
+  getSiteFootprint,
+  getValidLevelFootprints,
+  isValidPolygon,
+} from "../engine/modelGeometry";
+import { archToWorldXZ } from "../engine/spaceMapping";
 
 const DebugButton = lazy(() =>
-  import('../engine/debug/ui/DebugButton').then((module) => ({ default: module.DebugButton }))
+  import("../engine/debug/ui/DebugButton").then((module) => ({
+    default: module.DebugButton,
+  })),
 );
 const DebugDashboard = lazy(() =>
-  import('../engine/debug/ui/DebugDashboard').then((module) => ({ default: module.DebugDashboard }))
+  import("../engine/debug/ui/DebugDashboard").then((module) => ({
+    default: module.DebugDashboard,
+  })),
 );
 const WireframeOverride = lazy(() =>
-  import('../engine/debug/ui/useWireframeOverride').then((module) => ({ default: module.WireframeOverride }))
+  import("../engine/debug/ui/useWireframeOverride").then((module) => ({
+    default: module.WireframeOverride,
+  })),
 );
-const DebugEdges = lazy(() => import('./debug/DebugEdges').then((module) => ({ default: module.DebugEdges })));
+const DebugEdges = lazy(() =>
+  import("./debug/DebugEdges").then((module) => ({
+    default: module.DebugEdges,
+  })),
+);
 const FloorplanValidationOverlay = lazy(() =>
-  import('../engine/debug/FloorplanValidationOverlay').then((module) => ({
+  import("../engine/debug/FloorplanValidationOverlay").then((module) => ({
     default: module.FloorplanValidationOverlay,
-  }))
+  })),
 );
 
 function FirstFrameMarker() {
@@ -50,8 +75,11 @@ function FirstFrameMarker() {
   return null;
 }
 
-
-function AutoFrameCamera({ summary }: { summary: ReturnType<typeof getRenderableGeometrySummary> }) {
+function AutoFrameCamera({
+  summary,
+}: {
+  summary: ReturnType<typeof getRenderableGeometrySummary>;
+}) {
   const { camera, controls } = useThree();
 
   useEffect(() => {
@@ -73,16 +101,215 @@ function AutoFrameCamera({ summary }: { summary: ReturnType<typeof getRenderable
     const centerZ = (minZ + maxZ) / 2;
     const span = Math.max(maxX - minX, maxZ - minZ, 6);
 
-    camera.position.set(centerX, Math.max(7, span * 0.55), centerZ + span * 0.9);
+    camera.position.set(
+      centerX,
+      Math.max(7, span * 0.55),
+      centerZ + span * 0.9,
+    );
     camera.lookAt(centerX, 0, centerZ);
     camera.updateProjectionMatrix();
 
-    const orbitControls = controls as { target?: THREE.Vector3; update?: () => void } | undefined;
+    const orbitControls = controls as
+      | { target?: THREE.Vector3; update?: () => void }
+      | undefined;
     orbitControls?.target?.set(centerX, 0, centerZ);
     orbitControls?.update?.();
   }, [camera, controls, summary]);
 
   return null;
+}
+
+function PresentationAutoRotate({
+  enabled,
+  summary,
+  durationMs = DEFAULT_AUTO_ROTATE_DURATION_MS,
+  startAngle,
+}: {
+  enabled: boolean;
+  summary: ReturnType<typeof getRenderableGeometrySummary>;
+  durationMs?: number;
+  startAngle?: HouseViewerProps["autoRotateStartAngle"];
+}) {
+  const { camera, controls } = useThree();
+  const disabledByUserRef = useRef(false);
+  const elapsedRef = useRef(0);
+  const radiusRef = useRef(12);
+  const targetRef = useRef(new THREE.Vector3());
+  const baseAngleRef = useRef(getStartAngleRadians(startAngle));
+
+  useEffect(() => {
+    disabledByUserRef.current = false;
+    elapsedRef.current = 0;
+    baseAngleRef.current = getStartAngleRadians(startAngle);
+
+    const points = [
+      ...(summary.siteFootprint ?? []),
+      ...summary.levelFootprints.flatMap((entry) => entry.outer),
+    ];
+
+    if (points.length > 0) {
+      const worldPoints = points.map(archToWorldXZ);
+      const minX = Math.min(...worldPoints.map((point) => point.x));
+      const maxX = Math.max(...worldPoints.map((point) => point.x));
+      const minZ = Math.min(...worldPoints.map((point) => point.z));
+      const maxZ = Math.max(...worldPoints.map((point) => point.z));
+      targetRef.current.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+    } else {
+      targetRef.current.set(0, 0, 0);
+    }
+
+    const offset = camera.position.clone().sub(targetRef.current);
+    radiusRef.current = Math.max(Math.hypot(offset.x, offset.z), 1);
+  }, [camera, startAngle, summary]);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      !controls ||
+      typeof (controls as THREE.EventDispatcher).addEventListener !== "function"
+    ) {
+      return;
+    }
+
+    const orbitControls = controls as {
+      addEventListener: (type: "start", listener: () => void) => void;
+      removeEventListener: (type: "start", listener: () => void) => void;
+    };
+    const handleManualStart = () => {
+      disabledByUserRef.current = true;
+    };
+
+    orbitControls.addEventListener("start", handleManualStart);
+    return () => {
+      orbitControls.removeEventListener("start", handleManualStart);
+    };
+  }, [controls, enabled]);
+
+  useFrame((_, delta) => {
+    if (
+      !enabled ||
+      disabledByUserRef.current ||
+      !summary.hasRenderableGeometry
+    ) {
+      return;
+    }
+
+    const safeDurationMs = Math.max(durationMs, 1000);
+    elapsedRef.current += delta * 1000;
+    const angle =
+      baseAngleRef.current +
+      (elapsedRef.current / safeDurationMs) * Math.PI * 2;
+    const target = targetRef.current;
+    const radius = radiusRef.current;
+
+    camera.position.x = target.x + Math.cos(angle) * radius;
+    camera.position.z = target.z + Math.sin(angle) * radius;
+    camera.lookAt(target.x, target.y, target.z);
+
+    const orbitControls = controls as
+      | { target?: THREE.Vector3; update?: () => void }
+      | undefined;
+    orbitControls?.target?.copy(target);
+    orbitControls?.update?.();
+  });
+
+  return null;
+}
+
+function RevealedModelGroup({
+  enabled,
+  isRenderable,
+  modelKey,
+  durationMs = DEFAULT_REVEAL_DURATION_MS,
+  children,
+}: {
+  enabled: boolean;
+  isRenderable: boolean;
+  modelKey: string;
+  durationMs?: number;
+  children: React.ReactNode;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const previousRenderableRef = useRef(isRenderable);
+  const revealStartRef = useRef<number | null>(null);
+  const originalOpacityRef = useRef(
+    new Map<THREE.Material, { opacity: number; transparent: boolean }>(),
+  );
+
+  const applyRevealOpacity = (opacity: number) => {
+    const group = groupRef.current;
+    if (!group) {
+      return;
+    }
+
+    group.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      const materials = Array.isArray(mesh.material)
+        ? mesh.material
+        : mesh.material
+          ? [mesh.material]
+          : [];
+      for (const material of materials) {
+        if (!originalOpacityRef.current.has(material)) {
+          originalOpacityRef.current.set(material, {
+            opacity: material.opacity,
+            transparent: material.transparent,
+          });
+        }
+        material.transparent = true;
+        material.opacity = opacity;
+        material.needsUpdate = true;
+      }
+    });
+  };
+
+  const restoreMaterials = () => {
+    originalOpacityRef.current.forEach((original, material) => {
+      material.opacity = original.opacity;
+      material.transparent = original.transparent;
+      material.needsUpdate = true;
+    });
+    originalOpacityRef.current.clear();
+  };
+
+  useEffect(() => {
+    const becameRenderable = isRenderable && !previousRenderableRef.current;
+    previousRenderableRef.current = isRenderable;
+
+    if (enabled && becameRenderable) {
+      revealStartRef.current = performance.now();
+      applyRevealOpacity(0.12);
+      groupRef.current?.scale.setScalar(0.985);
+    } else if (!enabled) {
+      revealStartRef.current = null;
+      restoreMaterials();
+      groupRef.current?.scale.setScalar(1);
+    }
+  }, [enabled, isRenderable, modelKey]);
+
+  useEffect(() => () => restoreMaterials(), []);
+
+  useFrame(() => {
+    if (!enabled || revealStartRef.current === null) {
+      return;
+    }
+
+    const progress = Math.min(
+      (performance.now() - revealStartRef.current) / Math.max(durationMs, 1),
+      1,
+    );
+    const eased = 1 - Math.pow(1 - progress, 3);
+    applyRevealOpacity(THREE.MathUtils.lerp(0.12, 1, eased));
+    groupRef.current?.scale.setScalar(THREE.MathUtils.lerp(0.985, 1, eased));
+
+    if (progress >= 1) {
+      revealStartRef.current = null;
+      groupRef.current?.scale.setScalar(1);
+      restoreMaterials();
+    }
+  });
+
+  return <group ref={groupRef}>{children}</group>;
 }
 
 function DebugAxes() {
@@ -121,71 +348,94 @@ type SelectedRoomState = {
 };
 
 const toolbarStyle: React.CSSProperties = {
-  position: 'absolute',
+  position: "absolute",
   top: 16,
   left: 16,
   zIndex: 11,
-  display: 'flex',
+  display: "flex",
   gap: 10,
-  flexWrap: 'wrap',
-  maxWidth: 'min(88vw, 760px)',
+  flexWrap: "wrap",
+  maxWidth: "min(88vw, 760px)",
   padding: 10,
   borderRadius: 16,
-  border: '1px solid rgba(125, 160, 212, 0.24)',
-  background: 'rgba(7, 13, 24, 0.62)',
-  boxShadow: '0 16px 34px rgba(4, 8, 15, 0.35)',
-  backdropFilter: 'blur(10px)',
+  border: "1px solid rgba(125, 160, 212, 0.24)",
+  background: "rgba(7, 13, 24, 0.62)",
+  boxShadow: "0 16px 34px rgba(4, 8, 15, 0.35)",
+  backdropFilter: "blur(10px)",
 };
 
 const noticeStyle: React.CSSProperties = {
-  position: 'absolute',
+  position: "absolute",
   right: 16,
   bottom: 16,
   zIndex: 10,
   maxWidth: 360,
-  padding: '12px 14px',
+  padding: "12px 14px",
   borderRadius: 14,
-  border: '1px solid rgba(96, 165, 250, 0.38)',
-  background: 'rgba(15, 23, 42, 0.78)',
-  color: '#e0f2fe',
+  border: "1px solid rgba(96, 165, 250, 0.38)",
+  background: "rgba(15, 23, 42, 0.78)",
+  color: "#e0f2fe",
   fontSize: 13,
   fontWeight: 700,
-  boxShadow: '0 14px 28px rgba(15, 23, 42, 0.25)',
-  backdropFilter: 'blur(10px)',
+  boxShadow: "0 14px 28px rgba(15, 23, 42, 0.25)",
+  backdropFilter: "blur(10px)",
 };
 
 const baseToggleStyle: React.CSSProperties = {
-  border: '1px solid rgba(146, 165, 196, 0.4)',
+  border: "1px solid rgba(146, 165, 196, 0.4)",
   borderRadius: 999,
-  padding: '8px 15px',
+  padding: "8px 15px",
   fontSize: 13,
   fontWeight: 700,
   letterSpacing: 0.25,
-  cursor: 'pointer',
-  transition: 'all 180ms ease',
+  cursor: "pointer",
+  transition: "all 180ms ease",
 };
 
 const shellSwitchTrackStyle: React.CSSProperties = {
-  position: 'relative',
+  position: "relative",
   width: 64,
   height: 34,
   borderRadius: 999,
-  border: 'none',
+  border: "none",
   padding: 0,
-  cursor: 'pointer',
-  transition: 'background 180ms ease, box-shadow 180ms ease',
+  cursor: "pointer",
+  transition: "background 180ms ease, box-shadow 180ms ease",
 };
 
 const shellSwitchKnobStyle: React.CSSProperties = {
-  position: 'absolute',
+  position: "absolute",
   top: 3,
   left: 3,
   width: 28,
   height: 28,
-  borderRadius: '50%',
-  background: '#f5fbff',
-  boxShadow: '0 3px 10px rgba(0, 0, 0, 0.38)',
-  transition: 'transform 180ms ease',
+  borderRadius: "50%",
+  background: "#f5fbff",
+  boxShadow: "0 3px 10px rgba(0, 0, 0, 0.38)",
+  transition: "transform 180ms ease",
+};
+
+const DEFAULT_AUTO_ROTATE_DURATION_MS = 60000;
+const DEFAULT_REVEAL_DURATION_MS = 1800;
+
+const getStartAngleRadians = (
+  angle: HouseViewerProps["autoRotateStartAngle"],
+): number => {
+  if (typeof angle === "number" && Number.isFinite(angle)) {
+    return THREE.MathUtils.degToRad(angle);
+  }
+
+  switch (angle) {
+    case "front":
+      return Math.PI / 2;
+    case "left":
+      return Math.PI;
+    case "back":
+      return Math.PI * 1.5;
+    case "right":
+    default:
+      return 0;
+  }
 };
 
 const EMPTY_ARCHITECTURAL_HOUSE: ArchitecturalHouse = {
@@ -196,15 +446,19 @@ const EMPTY_ARCHITECTURAL_HOUSE: ArchitecturalHouse = {
   roofs: [],
 };
 
-const isPointList = (value: unknown): value is PointXZ[] => isValidPolygon(value);
+const isPointList = (value: unknown): value is PointXZ[] =>
+  isValidPolygon(value);
 
 const hasArchitecturalLevels = (model: unknown): model is ArchitecturalHouse =>
-  typeof model === 'object' &&
+  typeof model === "object" &&
   model !== null &&
   Array.isArray((model as ArchitecturalHouse).levels) &&
-  typeof (model as ArchitecturalHouse).wallThickness === 'number';
+  typeof (model as ArchitecturalHouse).wallThickness === "number";
 
-const createLevelFromDraft = (level: NonNullable<DraftHouseModel['levels']>[number], index: number): LevelSpec | null => {
+const createLevelFromDraft = (
+  level: NonNullable<DraftHouseModel["levels"]>[number],
+  index: number,
+): LevelSpec | null => {
   const outer = level.footprint?.outer;
 
   if (!isPointList(outer)) {
@@ -229,16 +483,20 @@ const createLevelFromDraft = (level: NonNullable<DraftHouseModel['levels']>[numb
   };
 };
 
-const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHouse => {
+const toArchitecturalHouse = (
+  model: HouseViewerProps["model"],
+): ArchitecturalHouse => {
   if (hasArchitecturalLevels(model)) {
-    const validLevelIds = new Set(getValidLevelFootprints(model).map(({ level }) => level.id));
+    const validLevelIds = new Set(
+      getValidLevelFootprints(model).map(({ level }) => level.id),
+    );
     return {
       ...model,
       levels: model.levels.filter((level) => validLevelIds.has(level.id)),
     };
   }
 
-  if (typeof model !== 'object' || model === null) {
+  if (typeof model !== "object" || model === null) {
     return EMPTY_ARCHITECTURAL_HOUSE;
   }
 
@@ -268,25 +526,27 @@ const toArchitecturalHouse = (model: HouseViewerProps['model']): ArchitecturalHo
   };
 };
 
-const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
-  if (typeof model !== 'object' || model === null) {
+const toSite = (model: HouseViewerProps["model"]): SiteSpec | undefined => {
+  if (typeof model !== "object" || model === null) {
     return undefined;
   }
 
   const draft = model as DraftHouseModel;
-  const siteOuter = getSiteFootprint(model) ?? (isPointList(draft.parcel?.outer) ? draft.parcel.outer : null);
+  const siteOuter =
+    getSiteFootprint(model) ??
+    (isPointList(draft.parcel?.outer) ? draft.parcel.outer : null);
 
   if (siteOuter) {
     return {
       footprint: {
-        id: 'parcel-footprint',
+        id: "parcel-footprint",
         outer: siteOuter,
         edges: [],
         semanticZones: [],
       },
-      parcel: (draft.site?.parcel ?? draft.parcel) as SiteSpec['parcel'],
+      parcel: (draft.site?.parcel ?? draft.parcel) as SiteSpec["parcel"],
       elevation: draft.site?.elevation ?? -0.001,
-      color: draft.site?.color ?? '#7dd3fc',
+      color: draft.site?.color ?? "#7dd3fc",
       surfaces: (draft.site as SiteSpec | undefined)?.surfaces ?? [],
       boundaries: {
         fences: (draft.site as SiteSpec | undefined)?.boundaries?.fences ?? [],
@@ -304,21 +564,40 @@ const toSite = (model: HouseViewerProps['model']): SiteSpec | undefined => {
   return undefined;
 };
 
-export default function HouseViewer({ model = null, mode = 'solid', showHelpers = false, className }: HouseViewerProps) {
+export default function HouseViewer({
+  model = null,
+  mode = "solid",
+  showHelpers = false,
+  className,
+  presentationMode = false,
+  autoRotate = false,
+  autoRotateDurationMs = DEFAULT_AUTO_ROTATE_DURATION_MS,
+  autoRotateStartAngle = "right",
+  revealOnLoad = false,
+  revealDurationMs = DEFAULT_REVEAL_DURATION_MS,
+}: HouseViewerProps) {
   const debugEnabled = debugFlags.enabled;
-  const [currentModel, setCurrentModel] = useState<HouseViewerProps['model']>(model);
-  const resolvedHouse = useMemo(() => toArchitecturalHouse(currentModel), [currentModel]);
+  const [currentModel, setCurrentModel] =
+    useState<HouseViewerProps["model"]>(model);
+  const resolvedHouse = useMemo(
+    () => toArchitecturalHouse(currentModel),
+    [currentModel],
+  );
   const resolvedSite = useMemo(() => toSite(currentModel), [currentModel]);
   const house = resolvedHouse;
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [showWireframe, setShowWireframe] = useState(mode === 'wireframe');
+  const [showWireframe, setShowWireframe] = useState(mode === "wireframe");
   const [showEdges, setShowEdges] = useState(false);
   const [showOpeningEdges, setShowOpeningEdges] = useState(false);
   const [showFloorplanOverlay, setShowFloorplanOverlay] = useState(false);
   const [showValidationIssues, setShowValidationIssues] = useState(false);
-  const [validationResult, setValidationResult] = useState<FloorplanValidationResult | null>(null);
+  const [validationResult, setValidationResult] =
+    useState<FloorplanValidationResult | null>(null);
   const [validationLog, setValidationLog] = useState<ValidationLogEntry[]>([
-    { level: 'info', message: 'Use "Run Floorplan Validation" in Debug to run checks.' },
+    {
+      level: "info",
+      message: 'Use "Run Floorplan Validation" in Debug to run checks.',
+    },
   ]);
   const [toggles, setToggles] = useState<ToggleState>({
     shellVisible: true,
@@ -332,28 +611,33 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
     },
   });
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
-  const [selectedRoom, setSelectedRoom] = useState<SelectedRoomState | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<SelectedRoomState | null>(
+    null,
+  );
 
   useEffect(() => {
     setCurrentModel(model);
   }, [model]);
 
   useEffect(() => {
-    console.log('HouseViewer received model', currentModel);
-    console.log('site surfaces count', resolvedSite?.surfaces?.length ?? 0);
-    console.log('site objects count', resolvedSite?.objects?.length ?? 0);
-    console.log('site fences count', resolvedSite?.boundaries?.fences?.length ?? 0);
+    console.log("HouseViewer received model", currentModel);
+    console.log("site surfaces count", resolvedSite?.surfaces?.length ?? 0);
+    console.log("site objects count", resolvedSite?.objects?.length ?? 0);
+    console.log(
+      "site fences count",
+      resolvedSite?.boundaries?.fences?.length ?? 0,
+    );
   }, [currentModel, resolvedSite]);
 
   useEffect(() => {
     return () => {
-      document.body.style.cursor = 'default';
+      document.body.style.cursor = "default";
     };
   }, []);
 
   const roomLevelById = useMemo(
     () => new Map(house.levels.map((level) => [level.id, level.name])),
-    [house.levels]
+    [house.levels],
   );
 
   const showWalls = toggles.visibility.showWalls;
@@ -364,7 +648,7 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
   const showRoomInfoCard = showRooms && selectedRoom !== null;
 
   useEffect(() => {
-    setShowWireframe(mode === 'wireframe');
+    setShowWireframe(mode === "wireframe");
   }, [mode]);
 
   useEffect(() => {
@@ -385,30 +669,45 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
       ...houseWithInjectedInteriorWall,
       site: resolvedSite ?? houseWithInjectedInteriorWall.site,
     }),
-    [houseWithInjectedInteriorWall, resolvedSite]
+    [houseWithInjectedInteriorWall, resolvedSite],
   );
 
-  const initialJson = useMemo(() => JSON.stringify(viewerModel, null, 2), [viewerModel]);
+  const initialJson = useMemo(
+    () => JSON.stringify(viewerModel, null, 2),
+    [viewerModel],
+  );
   const renderableGeometrySummary = useMemo(
     () => getRenderableGeometrySummary(viewerModel),
-    [viewerModel]
+    [viewerModel],
   );
+  const presentationAnimationsEnabled =
+    presentationMode || autoRotate || revealOnLoad;
+  const modelRevealKey = useMemo(() => JSON.stringify(model), [model]);
 
-  const buildValidationEntries = (result: FloorplanValidationResult, timestamp: string): ValidationLogEntry[] => {
-    const issueCodes = result.issues.reduce<Record<string, number>>((acc, issue) => {
-      const key = `${issue.severity}:${issue.code}`;
-      acc[key] = (acc[key] ?? 0) + 1;
-      return acc;
-    }, {});
+  const buildValidationEntries = (
+    result: FloorplanValidationResult,
+    timestamp: string,
+  ): ValidationLogEntry[] => {
+    const issueCodes = result.issues.reduce<Record<string, number>>(
+      (acc, issue) => {
+        const key = `${issue.severity}:${issue.code}`;
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      },
+      {},
+    );
 
     const summary = `Summary: rooms=${result.roomCount}, levels=${result.levelCount}, errors=${result.errorCount}, warnings=${result.warningCount}, info=${result.infoCount}.`;
     const codes = Object.entries(issueCodes)
       .map(([code, count]) => `${code}=${count}`)
-      .join(', ');
+      .join(", ");
 
     const entries: ValidationLogEntry[] = [
-      { level: 'info', message: `[${timestamp}] ${summary}` },
-      { level: 'info', message: `[${timestamp}] Issue codes: ${codes || 'none'}.` },
+      { level: "info", message: `[${timestamp}] ${summary}` },
+      {
+        level: "info",
+        message: `[${timestamp}] Issue codes: ${codes || "none"}.`,
+      },
     ];
 
     for (const [levelId, levelData] of Object.entries(result.perLevel)) {
@@ -417,15 +716,20 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
       }
 
       entries.push({
-        level: 'info',
+        level: "info",
         message: `[${timestamp}] Level ${levelId}: rooms=${levelData.roomCount}, issues=${levelData.issues.length}, uncovered=${levelData.uncoveredPolygons?.length ?? 0}, overlaps=${levelData.overlapPairs?.length ?? 0}.`,
       });
     }
 
     for (const issue of result.issues) {
       entries.push({
-        level: issue.severity === 'error' ? 'error' : issue.severity === 'warning' ? 'warn' : 'info',
-        message: `[${timestamp}] ${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ''}: ${issue.message}`,
+        level:
+          issue.severity === "error"
+            ? "error"
+            : issue.severity === "warning"
+              ? "warn"
+              : "info",
+        message: `[${timestamp}] ${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ""}: ${issue.message}`,
       });
     }
 
@@ -436,7 +740,10 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
     const timestamp = new Date().toLocaleTimeString();
 
     setValidationLog((current) => [
-      { level: 'info', message: `[${timestamp}] Running floorplan validation...` },
+      {
+        level: "info",
+        message: `[${timestamp}] Running floorplan validation...`,
+      },
       ...current,
     ]);
 
@@ -445,10 +752,10 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
     const summaryMessage = `Summary: rooms=${result.roomCount}, levels=${result.levelCount}, errors=${result.errorCount}, warnings=${result.warningCount}, info=${result.infoCount}`;
     console.info(summaryMessage);
     for (const issue of result.issues) {
-      const issueMessage = `${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ''}: ${issue.message}`;
-      if (issue.severity === 'error') {
+      const issueMessage = `${issue.code}${issue.levelId ? ` [${issue.levelId}]` : ""}: ${issue.message}`;
+      if (issue.severity === "error") {
         console.error(issueMessage, issue.meta ?? {});
-      } else if (issue.severity === 'warning') {
+      } else if (issue.severity === "warning") {
         console.warn(issueMessage, issue.meta ?? {});
       } else {
         console.info(issueMessage, issue.meta ?? {});
@@ -458,7 +765,10 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
     if (result.issueCount === 0) {
       setValidationLog((current) => [
         ...buildValidationEntries(result, timestamp),
-        { level: 'info', message: `[${timestamp}] Floorplan validation passed.` },
+        {
+          level: "info",
+          message: `[${timestamp}] Floorplan validation passed.`,
+        },
         ...current,
       ]);
       return;
@@ -472,11 +782,16 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
 
   const clearValidationOutput = () => {
     setValidationResult(null);
-    setValidationLog([{ level: 'info', message: 'Validation output cleared.' }]);
+    setValidationLog([
+      { level: "info", message: "Validation output cleared." },
+    ]);
   };
 
   return (
-    <div className={className} style={{ width: '100%', height: '100vh', position: 'relative' }}>
+    <div
+      className={className}
+      style={{ width: "100%", height: "100vh", position: "relative" }}
+    >
       <Canvas
         shadows
         camera={{ position: [0, 7, -12], fov: 50 }}
@@ -487,7 +802,7 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
       >
-        <color attach="background" args={['#f5f7fb']} />
+        <color attach="background" args={["#f5f7fb"]} />
         <ambientLight intensity={0.4} />
         <directionalLight
           castShadow
@@ -501,34 +816,48 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
         <AutoFrameCamera summary={renderableGeometrySummary} />
+        <PresentationAutoRotate
+          enabled={presentationAnimationsEnabled && autoRotate}
+          summary={renderableGeometrySummary}
+          durationMs={autoRotateDurationMs}
+          startAngle={autoRotateStartAngle}
+        />
 
-        <group>
+        <RevealedModelGroup
+          enabled={presentationAnimationsEnabled && revealOnLoad}
+          isRenderable={renderableGeometrySummary.hasRenderableGeometry}
+          modelKey={modelRevealKey}
+          durationMs={revealDurationMs}
+        >
           {renderableGeometrySummary.hasRenderableGeometry && (
-          <EngineHouse
-            house={viewerModel}
-            site={viewerModel.site}
-            showWalls={showWalls}
-            showRoof={showRoof}
-            showSlabs={showSlabs}
-            showGlass={showGlass}
-            showRooms={showRooms}
-            showDebug={toggles.showDebug || showHelpers}
-            selectedRoomId={selectedRoom?.id ?? null}
-            hoveredRoomId={hoveredRoomId}
-            onRoomHover={setHoveredRoomId}
-            onRoomSelect={(room) => {
-              setSelectedRoom({
-                id: room.id,
-                name: room.name,
-                levelName: roomLevelById.get(room.levelId) ?? room.levelId,
-              });
-            }}
-          />
+            <EngineHouse
+              house={viewerModel}
+              site={viewerModel.site}
+              showWalls={showWalls}
+              showRoof={showRoof}
+              showSlabs={showSlabs}
+              showGlass={showGlass}
+              showRooms={showRooms}
+              showDebug={toggles.showDebug || showHelpers}
+              selectedRoomId={selectedRoom?.id ?? null}
+              hoveredRoomId={hoveredRoomId}
+              onRoomHover={setHoveredRoomId}
+              onRoomSelect={(room) => {
+                setSelectedRoom({
+                  id: room.id,
+                  name: room.name,
+                  levelName: roomLevelById.get(room.levelId) ?? room.levelId,
+                });
+              }}
+            />
           )}
           <DebugAxes />
           {(toggles.showDebug || showHelpers) && debugEnabled && (
             <Suspense fallback={null}>
-              <DebugEdges showEdges={showEdges} showOpeningEdges={showOpeningEdges} />
+              <DebugEdges
+                showEdges={showEdges}
+                showOpeningEdges={showOpeningEdges}
+              />
             </Suspense>
           )}
           {(toggles.showDebug || showHelpers) && debugEnabled && (
@@ -541,7 +870,7 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
               />
             </Suspense>
           )}
-        </group>
+        </RevealedModelGroup>
 
         {(toggles.showDebug || showHelpers) && debugEnabled && (
           <Suspense fallback={null}>
@@ -556,13 +885,19 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
       {!renderableGeometrySummary.hasRenderableGeometry && (
         <div style={noticeStyle}>No renderable geometry found.</div>
       )}
-      {renderableGeometrySummary.mode === 'site-only' && (
-        <div style={noticeStyle}>Site footprint only. No building geometry available.</div>
+      {renderableGeometrySummary.mode === "site-only" && (
+        <div style={noticeStyle}>
+          Site footprint only. No building geometry available.
+        </div>
       )}
 
       <div style={toolbarStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: '#e7f0ff', fontWeight: 700, letterSpacing: 0.3 }}>Shell</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{ color: "#e7f0ff", fontWeight: 700, letterSpacing: 0.3 }}
+          >
+            Shell
+          </span>
           <button
             type="button"
             role="switch"
@@ -570,10 +905,12 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
             aria-label="Toggle shell visibility"
             style={{
               ...shellSwitchTrackStyle,
-              background: toggles.shellVisible ? 'linear-gradient(180deg, #40d47e, #1e9f56)' : 'linear-gradient(180deg, #39465e, #212b3d)',
+              background: toggles.shellVisible
+                ? "linear-gradient(180deg, #40d47e, #1e9f56)"
+                : "linear-gradient(180deg, #39465e, #212b3d)",
               boxShadow: toggles.shellVisible
-                ? '0 0 0 1px rgba(134, 255, 188, 0.4), 0 0 20px rgba(68, 231, 138, 0.35)'
-                : '0 0 0 1px rgba(111, 132, 166, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+                ? "0 0 0 1px rgba(134, 255, 188, 0.4), 0 0 20px rgba(68, 231, 138, 0.35)"
+                : "0 0 0 1px rgba(111, 132, 166, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
             }}
             onClick={() =>
               setToggles((current) => {
@@ -591,17 +928,19 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
                 };
               })
             }
-            title={`Shell: ${toggles.shellVisible ? 'ON' : 'OFF'}`}
+            title={`Shell: ${toggles.shellVisible ? "ON" : "OFF"}`}
           >
             <span
               style={{
                 ...shellSwitchKnobStyle,
-                transform: toggles.shellVisible ? 'translateX(30px)' : 'translateX(0)',
+                transform: toggles.shellVisible
+                  ? "translateX(30px)"
+                  : "translateX(0)",
               }}
             />
           </button>
-          <span style={{ color: '#d2dfee', fontWeight: 700, minWidth: 34 }}>
-            {toggles.shellVisible ? 'ON' : 'OFF'}
+          <span style={{ color: "#d2dfee", fontWeight: 700, minWidth: 34 }}>
+            {toggles.shellVisible ? "ON" : "OFF"}
           </span>
         </div>
         {debugEnabled && (
@@ -610,12 +949,21 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
             style={{
               ...baseToggleStyle,
               background: toggles.showDebug
-                ? 'linear-gradient(180deg, rgba(106, 188, 255, 0.48), rgba(39, 127, 214, 0.46))'
-                : 'linear-gradient(180deg, rgba(21, 31, 47, 0.9), rgba(13, 20, 31, 0.88))',
-              color: toggles.showDebug ? '#eff8ff' : 'rgba(173, 188, 210, 0.72)',
-              borderColor: toggles.showDebug ? 'rgba(156, 218, 255, 0.68)' : 'rgba(108, 126, 152, 0.42)',
+                ? "linear-gradient(180deg, rgba(106, 188, 255, 0.48), rgba(39, 127, 214, 0.46))"
+                : "linear-gradient(180deg, rgba(21, 31, 47, 0.9), rgba(13, 20, 31, 0.88))",
+              color: toggles.showDebug
+                ? "#eff8ff"
+                : "rgba(173, 188, 210, 0.72)",
+              borderColor: toggles.showDebug
+                ? "rgba(156, 218, 255, 0.68)"
+                : "rgba(108, 126, 152, 0.42)",
             }}
-            onClick={() => setToggles((current) => ({ ...current, showDebug: !current.showDebug }))}
+            onClick={() =>
+              setToggles((current) => ({
+                ...current,
+                showDebug: !current.showDebug,
+              }))
+            }
           >
             Debug
           </button>
@@ -623,45 +971,47 @@ export default function HouseViewer({ model = null, mode = 'solid', showHelpers 
       </div>
 
       <RoomInfoCard
-        roomName={showRoomInfoCard ? selectedRoom?.name ?? null : null}
-        levelName={showRoomInfoCard ? selectedRoom?.levelName ?? null : null}
+        roomName={showRoomInfoCard ? (selectedRoom?.name ?? null) : null}
+        levelName={showRoomInfoCard ? (selectedRoom?.levelName ?? null) : null}
       />
-
 
       {(toggles.showDebug || showHelpers) && debugEnabled && (
         <>
           <Suspense fallback={null}>
-            <DebugButton isOpen={isDashboardOpen} onClick={() => setIsDashboardOpen((value) => !value)} />
+            <DebugButton
+              isOpen={isDashboardOpen}
+              onClick={() => setIsDashboardOpen((value) => !value)}
+            />
             <DebugDashboard
-            isOpen={isDashboardOpen}
-            onClose={() => setIsDashboardOpen(false)}
-            showWireframe={showWireframe}
-            onShowWireframeChange={setShowWireframe}
-            showEdges={showEdges}
-            onShowEdgesChange={setShowEdges}
-            showOpeningEdges={showOpeningEdges}
-            onShowOpeningEdgesChange={setShowOpeningEdges}
-            initialJson={initialJson}
-            onApplyArchitecturalHouse={setCurrentModel}
-            onRunFloorplanValidation={runFloorplanValidation}
-            showFloorplanOverlay={showFloorplanOverlay}
-            onShowFloorplanOverlayChange={setShowFloorplanOverlay}
-            showValidationIssues={showValidationIssues}
-            onShowValidationIssuesChange={setShowValidationIssues}
-            onClearValidationOutput={clearValidationOutput}
-            validationLog={validationLog}
-            visibility={toggles.visibility}
-            onVisibilityChange={(visibility) =>
-              setToggles((current) => ({
-                ...current,
-                shellVisible:
-                  visibility.showWalls &&
-                  visibility.showWindows &&
-                  visibility.showRoof &&
-                  !visibility.showRooms,
-                visibility,
-              }))
-            }
+              isOpen={isDashboardOpen}
+              onClose={() => setIsDashboardOpen(false)}
+              showWireframe={showWireframe}
+              onShowWireframeChange={setShowWireframe}
+              showEdges={showEdges}
+              onShowEdgesChange={setShowEdges}
+              showOpeningEdges={showOpeningEdges}
+              onShowOpeningEdgesChange={setShowOpeningEdges}
+              initialJson={initialJson}
+              onApplyArchitecturalHouse={setCurrentModel}
+              onRunFloorplanValidation={runFloorplanValidation}
+              showFloorplanOverlay={showFloorplanOverlay}
+              onShowFloorplanOverlayChange={setShowFloorplanOverlay}
+              showValidationIssues={showValidationIssues}
+              onShowValidationIssuesChange={setShowValidationIssues}
+              onClearValidationOutput={clearValidationOutput}
+              validationLog={validationLog}
+              visibility={toggles.visibility}
+              onVisibilityChange={(visibility) =>
+                setToggles((current) => ({
+                  ...current,
+                  shellVisible:
+                    visibility.showWalls &&
+                    visibility.showWindows &&
+                    visibility.showRoof &&
+                    !visibility.showRooms,
+                  visibility,
+                }))
+              }
             />
           </Suspense>
         </>

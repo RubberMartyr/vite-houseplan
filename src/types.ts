@@ -77,5 +77,7 @@ export type HouseViewerProps = {
   autoRotateDurationMs?: number;
   autoRotateStartAngle?: "right" | "front" | "left" | "back" | number;
   revealOnLoad?: boolean;
+  plotRevealDurationMs?: number;
+  baseplateRevealDurationMs?: number;
   revealDurationMs?: number;
 };

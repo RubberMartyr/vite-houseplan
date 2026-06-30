@@ -74,10 +74,23 @@ export type HouseViewerProps = {
   className?: string;
   presentationMode?: boolean;
   /**
-   * Presentation-only multiplier for the vertical camera target lift.
-   * Positive values move the model visually upward in the frame.
+   * Legacy presentation-only multiplier for the vertical camera target lift.
+   * Prefer presentationCamera.targetYOffset for explicit camera framing.
    */
   presentationVerticalOffset?: number;
+  /**
+   * Presentation camera framing controls.
+   * - distanceMultiplier: larger values move the camera farther away.
+   * - targetYOffset: world-space Y offset for the orbit/framing target; positive is up.
+   * - screenYOffset: normalized vertical screen offset; positive moves the model up in the frame.
+   * - pitchDegrees: camera pitch above the horizontal plane; positive looks downward from above.
+   */
+  presentationCamera?: {
+    distanceMultiplier?: number;
+    targetYOffset?: number;
+    screenYOffset?: number;
+    pitchDegrees?: number;
+  };
   autoRotate?: boolean;
   autoRotateDurationMs?: number;
   autoRotateStartAngle?: "right" | "front" | "left" | "back" | number;

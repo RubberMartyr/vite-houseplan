@@ -75,57 +75,191 @@ function FirstFrameMarker() {
   return null;
 }
 
+type ModelBounds = {
+  min: THREE.Vector3;
+  max: THREE.Vector3;
+  center: THREE.Vector3;
+  size: THREE.Vector3;
+  radius: number;
+};
+
+const PRESENTATION_FRAME_PADDING = 1.35;
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+function expandBoundsWithArchPoint(
+  bounds: THREE.Box3,
+  point: PointXZ,
+  minY = 0,
+  maxY = 0,
+) {
+  const worldPoint = archToWorldXZ(point);
+  bounds.expandByPoint(new THREE.Vector3(worldPoint.x, minY, worldPoint.z));
+  bounds.expandByPoint(new THREE.Vector3(worldPoint.x, maxY, worldPoint.z));
+}
+
+function expandBoundsWithPolygon(
+  bounds: THREE.Box3,
+  polygon: PointXZ[] | undefined,
+  minY = 0,
+  maxY = 0,
+) {
+  if (!isValidPolygon(polygon)) {
+    return;
+  }
+
+  polygon.forEach((point) =>
+    expandBoundsWithArchPoint(bounds, point, minY, maxY),
+  );
+}
+
+function getRenderableModelBounds(
+  model: ArchitecturalHouse,
+  summary: ReturnType<typeof getRenderableGeometrySummary>,
+): ModelBounds | null {
+  const bounds = new THREE.Box3();
+
+  expandBoundsWithPolygon(
+    bounds,
+    summary.siteFootprint ?? undefined,
+    model.site?.elevation ?? 0,
+    model.site?.elevation ?? 0,
+  );
+  expandBoundsWithPolygon(
+    bounds,
+    summary.parcel ?? undefined,
+    model.site?.elevation ?? 0,
+    model.site?.elevation ?? 0,
+  );
+
+  for (const surface of model.site?.surfaces ?? []) {
+    const minY = surface.elevation ?? model.site?.elevation ?? 0;
+    const maxY = minY + (isFiniteNumber(surface.height) ? surface.height : 0);
+    expandBoundsWithPolygon(bounds, surface.polygon, minY, maxY);
+  }
+
+  for (const object of model.site?.objects ?? []) {
+    if (object.type === "carport") {
+      expandBoundsWithPolygon(
+        bounds,
+        object.footprint.outer,
+        model.site?.elevation ?? 0,
+        model.site?.elevation ?? 0,
+      );
+    }
+  }
+
+  for (const { level, outer } of summary.levelFootprints) {
+    const slabBottom = level.elevation - (level.slab?.thickness ?? 0);
+    const levelTop = level.elevation + level.height;
+    expandBoundsWithPolygon(bounds, outer, slabBottom, levelTop);
+  }
+
+  const levelById = new Map(model.levels.map((level) => [level.id, level]));
+  for (const roof of model.roofs ?? []) {
+    const baseLevel = levelById.get(roof.baseLevelId);
+    if (!baseLevel) {
+      continue;
+    }
+
+    const roofTop =
+      roof.type === "gable"
+        ? baseLevel.elevation + roof.ridgeHeight
+        : "ridgeSegments" in roof && Array.isArray(roof.ridgeSegments)
+          ? baseLevel.elevation +
+            Math.max(0, ...roof.ridgeSegments.map((ridge) => ridge.height))
+          : baseLevel.elevation +
+            baseLevel.height +
+            ("thickness" in roof ? (roof.thickness ?? 0) : 0);
+    expandBoundsWithPolygon(
+      bounds,
+      baseLevel.footprint.outer,
+      baseLevel.elevation + baseLevel.height,
+      roofTop,
+    );
+  }
+
+  if (bounds.isEmpty()) {
+    return null;
+  }
+
+  const center = bounds.getCenter(new THREE.Vector3());
+  const size = bounds.getSize(new THREE.Vector3());
+  return {
+    min: bounds.min.clone(),
+    max: bounds.max.clone(),
+    center,
+    size,
+    radius: Math.max(size.x, size.y, size.z, 6) * PRESENTATION_FRAME_PADDING,
+  };
+}
+
 function AutoFrameCamera({
+  model,
+  presentationMode,
   summary,
 }: {
+  model: ArchitecturalHouse;
+  presentationMode: boolean;
   summary: ReturnType<typeof getRenderableGeometrySummary>;
 }) {
-  const { camera, controls } = useThree();
+  const { camera, controls, size } = useThree();
 
   useEffect(() => {
-    const points = [
-      ...(summary.siteFootprint ?? []),
-      ...summary.levelFootprints.flatMap((entry) => entry.outer),
-    ];
+    const modelBounds = getRenderableModelBounds(model, summary);
 
-    if (points.length === 0) {
+    if (!modelBounds) {
       return;
     }
 
-    const worldPoints = points.map(archToWorldXZ);
-    const minX = Math.min(...worldPoints.map((point) => point.x));
-    const maxX = Math.max(...worldPoints.map((point) => point.x));
-    const minZ = Math.min(...worldPoints.map((point) => point.z));
-    const maxZ = Math.max(...worldPoints.map((point) => point.z));
-    const centerX = (minX + maxX) / 2;
-    const centerZ = (minZ + maxZ) / 2;
-    const span = Math.max(maxX - minX, maxZ - minZ, 6);
+    const { center, radius } = modelBounds;
+    const perspectiveCamera = camera as THREE.PerspectiveCamera;
+    const fov = THREE.MathUtils.degToRad(perspectiveCamera.fov);
+    const aspect =
+      size.width > 0 && size.height > 0 ? size.width / size.height : 1;
+    const fitHeightDistance = radius / (2 * Math.tan(fov / 2));
+    const fitWidthDistance = fitHeightDistance / Math.max(aspect, 0.1);
+    const distance =
+      Math.max(fitHeightDistance, fitWidthDistance) *
+      (presentationMode ? 1.15 : 1);
+    const elevation = Math.max(radius * 0.42, modelBounds.size.y * 1.2, 3);
+    const target = center.clone();
+    target.y += presentationMode ? modelBounds.size.y * 0.08 : 0;
 
-    camera.position.set(
-      centerX,
-      Math.max(7, span * 0.55),
-      centerZ + span * 0.9,
-    );
-    camera.lookAt(centerX, 0, centerZ);
-    camera.updateProjectionMatrix();
+    camera.position.set(center.x, target.y + elevation, center.z + distance);
+    camera.lookAt(target);
+    perspectiveCamera.near = Math.max(0.01, distance - radius * 3);
+    perspectiveCamera.far = Math.max(100, distance + radius * 5);
+    perspectiveCamera.updateProjectionMatrix();
 
     const orbitControls = controls as
       | { target?: THREE.Vector3; update?: () => void }
       | undefined;
-    orbitControls?.target?.set(centerX, 0, centerZ);
+    orbitControls?.target?.copy(target);
     orbitControls?.update?.();
-  }, [camera, controls, summary]);
+  }, [
+    camera,
+    controls,
+    model,
+    presentationMode,
+    size.height,
+    size.width,
+    summary,
+  ]);
 
   return null;
 }
 
 function PresentationAutoRotate({
   enabled,
+  model,
   summary,
   durationMs = DEFAULT_AUTO_ROTATE_DURATION_MS,
   startAngle,
 }: {
   enabled: boolean;
+  model: ArchitecturalHouse;
   summary: ReturnType<typeof getRenderableGeometrySummary>;
   durationMs?: number;
   startAngle?: HouseViewerProps["autoRotateStartAngle"];
@@ -142,25 +276,18 @@ function PresentationAutoRotate({
     elapsedRef.current = 0;
     baseAngleRef.current = getStartAngleRadians(startAngle);
 
-    const points = [
-      ...(summary.siteFootprint ?? []),
-      ...summary.levelFootprints.flatMap((entry) => entry.outer),
-    ];
+    const modelBounds = getRenderableModelBounds(model, summary);
 
-    if (points.length > 0) {
-      const worldPoints = points.map(archToWorldXZ);
-      const minX = Math.min(...worldPoints.map((point) => point.x));
-      const maxX = Math.max(...worldPoints.map((point) => point.x));
-      const minZ = Math.min(...worldPoints.map((point) => point.z));
-      const maxZ = Math.max(...worldPoints.map((point) => point.z));
-      targetRef.current.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+    if (modelBounds) {
+      targetRef.current.copy(modelBounds.center);
+      targetRef.current.y += modelBounds.size.y * 0.08;
     } else {
       targetRef.current.set(0, 0, 0);
     }
 
     const offset = camera.position.clone().sub(targetRef.current);
     radiusRef.current = Math.max(Math.hypot(offset.x, offset.z), 1);
-  }, [camera, startAngle, summary]);
+  }, [camera, model, startAngle, summary]);
 
   useEffect(() => {
     if (
@@ -828,9 +955,14 @@ export default function HouseViewer({
         />
         <Sky distance={450000} sunPosition={[2, 0.6, 2]} turbidity={8} />
 
-        <AutoFrameCamera summary={renderableGeometrySummary} />
+        <AutoFrameCamera
+          model={viewerModel}
+          presentationMode={presentationMode}
+          summary={renderableGeometrySummary}
+        />
         <PresentationAutoRotate
           enabled={presentationAnimationsEnabled && autoRotate}
+          model={viewerModel}
           summary={renderableGeometrySummary}
           durationMs={autoRotateDurationMs}
           startAngle={autoRotateStartAngle}

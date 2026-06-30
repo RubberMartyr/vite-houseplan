@@ -73,6 +73,11 @@ export type HouseViewerProps = {
   showHelpers?: boolean;
   className?: string;
   presentationMode?: boolean;
+  /**
+   * Presentation-only multiplier for the vertical camera target lift.
+   * Positive values move the model visually upward in the frame.
+   */
+  presentationVerticalOffset?: number;
   autoRotate?: boolean;
   autoRotateDurationMs?: number;
   autoRotateStartAngle?: "right" | "front" | "left" | "back" | number;

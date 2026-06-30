@@ -84,6 +84,7 @@ type ModelBounds = {
 };
 
 const PRESENTATION_FRAME_PADDING = 1.35;
+const DEFAULT_PRESENTATION_VERTICAL_OFFSET = 1;
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
@@ -195,13 +196,48 @@ function getRenderableModelBounds(
   };
 }
 
+function getPresentationFrameTarget(
+  modelBounds: ModelBounds,
+  presentationVerticalOffset = DEFAULT_PRESENTATION_VERTICAL_OFFSET,
+): THREE.Vector3 {
+  const target = modelBounds.center.clone();
+  const modelSize = Math.max(
+    modelBounds.size.x,
+    modelBounds.size.y,
+    modelBounds.size.z,
+  );
+  const baseLift = Math.max(modelBounds.size.y * 0.25, modelSize * 0.08);
+  const flatModelLift =
+    modelBounds.size.y < modelBounds.radius * 0.12
+      ? modelBounds.radius * 0.15
+      : 0;
+
+  target.y += (baseLift + flatModelLift) * presentationVerticalOffset;
+
+  return target;
+}
+
+function getFrameTarget(
+  modelBounds: ModelBounds,
+  presentationMode: boolean,
+  presentationVerticalOffset?: number,
+): THREE.Vector3 {
+  if (!presentationMode) {
+    return modelBounds.center.clone();
+  }
+
+  return getPresentationFrameTarget(modelBounds, presentationVerticalOffset);
+}
+
 function AutoFrameCamera({
   model,
   presentationMode,
+  presentationVerticalOffset,
   summary,
 }: {
   model: ArchitecturalHouse;
   presentationMode: boolean;
+  presentationVerticalOffset?: number;
   summary: ReturnType<typeof getRenderableGeometrySummary>;
 }) {
   const { camera, controls, size } = useThree();
@@ -224,8 +260,11 @@ function AutoFrameCamera({
       Math.max(fitHeightDistance, fitWidthDistance) *
       (presentationMode ? 1.15 : 1);
     const elevation = Math.max(radius * 0.42, modelBounds.size.y * 1.2, 3);
-    const target = center.clone();
-    target.y += presentationMode ? modelBounds.size.y * 0.08 : 0;
+    const target = getFrameTarget(
+      modelBounds,
+      presentationMode,
+      presentationVerticalOffset,
+    );
 
     camera.position.set(center.x, target.y + elevation, center.z + distance);
     camera.lookAt(target);
@@ -243,6 +282,7 @@ function AutoFrameCamera({
     controls,
     model,
     presentationMode,
+    presentationVerticalOffset,
     size.height,
     size.width,
     summary,
@@ -257,12 +297,14 @@ function PresentationAutoRotate({
   summary,
   durationMs = DEFAULT_AUTO_ROTATE_DURATION_MS,
   startAngle,
+  presentationVerticalOffset,
 }: {
   enabled: boolean;
   model: ArchitecturalHouse;
   summary: ReturnType<typeof getRenderableGeometrySummary>;
   durationMs?: number;
   startAngle?: HouseViewerProps["autoRotateStartAngle"];
+  presentationVerticalOffset?: number;
 }) {
   const { camera, controls } = useThree();
   const disabledByUserRef = useRef(false);
@@ -279,15 +321,16 @@ function PresentationAutoRotate({
     const modelBounds = getRenderableModelBounds(model, summary);
 
     if (modelBounds) {
-      targetRef.current.copy(modelBounds.center);
-      targetRef.current.y += modelBounds.size.y * 0.08;
+      targetRef.current.copy(
+        getPresentationFrameTarget(modelBounds, presentationVerticalOffset),
+      );
     } else {
       targetRef.current.set(0, 0, 0);
     }
 
     const offset = camera.position.clone().sub(targetRef.current);
     radiusRef.current = Math.max(Math.hypot(offset.x, offset.z), 1);
-  }, [camera, model, startAngle, summary]);
+  }, [camera, model, presentationVerticalOffset, startAngle, summary]);
 
   useEffect(() => {
     if (
@@ -706,6 +749,7 @@ export default function HouseViewer({
   plotRevealDurationMs,
   baseplateRevealDurationMs,
   revealDurationMs,
+  presentationVerticalOffset = DEFAULT_PRESENTATION_VERTICAL_OFFSET,
 }: HouseViewerProps) {
   const debugEnabled = debugFlags.enabled;
   const [currentModel, setCurrentModel] =
@@ -958,6 +1002,7 @@ export default function HouseViewer({
         <AutoFrameCamera
           model={viewerModel}
           presentationMode={presentationMode}
+          presentationVerticalOffset={presentationVerticalOffset}
           summary={renderableGeometrySummary}
         />
         <PresentationAutoRotate
@@ -966,6 +1011,7 @@ export default function HouseViewer({
           summary={renderableGeometrySummary}
           durationMs={autoRotateDurationMs}
           startAngle={autoRotateStartAngle}
+          presentationVerticalOffset={presentationVerticalOffset}
         />
 
         <StagedRevealHouse

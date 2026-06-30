@@ -85,6 +85,12 @@ type ModelBounds = {
 
 const PRESENTATION_FRAME_PADDING = 1.35;
 const DEFAULT_PRESENTATION_VERTICAL_OFFSET = 1;
+const DEFAULT_PRESENTATION_CAMERA_DISTANCE_MULTIPLIER = 1.15;
+const DEFAULT_PRESENTATION_CAMERA_PITCH_DEGREES = 20;
+
+type PresentationCameraOptions = NonNullable<
+  HouseViewerProps["presentationCamera"]
+>;
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
@@ -199,6 +205,7 @@ function getRenderableModelBounds(
 function getPresentationFrameTarget(
   modelBounds: ModelBounds,
   presentationVerticalOffset = DEFAULT_PRESENTATION_VERTICAL_OFFSET,
+  presentationCamera?: PresentationCameraOptions,
 ): THREE.Vector3 {
   const target = modelBounds.center.clone();
   const modelSize = Math.max(
@@ -213,6 +220,7 @@ function getPresentationFrameTarget(
       : 0;
 
   target.y += (baseLift + flatModelLift) * presentationVerticalOffset;
+  target.y += presentationCamera?.targetYOffset ?? 0;
 
   return target;
 }
@@ -221,23 +229,50 @@ function getFrameTarget(
   modelBounds: ModelBounds,
   presentationMode: boolean,
   presentationVerticalOffset?: number,
+  presentationCamera?: PresentationCameraOptions,
 ): THREE.Vector3 {
   if (!presentationMode) {
     return modelBounds.center.clone();
   }
 
-  return getPresentationFrameTarget(modelBounds, presentationVerticalOffset);
+  return getPresentationFrameTarget(
+    modelBounds,
+    presentationVerticalOffset,
+    presentationCamera,
+  );
+}
+
+function getCameraLookAtTarget(
+  target: THREE.Vector3,
+  modelBounds: ModelBounds,
+  presentationMode: boolean,
+  presentationCamera?: PresentationCameraOptions,
+): THREE.Vector3 {
+  const lookAtTarget = target.clone();
+
+  if (!presentationMode) {
+    return lookAtTarget;
+  }
+
+  // Positive screenYOffset intentionally moves the model up in the rendered
+  // frame by aiming the camera lower than the orbit/framing target.
+  lookAtTarget.y -=
+    (presentationCamera?.screenYOffset ?? 0) * modelBounds.radius;
+
+  return lookAtTarget;
 }
 
 function AutoFrameCamera({
   model,
   presentationMode,
   presentationVerticalOffset,
+  presentationCamera,
   summary,
 }: {
   model: ArchitecturalHouse;
   presentationMode: boolean;
   presentationVerticalOffset?: number;
+  presentationCamera?: PresentationCameraOptions;
   summary: ReturnType<typeof getRenderableGeometrySummary>;
 }) {
   const { camera, controls, size } = useThree();
@@ -258,16 +293,52 @@ function AutoFrameCamera({
     const fitWidthDistance = fitHeightDistance / Math.max(aspect, 0.1);
     const distance =
       Math.max(fitHeightDistance, fitWidthDistance) *
-      (presentationMode ? 1.15 : 1);
-    const elevation = Math.max(radius * 0.42, modelBounds.size.y * 1.2, 3);
+      (presentationMode
+        ? (presentationCamera?.distanceMultiplier ??
+          DEFAULT_PRESENTATION_CAMERA_DISTANCE_MULTIPLIER)
+        : 1);
+    const fallbackElevation = Math.max(
+      radius * 0.42,
+      modelBounds.size.y * 1.2,
+      3,
+    );
     const target = getFrameTarget(
       modelBounds,
       presentationMode,
       presentationVerticalOffset,
+      presentationCamera,
+    );
+    const lookAtTarget = getCameraLookAtTarget(
+      target,
+      modelBounds,
+      presentationMode,
+      presentationCamera,
     );
 
-    camera.position.set(center.x, target.y + elevation, center.z + distance);
-    camera.lookAt(target);
+    if (presentationMode) {
+      const pitchDegrees =
+        presentationCamera?.pitchDegrees ??
+        DEFAULT_PRESENTATION_CAMERA_PITCH_DEGREES;
+      const pitchRadians = THREE.MathUtils.degToRad(
+        THREE.MathUtils.clamp(pitchDegrees, -89, 89),
+      );
+      const horizontalDistance = Math.max(distance * Math.cos(pitchRadians), 1);
+      const elevation = distance * Math.sin(pitchRadians);
+
+      camera.position.set(
+        center.x,
+        target.y + elevation,
+        center.z + horizontalDistance,
+      );
+    } else {
+      camera.position.set(
+        center.x,
+        target.y + fallbackElevation,
+        center.z + distance,
+      );
+    }
+
+    camera.lookAt(lookAtTarget);
     perspectiveCamera.near = Math.max(0.01, distance - radius * 3);
     perspectiveCamera.far = Math.max(100, distance + radius * 5);
     perspectiveCamera.updateProjectionMatrix();
@@ -275,12 +346,13 @@ function AutoFrameCamera({
     const orbitControls = controls as
       | { target?: THREE.Vector3; update?: () => void }
       | undefined;
-    orbitControls?.target?.copy(target);
+    orbitControls?.target?.copy(lookAtTarget);
     orbitControls?.update?.();
   }, [
     camera,
     controls,
     model,
+    presentationCamera,
     presentationMode,
     presentationVerticalOffset,
     size.height,
@@ -298,6 +370,7 @@ function PresentationAutoRotate({
   durationMs = DEFAULT_AUTO_ROTATE_DURATION_MS,
   startAngle,
   presentationVerticalOffset,
+  presentationCamera,
 }: {
   enabled: boolean;
   model: ArchitecturalHouse;
@@ -305,12 +378,14 @@ function PresentationAutoRotate({
   durationMs?: number;
   startAngle?: HouseViewerProps["autoRotateStartAngle"];
   presentationVerticalOffset?: number;
+  presentationCamera?: PresentationCameraOptions;
 }) {
   const { camera, controls } = useThree();
   const disabledByUserRef = useRef(false);
   const elapsedRef = useRef(0);
   const radiusRef = useRef(12);
   const targetRef = useRef(new THREE.Vector3());
+  const lookAtTargetRef = useRef(new THREE.Vector3());
   const baseAngleRef = useRef(getStartAngleRadians(startAngle));
 
   useEffect(() => {
@@ -322,15 +397,35 @@ function PresentationAutoRotate({
 
     if (modelBounds) {
       targetRef.current.copy(
-        getPresentationFrameTarget(modelBounds, presentationVerticalOffset),
+        getPresentationFrameTarget(
+          modelBounds,
+          presentationVerticalOffset,
+          presentationCamera,
+        ),
+      );
+      lookAtTargetRef.current.copy(
+        getCameraLookAtTarget(
+          targetRef.current,
+          modelBounds,
+          true,
+          presentationCamera,
+        ),
       );
     } else {
       targetRef.current.set(0, 0, 0);
+      lookAtTargetRef.current.set(0, 0, 0);
     }
 
     const offset = camera.position.clone().sub(targetRef.current);
     radiusRef.current = Math.max(Math.hypot(offset.x, offset.z), 1);
-  }, [camera, model, presentationVerticalOffset, startAngle, summary]);
+  }, [
+    camera,
+    model,
+    presentationCamera,
+    presentationVerticalOffset,
+    startAngle,
+    summary,
+  ]);
 
   useEffect(() => {
     if (
@@ -370,16 +465,17 @@ function PresentationAutoRotate({
       baseAngleRef.current +
       (elapsedRef.current / safeDurationMs) * Math.PI * 2;
     const target = targetRef.current;
+    const lookAtTarget = lookAtTargetRef.current;
     const radius = radiusRef.current;
 
     camera.position.x = target.x + Math.cos(angle) * radius;
     camera.position.z = target.z + Math.sin(angle) * radius;
-    camera.lookAt(target.x, target.y, target.z);
+    camera.lookAt(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z);
 
     const orbitControls = controls as
       | { target?: THREE.Vector3; update?: () => void }
       | undefined;
-    orbitControls?.target?.copy(target);
+    orbitControls?.target?.copy(lookAtTarget);
     orbitControls?.update?.();
   });
 
@@ -750,6 +846,7 @@ export default function HouseViewer({
   baseplateRevealDurationMs,
   revealDurationMs,
   presentationVerticalOffset = DEFAULT_PRESENTATION_VERTICAL_OFFSET,
+  presentationCamera,
 }: HouseViewerProps) {
   const debugEnabled = debugFlags.enabled;
   const [currentModel, setCurrentModel] =
@@ -1003,6 +1100,7 @@ export default function HouseViewer({
           model={viewerModel}
           presentationMode={presentationMode}
           presentationVerticalOffset={presentationVerticalOffset}
+          presentationCamera={presentationCamera}
           summary={renderableGeometrySummary}
         />
         <PresentationAutoRotate
@@ -1012,6 +1110,7 @@ export default function HouseViewer({
           durationMs={autoRotateDurationMs}
           startAngle={autoRotateStartAngle}
           presentationVerticalOffset={presentationVerticalOffset}
+          presentationCamera={presentationCamera}
         />
 
         <StagedRevealHouse

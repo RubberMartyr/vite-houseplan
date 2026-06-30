@@ -12,7 +12,7 @@ export type DraftHouseModel = {
     };
     parcel?: {
       outer?: PointXZ[];
-      source?: 'official-api' | 'manual' | 'unknown' | string;
+      source?: "official-api" | "manual" | "unknown" | string;
     };
     surfaces?: unknown[];
     objects?: unknown[];
@@ -21,7 +21,7 @@ export type DraftHouseModel = {
 
   parcel?: {
     outer: PointXZ[];
-    source?: 'official-api' | 'manual' | 'unknown';
+    source?: "official-api" | "manual" | "unknown";
   };
 
   levels?: DraftHouseLevel[];
@@ -69,7 +69,13 @@ export type HouseviewerJson = any;
 
 export type HouseViewerProps = {
   model?: DraftHouseModel | HouseviewerJson | null;
-  mode?: 'wireframe' | 'solid';
+  mode?: "wireframe" | "solid";
   showHelpers?: boolean;
   className?: string;
+  presentationMode?: boolean;
+  autoRotate?: boolean;
+  autoRotateDurationMs?: number;
+  autoRotateStartAngle?: "right" | "front" | "left" | "back" | number;
+  revealOnLoad?: boolean;
+  revealDurationMs?: number;
 };

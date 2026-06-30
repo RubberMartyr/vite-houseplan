@@ -216,100 +216,99 @@ function PresentationAutoRotate({
   return null;
 }
 
-function RevealedModelGroup({
+type RevealOpacity = {
+  site: number;
+  building: number;
+};
+
+const smoothstep = (progress: number) => {
+  const t = THREE.MathUtils.clamp(progress, 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+function useStagedRevealOpacity({
   enabled,
   isRenderable,
   modelKey,
-  durationMs = DEFAULT_REVEAL_DURATION_MS,
-  children,
+  plotDurationMs,
+  baseplateDurationMs,
 }: {
   enabled: boolean;
   isRenderable: boolean;
   modelKey: string;
-  durationMs?: number;
-  children: React.ReactNode;
-}) {
-  const groupRef = useRef<THREE.Group>(null);
-  const previousRenderableRef = useRef(isRenderable);
+  plotDurationMs: number;
+  baseplateDurationMs: number;
+}): RevealOpacity {
+  const [opacity, setOpacity] = useState<RevealOpacity>({
+    site: 1,
+    building: 1,
+  });
   const revealStartRef = useRef<number | null>(null);
-  const originalOpacityRef = useRef(
-    new Map<THREE.Material, { opacity: number; transparent: boolean }>(),
-  );
-
-  const applyRevealOpacity = (opacity: number) => {
-    const group = groupRef.current;
-    if (!group) {
-      return;
-    }
-
-    group.traverse((object) => {
-      const mesh = object as THREE.Mesh;
-      const materials = Array.isArray(mesh.material)
-        ? mesh.material
-        : mesh.material
-          ? [mesh.material]
-          : [];
-      for (const material of materials) {
-        if (!originalOpacityRef.current.has(material)) {
-          originalOpacityRef.current.set(material, {
-            opacity: material.opacity,
-            transparent: material.transparent,
-          });
-        }
-        material.transparent = true;
-        material.opacity = opacity;
-        material.needsUpdate = true;
-      }
-    });
-  };
-
-  const restoreMaterials = () => {
-    originalOpacityRef.current.forEach((original, material) => {
-      material.opacity = original.opacity;
-      material.transparent = original.transparent;
-      material.needsUpdate = true;
-    });
-    originalOpacityRef.current.clear();
-  };
 
   useEffect(() => {
-    const becameRenderable = isRenderable && !previousRenderableRef.current;
-    previousRenderableRef.current = isRenderable;
-
-    if (enabled && becameRenderable) {
-      revealStartRef.current = performance.now();
-      applyRevealOpacity(0.12);
-      groupRef.current?.scale.setScalar(0.985);
-    } else if (!enabled) {
+    if (!enabled || !isRenderable) {
       revealStartRef.current = null;
-      restoreMaterials();
-      groupRef.current?.scale.setScalar(1);
-    }
-  }, [enabled, isRenderable, modelKey]);
-
-  useEffect(() => () => restoreMaterials(), []);
-
-  useFrame(() => {
-    if (!enabled || revealStartRef.current === null) {
+      setOpacity({ site: 1, building: 1 });
       return;
     }
 
-    const progress = Math.min(
-      (performance.now() - revealStartRef.current) / Math.max(durationMs, 1),
-      1,
-    );
-    const eased = 1 - Math.pow(1 - progress, 3);
-    applyRevealOpacity(THREE.MathUtils.lerp(0.12, 1, eased));
-    groupRef.current?.scale.setScalar(THREE.MathUtils.lerp(0.985, 1, eased));
+    revealStartRef.current = performance.now();
+    setOpacity({ site: 0.08, building: 0 });
+  }, [enabled, isRenderable, modelKey]);
 
-    if (progress >= 1) {
-      revealStartRef.current = null;
-      groupRef.current?.scale.setScalar(1);
-      restoreMaterials();
+  useFrame(() => {
+    if (!enabled || !isRenderable || revealStartRef.current === null) {
+      return;
     }
+
+    const elapsed = performance.now() - revealStartRef.current;
+    const safePlotDurationMs = Math.max(plotDurationMs, 1);
+    const safeBaseplateDurationMs = Math.max(baseplateDurationMs, 1);
+    const plotProgress = smoothstep(elapsed / safePlotDurationMs);
+    const baseplateProgress = smoothstep(
+      (elapsed - safePlotDurationMs) / safeBaseplateDurationMs,
+    );
+    const nextOpacity = {
+      site: THREE.MathUtils.lerp(0.08, 1, plotProgress),
+      building: baseplateProgress,
+    };
+
+    if (plotProgress >= 1 && baseplateProgress >= 1) {
+      revealStartRef.current = null;
+      setOpacity({ site: 1, building: 1 });
+      return;
+    }
+
+    setOpacity(nextOpacity);
   });
 
-  return <group ref={groupRef}>{children}</group>;
+  return opacity;
+}
+
+function StagedRevealHouse({
+  revealEnabled,
+  isRenderable,
+  modelKey,
+  plotDurationMs,
+  baseplateDurationMs,
+  children,
+}: {
+  revealEnabled: boolean;
+  isRenderable: boolean;
+  modelKey: string;
+  plotDurationMs: number;
+  baseplateDurationMs: number;
+  children: (opacity: RevealOpacity) => React.ReactNode;
+}) {
+  const opacity = useStagedRevealOpacity({
+    enabled: revealEnabled,
+    isRenderable,
+    modelKey,
+    plotDurationMs,
+    baseplateDurationMs,
+  });
+
+  return <>{children(opacity)}</>;
 }
 
 function DebugAxes() {
@@ -416,7 +415,10 @@ const shellSwitchKnobStyle: React.CSSProperties = {
 };
 
 const DEFAULT_AUTO_ROTATE_DURATION_MS = 60000;
-const DEFAULT_REVEAL_DURATION_MS = 1800;
+const DEFAULT_PLOT_REVEAL_DURATION_MS = 3000;
+const DEFAULT_BASEPLATE_REVEAL_DURATION_MS = 3000;
+const DEFAULT_REVEAL_DURATION_MS =
+  DEFAULT_PLOT_REVEAL_DURATION_MS + DEFAULT_BASEPLATE_REVEAL_DURATION_MS;
 
 const getStartAngleRadians = (
   angle: HouseViewerProps["autoRotateStartAngle"],
@@ -574,7 +576,9 @@ export default function HouseViewer({
   autoRotateDurationMs = DEFAULT_AUTO_ROTATE_DURATION_MS,
   autoRotateStartAngle = "right",
   revealOnLoad = false,
-  revealDurationMs = DEFAULT_REVEAL_DURATION_MS,
+  plotRevealDurationMs,
+  baseplateRevealDurationMs,
+  revealDurationMs,
 }: HouseViewerProps) {
   const debugEnabled = debugFlags.enabled;
   const [currentModel, setCurrentModel] =
@@ -682,6 +686,15 @@ export default function HouseViewer({
   );
   const presentationAnimationsEnabled =
     presentationMode || autoRotate || revealOnLoad;
+  const stagedRevealEnabled = presentationMode && revealOnLoad;
+  const resolvedPlotRevealDurationMs =
+    plotRevealDurationMs ??
+    (revealDurationMs ? revealDurationMs / 2 : DEFAULT_PLOT_REVEAL_DURATION_MS);
+  const resolvedBaseplateRevealDurationMs =
+    baseplateRevealDurationMs ??
+    (revealDurationMs
+      ? revealDurationMs / 2
+      : DEFAULT_BASEPLATE_REVEAL_DURATION_MS);
   const modelRevealKey = useMemo(() => JSON.stringify(model), [model]);
 
   const buildValidationEntries = (
@@ -823,54 +836,61 @@ export default function HouseViewer({
           startAngle={autoRotateStartAngle}
         />
 
-        <RevealedModelGroup
-          enabled={presentationAnimationsEnabled && revealOnLoad}
+        <StagedRevealHouse
+          revealEnabled={stagedRevealEnabled}
           isRenderable={renderableGeometrySummary.hasRenderableGeometry}
           modelKey={modelRevealKey}
-          durationMs={revealDurationMs}
+          plotDurationMs={resolvedPlotRevealDurationMs}
+          baseplateDurationMs={resolvedBaseplateRevealDurationMs}
         >
-          {renderableGeometrySummary.hasRenderableGeometry && (
-            <EngineHouse
-              house={viewerModel}
-              site={viewerModel.site}
-              showWalls={showWalls}
-              showRoof={showRoof}
-              showSlabs={showSlabs}
-              showGlass={showGlass}
-              showRooms={showRooms}
-              showDebug={toggles.showDebug || showHelpers}
-              selectedRoomId={selectedRoom?.id ?? null}
-              hoveredRoomId={hoveredRoomId}
-              onRoomHover={setHoveredRoomId}
-              onRoomSelect={(room) => {
-                setSelectedRoom({
-                  id: room.id,
-                  name: room.name,
-                  levelName: roomLevelById.get(room.levelId) ?? room.levelId,
-                });
-              }}
-            />
+          {(revealOpacity) => (
+            <>
+              {renderableGeometrySummary.hasRenderableGeometry && (
+                <EngineHouse
+                  house={viewerModel}
+                  site={viewerModel.site}
+                  showWalls={showWalls}
+                  showRoof={showRoof}
+                  showSlabs={showSlabs}
+                  showGlass={showGlass}
+                  showRooms={showRooms}
+                  showDebug={toggles.showDebug || showHelpers}
+                  selectedRoomId={selectedRoom?.id ?? null}
+                  hoveredRoomId={hoveredRoomId}
+                  onRoomHover={setHoveredRoomId}
+                  onRoomSelect={(room) => {
+                    setSelectedRoom({
+                      id: room.id,
+                      name: room.name,
+                      levelName:
+                        roomLevelById.get(room.levelId) ?? room.levelId,
+                    });
+                  }}
+                  revealOpacity={revealOpacity}
+                />
+              )}
+              <DebugAxes />
+              {(toggles.showDebug || showHelpers) && debugEnabled && (
+                <Suspense fallback={null}>
+                  <DebugEdges
+                    showEdges={showEdges}
+                    showOpeningEdges={showOpeningEdges}
+                  />
+                </Suspense>
+              )}
+              {(toggles.showDebug || showHelpers) && debugEnabled && (
+                <Suspense fallback={null}>
+                  <FloorplanValidationOverlay
+                    architecturalHouse={houseWithInjectedInteriorWall}
+                    validationResult={validationResult}
+                    showFloorplanOverlay={showFloorplanOverlay}
+                    showValidationIssues={showValidationIssues}
+                  />
+                </Suspense>
+              )}
+            </>
           )}
-          <DebugAxes />
-          {(toggles.showDebug || showHelpers) && debugEnabled && (
-            <Suspense fallback={null}>
-              <DebugEdges
-                showEdges={showEdges}
-                showOpeningEdges={showOpeningEdges}
-              />
-            </Suspense>
-          )}
-          {(toggles.showDebug || showHelpers) && debugEnabled && (
-            <Suspense fallback={null}>
-              <FloorplanValidationOverlay
-                architecturalHouse={houseWithInjectedInteriorWall}
-                validationResult={validationResult}
-                showFloorplanOverlay={showFloorplanOverlay}
-                showValidationIssues={showValidationIssues}
-              />
-            </Suspense>
-          )}
-        </RevealedModelGroup>
+        </StagedRevealHouse>
 
         {(toggles.showDebug || showHelpers) && debugEnabled && (
           <Suspense fallback={null}>
